@@ -1,0 +1,35 @@
+# macOS system files
+.DS_Store
+
+# IDE files
+.idea
+
+# VSCode - Keep settings.json but exclude other files
+.vscode/*
+!.vscode/settings.json
+
+# Python cache and compiled files
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.mo
+
+# Virtual environment
+Windows_and_Linux/myvenv/
+
+# Build directories
+Windows_and_Linux/build/
+Windows_and_Linux/dist/
+Windows_and_Linux/*.spec
+
+# .vscode
+**/.vscode/
+!**/.vscode/settings.json
+
+# Translation files
+**/pot_files
+
+# dev
+Windows_and_Linux/dev_notes
+.ruff_cache
+.mypy_cache
