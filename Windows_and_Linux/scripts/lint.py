@@ -4,13 +4,13 @@ Script de nettoyage de code simplifié
 Utilise seulement les outils essentiels : Ruff + Black + Mypy
 """
 
-import os
 import subprocess
 import sys
 from pathlib import Path
+import os
 
-if os.name == "nt":  # Windows
-    from utils import get_python_executable  # type: ignore
+if os.name == 'nt':  # Windows
+    from utils import get_python_executable # type: ignore
 else:  # Linux/Unix
     from .utils import get_python_executable
 
@@ -42,8 +42,9 @@ def run_command(cmd, description, fix_mode=False):
         if result.returncode == 0:
             print(f"✅ {description} - OK")
             return True
-        print(f"❌ {description} - Erreurs trouvées")
-        return False
+        else:
+            print(f"❌ {description} - Erreurs trouvées")
+            return False
 
     except Exception as e:
         print(f"❌ {description} - Échec: {e}")
@@ -69,7 +70,7 @@ def main():
 
     # Commandes essentielles
     commands = []
-
+    
     # 1. Ruff : linting + import sorting + formatting léger
     ruff_cmd = [python_cmd, "-m", "ruff", "check", ".", "--exclude", "myvenv"]
     if fix_mode:
@@ -101,14 +102,15 @@ def main():
     print(f"{'='*50}")
 
     failed = [desc for desc, success in results if not success]
-
+    
     if not failed:
         print("🎉 Tout est OK !")
         return 0
-    print(f"⚠️  {len(failed)} problème(s) détecté(s)")
-    for desc in failed:
-        print(f"  - {desc}")
-    return 1
+    else:
+        print(f"⚠️  {len(failed)} problème(s) détecté(s)")
+        for desc in failed:
+            print(f"  - {desc}")
+        return 1
 
 
 if __name__ == "__main__":
@@ -117,5 +119,5 @@ if __name__ == "__main__":
         print("  python lint.py           # Vérification seulement")
         print("  python lint.py --fix     # Correction automatique")
         print("  python lint.py --fix --types  # + vérification types")
-
+    
     sys.exit(main())

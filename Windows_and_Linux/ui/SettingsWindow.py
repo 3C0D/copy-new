@@ -354,7 +354,7 @@ class SettingsWindow(QtWidgets.QWidget):
             self.plain_radio.setStyleSheet(
                 f"color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
             )
-            current_theme = self.app.settings_manager.settings.system.theme
+            current_theme = self.app.settings_manager.settings.system.get("theme","dark")
             self.gradient_radio.setChecked(current_theme == "gradient")
             self.plain_radio.setChecked(current_theme == "plain")
             # Auto-save when theme changes

@@ -321,7 +321,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
         self.background = ThemeBackground(
             self,
-            self.app.settings_manager.settings.system.theme,
+            self.app.settings_manager.settings.system.get("theme", "dark"),
             is_popup=True,
             border_radius=10,
         )
@@ -503,7 +503,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
         self.initialize_button_visibility()
 
         # show update notice if applicable
-        update_available = self.app.settings_manager.settings.system.update_available
+        update_available = self.app.settings_manager.settings.system.get("update_available",False)
 
         if update_available:
             update_label = QLabel()

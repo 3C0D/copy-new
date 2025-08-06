@@ -104,7 +104,7 @@ class WritingToolApp(QtWidgets.QApplication):
 
             try:
                 # Initialize the current provider, defaulting to Gemini
-                provider_name = self.settings_manager.settings.system.provider
+                provider_name = self.settings_manager.settings.system.get("provider", "gemini")
                 self._logger.debug(f"Selected provider: {provider_name}")
 
                 # # Map provider names to actual provider_name in classes
@@ -146,7 +146,7 @@ class WritingToolApp(QtWidgets.QApplication):
                 self.register_hotkey()
 
                 # Set language from system settings
-                lang = self.settings_manager.settings.system.language
+                lang = self.settings_manager.settings.system.get("language","en")
                 self.change_language(lang if lang != "en" else None)
 
                 # Initialize update checker
