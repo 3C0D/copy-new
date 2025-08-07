@@ -1,18 +1,18 @@
 import os
 import sys
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtGui import QImage
-from PySide6.QtWidgets import QHBoxLayout, QRadioButton, QScrollArea
+from PySide6.QtWidgets import QHBoxLayout, QRadioButton, QScrollArea, QWidget
 
 from aiprovider import AIProvider
 from ui.AutostartManager import AutostartManager
-from ui.ui_utils import colorMode, ui_utils
+from ui.ui_utils import ThemedWidget, colorMode, ui_utils
 
 _ = lambda x: x
 
 
-class SettingsWindow(QtWidgets.QWidget):
+class SettingsWindow(ThemedWidget):
     """
     The settings window for the application.
     Now with scrolling support for better usability on smaller screens.
@@ -31,9 +31,259 @@ class SettingsWindow(QtWidgets.QWidget):
         self.provider_container = None
         self.autostart_checkbox = None
         self.shortcut_input = None
-        self.previous_window = None  # Store reference to previous window
+        self.previous_window = None
         self.init_ui()
         self.retranslate_ui()
+
+    def init_ui(self):
+        """
+        Initialize the user interface for the settings window.
+        Now includes a scroll area for better handling of content on smaller screens.
+        """
+        self.setWindowTitle(_("Settings"))
+        # Set the exact width we want (650px) as both minimum and default
+        self.setMinimumWidth(650)
+        self.setFixedWidth(650)  # This makes the width non-resizable
+
+        # Set window flags to stay on top and maintain focus
+        self.setWindowFlags(
+            QtCore.Qt.WindowType.Window
+            | QtCore.Qt.WindowType.WindowStaysOnTopHint
+            | QtCore.Qt.WindowType.WindowCloseButtonHint
+            | QtCore.Qt.WindowType.WindowTitleHint,
+        )
+
+        main_layout = QtWidgets.QVBoxLayout(self.background)  # Set icon, margin, and spacing in ThemedWidget
+
+        # Earlier scroll_area and scroll_content creation moved up
+        # Create scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        scroll_area.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded,
+        )
+
+        # Style the scroll area for transparency and proper scroll behavior
+        scroll_area.setStyleSheet(
+            """
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollArea > QWidget > QWidget {
+                background: transparent;
+            }
+            QScrollBar:vertical {
+                background-color: rgba(0, 0, 0, 0.1);
+                width: 12px;
+                margin: 0px;
+                border-radius: 6px;
+            }
+            QScrollBar::handle:vertical {
+                background-color: rgba(128, 128, 128, 0.6);
+                min-height: 20px;
+                border-radius: 6px;
+                margin: 2px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: rgba(128, 128, 128, 0.8);
+            }
+            QScrollBar::handle:vertical:pressed {
+                background-color: rgba(128, 128, 128, 1.0);
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+            QScrollBar:horizontal {
+                background-color: rgba(0, 0, 0, 0.1);
+                height: 12px;
+                margin: 0px;
+                border-radius: 6px;
+            }
+            QScrollBar::handle:horizontal {
+                background-color: rgba(128, 128, 128, 0.6);
+                min-width: 20px;
+                border-radius: 6px;
+                margin: 2px;
+            }
+            QScrollBar::handle:horizontal:hover {
+                background-color: rgba(128, 128, 128, 0.8);
+            }
+            QScrollBar::handle:horizontal:pressed {
+                background-color: rgba(128, 128, 128, 1.0);
+            }
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                width: 0px;
+                background: transparent;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: transparent;
+            }
+        """,
+        )
+
+        # Create scroll content widget
+        scroll_content = QWidget()
+        scroll_content.setStyleSheet("background: transparent;")
+        content_layout = QtWidgets.QVBoxLayout(scroll_content)
+        content_layout.setContentsMargins(30, 30, 30, 30)
+        content_layout.setSpacing(20)
+
+        if not self.providers_only:
+            title_label = QtWidgets.QLabel(_("Settings"))
+            title_label.setStyleSheet(
+                f"font-size: 24px; font-weight: bold; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
+            )
+            content_layout.addWidget(
+                title_label,
+                alignment=QtCore.Qt.AlignmentFlag.AlignCenter,
+            )
+
+            # Add autostart checkbox for Windows compiled version
+            if AutostartManager.get_startup_path():
+                self.autostart_checkbox = QtWidgets.QCheckBox(_("Start on Boot"))
+                self.autostart_checkbox.setStyleSheet(
+                    f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
+                )
+                self.autostart_checkbox.setChecked(AutostartManager.check_autostart())
+                self.autostart_checkbox.stateChanged.connect(self.toggle_autostart)
+                content_layout.addWidget(self.autostart_checkbox)
+
+            # Add shortcut key input
+            shortcut_label = QtWidgets.QLabel(_("Shortcut Key:"))
+            shortcut_label.setStyleSheet(
+                f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
+            )
+            content_layout.addWidget(shortcut_label)
+
+            self.shortcut_input = QtWidgets.QLineEdit(
+                self.app.settings_manager.settings.system.hotkey,
+            )
+            self.shortcut_input.setStyleSheet(
+                f"""
+                font-size: 16px;
+                padding: 5px;
+                background-color: {'#444' if colorMode == 'dark' else 'white'};
+                color: {'#ffffff' if colorMode == 'dark' else '#000000'};
+                border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
+            """,
+            )
+            # Auto-save when shortcut changes
+            self.shortcut_input.textChanged.connect(self.auto_save_shortcut)
+            content_layout.addWidget(self.shortcut_input)
+
+            # Add theme selection
+            theme_label = QtWidgets.QLabel(_("Background Theme:"))
+            theme_label.setStyleSheet(
+                f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
+            )
+            content_layout.addWidget(theme_label)
+
+            theme_layout = QHBoxLayout()
+            self.gradient_radio = QRadioButton(_("Blurry Gradient"))
+            self.plain_radio = QRadioButton(_("Plain"))
+            self.gradient_radio.setStyleSheet(
+                f"color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
+            )
+            self.plain_radio.setStyleSheet(
+                f"color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
+            )
+            current_theme = self.app.settings_manager.settings.system.get("theme", "dark")
+            self.gradient_radio.setChecked(current_theme == "gradient")
+            self.plain_radio.setChecked(current_theme == "plain")
+            # Auto-save when theme changes
+            self.gradient_radio.toggled.connect(self.auto_save_theme)
+            self.plain_radio.toggled.connect(self.auto_save_theme)
+            theme_layout.addWidget(self.gradient_radio)
+            theme_layout.addWidget(self.plain_radio)
+            content_layout.addLayout(theme_layout)
+
+        # Add provider selection
+        provider_label = QtWidgets.QLabel(_("Choose AI Provider:"))
+        provider_label.setStyleSheet(
+            f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
+        )
+        content_layout.addWidget(provider_label)
+
+        self.provider_dropdown = QtWidgets.QComboBox()
+        self.provider_dropdown.setStyleSheet(
+            f"""
+            font-size: 16px;
+            padding: 5px;
+            background-color: {'#444' if colorMode == 'dark' else 'white'};
+            color: {'#ffffff' if colorMode == 'dark' else '#000000'};
+            border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
+        """,
+        )
+        self.provider_dropdown.setInsertPolicy(
+            QtWidgets.QComboBox.InsertPolicy.NoInsert,
+        )
+        # Disable wheel events on dropdown to prevent scroll interference
+        self.provider_dropdown.wheelEvent = lambda e: e.ignore()
+
+        current_provider = self.app.settings_manager.settings.system.get("provider", "gemini")
+        for provider in self.app.providers:
+            self.provider_dropdown.addItem(provider.provider_name)
+        self.provider_dropdown.setCurrentIndex(
+            self.provider_dropdown.findText(current_provider),
+        )
+        content_layout.addWidget(self.provider_dropdown)
+
+        # Add horizontal separator
+        line = QtWidgets.QFrame()
+        line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
+        line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
+        content_layout.addWidget(line)
+
+        # Create container for provider UI
+        self.provider_container = QtWidgets.QVBoxLayout()
+        content_layout.addLayout(self.provider_container)
+
+        # Initialize provider UI
+        provider_instance = self.app.providers[self.provider_dropdown.currentIndex()]
+        self.init_provider_ui(provider_instance, self.provider_container)
+
+        # Connect provider dropdown
+        self.provider_dropdown.currentIndexChanged.connect(
+            lambda: self.init_provider_ui(
+                self.app.providers[self.provider_dropdown.currentIndex()],
+                self.provider_container,
+            ),
+        )
+
+        # Add horizontal separator
+        line = QtWidgets.QFrame()
+        line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
+        line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
+        content_layout.addWidget(line)
+
+        # Set up scroll area with content
+        scroll_area.setWidget(scroll_content)
+        main_layout.addWidget(scroll_area)
+
+        # Add save button (especially important for providers_only mode)
+        self.add_save_button(main_layout)
+
+        # Set appropriate window height based on screen size
+        screen = QtWidgets.QApplication.primaryScreen().geometry()
+        max_height = int(screen.height() * 0.85)  # 85% of screen height
+        desired_height = min(
+            800,
+            max_height,
+        )  # Cap at 800px or 85% of screen height (increased from 720px)
+        self.resize(
+            650,
+            desired_height,
+        )  # Use an exact width of 650px (increased from 592px) so stuff looks good!
+
+        # Only add close button to title bar if NOT in providers_only mode
+        if not self.providers_only:
+            self.add_close_button()
+
+        # Ensure window can receive keyboard events and maintain focus
+        self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
+        self.setFocus()
 
     def retranslate_ui(self):
         self.setWindowTitle(_("Settings"))
@@ -189,266 +439,10 @@ class SettingsWindow(QtWidgets.QWidget):
             if item.widget():
                 widget = item.widget()
                 if isinstance(widget, QtWidgets.QComboBox):
-                    widget.wheelEvent = lambda event: event.ignore()
+                    widget.wheelEvent = lambda e: e.ignore()
             elif item.layout():
                 # Recursively check nested layouts
                 self.disable_dropdown_scroll(item.layout())
-
-    def init_ui(self):
-        """
-        Initialize the user interface for the settings window.
-        Now includes a scroll area for better handling of content on smaller screens.
-        """
-        self.setWindowTitle(_("Settings"))
-        # Set the exact width we want (650px) as both minimum and default
-        self.setMinimumWidth(650)
-        self.setFixedWidth(650)  # This makes the width non-resizable
-
-        # Set window flags to stay on top and maintain focus
-        self.setWindowFlags(
-            QtCore.Qt.Window
-            | QtCore.Qt.WindowStaysOnTopHint
-            | QtCore.Qt.WindowCloseButtonHint
-            | QtCore.Qt.WindowTitleHint,
-        )
-
-        # Set up the main window layout with spacing for bottom elements
-        ui_utils.setup_window_and_layout(self)
-        main_layout = QtWidgets.QVBoxLayout(self.background)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(
-            10,
-        )  # Add spacing between scroll area and bottom elements
-
-        # Earlier scroll_area and scroll_content creation moved up
-        # Create scroll area
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        scroll_area.setHorizontalScrollBarPolicy(
-            QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded,
-        )
-
-        # Style the scroll area for transparency and proper scroll behavior
-        scroll_area.setStyleSheet(
-            """
-            QScrollArea {
-                background: transparent;
-                border: none;
-            }
-            QScrollArea > QWidget > QWidget {
-                background: transparent;
-            }
-            QScrollBar:vertical {
-                background-color: rgba(0, 0, 0, 0.1);
-                width: 12px;
-                margin: 0px;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: rgba(128, 128, 128, 0.6);
-                min-height: 20px;
-                border-radius: 6px;
-                margin: 2px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: rgba(128, 128, 128, 0.8);
-            }
-            QScrollBar::handle:vertical:pressed {
-                background-color: rgba(128, 128, 128, 1.0);
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                height: 0px;
-            }
-            QScrollBar:horizontal {
-                background-color: rgba(0, 0, 0, 0.1);
-                height: 12px;
-                margin: 0px;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:horizontal {
-                background-color: rgba(128, 128, 128, 0.6);
-                min-width: 20px;
-                border-radius: 6px;
-                margin: 2px;
-            }
-            QScrollBar::handle:horizontal:hover {
-                background-color: rgba(128, 128, 128, 0.8);
-            }
-            QScrollBar::handle:horizontal:pressed {
-                background-color: rgba(128, 128, 128, 1.0);
-            }
-            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
-                width: 0px;
-                background: transparent;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                background: transparent;
-            }
-        """,
-        )
-
-        # Create scroll content widget
-        scroll_content = QtWidgets.QWidget()
-        scroll_content.setStyleSheet("background: transparent;")
-        content_layout = QtWidgets.QVBoxLayout(scroll_content)
-        content_layout.setContentsMargins(30, 30, 30, 30)
-        content_layout.setSpacing(20)
-
-        if not self.providers_only:
-            title_label = QtWidgets.QLabel(_("Settings"))
-            title_label.setStyleSheet(
-                f"font-size: 24px; font-weight: bold; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-            )
-            content_layout.addWidget(
-                title_label,
-                alignment=QtCore.Qt.AlignmentFlag.AlignCenter,
-            )
-
-            # Add autostart checkbox for Windows compiled version
-            if AutostartManager.get_startup_path():
-                self.autostart_checkbox = QtWidgets.QCheckBox(_("Start on Boot"))
-                self.autostart_checkbox.setStyleSheet(
-                    f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-                )
-                self.autostart_checkbox.setChecked(AutostartManager.check_autostart())
-                self.autostart_checkbox.stateChanged.connect(self.toggle_autostart)
-                content_layout.addWidget(self.autostart_checkbox)
-
-            # Add shortcut key input
-            shortcut_label = QtWidgets.QLabel(_("Shortcut Key:"))
-            shortcut_label.setStyleSheet(
-                f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-            )
-            content_layout.addWidget(shortcut_label)
-
-            self.shortcut_input = QtWidgets.QLineEdit(
-                self.app.settings_manager.settings.system.hotkey,
-            )
-            self.shortcut_input.setStyleSheet(
-                f"""
-                font-size: 16px;
-                padding: 5px;
-                background-color: {'#444' if colorMode == 'dark' else 'white'};
-                color: {'#ffffff' if colorMode == 'dark' else '#000000'};
-                border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
-            """,
-            )
-            # Auto-save when shortcut changes
-            self.shortcut_input.textChanged.connect(self.auto_save_shortcut)
-            content_layout.addWidget(self.shortcut_input)
-
-            # Add theme selection
-            theme_label = QtWidgets.QLabel(_("Background Theme:"))
-            theme_label.setStyleSheet(
-                f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-            )
-            content_layout.addWidget(theme_label)
-
-            theme_layout = QHBoxLayout()
-            self.gradient_radio = QRadioButton(_("Blurry Gradient"))
-            self.plain_radio = QRadioButton(_("Plain"))
-            self.gradient_radio.setStyleSheet(
-                f"color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-            )
-            self.plain_radio.setStyleSheet(
-                f"color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-            )
-            current_theme = self.app.settings_manager.settings.system.get("theme","dark")
-            self.gradient_radio.setChecked(current_theme == "gradient")
-            self.plain_radio.setChecked(current_theme == "plain")
-            # Auto-save when theme changes
-            self.gradient_radio.toggled.connect(self.auto_save_theme)
-            self.plain_radio.toggled.connect(self.auto_save_theme)
-            theme_layout.addWidget(self.gradient_radio)
-            theme_layout.addWidget(self.plain_radio)
-            content_layout.addLayout(theme_layout)
-
-        # Add provider selection
-        provider_label = QtWidgets.QLabel(_("Choose AI Provider:"))
-        provider_label.setStyleSheet(
-            f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-        )
-        content_layout.addWidget(provider_label)
-
-        self.provider_dropdown = QtWidgets.QComboBox()
-        self.provider_dropdown.setStyleSheet(
-            f"""
-            font-size: 16px;
-            padding: 5px;
-            background-color: {'#444' if colorMode == 'dark' else 'white'};
-            color: {'#ffffff' if colorMode == 'dark' else '#000000'};
-            border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
-        """,
-        )
-        self.provider_dropdown.setInsertPolicy(
-            QtWidgets.QComboBox.InsertPolicy.NoInsert,
-        )
-        # Disable wheel events on dropdown to prevent scroll interference
-        self.provider_dropdown.wheelEvent = lambda event: event.ignore()
-
-        current_provider = self.app.settings_manager.settings.system.get("provider", "gemini")
-        for provider in self.app.providers:
-            self.provider_dropdown.addItem(provider.provider_name)
-        self.provider_dropdown.setCurrentIndex(
-            self.provider_dropdown.findText(current_provider),
-        )
-        content_layout.addWidget(self.provider_dropdown)
-
-        # Add horizontal separator
-        line = QtWidgets.QFrame()
-        line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
-        line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
-        content_layout.addWidget(line)
-
-        # Create container for provider UI
-        self.provider_container = QtWidgets.QVBoxLayout()
-        content_layout.addLayout(self.provider_container)
-
-        # Initialize provider UI
-        provider_instance = self.app.providers[self.provider_dropdown.currentIndex()]
-        self.init_provider_ui(provider_instance, self.provider_container)
-
-        # Connect provider dropdown
-        self.provider_dropdown.currentIndexChanged.connect(
-            lambda: self.init_provider_ui(
-                self.app.providers[self.provider_dropdown.currentIndex()],
-                self.provider_container,
-            ),
-        )
-
-        # Add horizontal separator
-        line = QtWidgets.QFrame()
-        line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
-        line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
-        content_layout.addWidget(line)
-
-        # Set up scroll area with content
-        scroll_area.setWidget(scroll_content)
-        main_layout.addWidget(scroll_area)
-
-        # Add save button (especially important for providers_only mode)
-        self.add_save_button(main_layout)
-
-        # Set appropriate window height based on screen size
-        screen = QtWidgets.QApplication.primaryScreen().geometry()
-        max_height = int(screen.height() * 0.85)  # 85% of screen height
-        desired_height = min(
-            800,
-            max_height,
-        )  # Cap at 800px or 85% of screen height (increased from 720px)
-        self.resize(
-            650,
-            desired_height,
-        )  # Use an exact width of 650px (increased from 592px) so stuff looks good!
-
-        # Only add close button to title bar if NOT in providers_only mode
-        if not self.providers_only:
-            self.add_close_button()
-
-        # Ensure window can receive keyboard events and maintain focus
-        self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
-        self.setFocus()
 
     def showEvent(self, event):
         """Handle window show event to ensure focus."""
@@ -495,7 +489,7 @@ class SettingsWindow(QtWidgets.QWidget):
         from ui.ui_utils import colorMode
 
         # Create button container
-        button_container = QtWidgets.QWidget()
+        button_container = QWidget()
         button_layout = QtWidgets.QHBoxLayout(button_container)
         button_layout.setContentsMargins(20, 10, 20, 20)
 

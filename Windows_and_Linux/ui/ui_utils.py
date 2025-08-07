@@ -3,6 +3,7 @@ import sys
 
 import darkdetect
 from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6.QtWidgets import QWidget
 from PySide6.QtGui import QImage, QPixmap
 
 colorMode = "dark" if darkdetect.isDark() else "light"
@@ -22,7 +23,7 @@ def set_color_mode(theme):
         colorMode = theme
 
 
-def get_icon_path(icon_name, with_theme=True):
+def get_icon_path(icon_name, with_theme=True) -> str:
     """
     Get the correct path for an icon, handling both dev and build modes.
     Supports both PNG and SVG formats, with SVG taking precedence.
@@ -64,11 +65,7 @@ def get_icon_path(icon_name, with_theme=True):
             if os.path.exists(full_path):
                 return full_path
 
-    # Return first PNG path as fallback (for backward compatibility)
-    fallback_filename = (
-        f"{icon_name}{'_dark' if with_theme and colorMode == 'dark' else '_light' if with_theme else ''}.png"
-    )
-    return os.path.join(base_paths[0], fallback_filename)
+    return ""
 
 
 class ui_utils:
@@ -97,7 +94,7 @@ class ui_utils:
             rounding_amount,
             rounding_amount,
         )
-        target = QImage(image_size, image_size, QImage.Format_ARGB32)
+        target = QImage(image_size, image_size, QImage.Format.Format_ARGB32)
         target.fill(QtCore.Qt.GlobalColor.transparent)
         painter = QtGui.QPainter(target)
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
@@ -107,26 +104,33 @@ class ui_utils:
         targetPixmap = QPixmap.fromImage(target)
         return targetPixmap
 
-    @classmethod
-    def setup_window_and_layout(cls, base: QtWidgets.QWidget):
-        # Set the window icon
+
+class ThemedWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setup_window_and_layout()
+
+    def setup_window_and_layout(self):
+        # Set window icon
         icon_path = get_icon_path("app_icon", with_theme=False)
         if os.path.exists(icon_path):
-            base.setWindowIcon(QtGui.QIcon(icon_path))
-        main_layout = QtWidgets.QVBoxLayout(base)
+            self.setWindowIcon(QtGui.QIcon(icon_path))
+
+        main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
-        base.background = ThemeBackground(base, "gradient")
-        main_layout.addWidget(base.background)
+
+        self.background = ThemeBackground(self, "gradient")
+        main_layout.addWidget(self.background)
 
 
-class ThemeBackground(QtWidgets.QWidget):
+class ThemeBackground(QWidget):
     """
     A custom widget that creates a background for the application based on the selected theme.
     """
 
     def __init__(self, parent=None, theme="gradient", is_popup=False, border_radius=0):
         super().__init__(parent)
-        self.setAttribute(QtCore.Qt.WA_StyledBackground, True)
+        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_StyledBackground, True)
         self.theme = theme
         self.is_popup = is_popup
         self.border_radius = border_radius

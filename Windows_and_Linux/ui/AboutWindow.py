@@ -1,167 +1,259 @@
 import webbrowser
 
 from PySide6 import QtCore, QtGui, QtWidgets
-
-from ui.ui_utils import colorMode
+from ui.ui_utils import ThemedWidget, colorMode
 
 _ = lambda x: x
 
 
-class AboutWindow(QtWidgets.QWidget):
+class AboutWindow(ThemedWidget):
     """
     The about window for the application.
     """
 
     def __init__(self):
         super().__init__()
+        self.min_width = 600
+        self.min_height = 650
         self.init_ui()
 
     def init_ui(self):
-        """
-        Initialize the user interface for the about window.
-        """
-        self.setWindowTitle(
-            " ",
-        )  # Hack to hide the title bar text. TODO: Find a better solution later.
-        self.setGeometry(300, 300, 650, 720)  # Set the window size
+        """Initialize the user interface for the about window."""
+        self._setup_window()
+        self._create_layout()
+        self._load_content()
 
-        # Center the window on the screen. I'm not aware of any methods in ui_utils to do this, so I'll be doing it manually.
+    def _setup_window(self):
+        """Configure window properties and positioning."""
+        self.setWindowTitle(" ")  # Hidden title for clean look
+        self.setMinimumSize(self.min_width, self.min_height)
+
+        # Center window on screen
+        self._center_on_screen()
+
+        # Configure window flags for minimal chrome
+        self.setWindowFlags(
+            self.windowFlags()
+            & ~QtCore.Qt.WindowType.WindowMinimizeButtonHint
+            & ~QtCore.Qt.WindowType.WindowSystemMenuHint
+            | QtCore.Qt.WindowType.WindowCloseButtonHint
+            | QtCore.Qt.WindowType.WindowTitleHint
+        )
+
+        # Set transparent icon
+        self._set_transparent_icon()
+
+    def _center_on_screen(self):
+        """Center the window on the primary screen."""
         screen = QtWidgets.QApplication.primaryScreen().geometry()
-        x = (screen.width() - self.width()) // 2
-        y = (screen.height() - self.height()) // 2
+        window_rect = self.geometry()
+        x = (screen.width() - window_rect.width()) // 2
+        y = (screen.height() - window_rect.height()) // 2
         self.move(x, y)
 
-        ui_utils.setup_window_and_layout(self)
-
-        # Disable minimize button and icon in title bar
-        self.setWindowFlags(
-            self.windowFlags() & ~QtCore.Qt.WindowMinimizeButtonHint & ~QtCore.Qt.WindowSystemMenuHint
-            | QtCore.Qt.WindowCloseButtonHint
-            | QtCore.Qt.WindowTitleHint,
-        )
-
-        # Remove window icon. Has to be done after ui_utils.setup_window_and_layout().
+    def _set_transparent_icon(self):
+        """Set a transparent window icon."""
         pixmap = QtGui.QPixmap(32, 32)
-        pixmap.fill(QtCore.Qt.transparent)
+        pixmap.fill(QtCore.Qt.GlobalColor.transparent)
         self.setWindowIcon(QtGui.QIcon(pixmap))
 
-        content_layout = QtWidgets.QVBoxLayout(self.background)
-        content_layout.setContentsMargins(30, 30, 30, 30)
-        content_layout.setSpacing(20)
+    def _create_layout(self):
+        """Create the main layout structure."""
+        self.content_layout = QtWidgets.QVBoxLayout(self.background)
+        self.content_layout.setContentsMargins(30, 30, 30, 30)
+        self.content_layout.setSpacing(20)
 
+    def _load_content(self):
+        """Load and display the about content."""
+        # Title
+        title_label = self._create_title_label()
+        self.content_layout.addWidget(title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
+
+        # Main content
+        about_content = self._get_about_content()
+        content_widget = self._create_scrollable_content(about_content)
+        self.content_layout.addWidget(content_widget)
+
+        # Update button
+        update_button = self._create_update_button()
+        self.content_layout.addWidget(update_button)
+
+    def _create_title_label(self):
+        """Create the main title label."""
         title_label = QtWidgets.QLabel(_("About Writing Tools"))
-        title_label.setStyleSheet(
-            f"font-size: 24px; font-weight: bold; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-        )
-        content_layout.addWidget(
-            title_label,
-            alignment=QtCore.Qt.AlignmentFlag.AlignCenter,
-        )
+        title_label.setStyleSheet(self._get_title_style())
+        return title_label
 
-        about_text = (
-            "<p style='text-align: center;'>"
-            + _(
-                "Writing Tools is a free & lightweight tool that helps you improve your writing with AI, similar to Apple's new Apple Intelligence feature. It works with an extensive range of AI LLMs, both online and locally run.",
-            )
-            + """
-                     <br>
-                </p>
-                <p style='text-align: center;'>"""
-            + "<b>"
-            + _("Created with care by Jesai, a high school student.")
-            + "</b><br><br>"
-            + _("Feel free to check out my other AI app")
-            + ', <a href="https://play.google.com/store/apps/details?id=com.jesai.blissai"><b>Bliss AI</b></a>. '
-            + _("It's a novel AI tutor that's free on the Google Play Store :)")
-            + "<br><br>"
-            + "<b>"
-            + _("Contact me")
-            + ":</b> jesaitarun@gmail.com<br><br>"
-            + """</p>
-                <p style='text-align: center;'>
-                <b>⭐ """
-            + _(
-                "Writing Tools would not be where it is today without its <u>amazing</u> contributors",
-            )
-            + ":</b><br>"
-            + '<b>1. <a href="https://github.com/momokrono">momokrono</a>:</b><br>'
-            + _(
-                "Added Linux support, switched to the pynput API to improve Windows stability. Added Ollama API support, core logic for customizable buttons, and localization. Fixed misc. bugs and added graceful termination support by handling SIGINT signal.",
-            )
-            + "<br>"
-            + '<b>2. <a href="https://github.com/CameronRedmore">Cameron Redmore (CameronRedmore)</a>:</b><br>'
-            + _(
-                "Extensively refactored Writing Tools and added OpenAI Compatible API support, streamed responses, and the text generation mode when no text is selected.",
-            )
-            + "<br>"
-            + '<b>3. <a href="https://github.com/Soszust40">Soszust40 (Soszust40)</a>:</b><br>'
-            + _(
-                "Helped add dark mode, the plain theme, tray menu fixes, and UI improvements.",
-            )
-            + "</b><br>"
-            + '<b>4. <a href="https://github.com/arsaboo">Alok Saboo (arsaboo)</a>:</b><br>'
-            + _("Helped improve the reliability of text selection.")
-            + "</b><br>"
-            + '<b>5. <a href="https://github.com/raghavdhingra24">raghavdhingra24</a>:</b><br>'
-            + _("Made the rounded corners anti-aliased & prettier.")
-            + "</b><br>"
-            + '<b>6. <a href="https://github.com/ErrorCatDev">ErrorCatDev</a>:</b><br>'
-            + _(
-                "Significantly improved the About window, making it scrollable and cleaning things up. Also improved our .gitignore & requirements.txt.",
-            )
-            + "</b><br>"
-            + '<b>7. <a href="https://github.com/Vadim-Karpenko">Vadim Karpenko</a>:</b><br>'
-            + _("Helped add the start-on-boot setting.")
-            + "</b><br><br>"
-            + 'If you have a Mac, be sure to check out the <a href="https://github.com/theJayTea/WritingTools#-macos">Writing Tools macOS port</a> by <a href="https://github.com/Aryamirsepasi">Arya Mirsepasi</a>!<br>'
-            + """</p>
-                <p style='text-align: center;'>
-                <b>Version:</b> 7.0 (Codename: Impeccably Improved)
-                </p>
-                <p />
-                """
-        )
+    def _get_title_style(self):
+        """Get the title styling based on current theme."""
+        color = '#ffffff' if colorMode == 'dark' else '#333333'
+        return f"font-size: 24px; font-weight: bold; color: {color};"
 
-        about_label = QtWidgets.QLabel(about_text)
-        about_label.setStyleSheet(
-            f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-        )
-        about_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+    def _get_about_content(self):
+        """Get the formatted about content HTML."""
+        return f"""
+        <div style='text-align: center; line-height: 1.6;'>
+            <p style='margin-bottom: 20px;'>
+                {_("Writing Tools is a free & lightweight tool that helps you improve your writing with AI, similar to Apple's new Apple Intelligence feature. It works with an extensive range of AI LLMs, both online and locally run.")}
+            </p>
+            
+            <p style='margin-bottom: 20px;'>
+                <strong>{_("Created with care by Jesai, a high school student.")}</strong><br><br>
+                {_("Feel free to check out my other AI app")}, 
+                <a href="https://play.google.com/store/apps/details?id=com.jesai.blissai"><strong>Bliss AI</strong></a>. 
+                {_("It's a novel AI tutor that's free on the Google Play Store :)")}<br><br>
+                <strong>{_("Contact me")}:</strong> jesaitarun@gmail.com
+            </p>
+
+            <div style='margin: 30px 0;'>
+                <h3 style='margin-bottom: 15px;'>⭐ {_("Amazing Contributors")}</h3>
+                {self._get_contributors_html()}
+            </div>
+
+            <div style='margin-top: 30px; padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;'>
+                <strong>Version:</strong> 7.0 (Codename: Impeccably Improved)
+            </div>
+
+            <p style='margin-top: 20px;'>
+                If you have a Mac, check out the 
+                <a href="https://github.com/theJayTea/WritingTools#-macos">Writing Tools macOS port</a> 
+                by <a href="https://github.com/Aryamirsepasi">Arya Mirsepasi</a>!
+            </p>
+        </div>
+        """
+
+    def _get_contributors_html(self):
+        """Get the formatted contributors section."""
+        contributors = [
+            (
+                "momokrono",
+                "https://github.com/momokrono",
+                _(
+                    "Added Linux support, switched to the pynput API to improve Windows stability. Added Ollama API support, core logic for customizable buttons, and localization. Fixed misc. bugs and added graceful termination support by handling SIGINT signal."
+                ),
+            ),
+            (
+                "Cameron Redmore",
+                "https://github.com/CameronRedmore",
+                _(
+                    "Extensively refactored Writing Tools and added OpenAI Compatible API support, streamed responses, and the text generation mode when no text is selected."
+                ),
+            ),
+            (
+                "Soszust40",
+                "https://github.com/Soszust40",
+                _("Helped add dark mode, the plain theme, tray menu fixes, and UI improvements."),
+            ),
+            ("Alok Saboo", "https://github.com/arsaboo", _("Helped improve the reliability of text selection.")),
+            (
+                "raghavdhingra24",
+                "https://github.com/raghavdhingra24",
+                _("Made the rounded corners anti-aliased & prettier."),
+            ),
+            (
+                "ErrorCatDev",
+                "https://github.com/ErrorCatDev",
+                _(
+                    "Significantly improved the About window, making it scrollable and cleaning things up. Also improved our .gitignore & requirements.txt."
+                ),
+            ),
+            ("Vadim Karpenko", "https://github.com/Vadim-Karpenko", _("Helped add the start-on-boot setting.")),
+        ]
+
+        html_parts = []
+        for i, (name, url, contribution) in enumerate(contributors, 1):
+            html_parts.append(
+                f"""
+            <div style='text-align: left; margin: 15px 0; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px;'>
+                <strong>{i}. <a href="{url}">{name}</a>:</strong><br>
+                <span style='margin-left: 15px;'>{contribution}</span>
+            </div>
+            """
+            )
+
+        return "".join(html_parts)
+
+    def _create_scrollable_content(self, content):
+        """Create a scrollable widget for the main content."""
+        about_label = QtWidgets.QLabel(content)
+        about_label.setStyleSheet(self._get_content_style())
+        about_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
         about_label.setWordWrap(True)
-        about_label.setOpenExternalLinks(True)  # Allow opening hyperlinks
+        about_label.setOpenExternalLinks(True)
 
         scroll_area = QtWidgets.QScrollArea()
         scroll_area.setWidget(about_label)
         scroll_area.setWidgetResizable(True)
-        scroll_area.setStyleSheet("background: transparent;")
+        scroll_area.setStyleSheet("QScrollArea { background: transparent; border: none; }")
 
-        content_layout.addWidget(scroll_area)
-
-        # Add "Check for updates" button
-        update_button = QtWidgets.QPushButton("Check for updates")
-        update_button.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                padding: 10px;
-                font-size: 16px;
-                border: none;
-                border-radius: 5px;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-        """,
-        )
+        return scroll_area
+    
+    def _create_update_button(self):
+        """Create the update check button with modern styling."""
+        update_button = QtWidgets.QPushButton(_("Check for updates"))
+        update_button.setStyleSheet(self._get_button_style())
         update_button.clicked.connect(self.check_for_updates)
-        content_layout.addWidget(update_button)
+        update_button.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
+        return update_button
+
+    def _get_content_style(self):
+        """Get the content styling based on current theme."""
+        color = '#ffffff' if colorMode == 'dark' else '#333333'
+        return f"font-size: 14px; color: {color}; padding: 10px;"
+
+    def _get_button_style(self):
+        """Get the button styling with theme awareness."""
+        if colorMode == 'dark':
+            return """
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: white;
+                    padding: 12px 24px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 8px;
+                }
+                QPushButton:hover {
+                    background-color: #45a049;
+                    transform: translateY(-2px);
+                }
+                QPushButton:pressed {
+                    background-color: #3d8b40;
+                }
+            """
+        else:
+            return """
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: white;
+                    padding: 12px 24px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }
+                QPushButton:hover {
+                    background-color: #45a049;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+                }
+                QPushButton:pressed {
+                    background-color: #3d8b40;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                }
+            """
 
     def check_for_updates(self):
-        """
-        Open the GitHub releases page to check for updates.
-        """
+        """Open the GitHub releases page to check for updates."""
         webbrowser.open("https://github.com/theJayTea/WritingTools/releases")
+
+    def resizeEvent(self, event):
+        """Handle window resize events."""
+        super().resizeEvent(event)
+        # Ensure minimum size is respected
+        if self.width() < self.min_width or self.height() < self.min_height:
+            self.resize(max(self.width(), self.min_width), max(self.height(), self.min_height))
 
     def original_app(self):
         """

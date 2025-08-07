@@ -558,19 +558,19 @@ class CustomPopupWindow(QtWidgets.QWidget):
             if name == "Custom":
                 continue
             b = DraggableButton(self, name, name)
-            icon_path = get_icon_path(action_config.icon, with_theme=True)
+            icon_path = get_icon_path(action_config.get("icon",None), with_theme=True)
             if os.path.exists(icon_path):
                 b.setIcon(QtGui.QIcon(icon_path))
 
             # Add tooltip with tool name and description
             tooltip_text = name
-            if action_config.instruction:
+            if action_config.get("instruction",None):
                 # Truncate long instructions for tooltip
                 instruction = (
-                    action_config.instruction[:100] + "..."
-                    if len(action_config.instruction) > 100
-                    else action_config.instruction
-                )
+                    action_config["instruction"][:100] + "..."
+                    if len(action_config["instruction"]) > 100
+                    else action_config["instruction"]
+                )       
                 tooltip_text = f"{name}\n{instruction}"
             b.setToolTip(tooltip_text)
 

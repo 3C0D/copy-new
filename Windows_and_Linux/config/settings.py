@@ -145,7 +145,7 @@ class SettingsManager:
                 self.settings.system.update({"run_mode": self.mode})
             else:
                 # Fallback for direct assignment
-                self.settings.system.run_mode = self.mode
+                self.settings.system["run_mode"] = self.mode
 
         return self.settings
 
@@ -240,7 +240,7 @@ class SettingsManager:
             self.settings.system.update({"run_mode": self.mode})
         else:
             # Fallback for direct assignment
-            self.settings.system.run_mode = self.mode
+            self.settings.system["run_mode"] = self.mode
 
         return {
             "system": dict(self.settings.system),  # Convert TypedDict to regular dict

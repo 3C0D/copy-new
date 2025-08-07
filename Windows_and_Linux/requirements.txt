@@ -9,6 +9,9 @@ pyinstaller
 ollama
 psutil
 
+# Qt complement
+PySide6-stubs
+
 # Development tools
 ruff
 black

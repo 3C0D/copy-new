@@ -47,13 +47,14 @@ class WritingToolApp(QtWidgets.QApplication):
     def __init__(self, argv, theme_override=None):
         super().__init__(argv)
         self.current_response_window = None
-        self.theme_override = theme_override
         self._logger = logging.getLogger(__name__)
         self._logger.debug("Initializing WritingToolApp")
 
         # Apply theme override if specified
+        self.theme_override = theme_override
         if theme_override and theme_override != "auto":
             self._apply_theme_override(theme_override)
+
         self.output_ready_signal.connect(self.replace_text)
         self.show_message_signal.connect(self.show_message_box)
         self.hotkey_triggered_signal.connect(self.on_hotkey_pressed)
@@ -69,19 +70,20 @@ class WritingToolApp(QtWidgets.QApplication):
         self.tray_menu = None
         self.settings_window = None
         self.about_window = None
+        self.non_editable_modal = None
+
         self.registered_hotkey = None
-        self.output_queue = ""
-        self.last_replace = 0
         self.hotkey_listener = None
-        self.paused = False
-        self.toggle_action = None
-        self.non_editable_modal = None  # Keep reference to modal window
-
-        self._ = gettext.gettext
-
         # Initialize the ctrl+c hotkey listener
         self.ctrl_c_timer = None
         self.setup_ctrl_c_listener()
+
+        self.output_queue = "" # ?
+        self.last_replace = 0 # ?
+        self.paused = False
+        self.toggle_action = None # ?
+
+        self._ = gettext.gettext
 
         # Setup available AI providers
         self.providers = [
@@ -91,7 +93,6 @@ class WritingToolApp(QtWidgets.QApplication):
             AnthropicProvider(self),
             MistralProvider(self),
         ]
-
         # Check if this is a first launch (no providers configured)
         if not self.settings_manager.has_providers_configured():
             self._logger.debug("First launch detected (no providers configured), showing onboarding")
@@ -146,7 +147,7 @@ class WritingToolApp(QtWidgets.QApplication):
                 self.register_hotkey()
 
                 # Set language from system settings
-                lang = self.settings_manager.settings.system.get("language","en")
+                lang = self.settings_manager.settings.system.get("language", "en")
                 self.change_language(lang if lang != "en" else None)
 
                 # Initialize update checker
