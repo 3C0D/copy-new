@@ -1,3 +1,10 @@
+"""
+vérifier/comparer logic scrolling avec About window
+étendre l'autostart à linux
+
+"""
+
+
 import os
 import sys
 

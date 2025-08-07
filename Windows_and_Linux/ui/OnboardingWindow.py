@@ -251,7 +251,7 @@ class OnboardingWindow(ThemedWidget):
     def _save_shortcut_setting(self):
         """Save only the shortcut setting to persistent storage."""
         try:
-            self.app.settings_manager.update_system_setting("hotkey", self.shortcut)
+            self.app.settings_manager.hotkey = self.shortcut
             logging.debug(f"Shortcut setting saved: {self.shortcut}")
         except Exception as e:
             logging.error(f"Failed to save shortcut setting: {e}")
@@ -259,7 +259,7 @@ class OnboardingWindow(ThemedWidget):
     def _save_theme_setting(self):
         """Save only the theme setting to persistent storage."""
         try:
-            self.app.settings_manager.update_system_setting("theme", self.theme)
+            self.app.settings_manager.theme = self.theme
             logging.debug(f"Theme setting saved: {self.theme}")
         except Exception as e:
             logging.error(f"Failed to save theme setting: {e}")
@@ -275,8 +275,8 @@ class OnboardingWindow(ThemedWidget):
     def _save_settings(self):
         """Save the user's selected settings (legacy method - kept for compatibility)."""
         try:
-            self.app.settings_manager.update_system_setting("hotkey", self.shortcut)
-            self.app.settings_manager.update_system_setting("theme", self.theme)
+            self.app.settings_manager.hotkey = self.shortcut
+            self.app.settings_manager.theme = self.theme
             logging.debug("Settings saved successfully")
         except Exception as e:
             logging.error(f"Failed to save settings: {e}")

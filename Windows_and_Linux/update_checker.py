@@ -59,7 +59,7 @@ class UpdateChecker:
 
         # Always update settings with fresh status
         # Store update status in system settings
-        self.app.settings_manager.settings.system["update_available"] = update_available
+        self.app.settings_manager.settings.system.update_available = update_available
         self.app.save_settings()
 
         return update_available
