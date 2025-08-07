@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 
 from config.data_operations import create_default_actions_config
 from ui.ui_utils import ThemeBackground, colorMode
+from Windows_and_Linux.WritingToolApp import WritingToolApp
 
 _ = lambda x: x
 
@@ -290,7 +291,7 @@ class DraggableButton(QtWidgets.QPushButton):
 
 
 class CustomPopupWindow(QtWidgets.QWidget):
-    def __init__(self, app, selected_text):
+    def __init__(self, app: WritingToolApp, selected_text):
         super().__init__()
         self.app = app
         self.selected_text = selected_text

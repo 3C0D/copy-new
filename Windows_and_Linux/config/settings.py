@@ -39,7 +39,7 @@ class SettingsManager:
         self.mode = self._detect_mode(mode)
         self.base_dir = self._get_base_directory()
         self.config_dir = self._resolve_config_directory()
-        self.settings: Optional[UnifiedSettings] = None
+        self.settings: UnifiedSettings = create_default_settings() # Always initialized so we don't have to check for None everywhere!
         self._logger = logging.getLogger(__name__)
 
         self._setup_logging()
@@ -129,8 +129,10 @@ class SettingsManager:
     def load_settings(self) -> UnifiedSettings:
         """Load settings."""
         self._ensure_directories_exist()
-        self.settings = create_default_settings()
-
+        
+        if not self.settings:
+            self.settings = create_default_settings()
+            
         if self.data_file.exists():
             user_data = self._load_user_data()
             if user_data is not None:
@@ -139,14 +141,7 @@ class SettingsManager:
             self._logger.debug(f"No settings file found at {self.data_file}, using defaults")
 
         # Update run_mode to match current mode
-        if self.settings:
-            # Use safe assignment for TypedDict
-            if hasattr(self.settings.system, "update"):
-                self.settings.system.update({"run_mode": self.mode})
-            else:
-                # Fallback for direct assignment
-                self.settings.system["run_mode"] = self.mode
-
+        self.settings.system["run_mode"] = self.mode
         return self.settings
 
     def _load_user_data(self) -> Optional[Dict[str, Any]]:

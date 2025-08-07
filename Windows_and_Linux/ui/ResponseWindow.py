@@ -6,6 +6,7 @@ from PySide6.QtCore import Qt, Slot
 from PySide6.QtWidgets import QScrollArea
 
 from ui.ui_utils import colorMode, ui_utils
+from Windows_and_Linux.WritingToolApp import WritingToolApp
 
 _ = lambda x: x
 
@@ -394,7 +395,7 @@ class ChatContentScrollArea(QScrollArea):
 class ResponseWindow(QtWidgets.QWidget):
     """Enhanced response window with improved sizing and zoom handling"""
 
-    def __init__(self, app, title=_("Response"), parent=None):
+    def __init__(self, app: WritingToolApp, title=_("Response"), parent=None):
         super().__init__(parent)
         self.app = app
         self.original_title = title

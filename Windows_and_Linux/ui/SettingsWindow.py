@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QHBoxLayout, QRadioButton, QScrollArea, QWidget
 from aiprovider import AIProvider
 from ui.AutostartManager import AutostartManager
 from ui.ui_utils import ThemedWidget, colorMode, ui_utils
+from Windows_and_Linux.WritingToolApp import WritingToolApp
 
 _ = lambda x: x
 
@@ -20,7 +21,7 @@ class SettingsWindow(ThemedWidget):
 
     close_signal = QtCore.Signal()
 
-    def __init__(self, app, providers_only=False):
+    def __init__(self, app: WritingToolApp, providers_only=False):
         super().__init__()
         self.app = app
         self.current_provider_layout = None
@@ -158,7 +159,7 @@ class SettingsWindow(ThemedWidget):
             content_layout.addWidget(shortcut_label)
 
             self.shortcut_input = QtWidgets.QLineEdit(
-                self.app.settings_manager.settings.system.hotkey,
+                self.app.settings_manager.settings.system.get("hotkey, 'ctrl+space'"),
             )
             self.shortcut_input.setStyleSheet(
                 f"""

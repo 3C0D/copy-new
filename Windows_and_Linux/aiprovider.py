@@ -53,6 +53,7 @@ from config.constants import (
 )
 from config.data_operations import get_default_model_for_provider
 from ui.ui_utils import colorMode
+from Windows_and_Linux.WritingToolApp import WritingToolApp
 
 
 class AIProviderSetting(ABC):
@@ -209,7 +210,7 @@ class AIProvider(ABC):
 
     def __init__(
         self,
-        app,
+        app: WritingToolApp,
         provider_name: str,
         settings: list[AIProviderSetting],
         description: str = "An unfinished AI provider!",
@@ -292,7 +293,7 @@ class GeminiProvider(AIProvider):
     Streaming is no longer offered so we always do a single-shot call.
     """
 
-    def __init__(self, app):
+    def __init__(self, app: WritingToolApp):
         self.close_requested = False
         self.model = None
 
@@ -425,7 +426,7 @@ class OpenAICompatibleProvider(AIProvider):
     Streaming is fully removed.
     """
 
-    def __init__(self, app):
+    def __init__(self, app: WritingToolApp):
         self.close_requested = None
         self.client = None
 
@@ -605,7 +606,7 @@ class OllamaProvider(AIProvider):
     Streaming is not used.
     """
 
-    def __init__(self, app):
+    def __init__(self, app: WritingToolApp):
         self.close_requested = None
         self.client = None
         self.app = app
@@ -728,7 +729,7 @@ class AnthropicProvider(AIProvider):
 
     provider_name = "Anthropic (Claude)"
 
-    def __init__(self, app):
+    def __init__(self, app: WritingToolApp):
         self.close_requested = None
         self.client = None
         self.app = app
@@ -870,7 +871,7 @@ class MistralProvider(AIProvider):
 
     provider_name = "Mistral AI"
 
-    def __init__(self, app):
+    def __init__(self, app: WritingToolApp):
         self.close_requested = None
         self.client = None
         self.app = app
