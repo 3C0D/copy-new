@@ -1,11 +1,13 @@
 import logging
+from typing import TYPE_CHECKING
 
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtWidgets import QHBoxLayout, QRadioButton
 
 from ui.ui_utils import ThemedWidget, colorMode, ui_utils
 
-from Windows_and_Linux.WritingToolApp import WritingToolApp
+if TYPE_CHECKING:
+    from Windows_and_Linux.WritingToolApp import WritingToolApp
 
 _ = lambda x: x
 
@@ -19,7 +21,7 @@ class OnboardingWindow(ThemedWidget):
     # Signal emitted when window is closed (not when proceeding to next step)
     close_signal = QtCore.Signal()
 
-    def __init__(self, app: WritingToolApp):
+    def __init__(self, app: 'WritingToolApp'):
         super().__init__()
         self.app = app
 

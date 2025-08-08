@@ -21,7 +21,7 @@ from .interfaces import ActionConfig, ProviderConfig, UnifiedSettings
 class SettingsManager:
     """
     Unified settings manager with smart attribute access.
-    
+
     Features:
     - Direct access: settings_manager.hotkey instead of settings_manager.settings.system["hotkey"]
     - Direct assignment: settings_manager.hotkey = "new_value"
@@ -33,16 +33,25 @@ class SettingsManager:
     DIST_DEV_PATH = "dist/dev"
     DATA_FILE = "data.json"
     DATA_DEV_FILE = "data_dev.json"
-    
+
     # Logging constants
     LOG_MAX_BYTES = 1024 * 1024  # 1MB
     LOG_BACKUP_COUNT = 2
 
     # Internal attributes that shouldn't be proxied to settings
     _INTERNAL_ATTRS = {
-        'mode', 'base_dir', 'config_dir', 'settings', '_logger', 
-        'data_file', 'DIST_DEV_PATH', 'DATA_FILE', 'DATA_DEV_FILE',
-        'LOG_MAX_BYTES', 'LOG_BACKUP_COUNT', '_INTERNAL_ATTRS'
+        'mode',
+        'base_dir',
+        'config_dir',
+        'settings',
+        '_logger',
+        'data_file',
+        'DIST_DEV_PATH',
+        'DATA_FILE',
+        'DATA_DEV_FILE',
+        'LOG_MAX_BYTES',
+        'LOG_BACKUP_COUNT',
+        '_INTERNAL_ATTRS',
     }
 
     def __init__(self, mode: str = ""):
@@ -56,75 +65,66 @@ class SettingsManager:
         self.data_file = self._resolve_data_file_path()
         self._log_initialization_info()
 
+    @property
+    def actions(self) -> dict[str, ActionConfig]:
+        """Access to action configurations."""
+        return self.settings.actions
+
+    @actions.setter
+    def actions(self, value: dict[str, ActionConfig]) -> None:
+        """Set action configurations."""
+        self.settings.actions = value
+
+    @property
+    def providers(self) -> dict[str, ProviderConfig]:
+        """Access to provider configurations."""
+        return self.settings.custom_data.get("providers", {})
+
+    @providers.setter
+    def providers(self, value: dict[str, ProviderConfig]) -> None:
+        """Set provider configurations."""
+        self.settings.custom_data["providers"] = value
+
     def __getattr__(self, name: str):
         """
-        Smart attribute access for settings.
-        
-        Access pattern:
-        1. Try system settings first (most common)
-        2. Handle special cases (actions, providers)
-        3. Raise AttributeError if not found
-        
-        Examples:
+        Smart attribute access for system settings only.
+        Special cases (actions, providers) are handled by explicit properties.
+
+        Example:
             settings_manager.hotkey  # -> settings.system["hotkey"]
-            settings_manager.actions # -> settings.actions
-            settings_manager.providers # -> settings.custom_data["providers"]
         """
-        # System settings (most common case)
+        # System settings only - special cases handled by properties
         if name in self.settings.system:
             return self.settings.system[name]
-        
-        # Special cases for non-system data
-        if name == 'actions':
-            return self.settings.actions
-        
-        if name == 'providers':
-            return self.settings.custom_data.get("providers", {})
-        
+
         # Not found - raise standard AttributeError
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
     def __setattr__(self, name: str, value):
         """
         Smart attribute assignment for settings.
-        
-        Assignment pattern:
-        1. Internal class attributes -> normal assignment
-        2. Special cases (actions, providers) -> custom_data
-        3. Everything else -> system settings
-        
-        Examples:
+
+        Example:
             settings_manager.hotkey = "ctrl+space"  # -> settings.system["hotkey"]
-            settings_manager.actions = {...}        # -> settings.actions
-            settings_manager.providers = {...}      # -> settings.custom_data["providers"]
         """
         # Internal class attributes and private attributes
         if name in self._INTERNAL_ATTRS or name.startswith('_'):
             super().__setattr__(name, value)
             return
-        
+
         # During __init__, settings doesn't exist yet
         if not hasattr(self, 'settings'):
             super().__setattr__(name, value)
             return
-        
-        # Special cases for non-system data
-        if name == 'actions':
-            self.settings.actions = value
-            return
-            
-        if name == 'providers':
-            self.settings.custom_data["providers"] = value
-            return
-        
+
+        # Special cases are now handled by properties, so we can remove them here
         # Default: assign to system settings
-        # This allows dynamic addition of new settings without class modification
         self.settings.system[name] = value
 
-    # 
+    #
     # CORE SETTINGS OPERATIONS
-    # 
-    
+    #
+
     def load_settings(self) -> UnifiedSettings:
         """Load settings from file and merge with defaults."""
         self._ensure_directories_exist()
@@ -158,41 +158,39 @@ class SettingsManager:
         """Convenience method for save_settings()."""
         return self.save_settings()
 
-    # 
+    #
     # UTILITY METHODS ????????????????? pas utilisés
-    # 
-    
+    #
+
     def get(self, key: str, default=None):
         """Get any setting with fallback (dict-like interface)."""
         try:
             return getattr(self, key)
         except AttributeError:
             return default
-    
+
     def update(self, **kwargs):
         """Update multiple settings at once."""
         for key, value in kwargs.items():
             setattr(self, key, value)
-    
+
     def update_and_save(self, **kwargs) -> bool:
         """Update multiple settings and save in one operation."""
         self.update(**kwargs)
         return self.save()
 
-    # 
+    #
     # PROVIDER-SPECIFIC OPERATIONS
-    # 
-    
-    def get_provider_config(self, provider_name: str) -> Optional[ProviderConfig]:
-        """Get configuration for a specific provider."""
-        return self.providers.get(provider_name)
-    
-    def set_provider_config(self, provider_name: str, config: ProviderConfig):
-        """Set configuration for a specific provider."""
-        if "providers" not in self.settings.custom_data:
-            self.settings.custom_data["providers"] = {}
-        self.settings.custom_data["providers"][provider_name] = config
-    
+    #
+
+    # def get_provider_config(self, provider_name: str) -> Optional[ProviderConfig]:
+    #     """Get configuration for a specific provider."""
+    #     return self.providers.get(provider_name)
+
+    # def set_provider_config(self, provider_name: str, config: ProviderConfig):
+    #     """Set configuration for a specific provider."""
+    #     self.providers[provider_name] = config
+
     def has_providers_configured(self) -> bool:
         """Check if the active provider is properly configured."""
         providers = self.providers
@@ -206,10 +204,10 @@ class SettingsManager:
             return bool(provider_config["api_key"])
         return True
 
-    # 
+    #
     # ACTION MANAGEMENT (simplified)
-    # 
-    
+    #
+
     def update_action(self, action_name: str, action_config: ActionConfig) -> bool:
         """Update or add an action configuration and save immediately."""
         self.settings.actions[action_name] = action_config
@@ -220,13 +218,13 @@ class SettingsManager:
         if action_name in self.settings.actions:
             del self.settings.actions[action_name]
             return self.save()
-        
+
         self._logger.warning(f"Action not found: {action_name}")
         return False
 
-    # 
+    #
     # INTERNAL METHODS - FILE SYSTEM OPERATIONS
-    # 
+    #
 
     def _detect_mode(self, provided_mode: str) -> str:
         """Detect the operating mode with intelligent fallback logic."""
@@ -322,12 +320,15 @@ class SettingsManager:
             "actions": {
                 name: dict(action) for name, action in self.settings.actions.items()
             },  # Convert ActionConfig TypedDict to dict
-            "custom_data": self.settings.custom_data,
+            "custom_data": {
+                "update_available": self.settings.custom_data.get("update_available", False),
+                "providers": self.providers,  # Utilise la propriété typée
+            }
         }
 
-    # 
+    #
     # LOGGING SETUP
-    # 
+    #
 
     def _setup_logging(self):
         """Setup file logging for dev and build-dev modes."""
@@ -372,9 +373,9 @@ class SettingsManager:
         self._logger.debug(f"  config_dir: {self.config_dir}")
         self._logger.debug(f"  data_file: {self.data_file}")
 
-    # 
+    #
     # HELPER METHODS
-    # 
+    #
 
     def _is_build_final(self) -> bool:
         """Check if running in build-final mode."""

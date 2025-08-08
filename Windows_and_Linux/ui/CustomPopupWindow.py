@@ -1,6 +1,7 @@
 import logging
 import os
 from functools import partial
+from typing import TYPE_CHECKING
 
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt
@@ -18,7 +19,8 @@ from PySide6.QtWidgets import (
 
 from config.data_operations import create_default_actions_config
 from ui.ui_utils import ThemeBackground, colorMode
-from Windows_and_Linux.WritingToolApp import WritingToolApp
+if TYPE_CHECKING:
+    from Windows_and_Linux.WritingToolApp import WritingToolApp
 
 _ = lambda x: x
 
@@ -175,8 +177,8 @@ class DraggableButton(QtWidgets.QPushButton):
 
         # Enable mouse tracking and hover events, and styled background
         self.setMouseTracking(True)
-        self.setAttribute(QtCore.Qt.WA_Hover, True)
-        self.setAttribute(QtCore.Qt.WA_StyledBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
         # Use a dynamic property "hover" (default False)
         self.setProperty("hover", False)
@@ -218,7 +220,7 @@ class DraggableButton(QtWidgets.QPushButton):
         super().leaveEvent(event)
 
     def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             if self.popup.edit_mode:
                 self.drag_start_position = event.pos()
                 event.accept()
@@ -226,7 +228,7 @@ class DraggableButton(QtWidgets.QPushButton):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        if not (event.buttons() & QtCore.Qt.LeftButton) or not self.drag_start_position:
+        if not (event.buttons() & Qt.MouseButton.LeftButton) or not self.drag_start_position:
             return
 
         distance = (event.pos() - self.drag_start_position).manhattanLength()
@@ -245,7 +247,7 @@ class DraggableButton(QtWidgets.QPushButton):
             drag.setHotSpot(event.pos())
 
             self.drag_start_position = None
-            drop_action = drag.exec_(QtCore.Qt.MoveAction)
+            drop_action = drag.exec_(Qt.DropAction.MoveAction)
             logging.debug(f"Drag completed with action: {drop_action}")
 
     def dragEnterEvent(self, event):
@@ -281,7 +283,7 @@ class DraggableButton(QtWidgets.QPushButton):
             self.popup.update_json_from_grid()
 
         self.setStyleSheet(self.base_style)
-        event.setDropAction(QtCore.Qt.MoveAction)
+        event.setDropAction(Qt.DropAction.MoveAction)
         event.acceptProposedAction()
 
     def resizeEvent(self, event):
@@ -291,7 +293,7 @@ class DraggableButton(QtWidgets.QPushButton):
 
 
 class CustomPopupWindow(QtWidgets.QWidget):
-    def __init__(self, app: WritingToolApp, selected_text):
+    def __init__(self, app: 'WritingToolApp', selected_text):
         super().__init__()
         self.app = app
         self.selected_text = selected_text
@@ -313,8 +315,8 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
     def init_ui(self):
         logging.debug("Setting up CustomPopupWindow UI")
-        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.FramelessWindowHint)
-        self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+        self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowTitle("Writing Tools")
 
         main_layout = QtWidgets.QVBoxLayout(self)
@@ -363,7 +365,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
         )
         self.reset_button.clicked.connect(self.on_reset_clicked)
         self.reset_button.setToolTip(_("Reset to Default Buttons"))
-        top_bar.addWidget(self.reset_button, 0, Qt.AlignLeft)
+        top_bar.addWidget(self.reset_button, 0, Qt.AlignmentFlag.AlignLeft)
 
         # The label "Drag to rearrange" (BOLD as requested)
         self.drag_label = QLabel("Drag to rearrange")
@@ -374,9 +376,9 @@ class CustomPopupWindow(QtWidgets.QWidget):
             font-weight: bold; /* <--- BOLD TEXT */
         """,
         )
-        self.drag_label.setAlignment(Qt.AlignCenter)
+        self.drag_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.drag_label.hide()
-        top_bar.addWidget(self.drag_label, 1, Qt.AlignVCenter | Qt.AlignHCenter)
+        top_bar.addWidget(self.drag_label, 1, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignHCenter)
 
         # Close button for edit mode (right side)
         self.edit_close_button = QPushButton("×")
@@ -504,7 +506,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
         self.initialize_button_visibility()
 
         # show update notice if applicable
-        update_available = self.app.settings_manager.settings.system.get("update_available",False)
+        update_available = self.app.settings_manager.settings.system.get("update_available", False)
 
         if update_available:
             update_label = QLabel()
@@ -559,19 +561,19 @@ class CustomPopupWindow(QtWidgets.QWidget):
             if name == "Custom":
                 continue
             b = DraggableButton(self, name, name)
-            icon_path = get_icon_path(action_config.get("icon",None), with_theme=True)
+            icon_path = get_icon_path(action_config.get("icon", None), with_theme=True)
             if os.path.exists(icon_path):
                 b.setIcon(QtGui.QIcon(icon_path))
 
             # Add tooltip with tool name and description
             tooltip_text = name
-            if action_config.get("instruction",None):
+            if action_config.get("instruction", None):
                 # Truncate long instructions for tooltip
                 instruction = (
                     action_config["instruction"][:100] + "..."
                     if len(action_config["instruction"]) > 100
                     else action_config["instruction"]
-                )       
+                )
                 tooltip_text = f"{name}\n{instruction}"
             b.setToolTip(tooltip_text)
 
@@ -616,7 +618,11 @@ class CustomPopupWindow(QtWidgets.QWidget):
                 col = 0
                 row += 1
 
-        parent_layout.addLayout(grid)
+        if hasattr(parent_layout, 'addLayout'):
+            parent_layout.addLayout(grid)
+        else:
+            # If parent_layout doesn't have addLayout, try to add as widget
+            logging.warning(f"parent_layout {type(parent_layout)} doesn't have addLayout method")
 
         # Add New button (only in edit mode & only if we have text)
         if edit_mode_to_use and self.has_text:
@@ -743,13 +749,18 @@ class CustomPopupWindow(QtWidgets.QWidget):
     def initialize_button_visibility(self):
         """Initialize button visibility for normal (non-edit) mode."""
         self.edit_mode = False
-        self.reset_button.hide()
-        self.edit_close_button.hide()
-        self.drag_label.hide()
-        if self.has_text:
+        if hasattr(self, 'reset_button') and self.reset_button is not None:
+            self.reset_button.hide()
+        if hasattr(self, 'edit_close_button') and self.edit_close_button is not None:
+            self.edit_close_button.hide()
+        if hasattr(self, 'drag_label') and self.drag_label is not None:
+            self.drag_label.hide()
+        if self.has_text and hasattr(self, 'edit_button') and self.edit_button is not None:
             self.edit_button.show()
-        self.close_button.show()
-        self.input_area.setVisible(True)
+        if hasattr(self, 'close_button') and self.close_button is not None:
+            self.close_button.show()
+        if hasattr(self, 'input_area') and self.input_area is not None:
+            self.input_area.setVisible(True)
 
     def on_reset_clicked(self):
         """

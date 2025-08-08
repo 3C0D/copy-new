@@ -31,15 +31,30 @@ Response Flow:
 Note: Streaming has been fully removed throughout the code.
 """
 
+# Disable Pylance reportPrivateImportUsage for google.generativeai
+# The library doesn't properly define __all__, causing false positives
+# but all imports (configure, types.HarmCategory, etc.) work correctly at runtime
+# pyright: reportPrivateImportUsage=false
+
 import logging
 import subprocess
 import webbrowser
 from abc import ABC, abstractmethod
-from typing import Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union, cast
+
+if TYPE_CHECKING:
+    from Windows_and_Linux.config.interfaces import ProviderConfig
 
 # External libraries
-import google.generativeai as genai
-from google.generativeai.types import HarmBlockThreshold, HarmCategory
+try:
+    import google.generativeai as genai
+    from google.generativeai.types import HarmBlockThreshold, HarmCategory
+except ImportError:
+    # Fallback for type checking
+    genai = None  # type: ignore
+    HarmBlockThreshold = None  # type: ignore
+    HarmCategory = None  # type: ignore
+
 from ollama import Client as OllamaClient
 from openai import OpenAI
 from PySide6 import QtWidgets
@@ -53,7 +68,9 @@ from config.constants import (
 )
 from config.data_operations import get_default_model_for_provider
 from ui.ui_utils import colorMode
-from Windows_and_Linux.WritingToolApp import WritingToolApp
+
+if TYPE_CHECKING:
+    from Windows_and_Linux.WritingToolApp import WritingToolApp
 
 
 class AIProviderSetting(ABC):
@@ -125,7 +142,9 @@ class TextSetting(AIProviderSetting):
         self.internal_value = value
 
     def get_value(self):
-        return self.input.text()
+        if self.input is not None:
+            return self.input.text()
+        return ""
 
 
 class DropdownSetting(AIProviderSetting):
@@ -169,12 +188,13 @@ class DropdownSetting(AIProviderSetting):
             self.dropdown.addItem(option, value)
 
         # Set current value
-        if self.editable:
-            # For editable dropdowns, set the text directly
-            self.dropdown.setCurrentText(self.internal_value)
-        else:
-            # For non-editable dropdowns, find by data
-            index = self.dropdown.findData(self.internal_value)
+        if self.dropdown is not None:
+            if self.editable:
+                # For editable dropdowns, set the text directly
+                self.dropdown.setCurrentText(str(self.internal_value) if self.internal_value is not None else "")
+            else:
+                # For non-editable dropdowns, find by data
+                index = self.dropdown.findData(self.internal_value)
             if index != -1:
                 self.dropdown.setCurrentIndex(index)
         row_layout.addWidget(self.dropdown)
@@ -184,6 +204,9 @@ class DropdownSetting(AIProviderSetting):
         self.internal_value = value
 
     def get_value(self):
+        if self.dropdown is None:
+            return ""
+
         if self.editable:
             # For editable dropdowns, first check if current text matches a dropdown option
             current_text = self.dropdown.currentText()
@@ -208,23 +231,44 @@ class AIProvider(ABC):
       • cancel() to cancel an ongoing request
     """
 
+    # Type annotations for dynamically created attributes
+    api_key: str
+    model_name: str
+    api_base: str
+    api_organisation: str
+    api_project: str
+    api_model: str
+    keep_alive: str
+    logo: Optional[str]
+
     def __init__(
         self,
-        app: WritingToolApp,
+        app: 'WritingToolApp',
         provider_name: str,
         settings: list[AIProviderSetting],
         description: str = "An unfinished AI provider!",
-        logo: str = "generic",
+        internal_name: str = "",
         button_text: str = "Go to URL",
         button_action: Optional[Callable] = None,
+        logo: Optional[str] = None,
     ):
         self.provider_name = provider_name
+        self.internal_name = internal_name
         self.settings = settings
         self.app = app
         self.description = description if description else "An unfinished AI provider!"
-        self.logo = logo
         self.button_text = button_text
         self.button_action = button_action
+        self.logo = logo
+
+        # Initialize dynamic attributes with default values
+        self.api_key = ""
+        self.model_name = ""
+        self.api_base = ""
+        self.api_organisation = ""
+        self.api_project = ""
+        self.api_model = ""
+        self.keep_alive = ""
 
     @abstractmethod
     def get_response(self, system_instruction: str, prompt: str) -> str:
@@ -260,9 +304,10 @@ class AIProvider(ABC):
         if not self.app.settings_manager.settings.custom_data:
             self.app.settings_manager.settings.custom_data = {}
         if "providers" not in self.app.settings_manager.settings.custom_data:
-            self.app.settings_manager.settings.custom_data["providers"] = {}
+            self.app.settings_manager.providers = {}
 
-        self.app.settings_manager.settings.custom_data["providers"][self.provider_name] = config
+        self.app.settings_manager.providers[self.internal_name] = cast('ProviderConfig', config)
+
         # Use settings_manager directly instead of going through app.save_settings()
         self.app.settings_manager.save_settings()
 
@@ -293,7 +338,7 @@ class GeminiProvider(AIProvider):
     Streaming is no longer offered so we always do a single-shot call.
     """
 
-    def __init__(self, app: WritingToolApp):
+    def __init__(self, app: 'WritingToolApp'):
         self.close_requested = False
         self.model = None
 
@@ -321,6 +366,7 @@ class GeminiProvider(AIProvider):
             "gemini",
             "Get API Key",
             lambda: webbrowser.open("https://aistudio.google.com/app/apikey"),
+            "gemini",
         )
 
     def get_response(self, system_instruction: str, prompt: str, return_response: bool = False) -> str:
@@ -353,7 +399,7 @@ class GeminiProvider(AIProvider):
             response_text = response.text.rstrip("\n")
             if not return_response and not hasattr(self.app, "current_response_window"):
                 self.app.output_ready_signal.emit(response_text)
-                self.app.replace_text(True)
+                self.app.replace_text(response_text)
                 return ""
             return response_text
         except Exception as e:
@@ -391,23 +437,35 @@ class GeminiProvider(AIProvider):
         """
         Configure the google.generativeai client and create the generative model.
         """
-        # Only configure if API key is provided
-        if hasattr(self, "api_key") and self.api_key and self.api_key.strip():
-            genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel(
-                model_name=self.model_name,
-                generation_config=genai.types.GenerationConfig(
-                    candidate_count=1,
-                    max_output_tokens=1000,
-                    temperature=0.5,
-                ),
-                safety_settings={
-                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-                },
-            )
+        # Only configure if API key is provided and genai is available
+        if (
+            hasattr(self, "api_key")
+            and self.api_key
+            and self.api_key.strip()
+            and genai is not None
+            and HarmCategory is not None
+            and HarmBlockThreshold is not None
+        ):
+            # Fix: Use try-except to handle the configure method
+            try:
+                genai.configure(api_key=self.api_key)
+                self.model = genai.GenerativeModel(
+                    model_name=self.model_name,
+                    generation_config=genai.types.GenerationConfig(
+                        candidate_count=1,
+                        max_output_tokens=1000,
+                        temperature=0.5,
+                    ),
+                    safety_settings={
+                        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+                    },
+                )
+            except AttributeError as e:
+                print(f"Error configuring Google Generative AI: {e}")
+                self.model = None
         else:
             self.model = None
 
@@ -426,7 +484,7 @@ class OpenAICompatibleProvider(AIProvider):
     Streaming is fully removed.
     """
 
-    def __init__(self, app: WritingToolApp):
+    def __init__(self, app: 'WritingToolApp'):
         self.close_requested = None
         self.client = None
 
@@ -466,6 +524,7 @@ class OpenAICompatibleProvider(AIProvider):
             "openai",
             "Get OpenAI API Key",
             lambda: webbrowser.open("https://platform.openai.com/account/api-keys"),
+            "openai",
         )
 
     @property
@@ -473,8 +532,17 @@ class OpenAICompatibleProvider(AIProvider):
         """Get the API model setting value."""
         for setting in self.settings:
             if setting.name == "api_model":
-                return setting.get_value()
+                value = setting.get_value()
+                return str(value) if value is not None else ""
         return ""
+
+    @api_model.setter
+    def api_model(self, value: str):
+        """Set the API model setting value."""
+        for setting in self.settings:
+            if setting.name == "api_model":
+                setting.set_value(value)
+                break
 
     def get_response(self, system_instruction: str, prompt: Union[str, list], return_response: bool = False) -> str:
         """
@@ -496,9 +564,15 @@ class OpenAICompatibleProvider(AIProvider):
             ]
 
         try:
+            if self.client is None:
+                self.app.show_message_signal.emit(
+                    "Error", "OpenAI client not initialized. Please check your API settings."
+                )
+                return ""
+
             response = self.client.chat.completions.create(
                 model=self.api_model,
-                messages=messages,
+                messages=messages,  # type: ignore
                 temperature=0.5,
                 stream=False,
             )
@@ -606,7 +680,7 @@ class OllamaProvider(AIProvider):
     Streaming is not used.
     """
 
-    def __init__(self, app: WritingToolApp):
+    def __init__(self, app: 'WritingToolApp'):
         self.close_requested = None
         self.client = None
         self.app = app
@@ -646,6 +720,7 @@ class OllamaProvider(AIProvider):
             lambda: webbrowser.open(
                 "https://github.com/theJayTea/WritingTools?tab=readme-ov-file#-optional-ollama-local-llm-instructions-for-windows-v7-onwards",
             ),
+            "ollama",
         )
 
     @property
@@ -653,7 +728,8 @@ class OllamaProvider(AIProvider):
         """Get the API model setting value."""
         for setting in self.settings:
             if setting.name == "api_model":
-                return setting.get_value()
+                value = setting.get_value()
+                return str(value) if value is not None else ""
         return ""
 
     def get_response(self, system_instruction: str, prompt: Union[str, list], return_response: bool = False) -> str:
@@ -681,6 +757,10 @@ class OllamaProvider(AIProvider):
                     "OllamaError",
                     "Aucun modèle Ollama sélectionné. Veuillez d'abord installer et sélectionner un modèle dans les paramètres.",
                 )
+                return ""
+
+            if self.client is None:
+                self.app.show_message_signal.emit("Error", "Ollama client not initialized. Please check your settings.")
                 return ""
 
             logging.debug(f"Ollama using model: '{self.api_model}'")
@@ -727,9 +807,7 @@ class AnthropicProvider(AIProvider):
     Uses the Anthropic API to generate content with Claude models.
     """
 
-    provider_name = "Anthropic (Claude)"
-
-    def __init__(self, app: WritingToolApp):
+    def __init__(self, app: 'WritingToolApp'):
         self.close_requested = None
         self.client = None
         self.app = app
@@ -759,6 +837,7 @@ class AnthropicProvider(AIProvider):
             "anthropic",
             "Get API Key",
             lambda: webbrowser.open("https://console.anthropic.com/"),
+            "anthropic",
         )
 
     def get_response(
@@ -785,6 +864,10 @@ class AnthropicProvider(AIProvider):
             # Prepare messages
             messages = []
 
+            # Add system instruction if provided
+            if system_instruction:
+                messages.append({"role": "system", "content": system_instruction})
+
             # Add conversation history if provided
             if conversation_history:
                 messages.extend(conversation_history)
@@ -795,8 +878,7 @@ class AnthropicProvider(AIProvider):
             # Make API call
             response = self.client.chat.completions.create(
                 model=self.api_model,
-                messages=messages,
-                system=system_instruction,
+                messages=messages,  # type: ignore
                 max_tokens=4000,
                 temperature=0.7,
             )
@@ -869,9 +951,7 @@ class MistralProvider(AIProvider):
     Uses the Mistral API to generate content with Mistral models.
     """
 
-    provider_name = "Mistral AI"
-
-    def __init__(self, app: WritingToolApp):
+    def __init__(self, app: 'WritingToolApp'):
         self.close_requested = None
         self.client = None
         self.app = app
@@ -901,6 +981,7 @@ class MistralProvider(AIProvider):
             "mistral",
             "Get API Key",
             lambda: webbrowser.open("https://console.mistral.ai/"),
+            "mistral",
         )
 
     def get_response(

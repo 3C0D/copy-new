@@ -4,18 +4,21 @@ vérifier/comparer logic scrolling avec About window
 
 """
 
-
 import os
 import sys
+from typing import TYPE_CHECKING
 
 from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QHBoxLayout, QRadioButton, QScrollArea, QWidget
 
-from aiprovider import AIProvider
+if TYPE_CHECKING:
+    from aiprovider import AIProvider
+    from Windows_and_Linux.WritingToolApp import WritingToolApp
+from config.constants import PROVIDER_DISPLAY_NAMES
+from config.data_operations import get_provider_display_name, get_provider_internal_name
 from ui.AutostartManager import AutostartManager
 from ui.ui_utils import ThemedWidget, colorMode, ui_utils
-from Windows_and_Linux.WritingToolApp import WritingToolApp
 
 _ = lambda x: x
 
@@ -28,7 +31,7 @@ class SettingsWindow(ThemedWidget):
 
     close_signal = QtCore.Signal()
 
-    def __init__(self, app: WritingToolApp, providers_only=False):
+    def __init__(self, app: 'WritingToolApp', providers_only=False):
         super().__init__()
         self.app = app
         self.current_provider_layout = None
@@ -231,11 +234,18 @@ class SettingsWindow(ThemedWidget):
         self.provider_dropdown.wheelEvent = lambda e: e.ignore()
 
         current_provider = self.app.settings_manager.settings.system.get("provider", "gemini")
-        for provider in self.app.providers:
-            self.provider_dropdown.addItem(provider.provider_name)
-        self.provider_dropdown.setCurrentIndex(
-            self.provider_dropdown.findText(current_provider),
-        )
+
+        # Populate dropdown with display names but store internal names as data
+        for internal_name, display_name in PROVIDER_DISPLAY_NAMES.items():
+            self.provider_dropdown.addItem(display_name, internal_name)
+
+        # Set current selection based on internal name
+        current_display_name = get_provider_display_name(current_provider)
+        current_index = self.provider_dropdown.findText(current_display_name)
+        if current_index != -1:
+            self.provider_dropdown.setCurrentIndex(current_index)
+        else:
+            self.provider_dropdown.setCurrentIndex(0)  # Default to first item
         content_layout.addWidget(self.provider_dropdown)
 
         # Add horizontal separator
@@ -249,16 +259,15 @@ class SettingsWindow(ThemedWidget):
         content_layout.addLayout(self.provider_container)
 
         # Initialize provider UI
-        provider_instance = self.app.providers[self.provider_dropdown.currentIndex()]
+        current_internal_name = self.provider_dropdown.currentData()
+        provider_instance = next(
+            (provider for provider in self.app.providers if provider.internal_name == current_internal_name),
+            self.app.providers[0],
+        )
         self.init_provider_ui(provider_instance, self.provider_container)
 
         # Connect provider dropdown
-        self.provider_dropdown.currentIndexChanged.connect(
-            lambda: self.init_provider_ui(
-                self.app.providers[self.provider_dropdown.currentIndex()],
-                self.provider_container,
-            ),
-        )
+        self.provider_dropdown.currentIndexChanged.connect(self._on_provider_changed)
 
         # Add horizontal separator
         line = QtWidgets.QFrame()
@@ -296,7 +305,7 @@ class SettingsWindow(ThemedWidget):
     def retranslate_ui(self):
         self.setWindowTitle(_("Settings"))
 
-    def init_provider_ui(self, provider: AIProvider, layout):
+    def init_provider_ui(self, provider: 'AIProvider', layout):
         """
         Initialize the user interface for the provider, including logo, name, description and all settings.
         """
@@ -346,53 +355,8 @@ class SettingsWindow(ThemedWidget):
             description_label.setWordWrap(True)
             self.current_provider_layout.addWidget(description_label)
 
-        if hasattr(provider, "ollama_button_text"):
-            # Create container for buttons
-            button_layout = QtWidgets.QHBoxLayout()
-
-            # Add Ollama setup button
-            ollama_button = QtWidgets.QPushButton(provider.ollama_button_text)
-            ollama_button.setStyleSheet(
-                f"""
-                QPushButton {{
-                    background-color: {'#4CAF50' if colorMode == 'dark' else '#008CBA'};
-                    color: white;
-                    padding: 10px;
-                    font-size: 16px;
-                    border: none;
-                    border-radius: 5px;
-                }}
-                QPushButton:hover {{
-                    background-color: {'#45a049' if colorMode == 'dark' else '#007095'};
-                }}
-            """,
-            )
-            ollama_button.clicked.connect(provider.button_action)
-            button_layout.addWidget(ollama_button)
-
-            # Add original button
-            main_button = QtWidgets.QPushButton(provider.button_text)
-            main_button.setStyleSheet(
-                f"""
-                QPushButton {{
-                    background-color: {'#4CAF50' if colorMode == 'dark' else '#008CBA'};
-                    color: white;
-                    padding: 10px;
-                    font-size: 16px;
-                    border: none;
-                    border-radius: 5px;
-                }}
-                QPushButton:hover {{
-                    background-color: {'#45a049' if colorMode == 'dark' else '#007095'};
-                }}
-            """,
-            )
-            main_button.clicked.connect(provider.button_action)
-            button_layout.addWidget(main_button)
-
-            self.current_provider_layout.addLayout(button_layout)
         # Original single button logic
-        elif provider.button_text:
+        if provider.button_text:
             button = QtWidgets.QPushButton(provider.button_text)
             button.setStyleSheet(
                 f"""
@@ -420,12 +384,12 @@ class SettingsWindow(ThemedWidget):
             self.app.settings_manager.settings.custom_data = {}
         if "providers" not in self.app.settings_manager.settings.custom_data:
             self.app.settings_manager.settings.custom_data["providers"] = {}
-        if provider.provider_name not in self.app.settings_manager.settings.custom_data["providers"]:
-            self.app.settings_manager.settings.custom_data["providers"][provider.provider_name] = {}
+        if provider.internal_name not in self.app.settings_manager.settings.custom_data["providers"]:
+            self.app.settings_manager.settings.custom_data["providers"][provider.internal_name] = {}
 
         # Add provider settings
         for setting in provider.settings:
-            saved_value = self.app.settings_manager.settings.custom_data["providers"][provider.provider_name].get(
+            saved_value = self.app.settings_manager.settings.custom_data["providers"][provider.internal_name].get(
                 setting.name,
                 setting.default_value,
             )
@@ -582,7 +546,7 @@ class SettingsWindow(ThemedWidget):
 
     def auto_save_shortcut(self):
         """Auto-save shortcut when it changes."""
-        if hasattr(self, "shortcut_input") and not self.providers_only:
+        if hasattr(self, "shortcut_input") and self.shortcut_input is not None and not self.providers_only:
             self.app.settings_manager.update_system_setting(
                 "hotkey",
                 self.shortcut_input.text(),
@@ -591,7 +555,7 @@ class SettingsWindow(ThemedWidget):
 
     def auto_save_theme(self):
         """Auto-save theme when it changes."""
-        if hasattr(self, "gradient_radio") and not self.providers_only:
+        if hasattr(self, "gradient_radio") and self.gradient_radio is not None and not self.providers_only:
             theme = "gradient" if self.gradient_radio.isChecked() else "plain"
             self.app.settings_manager.update_system_setting("theme", theme)
 
@@ -631,44 +595,49 @@ class SettingsWindow(ThemedWidget):
     def save_settings_without_closing(self):
         """Save settings without closing the window."""
         if not self.providers_only:
-            self.app.settings_manager.update_system_setting(
-                "hotkey",
-                self.shortcut_input.text(),
-            )
-            theme = "gradient" if self.gradient_radio.isChecked() else "plain"
-            self.app.settings_manager.update_system_setting("theme", theme)
+            if hasattr(self, "shortcut_input") and self.shortcut_input is not None:
+                self.app.settings_manager.update_system_setting(
+                    "hotkey",
+                    self.shortcut_input.text(),
+                )
+            if hasattr(self, "gradient_radio") and self.gradient_radio is not None:
+                theme = "gradient" if self.gradient_radio.isChecked() else "plain"
+                self.app.settings_manager.update_system_setting("theme", theme)
         else:
             self.app.create_tray_icon()
 
-        # Save provider selection
-        provider_name = self.provider_dropdown.currentText()
-        self.app.settings_manager.update_system_setting("provider", provider_name)
+        # Save provider selection - use internal name from dropdown data
+        if hasattr(self, "provider_dropdown") and self.provider_dropdown is not None:
+            provider_internal_name = self.provider_dropdown.currentData()
+            self.app.settings_manager.update_system_setting("provider", provider_internal_name)
 
-        # Save provider-specific config
-        self.app.providers[self.provider_dropdown.currentIndex()].save_config()
-
-        # Update current provider
-        # Map provider names to actual provider_name in classes
-        provider_mapping = {
-            "Gemini": "Gemini (Recommended)",
-            "OpenAI": "OpenAI-Compatible",
-            "Ollama": "Ollama (Local)",
-            "Anthropic": "Anthropic (Claude)",
-            "Mistral": "Mistral AI",
-        }
-        actual_provider_name = provider_mapping.get(provider_name, provider_name)
-
-        self.app.current_provider = next(
-            (provider for provider in self.app.providers if provider.provider_name == actual_provider_name),
+        # Find the provider instance by internal name
+        selected_provider = next(
+            (provider for provider in self.app.providers if provider.internal_name == provider_internal_name),
             self.app.providers[0],
         )
 
+        # Save provider-specific config
+        selected_provider.save_config()
+
+        # Update current provider
+        self.app.current_provider = selected_provider
+
         # Load provider config
-        provider_config = self.app._get_provider_config(provider_name)
+        provider_config = self.app._get_provider_config(provider_internal_name)
         self.app.current_provider.load_config(provider_config)
 
         self.app.register_hotkey()
         self.providers_only = False
+
+    def _on_provider_changed(self):
+        """Handle provider dropdown change."""
+        current_internal_name = self.provider_dropdown.currentData()
+        provider_instance = next(
+            (provider for provider in self.app.providers if provider.internal_name == current_internal_name),
+            self.app.providers[0],
+        )
+        self.init_provider_ui(provider_instance, self.provider_container)
 
     def closeEvent(self, event):
         """Handle window close event."""

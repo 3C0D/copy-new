@@ -5,6 +5,7 @@ import signal
 import sys
 import threading
 import time
+from typing import TYPE_CHECKING
 
 import darkdetect
 import pyperclip
@@ -20,6 +21,16 @@ import ui.NonEditableModal
 import ui.OnboardingWindow
 import ui.ResponseWindow
 import ui.SettingsWindow
+
+# if TYPE_CHECKING:
+#     from aiprovider import (
+#         AnthropicProvider,
+#         GeminiProvider,
+#         MistralProvider,
+#         OllamaProvider,
+#         OpenAICompatibleProvider,
+#     )
+    
 from aiprovider import (
     AnthropicProvider,
     GeminiProvider,
@@ -27,6 +38,7 @@ from aiprovider import (
     OllamaProvider,
     OpenAICompatibleProvider,
 )
+
 from config.settings import SettingsManager
 from ui.ui_utils import get_icon_path
 from update_checker import UpdateChecker
@@ -78,10 +90,10 @@ class WritingToolApp(QtWidgets.QApplication):
         self.ctrl_c_timer = None
         self.setup_ctrl_c_listener()
 
-        self.output_queue = "" # ?
-        self.last_replace = 0 # ?
+        self.output_queue = ""  # ?
+        self.last_replace = 0  # ?
         self.paused = False
-        self.toggle_action = None # ?
+        self.toggle_action = None  # ?
 
         self._ = gettext.gettext
 
@@ -105,40 +117,21 @@ class WritingToolApp(QtWidgets.QApplication):
 
             try:
                 # Initialize the current provider, defaulting to Gemini
-                provider_name = self.settings_manager.settings.system.get("provider", "gemini")
-                self._logger.debug(f"Selected provider: {provider_name}")
-
-                # # Map provider names to actual provider_name in classes
-                # provider_mapping = {
-                #     "Gemini": "Gemini (Recommended)",
-                #     "OpenAI": "OpenAI-Compatible",
-                #     "Ollama": "Ollama (Local)",
-                #     "Anthropic": "Anthropic (Claude)",
-                #     "Mistral": "Mistral AI",
-                # }
-
-                # actual_provider_name = provider_mapping.get(
-                #     provider_name, provider_name
-                # )
-                # self._logger.debug(f"Mapped provider name: {actual_provider_name}")
+                provider_internal_name = self.settings_manager.settings.system.get("provider", "gemini")
+                self._logger.debug(f"Selected provider: {provider_internal_name}")
 
                 self.current_provider = next(
-                    (
-                        provider
-                        for provider in self.providers
-                        # if provider.provider_name == actual_provider_name
-                        if provider.provider_name == provider_name
-                    ),
+                    (provider for provider in self.providers if provider.internal_name == provider_internal_name),
                     None,
                 )
                 if not self.current_provider:
-                    self._logger.warning(f"Provider {provider_name} not found. Using default provider.")
+                    self._logger.warning(f"Provider {provider_internal_name} not found. Using default provider.")
                     self.current_provider = self.providers[0]
 
                 self._logger.debug(f"Current provider: {self.current_provider.provider_name}")
 
                 # Load provider-specific config from system settings
-                provider_config = self._get_provider_config(provider_name)
+                provider_config = self._get_provider_config(provider_internal_name)
                 self._logger.debug(f"Provider config: {provider_config}")
                 self.current_provider.load_config(provider_config)
                 self._logger.debug("Provider config loaded successfully")
@@ -268,17 +261,11 @@ class WritingToolApp(QtWidgets.QApplication):
         Returns:
             dict: Provider-specific configuration
         """
-        if self.settings_manager.settings is None:
-            return {}
-
-        system = self.settings_manager.settings.system
-        if system is None:
-            return {}
 
         # Check if there's saved provider config in custom_data
-        custom_data = self.settings_manager.settings.custom_data
-        providers_data = custom_data.get("providers", {})
-        saved_config = providers_data.get(provider_name, {})
+        providers_data = self.settings_manager.providers
+        saved_config = providers_data.get(provider_name, "")
+        system = self.settings_manager.system
 
         # Provide default config based on provider type with system settings where applicable
         if provider_name in {"Gemini", "Gemini (Recommended)"}:
@@ -335,21 +322,11 @@ class WritingToolApp(QtWidgets.QApplication):
 
         if not provider_name or provider_name.strip() == "":
             # Default to Gemini if no provider is set
-            provider_name = "Gemini"
+            provider_name = "gemini"
             self.settings_manager.update_system_setting("provider", provider_name)
 
-        # Map provider names to actual provider_name in classes
-        provider_mapping = {
-            "Gemini": "Gemini (Recommended)",
-            "OpenAI": "OpenAI-Compatible",
-            "Ollama": "Ollama (Local)",
-            "Anthropic": "Anthropic (Claude)",
-            "Mistral": "Mistral AI",
-        }
-        actual_provider_name = provider_mapping.get(provider_name, provider_name)
-
         self.current_provider = next(
-            (provider for provider in self.providers if provider.provider_name == actual_provider_name),
+            (provider for provider in self.providers if provider.internal_name == provider_name),
             self.providers[0],  # Default to first provider
         )
 
@@ -376,15 +353,17 @@ class WritingToolApp(QtWidgets.QApplication):
         if self.settings_manager.settings is None or self.settings_manager.settings.system is None:
             return
 
-        orig_shortcut = self.settings_manager.settings.system.get("hotkey", "ctrl+space")
+        orig_shortcut = self.settings_manager.system.get("hotkey", "ctrl+space")
         # Parse the shortcut string, for example ctrl+alt+h -> <ctrl>+<alt>+<h>. Space are removed.
         shortcut = "+".join(
             [f"{t}" if len(t) <= 1 else f"<{t}>" for t in [part.strip() for part in orig_shortcut.split("+")]],
         )
         self._logger.debug(f"Registering global hotkey for shortcut: {shortcut}")
+
         try:
             if self.hotkey_listener is not None:
                 self.hotkey_listener.stop()
+                self.hotkey_listener = None
 
             def on_activate():
                 if self.paused:
@@ -398,7 +377,9 @@ class WritingToolApp(QtWidgets.QApplication):
 
             # Helper function to standardize key event
             def for_canonical(f):
-                return lambda k: f(self.hotkey_listener.canonical(k))
+                return lambda k: f(
+                    self.hotkey_listener.canonical(k) if k is not None and self.hotkey_listener is not None else k
+                )
 
             # Create a listener and store it as an attribute to stop it later
             self.hotkey_listener = pykeyboard.Listener(
@@ -488,7 +469,8 @@ class WritingToolApp(QtWidgets.QApplication):
             self.popup_window.adjustSize()
             # Ensure the popup it's focused, even on lower-end machines
             self.popup_window.activateWindow()
-            QtCore.QTimer.singleShot(100, self.popup_window.custom_input.setFocus)
+            if self.popup_window.custom_input:
+                QtCore.QTimer.singleShot(100, self.popup_window.custom_input.setFocus)
 
             popup_width = self.popup_window.width()
             popup_height = self.popup_window.height()
@@ -547,8 +529,7 @@ class WritingToolApp(QtWidgets.QApplication):
 
         return selected_text
 
-    @staticmethod
-    def clear_clipboard():
+    def clear_clipboard(self):
         """
         Clear the system clipboard.
         """
