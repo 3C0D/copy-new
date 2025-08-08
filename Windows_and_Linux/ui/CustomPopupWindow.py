@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 
 from config.data_operations import create_default_actions_config
 from ui.ui_utils import ThemeBackground, colorMode
+
 if TYPE_CHECKING:
     from Windows_and_Linux.WritingToolApp import WritingToolApp
 
@@ -273,7 +274,8 @@ class DraggableButton(QtWidgets.QPushButton):
             event.ignore()
             return
 
-        source_idx = int(event.mimeData().data("application/x-button-index").data().decode())
+        mime_data = event.mimeData().data("application/x-button-index")
+        source_idx = int(bytes(mime_data).decode())
         target_idx = self.popup.button_widgets.index(self)
 
         if source_idx != target_idx:
@@ -402,7 +404,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
         self.edit_close_button.clicked.connect(self.exit_edit_mode)
         self.edit_close_button.setToolTip(_("Exit Edit Mode"))
         self.edit_close_button.hide()
-        top_bar.addWidget(self.edit_close_button, 0, Qt.AlignRight)
+        top_bar.addWidget(self.edit_close_button, 0, Qt.AlignmentFlag.AlignRight)
 
         # Edit button (pencil icon) - only shown when not in edit mode
         self.edit_button = QPushButton()
@@ -425,7 +427,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
         )
         self.edit_button.clicked.connect(self.enter_edit_mode)
         self.edit_button.setToolTip(_("Edit Tools Layout"))
-        top_bar.addWidget(self.edit_button, 0, Qt.AlignLeft)
+        top_bar.addWidget(self.edit_button, 0, Qt.AlignmentFlag.AlignLeft)
 
         # Close button block:
         self.close_button = QPushButton("×")
@@ -447,7 +449,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
         """,
         )
         self.close_button.clicked.connect(self.close)
-        top_bar.addWidget(self.close_button, 0, Qt.AlignRight)
+        top_bar.addWidget(self.close_button, 0, Qt.AlignmentFlag.AlignRight)
         content_layout.addLayout(top_bar)
 
         # Input area (hidden in edit mode)
@@ -519,7 +521,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
         logging.debug("CustomPopupWindow UI setup complete")
         self.installEventFilter(self)
-        QtCore.QTimer.singleShot(250, lambda: self.custom_input.setFocus())
+        QtCore.QTimer.singleShot(250, lambda: self.custom_input.setFocus() if self.custom_input else None)
 
     def get_actions(self):
         """
@@ -569,11 +571,9 @@ class CustomPopupWindow(QtWidgets.QWidget):
             tooltip_text = name
             if action_config.get("instruction", None):
                 # Truncate long instructions for tooltip
-                instruction = (
-                    action_config["instruction"][:100] + "..."
-                    if len(action_config["instruction"]) > 100
-                    else action_config["instruction"]
-                )
+                instruction = action_config.get("instruction", "")
+                if instruction:
+                    instruction = instruction[:100] + "..." if len(instruction) > 100 else instruction
                 tooltip_text = f"{name}\n{instruction}"
             b.setToolTip(tooltip_text)
 
@@ -599,8 +599,10 @@ class CustomPopupWindow(QtWidgets.QWidget):
                     if w:
                         grid.removeWidget(w)
                 parent_layout.removeItem(grid)
-            elif item.widget() and isinstance(item.widget(), QPushButton) and item.widget().text() == "+ Add New":
-                item.widget().deleteLater()
+            elif item.widget():
+                widget = item.widget()
+                if isinstance(widget, QPushButton) and widget.text() == "+ Add New":
+                    widget.deleteLater()
 
         # Create new grid with fixed column width
         grid = QtWidgets.QGridLayout()
@@ -618,7 +620,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
                 col = 0
                 row += 1
 
-        if hasattr(parent_layout, 'addLayout'):
+        if hasattr(parent_layout, 'addLayout') and isinstance(parent_layout, QtWidgets.QVBoxLayout):
             parent_layout.addLayout(grid)
         else:
             # If parent_layout doesn't have addLayout, try to add as widget
@@ -653,7 +655,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
             btn.icon_container.deleteLater()
 
         btn.icon_container = QtWidgets.QWidget(btn)
-        btn.icon_container.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents, False)
+        btn.icon_container.setAttribute(QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
 
         btn.icon_container.setGeometry(0, 0, btn.width(), btn.height())
 
@@ -698,21 +700,36 @@ class CustomPopupWindow(QtWidgets.QWidget):
         btn.icon_container.raise_()
         btn.icon_container.show()
 
+    def add_edit_overlays_to_buttons(self):
+        """Add edit overlays to all buttons when entering edit mode."""
+        for btn in self.button_widgets:
+            self.add_edit_delete_icons(btn)
+
+        # Rebuild grid layout to show edit mode
+        self.rebuild_grid_layout(force_edit_mode=True)
+
     def enter_edit_mode(self):
         """Enter edit mode - called when user clicks the pencil icon."""
         self.edit_mode = True
         logging.debug("Entering edit mode")
 
         # Show edit mode UI elements
-        self.edit_button.hide()
-        self.close_button.hide()
-        self.reset_button.show()
-        self.edit_close_button.show()
-        self.drag_label.show()
-        self.input_area.setVisible(False)
+        if self.edit_button is not None:
+            self.edit_button.hide()
+        if self.close_button is not None:
+            self.close_button.hide()
+        if self.reset_button is not None:
+            self.reset_button.show()
+        if self.edit_close_button is not None:
+            self.edit_close_button.show()
+        if self.drag_label is not None:
+            self.drag_label.show()
+        if self.input_area is not None:
+            self.input_area.setVisible(False)
 
         # Add edit overlays to buttons
-        self.add_edit_overlays_to_buttons()
+        if hasattr(self, 'add_edit_overlays_to_buttons'):
+            self.add_edit_overlays_to_buttons()
 
     def exit_edit_mode(self):
         """Exit edit mode - called when user clicks the close button in edit mode."""
@@ -720,12 +737,18 @@ class CustomPopupWindow(QtWidgets.QWidget):
         logging.debug("Exiting edit mode")
 
         # Hide edit mode UI elements
-        self.reset_button.hide()
-        self.edit_close_button.hide()
-        self.drag_label.hide()
-        self.edit_button.show()
-        self.close_button.show()
-        self.input_area.setVisible(True)
+        if self.reset_button is not None:
+            self.reset_button.hide()
+        if self.edit_close_button is not None:
+            self.edit_close_button.hide()
+        if self.drag_label is not None:
+            self.drag_label.hide()
+        if self.edit_button is not None:
+            self.edit_button.show()
+        if self.close_button is not None:
+            self.close_button.show()
+        if self.input_area is not None:
+            self.input_area.setVisible(True)
 
         # Remove edit overlays from buttons
         self.remove_edit_overlays_from_buttons()
@@ -767,15 +790,15 @@ class CustomPopupWindow(QtWidgets.QWidget):
         Reset options to default actions and reload the interface.
         """
         confirm_box = QtWidgets.QMessageBox()
-        confirm_box.setWindowFlags(confirm_box.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+        confirm_box.setWindowFlags(confirm_box.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
         confirm_box.setWindowTitle("Confirm Reset to Defaults?")
         confirm_box.setText(
             "This will reset all buttons to their original configuration.\nYour custom buttons will be removed.\n\nAre you sure you want to continue?",
         )
-        confirm_box.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
-        confirm_box.setDefaultButton(QtWidgets.QMessageBox.No)
+        confirm_box.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+        confirm_box.setDefaultButton(QtWidgets.QMessageBox.StandardButton.No)
 
-        if confirm_box.exec_() == QtWidgets.QMessageBox.Yes:
+        if confirm_box.exec_() == QtWidgets.QMessageBox.StandardButton.Yes:
             try:
                 logging.debug("Resetting to default actions")
                 # Reset actions to defaults in unified settings
@@ -792,7 +815,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
                 # Show success message
                 success_msg = QtWidgets.QMessageBox()
-                success_msg.setWindowFlags(success_msg.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+                success_msg.setWindowFlags(success_msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
                 success_msg.setWindowTitle("Reset Complete")
                 success_msg.setText("Buttons have been reset to their default configuration.")
                 success_msg.exec_()
@@ -818,10 +841,10 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
             # Show success message
             msg = QtWidgets.QMessageBox()
-            msg.setWindowFlags(msg.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+            msg.setWindowFlags(msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
             msg.setWindowTitle("Button Added")
             msg.setText("Your new button has been saved and is now available in the tools list.")
-            msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
+            msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
             msg.exec_()
 
             # Reload the window instead of closing it
@@ -859,10 +882,10 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
             # Show success message
             msg = QtWidgets.QMessageBox()
-            msg.setWindowFlags(msg.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+            msg.setWindowFlags(msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
             msg.setWindowTitle("Button Updated")
             msg.setText("Your button changes have been saved and are now active.")
-            msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
+            msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
             msg.exec_()
 
             # Reload the window instead of closing it
@@ -872,13 +895,13 @@ class CustomPopupWindow(QtWidgets.QWidget):
         """Handle deletion of a button."""
         key = btn.key
         confirm = QtWidgets.QMessageBox()
-        confirm.setWindowFlags(confirm.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+        confirm.setWindowFlags(confirm.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
         confirm.setWindowTitle("Confirm Delete?")
         confirm.setText("Are you sure you want to continue?")
-        confirm.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
-        confirm.setDefaultButton(QtWidgets.QMessageBox.No)
+        confirm.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+        confirm.setDefaultButton(QtWidgets.QMessageBox.StandardButton.No)
 
-        if confirm.exec_() == QtWidgets.QMessageBox.Yes:
+        if confirm.exec_() == QtWidgets.QMessageBox.StandardButton.Yes:
             try:
                 # Remove action using SettingsManager
                 self.app.settings_manager.remove_action(key)
@@ -948,7 +971,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
         new_popup.activateWindow()
 
     def on_custom_change(self):
-        txt = self.custom_input.text().strip()
+        txt = self.custom_input.text().strip() if self.custom_input else ""
         if txt:
             self.app.process_option("Custom", self.selected_text, txt)
             self.close()
@@ -960,14 +983,14 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
     def eventFilter(self, obj, event):
         # Hide on deactivate only if NOT in edit mode
-        if event.type() == QtCore.QEvent.WindowDeactivate:
+        if event.type() == QtCore.QEvent.Type.WindowDeactivate:
             if not self.edit_mode:
                 self.hide()
                 return True
         return super().eventFilter(obj, event)
 
     def keyPressEvent(self, event):
-        if event.key() == QtCore.Qt.Key_Escape:
+        if event.key() == QtCore.Qt.Key.Key_Escape:
             self.close()
         else:
             super().keyPressEvent(event)

@@ -258,7 +258,6 @@ class AIProvider(ABC):
     api_base: str
     api_organisation: str
     api_project: str
-    api_model: str
     keep_alive: str
     logo: Optional[str]
 
