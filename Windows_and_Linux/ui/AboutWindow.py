@@ -1,3 +1,9 @@
+"""
+Page revue et commentée
+Vérifier la section scroll.
+"""
+
+
 import webbrowser
 
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -40,7 +46,6 @@ class AboutWindow(ThemedWidget):
             | QtCore.Qt.WindowType.WindowTitleHint
         )
 
-        # Set transparent icon
         self._set_transparent_icon()
 
     def _center_on_screen(self):
@@ -69,7 +74,7 @@ class AboutWindow(ThemedWidget):
         title_label = self._create_title_label()
         self.content_layout.addWidget(title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
 
-        # Main content
+        # Scrollable main content
         about_content = self._get_about_content()
         content_widget = self._create_scrollable_content(about_content)
         self.content_layout.addWidget(content_widget)
@@ -184,6 +189,9 @@ class AboutWindow(ThemedWidget):
         scroll_area = QtWidgets.QScrollArea()
         scroll_area.setWidget(about_label)
         scroll_area.setWidgetResizable(True)
+        # Needed ?
+        scroll_area.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+
         scroll_area.setStyleSheet("QScrollArea { background: transparent; border: none; }")
 
         return scroll_area
@@ -203,60 +211,36 @@ class AboutWindow(ThemedWidget):
 
     def _get_button_style(self):
         """Get the button styling with theme awareness."""
-        if colorMode == 'dark':
-            return """
+        base_style = """
                 QPushButton {
-                    background-color: #4CAF50;
-                    color: white;
-                    padding: 12px 24px;
-                    font-size: 16px;
-                    font-weight: bold;
-                    border: none;
-                    border-radius: 8px;
+                background-color: #4CAF50; color: white; padding: 12px 24px;
+                font-size: 16px; font-weight: bold; border: none; border-radius: 8px;
                 }
-                QPushButton:hover {
-                    background-color: #45a049;
-                    transform: translateY(-2px);
-                }
-                QPushButton:pressed {
-                    background-color: #3d8b40;
-                }
+            QPushButton:hover { background-color: #45a049; }
+            QPushButton:pressed { background-color: #3d8b40; }
             """
-        else:
-            return """
-                QPushButton {
-                    background-color: #4CAF50;
-                    color: white;
-                    padding: 12px 24px;
-                    font-size: 16px;
-                    font-weight: bold;
-                    border: none;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                }
-                QPushButton:hover {
-                    background-color: #45a049;
-                    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-                }
-                QPushButton:pressed {
-                    background-color: #3d8b40;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-                }
+        
+        # Add theme-specific enhancements
+        if colorMode == 'light':
+            base_style += """
+                QPushButton { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                QPushButton:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+                QPushButton:pressed { box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
             """
+            
+        return base_style
 
     def check_for_updates(self):
         """Open the GitHub releases page to check for updates."""
         webbrowser.open("https://github.com/theJayTea/WritingTools/releases")
 
     def resizeEvent(self, event):
-        """Handle window resize events."""
+        """Handle window resize events to maintain minimum size."""
         super().resizeEvent(event)
-        # Ensure minimum size is respected
+        # Enforce minimum dimensions
         if self.width() < self.min_width or self.height() < self.min_height:
             self.resize(max(self.width(), self.min_width), max(self.height(), self.min_height))
 
     def original_app(self):
-        """
-        Open the original app GitHub page.
-        """
+        """Open the original app GitHub page."""
         webbrowser.open("https://github.com/TheJayTea/WritingTools")

@@ -2,8 +2,9 @@
 AI Provider Architecture for Writing Tools
 --------------------------------------------
 
-This module handles different AI model providers (Gemini, OpenAI-compatible, Ollama) and manages their interactions
-with the main application. It uses an abstract base class pattern for provider implementations.
+This module handles different AI model providers (Gemini, OpenAI-compatible, Ollama, Anthropic, Mistral) 
+and manages their interactions with the main application. It uses an abstract base class pattern for 
+provider implementations.
 
 Key Components:
 1. AIProviderSetting - Base class for provider settings (e.g. API keys, model names)
@@ -20,6 +21,8 @@ Key Components:
     • GeminiProvider - Uses Google’s Generative AI API (Gemini) to generate content.
     • OpenAICompatibleProvider - Connects to any OpenAI-compatible API (v1/chat/completions)
     • OllamaProvider - Connects to a locally running Ollama server (e.g. for llama.cpp)
+    • AnthropicProvider - Uses Anthropic's Claude API
+    • MistralProvider - Uses Mistral AI API
 
 Response Flow:
    • The main app calls get_response() with a system instruction and a prompt.
@@ -76,6 +79,9 @@ if TYPE_CHECKING:
 class AIProviderSetting(ABC):
     """
     Abstract base class for a provider setting (e.g., API key, model selection).
+    
+    Each setting has a name, display name, default value and description.
+    Subclasses must implement UI rendering and value management.
     """
 
     def __init__(
@@ -106,6 +112,9 @@ class AIProviderSetting(ABC):
 class TextSetting(AIProviderSetting):
     """
     A text-based setting (for API keys, URLs, etc.).
+    
+    Uses a QLineEdit to allow free text input.
+    Value is stored internally until widget rendering.
     """
 
     def __init__(
@@ -120,6 +129,7 @@ class TextSetting(AIProviderSetting):
         self.input: Optional[QtWidgets.QLineEdit] = None
 
     def render_to_layout(self, layout: QVBoxLayout):
+        """Create and add the QLineEdit with its label to the layout."""
         row_layout = QtWidgets.QHBoxLayout()
         label = QtWidgets.QLabel(self.display_name)
         label.setStyleSheet(f"font-size: 16px; color: {'#ffffff' if colorMode=='dark' else '#333333'};")
@@ -139,9 +149,11 @@ class TextSetting(AIProviderSetting):
         layout.addLayout(row_layout)
 
     def set_value(self, value):
+        """Store value internally for future rendering."""
         self.internal_value = value
 
     def get_value(self):
+        """Return widget value or empty string if not yet rendered."""
         if self.input is not None:
             return self.input.text()
         return ""
@@ -150,6 +162,9 @@ class TextSetting(AIProviderSetting):
 class DropdownSetting(AIProviderSetting):
     """
     A dropdown setting (e.g., for selecting a model).
+    
+    Uses a QComboBox that can be editable or not.
+    Options are stored as tuples (display_name, value).
     """
 
     def __init__(
@@ -168,6 +183,7 @@ class DropdownSetting(AIProviderSetting):
         self.editable = editable
 
     def render_to_layout(self, layout: QVBoxLayout):
+        """Create and configure the QComboBox with available options."""
         row_layout = QtWidgets.QHBoxLayout()
         label = QtWidgets.QLabel(self.display_name)
         label.setStyleSheet(f"font-size: 16px; color: {'#ffffff' if colorMode=='dark' else '#333333'};")
@@ -195,15 +211,17 @@ class DropdownSetting(AIProviderSetting):
             else:
                 # For non-editable dropdowns, find by data
                 index = self.dropdown.findData(self.internal_value)
-            if index != -1:
-                self.dropdown.setCurrentIndex(index)
+                if index != -1:
+                    self.dropdown.setCurrentIndex(index)
         row_layout.addWidget(self.dropdown)
         layout.addLayout(row_layout)
 
     def set_value(self, value):
+        """Store value for selection during rendering."""
         self.internal_value = value
 
     def get_value(self):
+        """Return selected or entered value from the dropdown."""
         if self.dropdown is None:
             return ""
 
@@ -229,6 +247,9 @@ class AIProvider(ABC):
       • after_load() to create their client or model instance
       • before_load() to cleanup any existing client
       • cancel() to cancel an ongoing request
+      
+    The class also handles configuration loading/saving and UI interface.
+    Dynamic attributes are created via setattr() during configuration loading.
     """
 
     # Type annotations for dynamically created attributes
@@ -261,24 +282,48 @@ class AIProvider(ABC):
         self.button_action = button_action
         self.logo = logo
 
-        # Initialize dynamic attributes with default values
-        self.api_key = ""
-        self.model_name = ""
-        self.api_base = ""
-        self.api_organisation = ""
-        self.api_project = ""
-        self.api_model = ""
-        self.keep_alive = ""
+        # Initialize dynamic attributes based on provider settings
+        # These attributes will be updated during configuration loading
+        self._initialize_dynamic_attributes()
+
+    def _initialize_dynamic_attributes(self):
+        """Initialize all dynamic attributes based on provider settings."""
+        for setting in self.settings:
+            setattr(self, setting.name, setting.default_value or "")
+
+    @property
+    def api_model(self) -> str:
+        """Generic getter for the api_model attribute."""
+        return getattr(self, '_api_model', '')
+
+    @api_model.setter
+    def api_model(self, value: str):
+        """Generic setter for the api_model attribute."""
+        self._api_model = value
+        # Also update the corresponding setting if it exists
+        for setting in self.settings:
+            if setting.name == "api_model":
+                setting.set_value(value)
+                break
 
     @abstractmethod
     def get_response(self, system_instruction: str, prompt: str) -> str:
         """
         Send the given system instruction and prompt to the AI provider and return the full response text.
+        
+        This method must handle:
+        - Formatting the request according to the API's expected format
+        - Sending the request and waiting for the response
+        - Error handling and displaying appropriate user messages
+        - Emitting the output_ready_signal for direct text replacement
         """
 
     def load_config(self, config: dict):
         """
         Load configuration settings into the provider.
+        
+        Updates dynamic attributes and setting values,
+        then calls after_load() to initialize the API client.
         """
         for setting in self.settings:
             if setting.name in config:
@@ -291,6 +336,9 @@ class AIProvider(ABC):
     def save_config(self):
         """
         Save provider configuration settings into the main config file.
+        
+        Retrieves current values from UI widgets, cleans whitespace,
+        and stores them in the settings_manager's custom_data.providers section.
         """
         config = {}
         for setting in self.settings:
@@ -315,18 +363,27 @@ class AIProvider(ABC):
     def after_load(self):
         """
         Called after configuration is loaded; create your API client here.
+        
+        This method should initialize any clients or connections needed
+        using the loaded settings (api_key, api_base, etc.).
         """
 
     @abstractmethod
     def before_load(self):
         """
         Called before reloading configuration; cleanup your API client here.
+        
+        This method should release resources and close connections
+        before a new configuration is loaded.
         """
 
     @abstractmethod
     def cancel(self):
         """
         Cancel any ongoing API request.
+        
+        This method should set cancellation flags and interrupt
+        ongoing operations safely.
         """
 
 
@@ -336,6 +393,7 @@ class GeminiProvider(AIProvider):
 
     Uses google.generativeai.GenerativeModel.generate_content() to generate text.
     Streaming is no longer offered so we always do a single-shot call.
+    Handles safety settings to allow less restricted content.
     """
 
     def __init__(self, app: 'WritingToolApp'):
@@ -436,6 +494,9 @@ class GeminiProvider(AIProvider):
     def after_load(self):
         """
         Configure the google.generativeai client and create the generative model.
+        
+        Only initialize model if API key is provided and genai is available.
+        Configures safety settings to block no content types.
         """
         # Only configure if API key is provided and genai is available
         if (
@@ -446,7 +507,7 @@ class GeminiProvider(AIProvider):
             and HarmCategory is not None
             and HarmBlockThreshold is not None
         ):
-            # Fix: Use try-except to handle the configure method
+            # Use try-except to handle the configure method
             try:
                 genai.configure(api_key=self.api_key)
                 self.model = genai.GenerativeModel(
@@ -470,9 +531,11 @@ class GeminiProvider(AIProvider):
             self.model = None
 
     def before_load(self):
+        """Clean up model instance before reloading."""
         self.model = None
 
     def cancel(self):
+        """Set cancellation flag to interrupt operations."""
         self.close_requested = True
 
 
@@ -481,7 +544,8 @@ class OpenAICompatibleProvider(AIProvider):
     Provider for OpenAI-compatible APIs.
 
     Uses self.client.chat.completions.create() to obtain a response.
-    Streaming is fully removed.
+    Streaming is fully removed. Supports APIs with organization
+    and project authentication.
     """
 
     def __init__(self, app: 'WritingToolApp'):
@@ -526,23 +590,6 @@ class OpenAICompatibleProvider(AIProvider):
             lambda: webbrowser.open("https://platform.openai.com/account/api-keys"),
             "openai",
         )
-
-    @property
-    def api_model(self) -> str:
-        """Get the API model setting value."""
-        for setting in self.settings:
-            if setting.name == "api_model":
-                value = setting.get_value()
-                return str(value) if value is not None else ""
-        return ""
-
-    @api_model.setter
-    def api_model(self, value: str):
-        """Set the API model setting value."""
-        for setting in self.settings:
-            if setting.name == "api_model":
-                setting.set_value(value)
-                break
 
     def get_response(self, system_instruction: str, prompt: Union[str, list], return_response: bool = False) -> str:
         """
@@ -610,6 +657,7 @@ class OpenAICompatibleProvider(AIProvider):
             return ""
 
     def after_load(self):
+        """Initialize OpenAI client with configured settings."""
         self.client = OpenAI(
             api_key=self.api_key,
             base_url=self.api_base,
@@ -618,9 +666,11 @@ class OpenAICompatibleProvider(AIProvider):
         )
 
     def before_load(self):
+        """Clean up client before reloading."""
         self.client = None
 
     def cancel(self):
+        """Set cancellation flag."""
         self.close_requested = True
 
 
@@ -628,6 +678,9 @@ def get_ollama_models():
     """
     Get list of installed Ollama models by running 'ollama list' command.
     Returns a list of tuples (display_name, model_name) for installed models.
+    
+    Parses the command output to extract model names and sizes.
+    Handles error cases (Ollama not installed, no models, etc.).
     """
     try:
         result = subprocess.run(["ollama", "list"], check=False, capture_output=True, text=True, timeout=10)
@@ -647,13 +700,13 @@ def get_ollama_models():
                         size_info = ""
                         if len(parts) >= 3:
                             size_raw = parts[2]
-                            # Convert size to proper format (e.g., "5.6GB" -> "(5.6 Go)")
+                            # Convert size to proper format (e.g., "5.6GB" -> "(5.6 GB)")
                             if size_raw.upper().endswith("GB"):
                                 size_value = size_raw[:-2]
-                                size_info = f" ({size_value} Go)"
+                                size_info = f" ({size_value} GB)"
                             elif size_raw.upper().endswith("MB"):
                                 size_value = size_raw[:-2]
-                                size_info = f" ({size_value} Mo)"
+                                size_info = f" ({size_value} MB)"
                             else:
                                 size_info = f" ({size_raw})"
 
@@ -663,13 +716,13 @@ def get_ollama_models():
             if models:
                 return models
             # No models found, return message to install models
-            return [("Veuillez d'abord installer des modèles Ollama", "")]
+            return [("Please install Ollama models first", "")]
         logging.warning(f"Failed to get Ollama models: {result.stderr}")
-        return [("Veuillez d'abord installer des modèles Ollama", "")]
+        return [("Please install Ollama models first", "")]
 
     except (subprocess.TimeoutExpired, FileNotFoundError, Exception) as e:
         logging.warning(f"Could not run 'ollama list': {e}")
-        return [("Ollama non disponible - Veuillez l'installer", "")]
+        return [("Ollama not available - Please install it", "")]
 
 
 class OllamaProvider(AIProvider):
@@ -677,7 +730,8 @@ class OllamaProvider(AIProvider):
     Provider for connecting to an Ollama server.
 
     Uses the /chat endpoint of the Ollama server to generate a response.
-    Streaming is not used.
+    Streaming is not used. Supports configuration of model keep-alive time
+    and custom models.
     """
 
     def __init__(self, app: 'WritingToolApp'):
@@ -723,15 +777,6 @@ class OllamaProvider(AIProvider):
             "ollama",
         )
 
-    @property
-    def api_model(self) -> str:
-        """Get the API model setting value."""
-        for setting in self.settings:
-            if setting.name == "api_model":
-                value = setting.get_value()
-                return str(value) if value is not None else ""
-        return ""
-
     def get_response(self, system_instruction: str, prompt: Union[str, list], return_response: bool = False) -> str:
         """
         Send a chat request to the Ollama server.
@@ -754,8 +799,8 @@ class OllamaProvider(AIProvider):
             # Check if model is valid before making the request
             if not self.api_model or self.api_model.strip() == "":
                 self.app.show_message_signal.emit(
-                    "OllamaError",
-                    "Aucun modèle Ollama sélectionné. Veuillez d'abord installer et sélectionner un modèle dans les paramètres.",
+                    "Ollama Error",
+                    "No Ollama model selected. Please install and select a model in settings first.",
                 )
                 return ""
 
@@ -792,19 +837,24 @@ class OllamaProvider(AIProvider):
             return ""
 
     def after_load(self):
+        """Initialize Ollama client with configured base URL."""
         self.client = OllamaClient(host=self.api_base)
 
     def before_load(self):
+        """Clean up client before reloading."""
         self.client = None
 
     def cancel(self):
+        """Set cancellation flag."""
         self.close_requested = True
 
 
 class AnthropicProvider(AIProvider):
     """
     Anthropic (Claude) AI Provider for Writing Tools.
+    
     Uses the Anthropic API to generate content with Claude models.
+    Implements authentication via API key and supports different Claude models.
     """
 
     def __init__(self, app: 'WritingToolApp'):
@@ -847,6 +897,12 @@ class AnthropicProvider(AIProvider):
         conversation_history=None,
         return_response=False,
     ):
+        """
+        Generate response using Anthropic's Claude API.
+        
+        Supports conversation history for multi-turn interactions.
+        Uses Anthropic's OpenAI-compatible endpoint for simplicity.
+        """
         if self.close_requested:
             return ""
 
@@ -930,6 +986,7 @@ class AnthropicProvider(AIProvider):
             return ""
 
     def after_load(self):
+        """Initialize Anthropic client with proper authentication."""
         self.client = OpenAI(
             api_key=self.api_key,
             base_url="https://api.anthropic.com/v1",
@@ -939,16 +996,20 @@ class AnthropicProvider(AIProvider):
         )
 
     def before_load(self):
+        """Clean up client before reloading."""
         self.client = None
 
     def cancel(self):
+        """Set cancellation flag."""
         self.close_requested = True
 
 
 class MistralProvider(AIProvider):
     """
     Mistral AI Provider for Writing Tools.
+    
     Uses the Mistral API to generate content with Mistral models.
+    Uses direct HTTP requests for better control and reliability.
     """
 
     def __init__(self, app: 'WritingToolApp'):
@@ -991,6 +1052,12 @@ class MistralProvider(AIProvider):
         conversation_history=None,
         return_response=False,
     ):
+        """
+        Generate response using Mistral API.
+        
+        Uses direct HTTP requests via requests library for maximum control
+        over request format and error handling.
+        """
         logging.debug(f"MistralProvider.get_response called with return_response={return_response}")
         logging.debug(
             f"MistralProvider current config - api_key: {self.api_key[:10] if self.api_key else 'None'}..., api_model: {self.api_model}",
@@ -1122,12 +1189,13 @@ class MistralProvider(AIProvider):
             return ""
 
     def after_load(self):
-        # No client initialization needed - using requests directly
+        """No client initialization needed - using requests directly."""
         pass
 
     def before_load(self):
-        # No client cleanup needed
+        """No client cleanup needed."""
         pass
 
     def cancel(self):
+        """Set cancellation flag."""
         self.close_requested = True

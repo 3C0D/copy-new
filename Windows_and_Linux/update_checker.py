@@ -1,8 +1,11 @@
 import logging
 import threading
 import time
+from typing import TYPE_CHECKING
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
+if TYPE_CHECKING:
+    from Windows_and_Linux.WritingToolApp import WritingToolApp
 
 CURRENT_VERSION = 7
 UPDATE_CHECK_URL = "https://raw.githubusercontent.com/theJayTea/WritingTools/main/Windows_and_Linux/Latest_Version_for_Update_Check.txt"
@@ -10,7 +13,7 @@ UPDATE_DOWNLOAD_URL = "https://github.com/theJayTea/WritingTools/releases"
 
 
 class UpdateChecker:
-    def __init__(self, app):
+    def __init__(self, app: 'WritingToolApp'):
         self.app = app
 
     def _fetch_latest_version(self):
@@ -59,7 +62,7 @@ class UpdateChecker:
 
         # Always update settings with fresh status
         # Store update status in system settings
-        self.app.settings_manager.settings.system.update_available = update_available
+        self.app.settings_manager.update_available = update_available
         self.app.save_settings()
 
         return update_available

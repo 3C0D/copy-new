@@ -1,3 +1,7 @@
+"""
+provider_internal_name = self.settings_manager.provider # or "gemini" see later L121
+"""
+
 import gettext
 import logging
 import os
@@ -112,12 +116,9 @@ class WritingToolApp(QtWidgets.QApplication):
         else:
             self._logger.debug("Providers configured, setting up hotkey and tray icon")
 
-            # else pylance is not happy
-            assert self.settings_manager.settings
-
             try:
                 # Initialize the current provider, defaulting to Gemini
-                provider_internal_name = self.settings_manager.settings.system.get("provider", "gemini")
+                provider_internal_name = self.settings_manager.provider or "gemini"
                 self._logger.debug(f"Selected provider: {provider_internal_name}")
 
                 self.current_provider = next(
@@ -140,7 +141,7 @@ class WritingToolApp(QtWidgets.QApplication):
                 self.register_hotkey()
 
                 # Set language from system settings
-                lang = self.settings_manager.settings.system.get("language", "en")
+                lang = self.settings_manager.language or "en"
                 self.change_language(lang if lang != "en" else None)
 
                 # Initialize update checker
@@ -261,40 +262,45 @@ class WritingToolApp(QtWidgets.QApplication):
         Returns:
             dict: Provider-specific configuration
         """
-
-        # Check if there's saved provider config in custom_data
-        providers_data = self.settings_manager.providers
-        saved_config = providers_data.get(provider_name, "")
-        system = self.settings_manager.system
-
-        # Provide default config based on provider type with system settings where applicable
-        if provider_name in {"Gemini", "Gemini (Recommended)"}:
-            config = {"api_key": "", "model": system.get("model", "")}
-        elif provider_name in {"Ollama", "Ollama (Local)", "Ollama (For Experts)"}:
-            config = {
-                "base_url": system.get("ollama_base_url", "http://localhost:11434"),
+        
+        # Configuration par défaut selon le type de provider
+        default_configs = {
+            ("Gemini", "Gemini (Recommended)"): {
+                "api_key": "", 
+                "model": self.settings_manager.model or ""
+            },
+            ("Ollama", "Ollama (Local)", "Ollama (For Experts)"): {
+                "base_url": self.settings_manager.ollama_base_url or "http://localhost:11434",
                 "model": "",
-                "keep_alive": system.get("ollama_keep_alive", "5"),
-            }
-        elif provider_name in {"Mistral", "Mistral AI"}:
-            config = {
+                "keep_alive": self.settings_manager.ollama_keep_alive or "5",
+            },
+            ("Mistral", "Mistral AI"): {
                 "api_key": "",
                 "api_model": "",
-                "base_url": system.get("mistral_base_url", "https://api.mistral.ai/v1"),
-            }
-        elif provider_name in {"Anthropic", "Anthropic (Claude)"}:
-            config = {"api_key": "", "model": ""}
-        elif provider_name in {"OpenAI", "OpenAI-Compatible"}:
-            config = {
+                "base_url": self.settings_manager.mistral_base_url or "https://api.mistral.ai/v1",
+            },
+            ("Anthropic", "Anthropic (Claude)"): {
+                "api_key": "", 
+                "model": ""
+            },
+            ("OpenAI", "OpenAI-Compatible"): {
                 "api_key": "",
-                "base_url": system.get("openai_base_url", "https://api.openai.com/v1"),
+                "base_url": self.settings_manager.openai_base_url or "https://api.openai.com/v1",
                 "model": "",
-            }
-        else:
-            config = {}
-
-        # Override with saved config
+            },
+        }
+        
+        # Trouver la config par défaut
+        config = {}
+        for provider_names, default_config in default_configs.items():
+            if provider_name in provider_names:
+                config = default_config.copy()
+                break
+        
+        # Override avec la config sauvegardée
+        saved_config = self.settings_manager.providers.get(provider_name, {})
         config.update(saved_config)
+        
         return config
 
     def show_onboarding(self):
@@ -314,16 +320,12 @@ class WritingToolApp(QtWidgets.QApplication):
         self._logger.debug("Onboarding window closed, continuing with app initialization")
 
         # Initialize the current provider with default settings
-        if self.settings_manager.settings is None or self.settings_manager.settings.system is None:
-            provider_name = "Gemini"
-        else:
-            # Use safe access for TypedDict
-            provider_name = self.settings_manager.settings.system.get("provider", "gemini")
-
-        if not provider_name or provider_name.strip() == "":
+        provider_name = self.settings_manager.provider or "gemini"
+        
+        if not provider_name.strip():
             # Default to Gemini if no provider is set
             provider_name = "gemini"
-            self.settings_manager.update_system_setting("provider", provider_name)
+            self.settings_manager.provider = provider_name
 
         self.current_provider = next(
             (provider for provider in self.providers if provider.internal_name == provider_name),
@@ -338,9 +340,8 @@ class WritingToolApp(QtWidgets.QApplication):
         self.register_hotkey()
 
         # Set language from system settings
-        if self.settings_manager.settings is not None and self.settings_manager.settings.system is not None:
-            lang = self.settings_manager.settings.system.get("language", "en")
-            self.change_language(lang if lang != "en" else None)
+        lang = self.settings_manager.language or "en"
+        self.change_language(lang if lang != "en" else None)
 
         # Initialize update checker
         self.update_checker = UpdateChecker(self)
@@ -350,10 +351,8 @@ class WritingToolApp(QtWidgets.QApplication):
         """
         Create listener for hotkeys on Linux/Mac.
         """
-        if self.settings_manager.settings is None or self.settings_manager.settings.system is None:
-            return
-
-        orig_shortcut = self.settings_manager.system.get("hotkey", "ctrl+space")
+        orig_shortcut = self.settings_manager.hotkey or "ctrl+space"
+        
         # Parse the shortcut string, for example ctrl+alt+h -> <ctrl>+<alt>+<h>. Space are removed.
         shortcut = "+".join(
             [f"{t}" if len(t) <= 1 else f"<{t}>" for t in [part.strip() for part in orig_shortcut.split("+")]],
@@ -544,7 +543,7 @@ class WritingToolApp(QtWidgets.QApplication):
         """
         self._logger.debug(f"Processing option: {option}")
 
-        action_config = self.settings_manager.settings.actions.get(option)
+        action_config = self.settings_manager.actions.get(option)
         if not action_config:
             self._logger.error(f"Action not found: {option}")
             return
@@ -560,7 +559,7 @@ class WritingToolApp(QtWidgets.QApplication):
             args=(option, selected_text, custom_change),
             daemon=True,
         ).start()
-
+    
     def _setup_response_window(self, is_empty_custom, option, selected_text):
         window_title = "Chat" if is_empty_custom else option
         self.current_response_window = self.show_response_window(window_title, selected_text)
@@ -605,7 +604,7 @@ class WritingToolApp(QtWidgets.QApplication):
                     return
             else:
                 # Text is selected: get action configuration
-                action_config = self.settings_manager.settings.actions.get(option)
+                action_config = self.settings_manager.actions.get(option)
                 if not action_config:
                     self._logger.error(f"Action not found: {option}")
                     return

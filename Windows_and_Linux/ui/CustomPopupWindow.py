@@ -324,7 +324,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
         self.background = ThemeBackground(
             self,
-            self.app.settings_manager.settings.system.get("theme", "dark"),
+            self.app.settings_manager.theme or "gradient",
             is_popup=True,
             border_radius=10,
         )
@@ -506,7 +506,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
         self.initialize_button_visibility()
 
         # show update notice if applicable
-        update_available = self.app.settings_manager.settings.system.get("update_available", False)
+        update_available = self.app.settings_manager.update_available or False
 
         if update_available:
             update_label = QLabel()
@@ -515,7 +515,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
                 '<a href="https://github.com/theJayTea/WritingTools/releases" style="color:rgb(255, 0, 0); text-decoration: underline; font-weight: bold;">There\'s an update! :D Download now.</a>',
             )
             update_label.setStyleSheet("margin-top: 10px;")
-            content_layout.addWidget(update_label, alignment=QtCore.Qt.AlignCenter)
+            content_layout.addWidget(update_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
 
         logging.debug("CustomPopupWindow UI setup complete")
         self.installEventFilter(self)
