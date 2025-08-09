@@ -78,7 +78,10 @@ class SettingsManager:
     @property
     def providers(self) -> dict[str, ProviderConfig]:
         """Access to provider configurations."""
-        return self.settings.custom_data.get("providers", {})
+        # Ensure providers key exists in custom_data
+        if "providers" not in self.settings.custom_data:
+            self.settings.custom_data["providers"] = {}
+        return self.settings.custom_data["providers"]
 
     @providers.setter
     def providers(self, value: dict[str, ProviderConfig]) -> None:
@@ -159,37 +162,8 @@ class SettingsManager:
         return self.save_settings()
 
     #
-    # UTILITY METHODS ????????????????? pas utilisés
-    #
-
-    def get(self, key: str, default=None):
-        """Get any setting with fallback (dict-like interface)."""
-        try:
-            return getattr(self, key)
-        except AttributeError:
-            return default
-
-    def update(self, **kwargs):
-        """Update multiple settings at once."""
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-
-    def update_and_save(self, **kwargs) -> bool:
-        """Update multiple settings and save in one operation."""
-        self.update(**kwargs)
-        return self.save()
-
-    #
     # PROVIDER-SPECIFIC OPERATIONS
     #
-
-    # def get_provider_config(self, provider_name: str) -> Optional[ProviderConfig]:
-    #     """Get configuration for a specific provider."""
-    #     return self.providers.get(provider_name)
-
-    # def set_provider_config(self, provider_name: str, config: ProviderConfig):
-    #     """Set configuration for a specific provider."""
-    #     self.providers[provider_name] = config
 
     def has_providers_configured(self) -> bool:
         """Check if the active provider is properly configured."""
@@ -200,9 +174,17 @@ class SettingsManager:
             return False
 
         provider_config = providers[active_provider]
+
+        # For Ollama, we don't require an API key
+        if active_provider == "ollama":
+            return True
+
+        # For all other providers, we require a valid API key
         if "api_key" in provider_config:
             return bool(provider_config["api_key"])
-        return True
+
+        # If no api_key field exists, the provider is not configured
+        return False
 
     #
     # ACTION MANAGEMENT (simplified)
@@ -322,8 +304,8 @@ class SettingsManager:
             },  # Convert ActionConfig TypedDict to dict
             "custom_data": {
                 "update_available": self.settings.custom_data.get("update_available", False),
-                "providers": self.providers,  # Utilise la propriété typée
-            }
+                "providers": self.providers,
+            },
         }
 
     #

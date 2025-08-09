@@ -8,10 +8,6 @@ from typing import cast
 
 from config.interfaces import ActionConfig, SystemConfig
 
-# from Windows_and_Linux.config.interfaces import ActionConfig, SystemConfig
-
-# from config.interfaces import ActionConfig, SystemConfig
-
 GEMINI_MODELS = [
     (
         "Gemini 2.0 Flash Lite (intelligent | very fast | 30 uses/min)",
@@ -101,7 +97,7 @@ DEFAULT_MODELS = {
     "gemini": "gemini-2.5-flash",
     "openai": "gpt-4o-mini",
     "anthropic": "claude-3-5-haiku-20241022",
-    "mistral": "open-mistral-7b",
+    "mistral": "mistral-small-latest",
     "ollama": "",  # Empty because dynamically generated from ollama list
 }
 
@@ -245,18 +241,3 @@ DEFAULT_SYSTEM_VALUES: SystemConfig = cast("SystemConfig", _DEFAULT_SYSTEM_VALUE
 DEFAULT_ACTIONS_VALUES: dict[str, ActionConfig] = {
     name: cast("ActionConfig", values) for name, values in _DEFAULT_ACTIONS_VALUES_RAW.items()
 }
-
-# Historical comments - kept for reference to understand previous logic changes:
-
-# Before (with double instantiation) - OLD APPROACH:
-# self.settings = UnifiedSettings(**DEFAULT_SETTINGS.__dict__)
-# Now, we directly create the default settings - NEW APPROACH:
-# self.settings = create_default_settings()
-
-# Before (with double instantiation) - OLD APPROACH:
-# actions={k: ActionConfig(**v.__dict__) for k, v in DEFAULT_ACTIONS.items()},
-# Now using raw values - NEW APPROACH:
-# actions={name: ActionConfig(**values) for name, values in DEFAULT_ACTIONS_VALUES.items()}
-
-# All data creation and manipulation functions have been moved to data_operations.py
-# This module now contains only constants and historical reference comments

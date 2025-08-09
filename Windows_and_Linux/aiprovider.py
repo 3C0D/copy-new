@@ -2,8 +2,8 @@
 AI Provider Architecture for Writing Tools
 --------------------------------------------
 
-This module handles different AI model providers (Gemini, OpenAI-compatible, Ollama, Anthropic, Mistral) 
-and manages their interactions with the main application. It uses an abstract base class pattern for 
+This module handles different AI model providers (Gemini, OpenAI-compatible, Ollama, Anthropic, Mistral)
+and manages their interactions with the main application. It uses an abstract base class pattern for
 provider implementations.
 
 Key Components:
@@ -60,7 +60,7 @@ except ImportError:
 
 from ollama import Client as OllamaClient
 from openai import OpenAI
-from PySide6 import QtWidgets
+from PySide6 import QtWidgets, QtCore
 from PySide6.QtWidgets import QVBoxLayout
 
 from config.constants import (
@@ -79,7 +79,7 @@ if TYPE_CHECKING:
 class AIProviderSetting(ABC):
     """
     Abstract base class for a provider setting (e.g., API key, model selection).
-    
+
     Each setting has a name, display name, default value and description.
     Subclasses must implement UI rendering and value management.
     """
@@ -95,6 +95,7 @@ class AIProviderSetting(ABC):
         self.display_name = display_name if display_name else name
         self.default_value = default_value if default_value else ""
         self.description = description if description else ""
+        self.auto_save_callback: Optional[Callable] = None
 
     @abstractmethod
     def render_to_layout(self, layout: QVBoxLayout):
@@ -108,11 +109,15 @@ class AIProviderSetting(ABC):
     def get_value(self):
         """Return the current value from the widget."""
 
+    def set_auto_save_callback(self, callback: Callable):
+        """Set callback function for auto-saving when value changes."""
+        self.auto_save_callback = callback
+
 
 class TextSetting(AIProviderSetting):
     """
     A text-based setting (for API keys, URLs, etc.).
-    
+
     Uses a QLineEdit to allow free text input.
     Value is stored internally until widget rendering.
     """
@@ -145,6 +150,9 @@ class TextSetting(AIProviderSetting):
         """,
         )
         self.input.setPlaceholderText(self.description)
+        # Connect auto-save if callback is set
+        if self.auto_save_callback:
+            self.input.textChanged.connect(self.auto_save_callback)
         row_layout.addWidget(self.input)
         layout.addLayout(row_layout)
 
@@ -162,7 +170,7 @@ class TextSetting(AIProviderSetting):
 class DropdownSetting(AIProviderSetting):
     """
     A dropdown setting (e.g., for selecting a model).
-    
+
     Uses a QComboBox that can be editable or not.
     Options are stored as tuples (display_name, value).
     """
@@ -190,6 +198,8 @@ class DropdownSetting(AIProviderSetting):
         row_layout.addWidget(label)
         self.dropdown = QtWidgets.QComboBox()
         self.dropdown.setEditable(self.editable)  # Allow custom input if editable
+        # Ensure dropdown can receive focus and clicks properly
+        self.dropdown.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.dropdown.setStyleSheet(
             f"""
             font-size: 16px;
@@ -213,6 +223,14 @@ class DropdownSetting(AIProviderSetting):
                 index = self.dropdown.findData(self.internal_value)
                 if index != -1:
                     self.dropdown.setCurrentIndex(index)
+
+        # Connect auto-save if callback is set
+        if self.auto_save_callback:
+            if self.editable:
+                self.dropdown.currentTextChanged.connect(self.auto_save_callback)
+            else:
+                self.dropdown.currentIndexChanged.connect(self.auto_save_callback)
+
         row_layout.addWidget(self.dropdown)
         layout.addLayout(row_layout)
 
@@ -247,7 +265,7 @@ class AIProvider(ABC):
       • after_load() to create their client or model instance
       • before_load() to cleanup any existing client
       • cancel() to cancel an ongoing request
-      
+
     The class also handles configuration loading/saving and UI interface.
     Dynamic attributes are created via setattr() during configuration loading.
     """
@@ -309,7 +327,7 @@ class AIProvider(ABC):
     def get_response(self, system_instruction: str, prompt: str, return_response: bool = False) -> str:
         """
         Send the given system instruction and prompt to the AI provider and return the full response text.
-        
+
         This method must handle:
         - Formatting the request according to the API's expected format
         - Sending the request and waiting for the response
@@ -320,7 +338,7 @@ class AIProvider(ABC):
     def load_config(self, config: dict):
         """
         Load configuration settings into the provider.
-        
+
         Updates dynamic attributes and setting values,
         then calls after_load() to initialize the API client.
         """
@@ -335,7 +353,7 @@ class AIProvider(ABC):
     def save_config(self):
         """
         Save provider configuration settings into the main config file.
-        
+
         Retrieves current values from UI widgets, cleans whitespace,
         and stores them in the settings_manager's custom_data.providers section.
         """
@@ -362,7 +380,7 @@ class AIProvider(ABC):
     def after_load(self):
         """
         Called after configuration is loaded; create your API client here.
-        
+
         This method should initialize any clients or connections needed
         using the loaded settings (api_key, api_base, etc.).
         """
@@ -371,7 +389,7 @@ class AIProvider(ABC):
     def before_load(self):
         """
         Called before reloading configuration; cleanup your API client here.
-        
+
         This method should release resources and close connections
         before a new configuration is loaded.
         """
@@ -380,7 +398,7 @@ class AIProvider(ABC):
     def cancel(self):
         """
         Cancel any ongoing API request.
-        
+
         This method should set cancellation flags and interrupt
         ongoing operations safely.
         """
@@ -493,7 +511,7 @@ class GeminiProvider(AIProvider):
     def after_load(self):
         """
         Configure the google.generativeai client and create the generative model.
-        
+
         Only initialize model if API key is provided and genai is available.
         Configures safety settings to block no content types.
         """
@@ -677,7 +695,7 @@ def get_ollama_models():
     """
     Get list of installed Ollama models by running 'ollama list' command.
     Returns a list of tuples (display_name, model_name) for installed models.
-    
+
     Parses the command output to extract model names and sizes.
     Handles error cases (Ollama not installed, no models, etc.).
     """
@@ -741,6 +759,11 @@ class OllamaProvider(AIProvider):
         # Get available Ollama models
         ollama_models = get_ollama_models()
 
+        # Set default model to first available model or empty string
+        default_ollama_model = ""
+        if ollama_models and ollama_models[0][1]:  # Check if first model has a valid value
+            default_ollama_model = ollama_models[0][1]
+
         settings = [
             TextSetting(
                 "api_base",
@@ -750,11 +773,11 @@ class OllamaProvider(AIProvider):
             ),
             DropdownSetting(
                 name="api_model",
-                display_name="API Model",
-                default_value=get_default_model_for_provider("ollama"),
-                description="Select Ollama model to use (or type custom model name)",
+                display_name="API Model (detected automatically)",
+                default_value=default_ollama_model,
+                description="Models are automatically detected from your Ollama installation",
                 options=ollama_models,
-                editable=True,  # Allow custom model names
+                editable=False,  # Don't allow custom model names for Ollama
             ),
             TextSetting(
                 "keep_alive",
@@ -851,7 +874,7 @@ class OllamaProvider(AIProvider):
 class AnthropicProvider(AIProvider):
     """
     Anthropic (Claude) AI Provider for Writing Tools.
-    
+
     Uses the Anthropic API to generate content with Claude models.
     Implements authentication via API key and supports different Claude models.
     """
@@ -898,10 +921,18 @@ class AnthropicProvider(AIProvider):
     ):
         """
         Generate response using Anthropic's Claude API.
-        
+
         Supports conversation history for multi-turn interactions.
         Uses Anthropic's OpenAI-compatible endpoint for simplicity.
         """
+        logging.debug(f"AnthropicProvider.get_response called with return_response={return_response}")
+        logging.debug(
+            f"AnthropicProvider current config - api_key: {self.api_key[:10] if self.api_key else 'None'}..., api_model: {self.api_model}"
+        )
+
+        # Reset cancellation flag at start of new request (like other providers)
+        self.close_requested = False
+
         if self.close_requested:
             return ""
 
@@ -958,9 +989,12 @@ class AnthropicProvider(AIProvider):
                 return ""
 
             if return_response:
+                logging.debug(f"AnthropicProvider: Returning response text (length: {len(response_text)})")
                 return response_text
             # Emit the response via signal for direct replacement
+            logging.debug(f"AnthropicProvider: Emitting output_ready_signal with text (length: {len(response_text)})")
             self.app.output_ready_signal.emit(response_text)
+            logging.debug("AnthropicProvider: Signal emitted successfully")
             return response_text
 
         except Exception as e:
@@ -1006,7 +1040,7 @@ class AnthropicProvider(AIProvider):
 class MistralProvider(AIProvider):
     """
     Mistral AI Provider for Writing Tools.
-    
+
     Uses the Mistral API to generate content with Mistral models.
     Uses direct HTTP requests for better control and reliability.
     """
@@ -1053,7 +1087,7 @@ class MistralProvider(AIProvider):
     ):
         """
         Generate response using Mistral API.
-        
+
         Uses direct HTTP requests via requests library for maximum control
         over request format and error handling.
         """
@@ -1061,6 +1095,9 @@ class MistralProvider(AIProvider):
         logging.debug(
             f"MistralProvider current config - api_key: {self.api_key[:10] if self.api_key else 'None'}..., api_model: {self.api_model}",
         )
+
+        # Reset cancellation flag at start of new request (like other providers)
+        self.close_requested = False
 
         if self.close_requested:
             return ""
@@ -1178,6 +1215,14 @@ class MistralProvider(AIProvider):
                 )
             return ""
 
+        except ImportError as e:
+            error_msg = f"Missing required library: {e}. Please install 'requests' library."
+            logging.error(error_msg)
+            self.app.show_message_signal.emit(
+                "Missing Library",
+                "The 'requests' library is required for Mistral API. Please install it using: pip install requests",
+            )
+            return ""
         except Exception as e:
             error_str = str(e)
             logging.exception(f"Mistral API error: {error_str}")

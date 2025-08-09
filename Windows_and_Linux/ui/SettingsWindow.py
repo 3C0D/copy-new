@@ -7,6 +7,7 @@ L285   No sure about that:      # Add save button (especially important for prov
 
 """
 
+import logging
 import os
 import sys
 from typing import TYPE_CHECKING
@@ -48,6 +49,14 @@ class SettingsWindow(ThemedWidget):
         self.shortcut_input = None
         # Reference to previous window to return to after closing
         self.previous_window = None
+
+        # Store current theme as instance variable for use throughout the class
+        self.current_theme = self.app.settings_manager.theme or "gradient"
+
+        # Set the correct theme from saved settings
+        if hasattr(self, "background") and self.background is not None:
+            self.background.theme = self.current_theme
+
         self.init_ui()
         self.retranslate_ui()
 
@@ -57,18 +66,21 @@ class SettingsWindow(ThemedWidget):
         Now includes a scroll area for better handling of content on smaller screens.
         """
         self.setWindowTitle(_("Settings"))
-        # Fixed width to maintain consistent layout
-        self.setMinimumWidth(650)
-        self.setFixedWidth(650)
+        # Fixed width to maintain consistent layout and provide space for dropdowns
+        self.setMinimumWidth(700)
+        self.setFixedWidth(700)
 
-        # Window configuration to stay on top and maintain focus
+        # Window configuration - initially on top but can be moved to background
         self.setWindowFlags(
             QtCore.Qt.WindowType.Window
-            | QtCore.Qt.WindowType.WindowStaysOnTopHint
             | QtCore.Qt.WindowType.WindowCloseButtonHint
             | QtCore.Qt.WindowType.WindowMinimizeButtonHint  # useful when user needs to retrieve API keys...
             | QtCore.Qt.WindowType.WindowTitleHint,
         )
+        # Show on top initially but allow user to move to background
+        self.setWindowState(QtCore.Qt.WindowState.WindowActive)
+        self.raise_()
+        self.activateWindow()
 
         main_layout = QtWidgets.QVBoxLayout(self.background)  # Set icon, margin, and spacing in ThemedWidget
 
@@ -205,9 +217,9 @@ class SettingsWindow(ThemedWidget):
             self.plain_radio.setStyleSheet(
                 f"color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
             )
-            current_theme = self.app.settings_manager.theme or "gradient"
-            self.gradient_radio.setChecked(current_theme == "gradient")
-            self.plain_radio.setChecked(current_theme == "plain")
+            # Use the instance variable instead of re-reading from settings
+            self.gradient_radio.setChecked(self.current_theme == "gradient")
+            self.plain_radio.setChecked(self.current_theme == "plain")
             # Auto-save theme changes for immediate visual feedback
             self.gradient_radio.toggled.connect(self.auto_save_theme)
             self.plain_radio.toggled.connect(self.auto_save_theme)
@@ -272,8 +284,9 @@ class SettingsWindow(ThemedWidget):
         )
         self.init_provider_ui(provider_instance, self.provider_container)
 
-        # React to provider changes by rebuilding the UI
+        # React to provider changes by rebuilding the UI and auto-saving
         self.provider_dropdown.currentIndexChanged.connect(self._on_provider_changed)
+        self.provider_dropdown.currentIndexChanged.connect(self.auto_save_provider)
 
         # Another visual separator before buttons
         line = QtWidgets.QFrame()
@@ -296,13 +309,11 @@ class SettingsWindow(ThemedWidget):
             max_height,
         )  # Cap at 800px or 85% of screen height (increased from 720px)
         self.resize(
-            650,
+            700,
             desired_height,
-        )  # Use an exact width of 650px (increased from 592px) so stuff looks good!
+        )  # Use an exact width of 700px to provide space for dropdowns
 
-        # Close button only in full settings mode, not in providers_only setup
-        if not self.providers_only:
-            self.add_close_button()
+        # No custom close button needed - use standard window controls
 
         # Ensure window can receive keyboard events and maintain focus
         self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
@@ -333,6 +344,7 @@ class SettingsWindow(ThemedWidget):
         if provider.logo:
             logo_path = os.path.join(
                 os.path.dirname(sys.argv[0]),
+                "config",
                 "icons",
                 f"provider_{provider.logo}.png",
             )
@@ -403,6 +415,8 @@ class SettingsWindow(ThemedWidget):
             # Load saved value or use default
             saved_value = provider_config.get(setting.name, setting.default_value)
             setting.set_value(saved_value)
+            # Set auto-save callback for immediate saving
+            setting.set_auto_save_callback(lambda: self.save_provider_settings())
             # Each setting knows how to render itself to the layout
             setting.render_to_layout(self.current_provider_layout)
 
@@ -491,7 +505,7 @@ class SettingsWindow(ThemedWidget):
         if self.providers_only:
             button_text = _("Complete Setup")
         else:
-            button_text = _("Save Settings")
+            button_text = _("Close Settings")
 
         self.save_button = QtWidgets.QPushButton(button_text)
         self.save_button.setFixedSize(150, 40)
@@ -520,50 +534,9 @@ class SettingsWindow(ThemedWidget):
         button_layout.addWidget(self.save_button)
         main_layout.addWidget(button_container)
 
-    def add_close_button(self):
-        """
-        Add a close button to the top-right corner of the window.
-        Only shown in full settings mode, not during initial setup.
-        """
-        from ui.ui_utils import get_icon_path
-
-        self.close_button = QtWidgets.QPushButton(self)
-        self.close_button.setFixedSize(24, 24)
-
-        # Try to load themed close icon, fallback to text
-        close_icon_path = get_icon_path("close", with_theme=True)
-        if os.path.exists(close_icon_path):
-            self.close_button.setIcon(QtGui.QIcon(close_icon_path))
-        else:
-            self.close_button.setText("×")
-
-        self.close_button.setStyleSheet(
-            f"""
-            QPushButton {{
-                background-color: transparent;
-                border: none;
-                border-radius: 12px;
-                color: {'#ffffff' if colorMode == 'dark' else '#333333'};
-                font-size: 16px;
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                background-color: {'#ff4444' if colorMode == 'dark' else '#ff6666'};
-                color: white;
-            }}
-        """,
-        )
-
-        # Position in top-right corner
-        self.close_button.move(self.width() - 30, 6)
-        self.close_button.clicked.connect(self.close_to_previous_window)
-        self.close_button.setToolTip(_("Close Settings"))
-
     def resizeEvent(self, event):
-        """Handle window resize to reposition close button."""
+        """Handle window resize events."""
         super().resizeEvent(event)
-        if hasattr(self, "close_button"):
-            self.close_button.move(self.width() - 30, 6)
 
     def auto_save_shortcut(self):
         """
@@ -581,6 +554,37 @@ class SettingsWindow(ThemedWidget):
         if hasattr(self, "gradient_radio") and self.gradient_radio is not None and not self.providers_only:
             theme = "gradient" if self.gradient_radio.isChecked() else "plain"
             self.app.settings_manager.theme = theme
+
+            # Apply theme change immediately to the background for live preview
+            if hasattr(self, "background") and self.background is not None:
+                self.background.theme = theme
+                self.background.update()
+
+    def auto_save_provider(self):
+        """
+        Auto-save provider selection when it changes.
+        """
+        if hasattr(self, "provider_dropdown") and self.provider_dropdown is not None:
+            provider_internal_name = self.provider_dropdown.currentData()
+            if provider_internal_name:
+                self.app.settings_manager.provider = provider_internal_name
+                # Save provider-specific settings as well
+                self.save_provider_settings()
+
+    def save_provider_settings(self):
+        """
+        Save current provider-specific settings.
+        """
+        if hasattr(self, "provider_dropdown") and self.provider_dropdown is not None:
+            provider_internal_name = self.provider_dropdown.currentData()
+            if provider_internal_name:
+                # Find the corresponding provider instance
+                selected_provider = next(
+                    (provider for provider in self.app.providers if provider.internal_name == provider_internal_name),
+                    None,
+                )
+                if selected_provider:
+                    selected_provider.save_config()
 
     @staticmethod
     def toggle_autostart(state):
@@ -654,7 +658,10 @@ class SettingsWindow(ThemedWidget):
 
         # Load the saved configuration into the provider
         provider_config = self.app._get_provider_config(provider_internal_name)
-        self.app.current_provider.load_config(provider_config)
+        if self.app.current_provider:
+            self.app.current_provider.load_config(provider_config)
+        else:
+            logging.error("Current provider not set after save")
 
         # Re-register hotkey with new settings
         self.app.register_hotkey()

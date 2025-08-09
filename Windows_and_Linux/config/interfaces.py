@@ -36,14 +36,8 @@ class SystemConfig(TypedDict, total=False):
     # Provider-specific settings
     ollama_base_url: str
     ollama_keep_alive: str
-
     mistral_base_url: str
-    # mistral_model: str
-
-    # anthropic_model: str
-
     openai_base_url: str
-    # openai_model: str
 
 
 class ProviderConfig(TypedDict, total=False):

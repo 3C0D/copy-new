@@ -1,5 +1,8 @@
 """
-provider_internal_name = self.settings_manager.provider # or "gemini" see later L121
+WritingToolApp - Main application class for Writing Tools.
+
+This module contains the core application logic for the Writing Tools application,
+including AI provider management, hotkey handling, and user interface coordination.
 """
 
 import gettext
@@ -57,25 +60,51 @@ class WritingToolApp(QtWidgets.QApplication):
 
     def __init__(self, argv, theme_override=None):
         super().__init__(argv)
-        self.current_response_window: Optional['ResponseWindow'] = None
-        self.current_provider: Optional['AIProvider'] = None
         self._logger = logging.getLogger(__name__)
         self._logger.debug("Initializing WritingToolApp")
 
-        # Apply theme override if specified
+        self._setup_core_attributes()
+        self._setup_theme(theme_override)
+        self._setup_signals()
+        self._setup_settings()
+        self._setup_ui_components()
+        self._setup_hotkey_system()
+        self._setup_ai_providers()
+        self._setup_spam_protection()
+
+        # Initialize app based on configuration state
+        if not self.settings_manager.has_providers_configured():
+            self._handle_first_launch()
+        else:
+            self._handle_normal_launch()
+
+    def _setup_core_attributes(self):
+        """Initialize core application attributes."""
+        self.current_response_window: Optional['ResponseWindow'] = None
+        self.current_provider: Optional['AIProvider'] = None
+        self.output_queue = ""
+        self.paused = False
+
+    def _setup_theme(self, theme_override):
+        """Configure application theme."""
         self.theme_override = theme_override
         if theme_override and theme_override != "auto":
             self._apply_theme_override(theme_override)
 
+    def _setup_signals(self):
+        """Connect application signals to their handlers."""
         self.output_ready_signal.connect(self.replace_text)
         self.show_message_signal.connect(self.show_message_box)
         self.hotkey_triggered_signal.connect(self.on_hotkey_pressed)
 
-        # Initialize unified settings manager with mode detection
+    def _setup_settings(self):
+        """Initialize settings manager and load configuration."""
         mode = self._detect_mode()
         self.settings_manager = SettingsManager(mode=mode)
         self.load_settings()
 
+    def _setup_ui_components(self):
+        """Initialize UI component references."""
         self.onboarding_window = None
         self.popup_window = None
         self.tray_icon = None
@@ -83,21 +112,18 @@ class WritingToolApp(QtWidgets.QApplication):
         self.settings_window = None
         self.about_window = None
         self.non_editable_modal = None
+        self.toggle_action = None
 
+    def _setup_hotkey_system(self):
+        """Initialize hotkey and keyboard listener system."""
         self.registered_hotkey = None
         self.hotkey_listener = None
-        # Initialize the ctrl+c hotkey listener
         self.ctrl_c_timer = None
         self.setup_ctrl_c_listener()
 
-        self.output_queue = ""  # ?
-        self.last_replace = 0  # ?
-        self.paused = False
-        self.toggle_action = None  # ?
-
+    def _setup_ai_providers(self):
+        """Initialize available AI providers."""
         self._ = gettext.gettext
-
-        # Setup available AI providers
         self.providers = [
             GeminiProvider(self),
             OpenAICompatibleProvider(self),
@@ -105,61 +131,80 @@ class WritingToolApp(QtWidgets.QApplication):
             AnthropicProvider(self),
             MistralProvider(self),
         ]
-        # Check if this is a first launch (no providers configured)
-        if not self.settings_manager.has_providers_configured():
-            self._logger.debug("First launch detected (no providers configured), showing onboarding")
-            self.show_onboarding()
-        else:
-            self._logger.debug("Providers configured, setting up hotkey and tray icon")
 
-            try:
-                # Initialize the current provider, defaulting to Gemini
-                provider_internal_name = self.settings_manager.provider or "gemini"
-                self._logger.debug(f"Selected provider: {provider_internal_name}")
-
-                self.current_provider = next(
-                    (provider for provider in self.providers if provider.internal_name == provider_internal_name),
-                    None,
-                )
-                if not self.current_provider:
-                    self._logger.warning(f"Provider {provider_internal_name} not found. Using default provider.")
-                    self.current_provider = self.providers[0]
-
-                if self.current_provider:
-                    self._logger.debug(f"Current provider: {self.current_provider.provider_name}")
-
-                    # Load provider-specific config from system settings
-                    provider_config = self._get_provider_config(provider_internal_name)
-                    self._logger.debug(f"Provider config: {provider_config}")
-                    self.current_provider.load_config(provider_config)
-                    self._logger.debug("Provider config loaded successfully")
-
-                self.create_tray_icon()
-                self.register_hotkey()
-
-                # Set language from system settings
-                lang = self.settings_manager.language or "en"
-                self.change_language(lang if lang != "en" else None)
-
-                # Initialize update checker
-                self.update_checker = UpdateChecker(self)
-                self.update_checker.check_updates_async()
-
-            except Exception as e:
-                logging.exception(f"Error during app initialization: {e}")
-                logging.exception("Falling back to onboarding")
-                import traceback
-
-                logging.debug(f"Full traceback: {traceback.format_exc()}")
-                # If there's an error, show onboarding as fallback (silent recovery)
-                self.show_onboarding()
-
-        self.recent_triggers = []  # Track recent hotkey triggers
+    def _setup_spam_protection(self):
+        """Initialize hotkey spam protection system."""
+        self.recent_triggers = []
         self.TRIGGER_WINDOW = 1.5  # Time window in seconds
         self.MAX_TRIGGERS = 3  # Max allowed triggers in window
 
+    def _handle_first_launch(self):
+        """Handle first-time application launch."""
+        self._logger.debug("First launch detected (no providers configured), showing onboarding")
+        self.show_onboarding()
+
+    def _handle_normal_launch(self):
+        """Handle normal application launch with configured providers."""
+        self._logger.debug("Providers configured, setting up hotkey and tray icon")
+        try:
+            self._initialize_ai_provider()
+            self._setup_user_interface()
+            self._setup_language()
+            self._initialize_update_checker()
+        except Exception as e:
+            self._handle_initialization_error(e)
+
+    def _initialize_ai_provider(self):
+        """Initialize and configure the current AI provider."""
+        provider_internal_name = self.settings_manager.provider or "gemini"
+        self._logger.debug(f"Selected provider: {provider_internal_name}")
+
+        self.current_provider = next(
+            (provider for provider in self.providers if provider.internal_name == provider_internal_name),
+            None,
+        )
+
+        if not self.current_provider:
+            self._logger.warning(f"Provider {provider_internal_name} not found. Using default provider.")
+            self.current_provider = self.providers[0]
+
+        if self.current_provider:
+            self._logger.debug(f"Current provider: {self.current_provider.provider_name}")
+            provider_config = self._get_provider_config(provider_internal_name)
+            self._logger.debug(f"Provider config: {provider_config}")
+            self.current_provider.load_config(provider_config)
+            self._logger.debug("Provider config loaded successfully")
+
+    def _setup_user_interface(self):
+        """Setup user interface components."""
+        self.create_tray_icon()
+        self.register_hotkey()
+
+    def _setup_language(self):
+        """Configure application language."""
+        lang = self.settings_manager.language or "en"
+        self.change_language(lang if lang != "en" else None)
+
+    def _initialize_update_checker(self):
+        """Initialize the update checker system."""
+        self.update_checker = UpdateChecker(self)
+        self.update_checker.check_updates_async()
+
+    def _handle_initialization_error(self, error):
+        """Handle errors during application initialization."""
+        logging.exception(f"Error during app initialization: {error}")
+        logging.exception("Falling back to onboarding")
+        import traceback
+
+        logging.debug(f"Full traceback: {traceback.format_exc()}")
+        self.show_onboarding()
+
+    # ============================================================================
+    # CONFIGURATION AND SETUP METHODS
+    # ============================================================================
+
     def _apply_theme_override(self, theme):
-        """Apply theme override to the application"""
+        """Apply theme override to the application."""
         from ui.ui_utils import set_color_mode
 
         set_color_mode(theme)
@@ -172,19 +217,17 @@ class WritingToolApp(QtWidgets.QApplication):
             str: "dev", "build-dev", or "build-final"
         """
         if not getattr(sys, "frozen", False):
-            # Running as script
             return "dev"
-        # Running as compiled executable
-        # Check if data.json exists in the same directory (build-final)
-        # or if data_dev.json exists (build-dev)
+
         base_dir = os.path.dirname(sys.executable)
         if os.path.exists(os.path.join(base_dir, "data.json")):
             return "build-final"
         if os.path.exists(os.path.join(base_dir, "data_dev.json")):
             return "build-dev"
-        return "build-dev"  # fallback
+        return "build-dev"
 
     def setup_translations(self, lang=None):
+        """Setup application translations for the specified language."""
         if not lang:
             lang = QLocale.system().name().split("_")[0]
 
@@ -198,7 +241,10 @@ class WritingToolApp(QtWidgets.QApplication):
             translation = gettext.NullTranslations()
 
         translation.install()
-        # Update the translation function for all UI components.
+        self._update_translation_functions(translation)
+
+    def _update_translation_functions(self, translation):
+        """Update translation functions for all UI components."""
         self._ = translation.gettext
         ui.AboutWindow._ = self._
         ui.SettingsWindow._ = self._
@@ -207,47 +253,46 @@ class WritingToolApp(QtWidgets.QApplication):
         ui.CustomPopupWindow._ = self._
 
     def retranslate_ui(self):
+        """Retranslate the user interface elements."""
         self.update_tray_menu()
 
     def change_language(self, lang):
+        """Change the application language and update all UI elements."""
         self.setup_translations(lang)
         self.retranslate_ui()
+        self._update_widget_translations()
 
-        # Update all other windows
+    def _update_widget_translations(self):
+        """Update translations for all top-level widgets."""
         for widget in QApplication.topLevelWidgets():
             if widget != self and hasattr(widget, "retranslate_ui"):
                 widget.retranslate_ui()  # type: ignore
 
+    def load_settings(self):
+        """Load unified settings using the SettingsManager."""
+        self.settings_manager.load_settings()
+        self._logger.debug("Unified settings loaded successfully")
+
+    def save_settings(self):
+        """Save the current unified settings."""
+        return self.settings_manager.save_settings()
+
+    # ============================================================================
+    # HOTKEY AND INPUT HANDLING METHODS
+    # ============================================================================
+
     def check_trigger_spam(self):
         """
-        Check if hotkey is being triggered too frequently (3+ times in 1.5 seconds).
-        Returns True if spam is detected.
+        Check if hotkey is being triggered too frequently.
+        Returns True if spam is detected (3+ times in 1.5 seconds).
         """
         current_time = time.time()
-
-        # Add current trigger
         self.recent_triggers.append(current_time)
 
         # Remove old triggers outside the window
         self.recent_triggers = [t for t in self.recent_triggers if current_time - t <= self.TRIGGER_WINDOW]
 
-        # Check if we have too many triggers in the window
         return len(self.recent_triggers) >= self.MAX_TRIGGERS
-
-    def load_settings(self):
-        """
-        Load unified settings using the SettingsManager.
-        Handles migration from legacy config.json and options.json files.
-        """
-        # Load the unified settings (no legacy migration needed)
-        self.settings_manager.load_settings()
-        self._logger.debug("Unified settings loaded successfully")
-
-    def save_settings(self):
-        """
-        Save the current unified settings.
-        """
-        return self.settings_manager.save_settings()
 
     def _get_provider_config(self, provider_name: str) -> dict:
         """
@@ -338,6 +383,10 @@ class WritingToolApp(QtWidgets.QApplication):
         # Initialize update checker
         self.update_checker = UpdateChecker(self)
         self.update_checker.check_updates_async()
+
+    # ============================================================================
+    # HOTKEY MANAGEMENT METHODS
+    # ============================================================================
 
     def start_hotkey_listener(self):
         """
@@ -570,106 +619,148 @@ class WritingToolApp(QtWidgets.QApplication):
             ]
         )
 
+    # ============================================================================
+    # AI PROCESSING METHODS
+    # ============================================================================
+
     def process_option_thread(self, option, selected_text, custom_change=None):
         """
         Thread function to process the selected writing option using the AI model.
 
         Args:
-            option: The selected writing option
+            option: The selected writing option (e.g., "Summary", "Custom", "Proofread")
             selected_text: The text selected by the user
-            custom_change: Optional custom change description
+            custom_change: Optional custom change description for Custom option
         """
         self._logger.debug(f"Starting processing thread for option: {option}")
 
         try:
-            # Initialize variables
-            has_selected_text = selected_text.strip() != ""
-            is_custom_option = option == "Custom"
-
-            # Handle case where no text is selected
-            if not has_selected_text:
-                if is_custom_option:
-                    # Custom option without text: use custom_change as prompt
-                    prompt = custom_change
-                    system_instruction = "You are a friendly, helpful, compassionate, and endearing AI conversational assistant. Avoid making assumptions or generating harmful, biased, or inappropriate content. When in doubt, do not make up information. Ask the user for clarification if needed. Try not be unnecessarily repetitive in your response. You can, and should as appropriate, use Markdown formatting to make your response nicely readable."
-                else:
-                    # Non-custom option requires selected text
-                    self.show_message_signal.emit("Error", "Please select text to use this option.")
-                    return
-            else:
-                # Text is selected: get action configuration
-                action_config = self.settings_manager.actions.get(option)
-                if not action_config:
-                    self._logger.error(f"Action not found: {option}")
-                    return
-
-                # Build prompt based on option type
-                prompt_prefix = action_config.get("prefix", "")
-                system_instruction = action_config.get("instruction", "")
-
-                if is_custom_option:
-                    prompt = f"{prompt_prefix}Described change: {custom_change}\n\nText: {selected_text}"
-                else:
-                    prompt = f"{prompt_prefix}{selected_text}"
-
-            # Initialize output queue
-            self.output_queue = ""
-
-            # Get action config for window display check
-
-            # if has_selected_text:
-            action_config = self.settings_manager.settings.actions.get(option)
-            if not action_config:
-                self._logger.error(f"Action not found: {option}")
+            prompt_data = self._prepare_prompt_data(option, selected_text, custom_change)
+            if not prompt_data:
                 return
 
-            # Determine if response should be displayed in window
-            should_open_window = (is_custom_option and not has_selected_text) or (
-                has_selected_text and action_config.get("open_in_window", False)
-            )
-
-            self._logger.debug(f"Getting response from provider for option: {option}")
+            self.output_queue = ""
+            should_open_window = self._should_display_in_window(option, selected_text, prompt_data['action_config'])
 
             if should_open_window:
-                # Get response for window display
-                if self.current_provider:
-                    self._logger.debug("Getting response for window display")
-                    response = self.current_provider.get_response(system_instruction, prompt if isinstance(prompt, str) else str(prompt), return_response=True)
-                    self._logger.debug(f"Got response of length: {len(response) if response else 0}")
-
-                    # Add user message to chat history for custom prompts without text
-                    if is_custom_option and not has_selected_text and self.current_response_window:
-                        self.current_response_window.chat_history.append({"role": "user", "content": custom_change})
-
-                    # Update window with response (thread-safe)
-                    if self.current_response_window:
-                        QtCore.QMetaObject.invokeMethod(
-                            self.current_response_window,
-                            "set_text",
-                            QtCore.Qt.ConnectionType.QueuedConnection,
-                            QtCore.Q_ARG(str, response),
-                        )
-                        self._logger.debug("Invoked set_text on response window")
+                self._process_window_response(option, selected_text, custom_change, prompt_data)
             else:
-                # Get response for direct text replacement
-                if self.current_provider:
-                    self._logger.debug("Getting response for direct replacement")
-                    # Ensure prompt is a string for direct replacement
-                    prompt_str = prompt if isinstance(prompt, str) else str(prompt)
-                    self.current_provider.get_response(system_instruction, prompt_str)
-                    self._logger.debug("Response processed")
+                self._process_direct_replacement(prompt_data)
 
         except Exception as e:
-            self._logger.error(f"An error occurred: {e}", exc_info=True)
+            self._handle_processing_error(e)
 
-            # Handle specific error types
-            if "Resource has been exhausted" in str(e):
-                self.show_message_signal.emit(
-                    "Error - Rate Limit Hit",
-                    "Whoops! You've hit the per-minute rate limit of the Gemini API. Please try again in a few moments.\n\nIf this happens often, simply switch to a Gemini model with a higher usage limit in Settings.",
-                )
-            else:
-                self.show_message_signal.emit("Error", f"An error occurred: {e}")
+    def _prepare_prompt_data(self, option, selected_text, custom_change):
+        """
+        Prepare prompt data for AI processing.
+
+        Returns:
+            dict: Contains prompt, system_instruction, and action_config, or None if invalid
+        """
+        has_selected_text = selected_text.strip() != ""
+        is_custom_option = option == "Custom"
+
+        if not has_selected_text:
+            return self._handle_no_text_selected(is_custom_option, custom_change)
+        else:
+            return self._handle_text_selected(option, selected_text, custom_change, is_custom_option)
+
+    def _handle_no_text_selected(self, is_custom_option, custom_change):
+        """Handle case where no text is selected."""
+        if is_custom_option:
+            return {
+                'prompt': custom_change,
+                'system_instruction': "You are a friendly, helpful, compassionate, and endearing AI conversational assistant. Avoid making assumptions or generating harmful, biased, or inappropriate content. When in doubt, do not make up information. Ask the user for clarification if needed. Try not be unnecessarily repetitive in your response. You can, and should as appropriate, use Markdown formatting to make your response nicely readable.",
+                'action_config': {},
+            }
+        else:
+            self.show_message_signal.emit("Error", "Please select text to use this option.")
+            return None
+
+    def _handle_text_selected(self, option, selected_text, custom_change, is_custom_option):
+        """Handle case where text is selected."""
+        action_config = self.settings_manager.actions.get(option)
+        if not action_config:
+            self._logger.error(f"Action not found: {option}")
+            return None
+
+        prompt_prefix = action_config.get("prefix", "")
+        system_instruction = action_config.get("instruction", "")
+
+        if is_custom_option:
+            prompt = f"{prompt_prefix}Described change: {custom_change}\n\nText: {selected_text}"
+        else:
+            prompt = f"{prompt_prefix}{selected_text}"
+
+        return {'prompt': prompt, 'system_instruction': system_instruction, 'action_config': action_config}
+
+    def _should_display_in_window(self, option, selected_text, action_config):
+        """Determine if response should be displayed in a window."""
+        has_selected_text = selected_text.strip() != ""
+        is_custom_option = option == "Custom"
+
+        return (is_custom_option and not has_selected_text) or (
+            has_selected_text and action_config.get("open_in_window", False)
+        )
+
+    def _process_window_response(self, option, selected_text, custom_change, prompt_data):
+        """Process AI response for window display."""
+        if not self.current_provider:
+            return
+
+        self._logger.debug("Getting response for window display")
+        response = self.current_provider.get_response(
+            prompt_data['system_instruction'], str(prompt_data['prompt']), return_response=True
+        )
+        self._logger.debug(f"Got response of length: {len(response) if response else 0}")
+
+        self._update_chat_history_if_needed(option, selected_text, custom_change)
+        self._update_response_window(response)
+
+    def _update_chat_history_if_needed(self, option, selected_text, custom_change):
+        """Update chat history for custom prompts without text."""
+        is_custom_option = option == "Custom"
+        has_selected_text = selected_text.strip() != ""
+
+        if is_custom_option and not has_selected_text and self.current_response_window:
+            self.current_response_window.chat_history.append({"role": "user", "content": custom_change})
+
+    def _update_response_window(self, response):
+        """Update response window with AI response (thread-safe)."""
+        if self.current_response_window:
+            QtCore.QMetaObject.invokeMethod(
+                self.current_response_window,
+                "set_text",
+                QtCore.Qt.ConnectionType.QueuedConnection,
+                QtCore.Q_ARG(str, response),
+            )
+            self._logger.debug("Invoked set_text on response window")
+
+    def _process_direct_replacement(self, prompt_data):
+        """Process AI response for direct text replacement."""
+        if not self.current_provider:
+            return
+
+        self._logger.debug("Getting response for direct replacement")
+        prompt_str = str(prompt_data['prompt'])
+        self.current_provider.get_response(prompt_data['system_instruction'], prompt_str)
+        self._logger.debug("Response processed")
+
+    def _handle_processing_error(self, error):
+        """Handle errors during AI processing."""
+        self._logger.error(f"An error occurred: {error}", exc_info=True)
+
+        if "Resource has been exhausted" in str(error):
+            self.show_message_signal.emit(
+                "Error - Rate Limit Hit",
+                "Whoops! You've hit the per-minute rate limit of the Gemini API. Please try again in a few moments.\n\nIf this happens often, simply switch to a Gemini model with a higher usage limit in Settings.",
+            )
+        else:
+            self.show_message_signal.emit("Error", f"An error occurred: {error}")
+
+    # ============================================================================
+    # USER INTERFACE METHODS
+    # ============================================================================
 
     @Slot(str, str)
     def show_message_box(self, title, message):
@@ -712,6 +803,7 @@ class WritingToolApp(QtWidgets.QApplication):
         Replaces the text by pasting in the LLM generated text. With "Key Points" and "Summary", invokes a window with the output instead.
         If pasting fails (non-editable page), shows the text in a modal window.
         """
+        self._logger.debug(f"replace_text called with text length: {len(new_text) if new_text else 0}")
         error_message = "ERROR_TEXT_INCOMPATIBLE_WITH_REQUEST"
 
         # Confirm new_text exists and is a string
@@ -820,26 +912,6 @@ class WritingToolApp(QtWidgets.QApplication):
     def _on_modal_closed(self):
         """Clean up modal reference when it's closed"""
         self.non_editable_modal = None
-
-    # def process_text_with_option(self, option, text):
-    #     """
-    #     Process text with the given option. Used by NonEditableModal for chaining actions.
-    #     """
-    #     try:
-    #         logging.debug(f"Processing text with option: {option}")
-    #         # Store the text as selected text
-    #         self.selected_text = text
-
-    #         # Process the text with the selected option
-    #         if option in ["Key Points", "Summary"]:
-    #             # For these options, show response window
-    #             self.show_response_window(option, text)
-    #         else:
-    #             # For other options, process normally
-    #             self.process_text(option)
-
-    #     except Exception as e:
-    #         logging.error(f"Error processing text with option {option}: {e}")
 
     def create_tray_icon(self):
         """
@@ -1093,6 +1165,10 @@ class WritingToolApp(QtWidgets.QApplication):
             self.about_window = ui.AboutWindow.AboutWindow()
         self.about_window.show()
 
+    # ============================================================================
+    # APPLICATION LIFECYCLE METHODS
+    # ============================================================================
+
     def setup_ctrl_c_listener(self):
         """
         Listener for Ctrl+C to exit the app.
@@ -1106,10 +1182,15 @@ class WritingToolApp(QtWidgets.QApplication):
         self.ctrl_c_timer.start(100)
         self.ctrl_c_timer.timeout.connect(lambda: None)
 
-    def handle_sigint(self, _signum, _frame):
+    def handle_sigint(self, signum, frame):
         """
         Handle the SIGINT signal (Ctrl+C) to exit the app gracefully.
+
+        Args:
+            signum: Signal number (unused but required by signal handler interface)
+            frame: Current stack frame (unused but required by signal handler interface)
         """
+        del signum, frame  # Explicitly mark as unused
         logging.info("Received SIGINT. Exiting...")
         self.exit_app()
 
