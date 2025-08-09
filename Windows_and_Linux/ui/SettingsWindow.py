@@ -43,6 +43,7 @@ class SettingsWindow(ThemedWidget):
         self.providers_only = providers_only
         self.gradient_radio = None
         self.plain_radio = None
+        self.color_mode_dropdown = None
         self.provider_dropdown = None
         self.provider_container = None
         self.autostart_checkbox = None
@@ -226,6 +227,39 @@ class SettingsWindow(ThemedWidget):
             theme_layout.addWidget(self.gradient_radio)
             theme_layout.addWidget(self.plain_radio)
             content_layout.addLayout(theme_layout)
+
+            # Color mode selection
+            color_mode_label = QtWidgets.QLabel(_("Color Mode:"))
+            color_mode_label.setStyleSheet(
+                f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
+            )
+            content_layout.addWidget(color_mode_label)
+
+            self.color_mode_dropdown = QtWidgets.QComboBox()
+            self.color_mode_dropdown.addItems([_("Auto"), _("Light"), _("Dark")])
+
+            # Set current selection based on saved setting
+            current_mode = self.app.settings_manager.color_mode or "auto"
+            mode_index = {"auto": 0, "light": 1, "dark": 2}.get(current_mode, 0)
+            self.color_mode_dropdown.setCurrentIndex(mode_index)
+
+            self.color_mode_dropdown.setStyleSheet(
+                f"""
+                font-size: 16px;
+                padding: 5px;
+                background-color: {'#444' if colorMode == 'dark' else 'white'};
+                color: {'#ffffff' if colorMode == 'dark' else '#000000'};
+                border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
+                """
+            )
+
+            # Auto-save color mode changes for immediate visual feedback
+            self.color_mode_dropdown.currentTextChanged.connect(self.auto_save_color_mode)
+
+            # Prevent wheel scroll from interfering with main scroll area
+            self.color_mode_dropdown.wheelEvent = lambda e: e.ignore()
+
+            content_layout.addWidget(self.color_mode_dropdown)
 
         # AI Provider selection section
         provider_label = QtWidgets.QLabel(_("Choose AI Provider:"))
@@ -560,6 +594,69 @@ class SettingsWindow(ThemedWidget):
                 self.background.theme = theme
                 self.background.update()
 
+    def auto_save_color_mode(self):
+        """
+        Auto-save color mode when it changes for immediate visual feedback.
+        """
+        if hasattr(self, "color_mode_dropdown") and self.color_mode_dropdown is not None and not self.providers_only:
+            # Get the selected text and convert to internal format
+            selected_text = self.color_mode_dropdown.currentText()
+            mode_mapping = {_("Auto"): "auto", _("Light"): "light", _("Dark"): "dark"}
+            color_mode = mode_mapping.get(selected_text, "auto")
+
+            self.app.settings_manager.color_mode = color_mode
+
+            # Apply color mode change immediately to the UI for live preview
+            self.app._apply_theme_override(color_mode)
+
+            # Refresh UI styles to reflect the new color mode
+            self._refresh_ui_styles()
+
+    def _refresh_ui_styles(self):
+        """Refresh all UI element styles to reflect the current color mode."""
+        # Import colorMode to get the updated value
+        from ui.ui_utils import colorMode
+
+        # Update color mode dropdown style
+        if hasattr(self, 'color_mode_dropdown') and self.color_mode_dropdown:
+            self.color_mode_dropdown.setStyleSheet(
+                f"""
+                font-size: 16px;
+                padding: 5px;
+                background-color: {'#444' if colorMode == 'dark' else 'white'};
+                color: {'#ffffff' if colorMode == 'dark' else '#000000'};
+                border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
+                """
+            )
+
+        # Update all labels and other text elements
+        for widget in self.findChildren(QtWidgets.QLabel):
+            if widget.objectName() != "":  # Skip background widgets
+                widget.setStyleSheet(f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};")
+
+        # Update shortcut input if exists
+        if hasattr(self, 'shortcut_input') and self.shortcut_input:
+            self.shortcut_input.setStyleSheet(
+                f"""
+                font-size: 16px;
+                padding: 5px;
+                background-color: {'#444' if colorMode == 'dark' else 'white'};
+                color: {'#ffffff' if colorMode == 'dark' else '#000000'};
+                border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
+                """
+            )
+
+        # Update radio buttons if they exist
+        if hasattr(self, 'gradient_radio') and self.gradient_radio:
+            radio_style = f"color: {'#ffffff' if colorMode == 'dark' else '#333333'};"
+            self.gradient_radio.setStyleSheet(radio_style)
+            if hasattr(self, 'plain_radio') and self.plain_radio:
+                self.plain_radio.setStyleSheet(radio_style)
+
+        # Force background update
+        if hasattr(self, 'background') and self.background:
+            self.background.update()
+
     def auto_save_provider(self):
         """
         Auto-save provider selection when it changes.
@@ -635,6 +732,11 @@ class SettingsWindow(ThemedWidget):
             if hasattr(self, "gradient_radio") and self.gradient_radio is not None:
                 theme = "gradient" if self.gradient_radio.isChecked() else "plain"
                 self.app.settings_manager.theme = theme or "gradient"
+            if hasattr(self, "color_mode_dropdown") and self.color_mode_dropdown is not None:
+                selected_text = self.color_mode_dropdown.currentText()
+                mode_mapping = {_("Auto"): "auto", _("Light"): "light", _("Dark"): "dark"}
+                color_mode = mode_mapping.get(selected_text, "auto")
+                self.app.settings_manager.color_mode = color_mode
         else:
             # Create tray icon after initial setup completion
             self.app.create_tray_icon()

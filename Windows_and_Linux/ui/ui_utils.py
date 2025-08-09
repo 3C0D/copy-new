@@ -122,6 +122,38 @@ class ThemedWidget(QWidget):
         self.background = ThemeBackground(self, "gradient")
         main_layout.addWidget(self.background)
 
+    def add_minimize_button(self):
+        """Add minimize button to the window."""
+        self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowType.WindowMinimizeButtonHint)
+
+    def get_dropdown_style(self):
+        """Get standardized dropdown styling based on current theme."""
+        return f"""
+            font-size: 16px;
+            padding: 5px;
+            background-color: {'#444' if colorMode == 'dark' else 'white'};
+            color: {'#ffffff' if colorMode == 'dark' else '#000000'};
+            border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
+        """
+
+    def get_input_style(self):
+        """Get standardized input field styling based on current theme."""
+        return f"""
+            font-size: 16px;
+            padding: 5px;
+            background-color: {'#444' if colorMode == 'dark' else 'white'};
+            color: {'#ffffff' if colorMode == 'dark' else '#000000'};
+            border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
+        """
+
+    def get_radio_style(self):
+        """Get standardized radio button styling based on current theme."""
+        return f"color: {'#ffffff' if colorMode == 'dark' else '#333333'};"
+
+    def get_label_style(self):
+        """Get standardized label styling based on current theme."""
+        return f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};"
+
 
 class ThemeBackground(QWidget):
     """

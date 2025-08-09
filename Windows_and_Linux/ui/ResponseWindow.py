@@ -301,7 +301,7 @@ class ChatContentScrollArea(QScrollArea):
         self.layout.setContentsMargins(15, 15, 15, 15)  # Adjusted margins
         self.layout.addStretch()
 
-        # Enhanced scroll area styling
+        # Enhanced scroll area styling - consistent with SettingsWindow
         self.setStyleSheet(
             """
             QScrollArea {
@@ -312,18 +312,28 @@ class ChatContentScrollArea(QScrollArea):
                 background-color: transparent;
             }
             QScrollBar:vertical {
-                background-color: transparent;
+                background-color: rgba(0, 0, 0, 0.1);
                 width: 12px;
                 margin: 0px;
+                border-radius: 6px;
             }
             QScrollBar::handle:vertical {
-                background-color: rgba(128, 128, 128, 0.5);
+                background-color: rgba(128, 128, 128, 0.6);
                 min-height: 20px;
                 border-radius: 6px;
                 margin: 2px;
             }
+            QScrollBar::handle:vertical:hover {
+                background-color: rgba(128, 128, 128, 0.8);
+            }
+            QScrollBar::handle:vertical:pressed {
+                background-color: rgba(128, 128, 128, 1.0);
+            }
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
                 height: 0px;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: transparent;
             }
         """,
         )
@@ -331,7 +341,7 @@ class ChatContentScrollArea(QScrollArea):
     def add_message(self, text, is_user=False):
         if not self.layout:
             return None
-            
+
         # Remove bottom stretch
         self.layout.takeAt(self.layout.count() - 1)
 
@@ -807,7 +817,7 @@ class ResponseWindow(ThemedWidget):
             text_display = self.chat_area.add_message(response_text)
 
             # Maintain consistent zoom level
-            if hasattr(self, "current_text_display") and self.current_text_display and text_display :
+            if hasattr(self, "current_text_display") and self.current_text_display and text_display:
                 text_display.zoom_factor = self.current_text_display.zoom_factor
                 text_display._apply_zoom()
 

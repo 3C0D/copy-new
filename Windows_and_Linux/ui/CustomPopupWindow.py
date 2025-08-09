@@ -281,7 +281,7 @@ class DraggableButton(QtWidgets.QPushButton):
         if source_idx != target_idx:
             bw = self.popup.button_widgets
             bw[source_idx], bw[target_idx] = bw[target_idx], bw[source_idx]
-            self.popup.rebuild_grid_layout(force_edit_mode=True)
+            self.popup.rebuild_grid_layout()
             self.popup.update_json_from_grid()
 
         self.setStyleSheet(self.base_style)
@@ -401,7 +401,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
             }}
         """,
         )
-        self.edit_close_button.clicked.connect(self.exit_edit_mode)
+        self.edit_close_button.clicked.connect(self.toggle_edit_mode)
         self.edit_close_button.setToolTip(_("Exit Edit Mode"))
         self.edit_close_button.hide()
         top_bar.addWidget(self.edit_close_button, 0, Qt.AlignmentFlag.AlignRight)
@@ -425,7 +425,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
             }}
         """,
         )
-        self.edit_button.clicked.connect(self.enter_edit_mode)
+        self.edit_button.clicked.connect(self.toggle_edit_mode)
         self.edit_button.setToolTip(_("Edit Tools Layout"))
         top_bar.addWidget(self.edit_button, 0, Qt.AlignmentFlag.AlignLeft)
 
@@ -556,6 +556,12 @@ class CustomPopupWindow(QtWidgets.QWidget):
         """
         from ui.ui_utils import get_icon_path
 
+        # Properly delete old button widgets before clearing the list
+        for old_button in self.button_widgets:
+            if hasattr(old_button, 'icon_container') and old_button.icon_container:
+                old_button.icon_container.deleteLater()
+            old_button.deleteLater()
+
         self.button_widgets.clear()
         actions = self.get_actions()
 
@@ -581,27 +587,32 @@ class CustomPopupWindow(QtWidgets.QWidget):
                 b.clicked.connect(partial(self.on_generic_instruction, name))
             self.button_widgets.append(b)
 
-    def rebuild_grid_layout(self, parent_layout=None, force_edit_mode=None):
+    def rebuild_grid_layout(self, parent_layout=None):
         """Rebuild grid layout with consistent sizing and proper Add New button placement."""
         if not parent_layout:
             parent_layout = self.background.layout()
 
-        # Use force_edit_mode if provided, otherwise use current edit_mode
-        edit_mode_to_use = force_edit_mode if force_edit_mode is not None else self.edit_mode
-
-        # Remove existing grid and Add New button
+        # Remove existing grid and Add New button - PROPERLY DELETE WIDGETS
         for i in reversed(range(parent_layout.count())):
             item = parent_layout.itemAt(i)
             if isinstance(item, QtWidgets.QGridLayout):
                 grid = item
+                # First, properly delete all widgets in the grid
                 for j in reversed(range(grid.count())):
-                    w = grid.itemAt(j).widget()
-                    if w:
-                        grid.removeWidget(w)
+                    grid_item = grid.itemAt(j)
+                    if grid_item and grid_item.widget():
+                        widget = grid_item.widget()
+                        grid.removeWidget(widget)
+                        # Don't delete button_widgets here - they'll be re-added
+                        if widget not in self.button_widgets:
+                            widget.deleteLater()
                 parent_layout.removeItem(grid)
+                # Delete the grid layout itself
+                grid.deleteLater()
             elif item.widget():
                 widget = item.widget()
                 if isinstance(widget, QPushButton) and widget.text() == "+ Add New":
+                    parent_layout.removeWidget(widget)
                     widget.deleteLater()
 
         # Create new grid with fixed column width
@@ -620,14 +631,11 @@ class CustomPopupWindow(QtWidgets.QWidget):
                 col = 0
                 row += 1
 
-        if hasattr(parent_layout, 'addLayout') and isinstance(parent_layout, QtWidgets.QVBoxLayout):
+        if isinstance(parent_layout, (QtWidgets.QVBoxLayout, QtWidgets.QHBoxLayout)):
             parent_layout.addLayout(grid)
-        else:
-            # If parent_layout doesn't have addLayout, try to add as widget
-            logging.warning(f"parent_layout {type(parent_layout)} doesn't have addLayout method")
 
         # Add New button (only in edit mode & only if we have text)
-        if edit_mode_to_use and self.has_text:
+        if self.edit_mode and self.has_text:
             add_btn = QPushButton("+ Add New")
             add_btn.setStyleSheet(
                 f"""
@@ -700,74 +708,109 @@ class CustomPopupWindow(QtWidgets.QWidget):
         btn.icon_container.raise_()
         btn.icon_container.show()
 
-    def add_edit_overlays_to_buttons(self):
-        """Add edit overlays to all buttons when entering edit mode."""
-        for btn in self.button_widgets:
-            self.add_edit_delete_icons(btn)
+    def toggle_edit_mode(self):
+        """Toggle edit mode with improved button labels and state handling."""
+        self.edit_mode = not self.edit_mode
+        logging.debug(f'Edit mode toggled: {self.edit_mode}')
 
-        # Rebuild grid layout to show edit mode
-        self.rebuild_grid_layout(force_edit_mode=True)
+        if self.edit_mode:
+            # Switch to edit mode:
+            # Hide close, show reset button & drag label
+            if self.close_button is not None:
+                self.close_button.hide()
+            if self.reset_button is not None:
+                self.reset_button.show()
+            if self.drag_label is not None:
+                self.drag_label.show()
+            if self.edit_close_button is not None:
+                self.edit_close_button.show()
+            if self.edit_button is not None:
+                self.edit_button.hide()
+        else:
+            # Exiting edit mode: reload the entire window to ensure clean state
+            self.reload_window()
+            return
 
-    def enter_edit_mode(self):
-        """Enter edit mode - called when user clicks the pencil icon."""
-        self.edit_mode = True
-        logging.debug("Entering edit mode")
-
-        # Show edit mode UI elements
-        if self.edit_button is not None:
-            self.edit_button.hide()
-        if self.close_button is not None:
-            self.close_button.hide()
-        if self.reset_button is not None:
-            self.reset_button.show()
-        if self.edit_close_button is not None:
-            self.edit_close_button.show()
-        if self.drag_label is not None:
-            self.drag_label.show()
+        # Only continue if entering edit mode
+        # Toggle the main input area
         if self.input_area is not None:
-            self.input_area.setVisible(False)
+            self.input_area.setVisible(not self.edit_mode)
 
-        # Add edit overlays to buttons
-        if hasattr(self, 'add_edit_overlays_to_buttons'):
-            self.add_edit_overlays_to_buttons()
-
-    def exit_edit_mode(self):
-        """Exit edit mode - called when user clicks the close button in edit mode."""
-        self.edit_mode = False
-        logging.debug("Exiting edit mode")
-
-        # Hide edit mode UI elements
-        if self.reset_button is not None:
-            self.reset_button.hide()
-        if self.edit_close_button is not None:
-            self.edit_close_button.hide()
-        if self.drag_label is not None:
-            self.drag_label.hide()
-        if self.edit_button is not None:
-            self.edit_button.show()
-        if self.close_button is not None:
-            self.close_button.show()
-        if self.input_area is not None:
-            self.input_area.setVisible(True)
-
-        # Remove edit overlays from buttons
-        self.remove_edit_overlays_from_buttons()
-
-    def remove_edit_overlays_from_buttons(self):
-        """Remove edit overlays from all buttons."""
+        # Update button overlays
         for btn in self.button_widgets:
             try:
                 btn.clicked.disconnect()
             except:
                 pass
-            btn.clicked.connect(partial(self.on_generic_instruction, btn.key))
-            if hasattr(btn, "icon_container") and btn.icon_container:
-                btn.icon_container.deleteLater()
-                btn.icon_container = None
+
+            if not self.edit_mode:
+                btn.clicked.connect(partial(self.on_generic_instruction, btn.key))
+                if hasattr(btn, 'icon_container') and btn.icon_container:
+                    btn.icon_container.deleteLater()
+                    btn.icon_container = None
+            else:
+                self.add_edit_delete_icons(btn)
+
             btn.setStyleSheet(btn.base_style)
 
-        # Rebuild grid layout (force non-edit mode)
-        self.rebuild_grid_layout(force_edit_mode=False)
+        # Rebuild grid layout
+        self.rebuild_grid_layout()
+
+    def _toggle_edit_mode_silent(self):
+        """Toggle edit mode without any user messages - used for internal state changes."""
+        self.edit_mode = not self.edit_mode
+        logging.debug(f'Edit mode toggled silently: {self.edit_mode}')
+
+        if self.edit_mode:
+            # Switch to edit mode:
+            # Hide close, show reset button & drag label
+            if self.close_button is not None:
+                self.close_button.hide()
+            if self.reset_button is not None:
+                self.reset_button.show()
+            if self.drag_label is not None:
+                self.drag_label.show()
+            if self.edit_close_button is not None:
+                self.edit_close_button.show()
+            if self.edit_button is not None:
+                self.edit_button.hide()
+        else:
+            # Switch back to normal (non-edit) mode:
+            # Show close, hide reset & drag label
+            if self.close_button is not None:
+                self.close_button.show()
+            if self.reset_button is not None:
+                self.reset_button.hide()
+            if self.drag_label is not None:
+                self.drag_label.hide()
+            if self.edit_close_button is not None:
+                self.edit_close_button.hide()
+            if self.edit_button is not None:
+                self.edit_button.show()
+
+        # Toggle the main input area
+        if self.input_area is not None:
+            self.input_area.setVisible(not self.edit_mode)
+
+        # Update button overlays
+        for btn in self.button_widgets:
+            try:
+                btn.clicked.disconnect()
+            except:
+                pass
+
+            if not self.edit_mode:
+                btn.clicked.connect(partial(self.on_generic_instruction, btn.key))
+                if hasattr(btn, 'icon_container') and btn.icon_container:
+                    btn.icon_container.deleteLater()
+                    btn.icon_container = None
+            else:
+                self.add_edit_delete_icons(btn)
+
+            btn.setStyleSheet(btn.base_style)
+
+        # Rebuild grid layout
+        self.rebuild_grid_layout()
 
     def initialize_button_visibility(self):
         """Initialize button visibility for normal (non-edit) mode."""
@@ -795,7 +838,9 @@ class CustomPopupWindow(QtWidgets.QWidget):
         confirm_box.setText(
             "This will reset all buttons to their original configuration.\nYour custom buttons will be removed.\n\nAre you sure you want to continue?",
         )
-        confirm_box.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+        confirm_box.setStandardButtons(
+            QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
+        )
         confirm_box.setDefaultButton(QtWidgets.QMessageBox.StandardButton.No)
 
         if confirm_box.exec_() == QtWidgets.QMessageBox.StandardButton.Yes:
@@ -809,20 +854,54 @@ class CustomPopupWindow(QtWidgets.QWidget):
                 else:
                     logging.error("Settings manager not available for reset")
 
-                # Reload the interface immediately
-                self.build_buttons_list()
-                self.rebuild_grid_layout(force_edit_mode=self.edit_mode)
-
-                # Show success message
-                success_msg = QtWidgets.QMessageBox()
-                success_msg.setWindowFlags(success_msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
-                success_msg.setWindowTitle("Reset Complete")
-                success_msg.setText("Buttons have been reset to their default configuration.")
-                success_msg.exec_()
+                # IMMEDIATE INTERFACE RECONSTRUCTION - NO CONFIRMATION MESSAGE
+                self._perform_interface_reconstruction()
 
             except Exception as e:
                 logging.exception(f"Error resetting options: {e}")
                 self.app.show_message_signal.emit("Error", f"An error occurred while resetting: {e!s}")
+
+    def _perform_interface_reconstruction(self):
+        """Perform the complete interface reconstruction after reset confirmation."""
+        try:
+            # 1. Exit edit mode cleanly (this will rebuild the interface in normal mode)
+            if self.edit_mode:
+                self._toggle_edit_mode_silent()
+
+            # 2. Rebuild the interface with new data (now in normal mode)
+            self.build_buttons_list()
+            self.rebuild_grid_layout()
+
+            # 3. Re-enter edit mode to continue editing
+            if self.has_text:  # Only if we have text (edit mode is available)
+                self._toggle_edit_mode_silent()
+
+            # 4. Adjust window size to prevent overflow
+            self._adjust_window_size()
+
+        except Exception as e:
+            logging.exception(f"Error during interface reconstruction: {e}")
+
+    def _adjust_window_size(self):
+        """Adjust window size to fit content properly and prevent overflow."""
+        # Force layout to update
+        self.updateGeometry()
+        self.adjustSize()
+
+        # Get screen geometry to ensure window stays within bounds
+        screen = QtWidgets.QApplication.primaryScreen()
+        if screen:
+            screen_geometry = screen.availableGeometry()
+            current_geometry = self.geometry()
+
+            # If window extends beyond screen, adjust position
+            if current_geometry.bottom() > screen_geometry.bottom():
+                new_y = screen_geometry.bottom() - current_geometry.height() - 10
+                self.move(current_geometry.x(), max(10, new_y))
+
+            if current_geometry.right() > screen_geometry.right():
+                new_x = screen_geometry.right() - current_geometry.width() - 10
+                self.move(max(10, new_x), current_geometry.y())
 
     def add_new_button_clicked(self):
         dialog = ButtonEditDialog(self, title="Add New Button")
@@ -839,16 +918,8 @@ class CustomPopupWindow(QtWidgets.QWidget):
             )
             self.app.settings_manager.update_action(bd["name"], action_config)
 
-            # Show success message
-            msg = QtWidgets.QMessageBox()
-            msg.setWindowFlags(msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
-            msg.setWindowTitle("Button Added")
-            msg.setText("Your new button has been saved and is now available in the tools list.")
-            msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
-            msg.exec_()
-
-            # Reload the window instead of closing it
-            self.reload_window()
+            # Reconstruct interface in place without confirmation message
+            self._perform_interface_reconstruction()
 
     def edit_button_clicked(self, btn):
         """User clicked the small pencil icon over a button."""
@@ -859,10 +930,23 @@ class CustomPopupWindow(QtWidgets.QWidget):
             return
 
         action_config = actions[key]
-        bd = self.action_config_to_dict(action_config)
-        bd["name"] = key
 
-        dialog = ButtonEditDialog(self, bd)
+        # Check if action_config is already a dict or an ActionConfig object
+        if isinstance(action_config, dict):
+            bd = action_config.copy()  # It's already a dict
+        else:
+            bd = self.action_config_to_dict(action_config)  # Convert ActionConfig to dict
+
+        # Create a new dict that includes the name (since ActionConfig doesn't have name field)
+        bd_with_name = {
+            "name": key,
+            "prefix": bd.get("prefix", ""),
+            "instruction": bd.get("instruction", ""),
+            "icon": bd.get("icon", ""),
+            "open_in_window": bd.get("open_in_window", False),
+        }
+
+        dialog = ButtonEditDialog(self, bd_with_name)
         if dialog.exec_():
             new_data = dialog.get_button_data()
             # Remove old action if name changed
@@ -880,16 +964,8 @@ class CustomPopupWindow(QtWidgets.QWidget):
             )
             self.app.settings_manager.update_action(new_data["name"], action_config)
 
-            # Show success message
-            msg = QtWidgets.QMessageBox()
-            msg.setWindowFlags(msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
-            msg.setWindowTitle("Button Updated")
-            msg.setText("Your button changes have been saved and are now active.")
-            msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
-            msg.exec_()
-
-            # Reload the window instead of closing it
-            self.reload_window()
+            # Reconstruct interface in place without confirmation message
+            self._perform_interface_reconstruction()
 
     def delete_button_clicked(self, btn):
         """Handle deletion of a button."""
@@ -914,9 +990,8 @@ class CustomPopupWindow(QtWidgets.QWidget):
                         btn_.deleteLater()
                         self.button_widgets.remove(btn_)
 
-                # Reload settings and reload window
-                self.app.settings_manager.load_settings()
-                self.reload_window()
+                # Reconstruct interface in place to stay in edit mode
+                self._perform_interface_reconstruction()
 
             except Exception as e:
                 logging.exception(f"Error deleting button: {e}")
@@ -991,6 +1066,11 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Escape:
-            self.close()
+            if self.edit_mode:
+                # If in edit mode, exit edit mode (like clicking the close button)
+                self.toggle_edit_mode()
+            else:
+                # If not in edit mode, close the window
+                self.close()
         else:
             super().keyPressEvent(event)

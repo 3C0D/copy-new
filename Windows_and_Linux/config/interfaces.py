@@ -26,6 +26,7 @@ class SystemConfig(TypedDict, total=False):
     # UI Configuration
     hotkey: str
     theme: str
+    color_mode: str  # "auto", "light", or "dark"
 
     # Application Settings
     language: str

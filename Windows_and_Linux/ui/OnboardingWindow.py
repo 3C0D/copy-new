@@ -2,7 +2,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6.QtWidgets import QHBoxLayout, QRadioButton
+from PySide6.QtWidgets import QHBoxLayout, QRadioButton, QComboBox
 
 from ui.ui_utils import ThemedWidget, colorMode, ui_utils
 
@@ -28,12 +28,14 @@ class OnboardingWindow(ThemedWidget):
         # Default configuration values
         self.shortcut = "ctrl+space"
         self.theme = "gradient"
+        self.color_mode = "auto"
 
         # UI components that will be referenced later
         self.content_layout: QtWidgets.QVBoxLayout
         self.shortcut_input: QtWidgets.QLineEdit  # Text field for shortcut input
         self.gradient_radio: QRadioButton  # Radio button for gradient theme
         self.plain_radio: QRadioButton  # Radio button for plain theme
+        self.color_mode_dropdown: QtWidgets.QComboBox  # Dropdown for color mode selection
 
         # Control flags
         self.self_close = False  # Flag to distinguish self-closing from user closing
@@ -54,7 +56,10 @@ class OnboardingWindow(ThemedWidget):
     def _setup_window(self):
         """Configure window properties and positioning."""
         self.setWindowTitle(_("Welcome to Writing Tools"))
-        self.resize(600, 500)
+        self.resize(600, 600)  # Increased height to accommodate Color Mode dropdown
+
+        # Add minimize button flag
+        self.add_minimize_button()
 
     def _create_layout(self):
         """Create the main layout structure with margins and spacing."""
@@ -81,6 +86,10 @@ class OnboardingWindow(ThemedWidget):
         # Theme selection section (auto-saves and applies on change)
         theme_section = self._create_theme_section()
         self.content_layout.addLayout(theme_section)
+
+        # Color mode selection section (auto-saves and applies on change)
+        color_mode_section = self._create_color_mode_section()
+        self.content_layout.addLayout(color_mode_section)
 
         # Navigation button to proceed to next step (API configuration)
         next_button = self._create_next_button()
@@ -131,7 +140,7 @@ class OnboardingWindow(ThemedWidget):
 
         # Text input field for shortcut (auto-saves on change)
         self.shortcut_input = QtWidgets.QLineEdit(self.shortcut)
-        self.shortcut_input.setStyleSheet(self._get_input_style())
+        self.shortcut_input.setStyleSheet(self.get_input_style())
         # Connect signal to auto-save when user types
         self.shortcut_input.textChanged.connect(self._on_shortcut_changed)
         shortcut_layout.addWidget(self.shortcut_input)
@@ -155,7 +164,7 @@ class OnboardingWindow(ThemedWidget):
         self.plain_radio = QRadioButton(_("Plain"))  # Plain background theme
 
         # Apply styling to radio buttons
-        radio_style = self._get_radio_style()
+        radio_style = self.get_radio_style()
         self.gradient_radio.setStyleSheet(radio_style)
         self.plain_radio.setStyleSheet(radio_style)
 
@@ -172,6 +181,37 @@ class OnboardingWindow(ThemedWidget):
 
         theme_layout.addLayout(radio_layout)
         return theme_layout
+
+    def _create_color_mode_section(self):
+        """Create the color mode selection section with immediate preview."""
+        color_mode_layout = QtWidgets.QVBoxLayout()
+
+        # Label for color mode selection
+        color_mode_label = QtWidgets.QLabel(_("Color Mode:"))
+        color_mode_label.setStyleSheet(self._get_content_style())
+        color_mode_layout.addWidget(color_mode_label)
+
+        # Dropdown for color mode selection
+        self.color_mode_dropdown = QtWidgets.QComboBox()
+        self.color_mode_dropdown.addItems([_("Auto"), _("Light"), _("Dark")])
+
+        # Set current selection based on saved setting
+        current_mode = self.app.settings_manager.color_mode or "auto"
+        mode_index = {"auto": 0, "light": 1, "dark": 2}.get(current_mode, 0)
+        self.color_mode_dropdown.setCurrentIndex(mode_index)
+
+        # Apply styling to dropdown
+        dropdown_style = self.get_dropdown_style()
+        self.color_mode_dropdown.setStyleSheet(dropdown_style)
+
+        # Connect signal for immediate color mode change and auto-save
+        self.color_mode_dropdown.currentTextChanged.connect(self._on_color_mode_changed)
+
+        # Prevent wheel scroll from interfering with main scroll area
+        self.color_mode_dropdown.wheelEvent = lambda e: e.ignore()
+
+        color_mode_layout.addWidget(self.color_mode_dropdown)
+        return color_mode_layout
 
     def _create_next_button(self):
         """Create the 'Next' button that proceeds to API configuration step."""
@@ -250,6 +290,59 @@ class OnboardingWindow(ThemedWidget):
         # Force background redraw to show new theme
         self.background.update()
 
+    def _on_color_mode_changed(self):
+        """Handle color mode selection changes, apply immediately and save to settings."""
+        # Get the selected text and convert to internal format
+        selected_text = self.color_mode_dropdown.currentText()
+        mode_mapping = {_("Auto"): "auto", _("Light"): "light", _("Dark"): "dark"}
+        new_color_mode = mode_mapping.get(selected_text, "auto")
+
+        if new_color_mode != self.color_mode:
+            self.color_mode = new_color_mode
+            logging.debug(f"Color mode changed to: {self.color_mode}")
+
+            # Auto-save color mode setting immediately
+            self._save_color_mode_setting()
+
+            # Apply color mode change to UI immediately (live preview)
+            self._apply_color_mode_change()
+
+    def _apply_color_mode_change(self):
+        """Apply the color mode change immediately to the UI for live preview."""
+        # Use the existing application theme override system
+        self.app._apply_theme_override(self.color_mode)
+
+        # Update all UI elements to reflect the new color mode
+        self._refresh_ui_styles()
+
+    def _refresh_ui_styles(self):
+        """Refresh all UI element styles to reflect the current color mode."""
+        # Import colorMode to get the updated value
+        from ui.ui_utils import colorMode
+
+        # Update dropdown style
+        if hasattr(self, 'color_mode_dropdown') and self.color_mode_dropdown:
+            self.color_mode_dropdown.setStyleSheet(self.get_dropdown_style())
+
+        # Update other UI elements
+        if hasattr(self, 'shortcut_input') and self.shortcut_input:
+            self.shortcut_input.setStyleSheet(self.get_input_style())
+
+        # Update radio buttons
+        if hasattr(self, 'gradient_radio') and self.gradient_radio:
+            radio_style = self.get_radio_style()
+            self.gradient_radio.setStyleSheet(radio_style)
+            self.plain_radio.setStyleSheet(radio_style)
+
+        # Update all labels and other text elements
+        for widget in self.findChildren(QtWidgets.QLabel):
+            if widget.objectName() != "":  # Skip background widgets
+                widget.setStyleSheet(self.get_label_style())
+
+        # Force background update
+        if hasattr(self, 'background') and self.background:
+            self.background.update()
+
     def _save_shortcut_setting(self):
         """Save only the shortcut setting to persistent storage."""
         try:
@@ -266,6 +359,14 @@ class OnboardingWindow(ThemedWidget):
         except Exception as e:
             logging.error(f"Failed to save theme setting: {e}")
 
+    def _save_color_mode_setting(self):
+        """Save only the color mode setting to persistent storage."""
+        try:
+            self.app.settings_manager.color_mode = self.color_mode
+            logging.debug(f"Color mode setting saved: {self.color_mode}")
+        except Exception as e:
+            logging.error(f"Failed to save color mode setting: {e}")
+
     def _on_next_clicked(self):
         """Handle 'Next' button click - navigate to API configuration step."""
         logging.debug("Proceeding to next step of onboarding")
@@ -279,6 +380,7 @@ class OnboardingWindow(ThemedWidget):
         try:
             self.app.settings_manager.hotkey = self.shortcut
             self.app.settings_manager.theme = self.theme
+            self.app.settings_manager.color_mode = self.color_mode
             logging.debug("Settings saved successfully")
         except Exception as e:
             logging.error(f"Failed to save settings: {e}")
