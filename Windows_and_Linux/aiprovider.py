@@ -306,7 +306,7 @@ class AIProvider(ABC):
                 break
 
     @abstractmethod
-    def get_response(self, system_instruction: str, prompt: str) -> str:
+    def get_response(self, system_instruction: str, prompt: str, return_response: bool = False) -> str:
         """
         Send the given system instruction and prompt to the AI provider and return the full response text.
         

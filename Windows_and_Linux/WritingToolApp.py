@@ -9,7 +9,7 @@ import signal
 import sys
 import threading
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import darkdetect
 import pyperclip
@@ -26,15 +26,10 @@ import ui.OnboardingWindow
 import ui.ResponseWindow
 import ui.SettingsWindow
 
-# if TYPE_CHECKING:
-#     from aiprovider import (
-#         AnthropicProvider,
-#         GeminiProvider,
-#         MistralProvider,
-#         OllamaProvider,
-#         OpenAICompatibleProvider,
-#     )
-    
+if TYPE_CHECKING:
+    from aiprovider import AIProvider
+    from ui.ResponseWindow import ResponseWindow
+
 from aiprovider import (
     AnthropicProvider,
     GeminiProvider,
@@ -62,7 +57,8 @@ class WritingToolApp(QtWidgets.QApplication):
 
     def __init__(self, argv, theme_override=None):
         super().__init__(argv)
-        self.current_response_window = None
+        self.current_response_window: Optional['ResponseWindow'] = None
+        self.current_provider: Optional['AIProvider'] = None
         self._logger = logging.getLogger(__name__)
         self._logger.debug("Initializing WritingToolApp")
 
@@ -129,13 +125,14 @@ class WritingToolApp(QtWidgets.QApplication):
                     self._logger.warning(f"Provider {provider_internal_name} not found. Using default provider.")
                     self.current_provider = self.providers[0]
 
-                self._logger.debug(f"Current provider: {self.current_provider.provider_name}")
+                if self.current_provider:
+                    self._logger.debug(f"Current provider: {self.current_provider.provider_name}")
 
-                # Load provider-specific config from system settings
-                provider_config = self._get_provider_config(provider_internal_name)
-                self._logger.debug(f"Provider config: {provider_config}")
-                self.current_provider.load_config(provider_config)
-                self._logger.debug("Provider config loaded successfully")
+                    # Load provider-specific config from system settings
+                    provider_config = self._get_provider_config(provider_internal_name)
+                    self._logger.debug(f"Provider config: {provider_config}")
+                    self.current_provider.load_config(provider_config)
+                    self._logger.debug("Provider config loaded successfully")
 
                 self.create_tray_icon()
                 self.register_hotkey()
@@ -262,13 +259,10 @@ class WritingToolApp(QtWidgets.QApplication):
         Returns:
             dict: Provider-specific configuration
         """
-        
+
         # Configuration par défaut selon le type de provider
         default_configs = {
-            ("Gemini", "Gemini (Recommended)"): {
-                "api_key": "", 
-                "model": self.settings_manager.model or ""
-            },
+            ("Gemini", "Gemini (Recommended)"): {"api_key": "", "model": self.settings_manager.model or ""},
             ("Ollama", "Ollama (Local)", "Ollama (For Experts)"): {
                 "base_url": self.settings_manager.ollama_base_url or "http://localhost:11434",
                 "model": "",
@@ -279,28 +273,25 @@ class WritingToolApp(QtWidgets.QApplication):
                 "api_model": "",
                 "base_url": self.settings_manager.mistral_base_url or "https://api.mistral.ai/v1",
             },
-            ("Anthropic", "Anthropic (Claude)"): {
-                "api_key": "", 
-                "model": ""
-            },
+            ("Anthropic", "Anthropic (Claude)"): {"api_key": "", "model": ""},
             ("OpenAI", "OpenAI-Compatible"): {
                 "api_key": "",
                 "base_url": self.settings_manager.openai_base_url or "https://api.openai.com/v1",
                 "model": "",
             },
         }
-        
+
         # Trouver la config par défaut
         config = {}
         for provider_names, default_config in default_configs.items():
             if provider_name in provider_names:
                 config = default_config.copy()
                 break
-        
+
         # Override avec la config sauvegardée
         saved_config = self.settings_manager.providers.get(provider_name, {})
         config.update(saved_config)
-        
+
         return config
 
     def show_onboarding(self):
@@ -321,7 +312,7 @@ class WritingToolApp(QtWidgets.QApplication):
 
         # Initialize the current provider with default settings
         provider_name = self.settings_manager.provider or "gemini"
-        
+
         if not provider_name.strip():
             # Default to Gemini if no provider is set
             provider_name = "gemini"
@@ -333,8 +324,9 @@ class WritingToolApp(QtWidgets.QApplication):
         )
 
         # Load provider-specific config from system settings
-        provider_config = self._get_provider_config(provider_name)
-        self.current_provider.load_config(provider_config)
+        if self.current_provider:
+            provider_config = self._get_provider_config(provider_name)
+            self.current_provider.load_config(provider_config)
 
         self.create_tray_icon()
         self.register_hotkey()
@@ -352,7 +344,7 @@ class WritingToolApp(QtWidgets.QApplication):
         Create listener for hotkeys on Linux/Mac.
         """
         orig_shortcut = self.settings_manager.hotkey or "ctrl+space"
-        
+
         # Parse the shortcut string, for example ctrl+alt+h -> <ctrl>+<alt>+<h>. Space are removed.
         shortcut = "+".join(
             [f"{t}" if len(t) <= 1 else f"<{t}>" for t in [part.strip() for part in orig_shortcut.split("+")]],
@@ -548,7 +540,9 @@ class WritingToolApp(QtWidgets.QApplication):
             self._logger.error(f"Action not found: {option}")
             return
 
-        if (is_empty_custom := option == "Custom" and not selected_text.strip()) or action_config.open_in_window:
+        if (is_empty_custom := option == "Custom" and not selected_text.strip()) or action_config.get(
+            "open_in_window", False
+        ):
             self._setup_response_window(is_empty_custom, option, selected_text)
         elif hasattr(self, "current_response_window"):
             delattr(self, "current_response_window")
@@ -559,7 +553,7 @@ class WritingToolApp(QtWidgets.QApplication):
             args=(option, selected_text, custom_change),
             daemon=True,
         ).start()
-    
+
     def _setup_response_window(self, is_empty_custom, option, selected_text):
         window_title = "Chat" if is_empty_custom else option
         self.current_response_window = self.show_response_window(window_title, selected_text)
@@ -610,8 +604,8 @@ class WritingToolApp(QtWidgets.QApplication):
                     return
 
                 # Build prompt based on option type
-                prompt_prefix = action_config.prefix
-                system_instruction = action_config.instruction
+                prompt_prefix = action_config.get("prefix", "")
+                system_instruction = action_config.get("instruction", "")
 
                 if is_custom_option:
                     prompt = f"{prompt_prefix}Described change: {custom_change}\n\nText: {selected_text}"
@@ -631,35 +625,39 @@ class WritingToolApp(QtWidgets.QApplication):
 
             # Determine if response should be displayed in window
             should_open_window = (is_custom_option and not has_selected_text) or (
-                has_selected_text and action_config.open_in_window
+                has_selected_text and action_config.get("open_in_window", False)
             )
 
             self._logger.debug(f"Getting response from provider for option: {option}")
 
             if should_open_window:
                 # Get response for window display
-                self._logger.debug("Getting response for window display")
-                response = self.current_provider.get_response(system_instruction, prompt, return_response=True)
-                self._logger.debug(f"Got response of length: {len(response) if response else 0}")
+                if self.current_provider:
+                    self._logger.debug("Getting response for window display")
+                    response = self.current_provider.get_response(system_instruction, prompt if isinstance(prompt, str) else str(prompt), return_response=True)
+                    self._logger.debug(f"Got response of length: {len(response) if response else 0}")
 
-                # Add user message to chat history for custom prompts without text
-                if is_custom_option and not has_selected_text:
-                    self.current_response_window.chat_history.append({"role": "user", "content": custom_change})
+                    # Add user message to chat history for custom prompts without text
+                    if is_custom_option and not has_selected_text and self.current_response_window:
+                        self.current_response_window.chat_history.append({"role": "user", "content": custom_change})
 
-                # Update window with response (thread-safe)
-                if hasattr(self, "current_response_window"):
-                    QtCore.QMetaObject.invokeMethod(
-                        self.current_response_window,
-                        "set_text",
-                        QtCore.Qt.ConnectionType.QueuedConnection,
-                        QtCore.Q_ARG(str, response),
-                    )
-                    self._logger.debug("Invoked set_text on response window")
+                    # Update window with response (thread-safe)
+                    if self.current_response_window:
+                        QtCore.QMetaObject.invokeMethod(
+                            self.current_response_window,
+                            "set_text",
+                            QtCore.Qt.ConnectionType.QueuedConnection,
+                            QtCore.Q_ARG(str, response),
+                        )
+                        self._logger.debug("Invoked set_text on response window")
             else:
                 # Get response for direct text replacement
-                self._logger.debug("Getting response for direct replacement")
-                self.current_provider.get_response(system_instruction, prompt)
-                self._logger.debug("Response processed")
+                if self.current_provider:
+                    self._logger.debug("Getting response for direct replacement")
+                    # Ensure prompt is a string for direct replacement
+                    prompt_str = prompt if isinstance(prompt, str) else str(prompt)
+                    self.current_provider.get_response(system_instruction, prompt_str)
+                    self._logger.debug("Response processed")
 
         except Exception as e:
             self._logger.error(f"An error occurred: {e}", exc_info=True)
@@ -680,7 +678,7 @@ class WritingToolApp(QtWidgets.QApplication):
         For API errors, adds a button to open settings.
         """
         msg_box = QMessageBox(None)
-        msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+        msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
 
@@ -736,8 +734,10 @@ class WritingToolApp(QtWidgets.QApplication):
             logging.debug("Processing output text")
             try:
                 # For Summary and Key Points, show in response window
-                if hasattr(self, "current_response_window"):
-                    self.current_response_window.append_text(new_text)
+                if hasattr(self, "current_response_window") and self.current_response_window:
+                    # Use chat_area.add_message instead of append_text
+                    if hasattr(self.current_response_window, 'chat_area') and self.current_response_window.chat_area:
+                        self.current_response_window.chat_area.add_message(new_text)
 
                     # If this is the initial response, add it to chat history
                     if len(self.current_response_window.chat_history) == 1:  # Only original text exists
@@ -992,7 +992,7 @@ class WritingToolApp(QtWidgets.QApplication):
                 logging.debug("Sending request to AI provider")
 
                 # Format conversation differently based on provider
-                if isinstance(self.current_provider, GeminiProvider):
+                if self.current_provider and isinstance(self.current_provider, GeminiProvider):
                     # For Gemini, use the proper history format with roles
                     chat_messages = []
 
@@ -1002,13 +1002,16 @@ class WritingToolApp(QtWidgets.QApplication):
                         chat_messages.append({"role": gemini_role, "parts": msg["content"]})
 
                     # Start chat with history
-                    chat = self.current_provider.model.start_chat(history=chat_messages)
+                    if hasattr(self.current_provider, 'model') and self.current_provider.model:
+                        chat = self.current_provider.model.start_chat(history=chat_messages)
 
-                    # Get response using the chat
-                    response = chat.send_message(question)
-                    response_text = response.text
+                        # Get response using the chat
+                        response = chat.send_message(question)
+                        response_text = response.text
+                    else:
+                        response_text = "Error: Provider model not available"
 
-                elif isinstance(self.current_provider, OllamaProvider):
+                elif self.current_provider and isinstance(self.current_provider, OllamaProvider):
                     # For Ollama, prepare messages with system instruction and history
                     messages = [{"role": "system", "content": system_instruction}]
 
@@ -1022,7 +1025,7 @@ class WritingToolApp(QtWidgets.QApplication):
                         return_response=True,
                     )
 
-                else:
+                elif self.current_provider:
                     # For OpenAI/compatible providers, prepare messages array, add system message
                     messages = [{"role": "system", "content": system_instruction}]
 
@@ -1035,9 +1038,11 @@ class WritingToolApp(QtWidgets.QApplication):
                     # Get response by passing the full messages array
                     response_text = self.current_provider.get_response(
                         system_instruction,
-                        messages,  # Pass messages array directly
+                        messages if isinstance(messages, str) else str(messages),
                         return_response=True,
                     )
+                else:
+                    response_text = "Error: No provider available"
 
                 logging.debug(f"Got response of length: {len(response_text)}")
 
@@ -1101,7 +1106,7 @@ class WritingToolApp(QtWidgets.QApplication):
         self.ctrl_c_timer.start(100)
         self.ctrl_c_timer.timeout.connect(lambda: None)
 
-    def handle_sigint(self, signum, frame):
+    def handle_sigint(self, _signum, _frame):
         """
         Handle the SIGINT signal (Ctrl+C) to exit the app gracefully.
         """
