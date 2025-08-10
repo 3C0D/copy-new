@@ -14,31 +14,12 @@ def get_effective_color_mode():
     Get the effective color mode based on current settings.
     This function provides the same logic as _get_effective_mode() in windows.
     """
-    import logging
-
     # Check if colorMode has been overridden by theme_override first
     global colorMode
 
-    # Import here to avoid circular imports
-    try:
-        from config.settings import SettingsManager
-
-        settings_manager = SettingsManager()
-        user_mode = settings_manager.color_mode or "auto"
-
-        # If user_mode is auto, check if we have a theme override
-        if user_mode == "auto":
-            # Use the global colorMode which might have been set by theme_override
-            effective_mode = colorMode
-        else:
-            effective_mode = user_mode
-
-        # logging.debug(f"🎨 get_effective_color_mode: user_mode={user_mode}, colorMode={colorMode}, effective_mode={effective_mode}")
-        return effective_mode
-    except Exception as e:
-        # Fallback to global colorMode if settings are not available
-        # logging.debug(f"🎨 get_effective_color_mode: Exception {e}, fallback to colorMode={colorMode}")
-        return colorMode
+    # Simple fallback to global colorMode to avoid creating multiple SettingsManager instances
+    # The global colorMode is set by the main app and should be sufficient for UI styling
+    return colorMode
 
 
 def set_color_mode(theme):
@@ -188,12 +169,9 @@ class ThemedWidget(QWidget):
 
     def get_label_style(self):
         """Get standardized label styling based on current theme."""
-        import logging
-
         current_mode = get_effective_color_mode()
         color = '#ffffff' if current_mode == 'dark' else '#333333'
         style = f"font-size: 16px; color: {color};"
-        logging.debug(f"🏷️ ThemedWidget.get_label_style: mode={current_mode}, color={color}, style={style}")
         return style
 
 

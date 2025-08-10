@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
 )
 
-from ui.ui_utils import ThemedWidget, colorMode
+from ui.ui_utils import ThemedWidget, get_effective_color_mode
 
 if TYPE_CHECKING:
     from Windows_and_Linux.WritingToolApp import WritingToolApp
@@ -53,12 +53,16 @@ class MarkdownTextBrowser(QTextBrowser):
         new_size = int(self.base_font_size * self.zoom_factor)
 
         # Updated stylesheet with table styling
+        from ui.ui_utils import get_effective_color_mode
+
+        current_mode = get_effective_color_mode()
+
         self.setStyleSheet(
             f"""
             QTextBrowser {{
-                background-color: {('transparent' if self.is_user_message else '#333' if colorMode == 'dark' else 'white')};
-                color: {'#ffffff' if colorMode == 'dark' else '#000000'};
-                border: {('none' if self.is_user_message else '1px solid ' + ('#555' if colorMode == 'dark' else '#ccc'))};
+                background-color: {('transparent' if self.is_user_message else '#333' if current_mode == 'dark' else '#f8f9fa')};
+                color: {'#ffffff' if current_mode == 'dark' else '#212529'};
+                border: {('none' if self.is_user_message else '1px solid ' + ('#555' if current_mode == 'dark' else '#dee2e6'))};
                 border-radius: 8px;
                 padding: 8px;
                 margin: 0px;
@@ -73,24 +77,24 @@ class MarkdownTextBrowser(QTextBrowser):
                 width: 100%;
                 margin: 10px 0;
             }}
-            
+
             th, td {{
-                border: 1px solid {'#555' if colorMode == 'dark' else '#ccc'};
+                border: 1px solid {'#555' if current_mode == 'dark' else '#dee2e6'};
                 padding: 8px;
                 text-align: left;
             }}
-            
+
             th {{
-                background-color: {'#444' if colorMode == 'dark' else '#f5f5f5'};
+                background-color: {'#444' if current_mode == 'dark' else '#e9ecef'};
                 font-weight: bold;
             }}
-            
+
             tr:nth-child(even) {{
-                background-color: {'#3a3a3a' if colorMode == 'dark' else '#f9f9f9'};
+                background-color: {'#3a3a3a' if current_mode == 'dark' else '#f8f9fa'};
             }}
-            
+
             tr:hover {{
-                background-color: {'#484848' if colorMode == 'dark' else '#f0f0f0'};
+                background-color: {'#484848' if current_mode == 'dark' else '#e9ecef'};
             }}
         """,
         )
@@ -199,25 +203,30 @@ class MessageContainer(QWidget):
 
             icon_path = get_icon_path("copy_md", with_theme=True)
             self.copy_btn.setIcon(QtGui.QIcon(icon_path))
+            from ui.ui_utils import get_effective_color_mode
+
+            current_mode = get_effective_color_mode()
+
             self.copy_btn.setStyleSheet(
                 f"""
                 QToolButton {{
-                    background-color: {'rgba(68, 68, 68, 0.9)' if colorMode == 'dark' else 'rgba(240, 240, 240, 0.9)'};
-                    border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
+                    background-color: {'rgba(68, 68, 68, 0.9)' if current_mode == 'dark' else 'rgba(248, 249, 250, 0.95)'};
+                    border: 1px solid {'#666' if current_mode == 'dark' else '#dee2e6'};
                     border-radius: 6px;
-                    padding: 0px;
+                    padding: 2px;
                     margin: 0px;
                     spacing: 0px;
                 }}
                 QToolButton:hover {{
-                    background-color: {'rgba(85, 85, 85, 0.9)' if colorMode == 'dark' else 'rgba(224, 224, 224, 0.9)'};
+                    background-color: {'rgba(85, 85, 85, 0.9)' if current_mode == 'dark' else 'rgba(233, 236, 239, 0.95)'};
+                    border: 1px solid {'#777' if current_mode == 'dark' else '#adb5bd'};
                 }}
             """,
             )
             self.copy_btn.setToolTip(_("Copy as Markdown"))
             self.copy_btn.clicked.connect(self.copy_content)
             self.copy_btn.setFixedSize(32, 32)
-            self.copy_btn.setIconSize(QtCore.QSize(20, 20))
+            self.copy_btn.setIconSize(QtCore.QSize(24, 24))
             self.copy_btn.hide()  # Initially hidden
 
             # Install event filter to handle hover
@@ -256,10 +265,10 @@ class MessageContainer(QWidget):
             # Success feedback style
             success_style = f"""
                 QToolButton {{
-                    background-color: {'rgba(76, 175, 80, 0.9)' if colorMode == 'dark' else 'rgba(76, 175, 80, 0.9)'};
-                    border: 1px solid {'#4CAF50' if colorMode == 'dark' else '#4CAF50'};
+                    background-color: rgba(76, 175, 80, 0.9);
+                    border: 1px solid #4CAF50;
                     border-radius: 6px;
-                    padding: 0px;
+                    padding: 2px;
                 }}
             """
 
@@ -485,8 +494,9 @@ class ResponseWindow(ThemedWidget):
         top_bar = QHBoxLayout()
 
         title_label = QLabel(self.option)
+        current_mode = get_effective_color_mode()
         title_label.setStyleSheet(
-            f"font-size: 20px; font-weight: bold; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
+            f"font-size: 20px; font-weight: bold; color: {'#ffffff' if current_mode == 'dark' else '#333333'};",
         )
         top_bar.addWidget(title_label)
 
@@ -496,7 +506,7 @@ class ResponseWindow(ThemedWidget):
         zoom_label = QLabel("Zoom:")
         zoom_label.setStyleSheet(
             f"""
-            color: {'#aaaaaa' if colorMode == 'dark' else '#666666'};
+            color: {'#aaaaaa' if current_mode == 'dark' else '#666666'};
             font-size: 14px;
             margin-right: 5px;
         """,
@@ -529,7 +539,7 @@ class ResponseWindow(ThemedWidget):
             _("Hover over assistant responses for individual copy buttons"),
         )
         copy_hint.setStyleSheet(
-            f"color: {'#aaaaaa' if colorMode == 'dark' else '#666666'}; font-size: 14px;",
+            f"color: {'#aaaaaa' if current_mode == 'dark' else '#666666'}; font-size: 14px;",
         )
         copy_bar.addWidget(copy_hint)
         copy_bar.addStretch()
@@ -544,7 +554,7 @@ class ResponseWindow(ThemedWidget):
         self.loading_label.setStyleSheet(
             f"""
             QLabel {{
-                color: {'#ffffff' if colorMode == 'dark' else '#333333'};
+                color: {'#ffffff' if current_mode == 'dark' else '#333333'};
                 font-size: 18px;
                 padding: 20px;
             }}
@@ -581,10 +591,10 @@ class ResponseWindow(ThemedWidget):
             f"""
             QLineEdit {{
                 padding: 8px;
-                border: 1px solid {'#777' if colorMode == 'dark' else '#ccc'};
+                border: 1px solid {'#777' if current_mode == 'dark' else '#dee2e6'};
                 border-radius: 8px;
-                background-color: {'#333' if colorMode == 'dark' else 'white'};
-                color: {'#ffffff' if colorMode == 'dark' else '#000000'};
+                background-color: {'#333' if current_mode == 'dark' else '#f8f9fa'};
+                color: {'#ffffff' if current_mode == 'dark' else '#212529'};
                 font-size: 14px;
             }}
         """,
@@ -599,13 +609,13 @@ class ResponseWindow(ThemedWidget):
         send_button.setStyleSheet(
             f"""
             QPushButton {{
-                background-color: {'#2e7d32' if colorMode == 'dark' else '#4CAF50'};
+                background-color: {'#2e7d32' if current_mode == 'dark' else '#4CAF50'};
                 border: none;
                 border-radius: 8px;
                 padding: 5px;
             }}
             QPushButton:hover {{
-                background-color: {'#1b5e20' if colorMode == 'dark' else '#45a049'};
+                background-color: {'#1b5e20' if current_mode == 'dark' else '#45a049'};
             }}
         """,
         )
@@ -643,17 +653,18 @@ class ResponseWindow(ThemedWidget):
             QApplication.clipboard().setText(response_text)
 
     def get_button_style(self):
+        current_mode = get_effective_color_mode()
         return f"""
             QPushButton {{
-                background-color: {'#444' if colorMode == 'dark' else '#f0f0f0'};
-                color: {'#ffffff' if colorMode == 'dark' else '#000000'};
-                border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
+                background-color: {'#444' if current_mode == 'dark' else '#f8f9fa'};
+                color: {'#ffffff' if current_mode == 'dark' else '#212529'};
+                border: 1px solid {'#666' if current_mode == 'dark' else '#dee2e6'};
                 border-radius: 5px;
                 padding: 8px;
                 font-size: 14px;
             }}
             QPushButton:hover {{
-                background-color: {'#555' if colorMode == 'dark' else '#e0e0e0'};
+                background-color: {'#555' if current_mode == 'dark' else '#e9ecef'};
             }}
         """
 

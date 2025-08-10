@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from config.data_operations import create_default_actions_config
-from ui.ui_utils import ThemeBackground, colorMode
+from ui.ui_utils import ThemeBackground, colorMode, get_effective_color_mode
 
 if TYPE_CHECKING:
     from Windows_and_Linux.WritingToolApp import WritingToolApp
@@ -52,16 +52,18 @@ class ButtonEditDialog(QDialog):
 
         # Name
         name_label = QLabel("Button Name:")
-        name_label.setStyleSheet(f"color: {'#fff' if colorMode == 'dark' else '#333'}; font-weight: bold;")
+        name_label.setStyleSheet(
+            f"color: {'#fff' if get_effective_color_mode() == 'dark' else '#333'}; font-weight: bold;"
+        )
         self.name_input = QLineEdit()
         self.name_input.setStyleSheet(
             f"""
             QLineEdit {{
                 padding: 8px;
-                border: 1px solid {'#777' if colorMode == 'dark' else '#ccc'};
+                border: 1px solid {'#777' if get_effective_color_mode() == 'dark' else '#ccc'};
                 border-radius: 8px;
-                background-color: {'#333' if colorMode == 'dark' else 'white'};
-                color: {'#fff' if colorMode == 'dark' else '#000'};
+                background-color: {'#333' if get_effective_color_mode() == 'dark' else 'white'};
+                color: {'#fff' if get_effective_color_mode() == 'dark' else '#000'};
             }}
         """,
         )
@@ -72,16 +74,18 @@ class ButtonEditDialog(QDialog):
 
         # Instruction (changed to a multiline QPlainTextEdit)
         instruction_label = QLabel("What should your AI do with your selected text? (System Instruction)")
-        instruction_label.setStyleSheet(f"color: {'#fff' if colorMode == 'dark' else '#333'}; font-weight: bold;")
+        instruction_label.setStyleSheet(
+            f"color: {'#fff' if get_effective_color_mode() == 'dark' else '#333'}; font-weight: bold;"
+        )
         self.instruction_input = QPlainTextEdit()
         self.instruction_input.setStyleSheet(
             f"""
             QPlainTextEdit {{
                 padding: 8px;
-                border: 1px solid {'#777' if colorMode == 'dark' else '#ccc'};
+                border: 1px solid {'#777' if get_effective_color_mode() == 'dark' else '#ccc'};
                 border-radius: 8px;
-                background-color: {'#333' if colorMode == 'dark' else 'white'};
-                color: {'#fff' if colorMode == 'dark' else '#000'};
+                background-color: {'#333' if get_effective_color_mode() == 'dark' else 'white'};
+                color: {'#fff' if get_effective_color_mode() == 'dark' else '#000'};
             }}
         """,
         )
@@ -104,14 +108,16 @@ class ButtonEditDialog(QDialog):
 
         # open_in_window
         display_label = QLabel("How should your AI response be shown?")
-        display_label.setStyleSheet(f"color: {'#fff' if colorMode == 'dark' else '#333'}; font-weight: bold;")
+        display_label.setStyleSheet(
+            f"color: {'#fff' if get_effective_color_mode() == 'dark' else '#333'}; font-weight: bold;"
+        )
         layout.addWidget(display_label)
 
         radio_layout = QHBoxLayout()
         self.replace_radio = QRadioButton("Replace the selected text")
         self.window_radio = QRadioButton("In a pop-up window (with follow-up support)")
         for r in (self.replace_radio, self.window_radio):
-            r.setStyleSheet(f"color: {'#fff' if colorMode == 'dark' else '#333'};")
+            r.setStyleSheet(f"color: {'#fff' if get_effective_color_mode() == 'dark' else '#333'};")
 
         self.replace_radio.setChecked(not self.button_data.get("open_in_window", False))
         self.window_radio.setChecked(self.button_data.get("open_in_window", False))
@@ -128,15 +134,15 @@ class ButtonEditDialog(QDialog):
             btn.setStyleSheet(
                 f"""
                 QPushButton {{
-                    background-color: {'#444' if colorMode == 'dark' else '#f0f0f0'};
-                    color: {'#fff' if colorMode == 'dark' else '#000'};
-                    border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
+                    background-color: {'#444' if get_effective_color_mode() == 'dark' else '#f0f0f0'};
+                    color: {'#fff' if get_effective_color_mode() == 'dark' else '#000'};
+                    border: 1px solid {'#666' if get_effective_color_mode() == 'dark' else '#ccc'};
                     border-radius: 5px;
                     padding: 8px;
                     min-width: 100px;
                 }}
                 QPushButton:hover {{
-                    background-color: {'#555' if colorMode == 'dark' else '#e0e0e0'};
+                    background-color: {'#555' if get_effective_color_mode() == 'dark' else '#e0e0e0'};
                 }}
             """,
             )
@@ -150,7 +156,7 @@ class ButtonEditDialog(QDialog):
         self.setStyleSheet(
             f"""
             QDialog {{
-                background-color: {'#222' if colorMode == 'dark' else '#f5f5f5'};
+                background-color: {'#222' if get_effective_color_mode() == 'dark' else '#f5f5f5'};
                 border-radius: 10px;
             }}
         """,
@@ -190,20 +196,19 @@ class DraggableButton(QtWidgets.QPushButton):
         # Define base style using the dynamic property instead of the :hover pseudo-class
         self.base_style = f"""
             QPushButton {{
-                background-color: {"#444" if colorMode=="dark" else "white"};
-                border: 1px solid {"#666" if colorMode=="dark" else "#ccc"};
+                background-color: {"#444" if get_effective_color_mode()=="dark" else "white"};
+                border: 1px solid {"#666" if get_effective_color_mode()=="dark" else "#ccc"};
                 border-radius: 8px;
                 padding: 10px;
                 font-size: 14px;
                 text-align: left;
-                color: {"#fff" if colorMode=="dark" else "#000"};
+                color: {"#fff" if get_effective_color_mode()=="dark" else "#000"};
             }}
             QPushButton[hover="true"] {{
-                background-color: {"#555" if colorMode=="dark" else "#f0f0f0"};
+                background-color: {"#555" if get_effective_color_mode()=="dark" else "#f0f0f0"};
             }}
         """
         self.setStyleSheet(self.base_style)
-        logging.debug("DraggableButton initialized")
 
     def enterEvent(self, event):
         # Only update the hover property if NOT in edit mode.
@@ -249,7 +254,6 @@ class DraggableButton(QtWidgets.QPushButton):
 
             self.drag_start_position = None
             drop_action = drag.exec_(Qt.DropAction.MoveAction)
-            logging.debug(f"Drag completed with action: {drop_action}")
 
     def dragEnterEvent(self, event):
         if self.popup.edit_mode and event.mimeData().hasFormat("application/x-button-index"):
@@ -312,11 +316,9 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
         self.button_widgets = []
 
-        logging.debug("Initializing CustomPopupWindow")
         self.init_ui()
 
     def init_ui(self):
-        logging.debug("Setting up CustomPopupWindow UI")
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowTitle("Writing Tools")
@@ -361,7 +363,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
                 margin-top: 3px;
             }}
             QPushButton:hover {{
-                background-color: {'#333' if colorMode=='dark' else '#ebebeb'};
+                background-color: {'#333' if get_effective_color_mode()=='dark' else '#ebebeb'};
             }}
         """,
         )
@@ -373,7 +375,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
         self.drag_label = QLabel("Drag to rearrange")
         self.drag_label.setStyleSheet(
             f"""
-            color: {'#fff' if colorMode=='dark' else '#333'};
+            color: {'#fff' if get_effective_color_mode()=='dark' else '#333'};
             font-size: 14px;
             font-weight: bold; /* <--- BOLD TEXT */
         """,
@@ -389,7 +391,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
             f"""
             QPushButton {{
                 background-color: transparent;
-                color: {'#fff' if colorMode=='dark' else '#333'};
+                color: {'#fff' if get_effective_color_mode()=='dark' else '#333'};
                 font-size: 20px;
                 font-weight: bold;
                 border: none;
@@ -397,7 +399,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
                 padding: 0px;
             }}
             QPushButton:hover {{
-                background-color: {'#333' if colorMode=='dark' else '#ebebeb'};
+                background-color: {'#333' if get_effective_color_mode()=='dark' else '#ebebeb'};
             }}
         """,
         )
@@ -418,10 +420,10 @@ class CustomPopupWindow(QtWidgets.QWidget):
                 background-color: transparent;
                 border: none;
                 border-radius: 6px;
-                color: {'#fff' if colorMode=='dark' else '#333'};
+                color: {'#fff' if get_effective_color_mode()=='dark' else '#333'};
             }}
             QPushButton:hover {{
-                background-color: {'#333' if colorMode=='dark' else '#ebebeb'};
+                background-color: {'#333' if get_effective_color_mode()=='dark' else '#ebebeb'};
             }}
         """,
         )
@@ -436,7 +438,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
             f"""
             QPushButton {{
                 background-color: transparent;
-                color: {'#fff' if colorMode=='dark' else '#333'};
+                color: {'#fff' if get_effective_color_mode()=='dark' else '#333'};
                 font-size: 20px;   /* bigger text */
                 font-weight: bold; /* bold text */
                 border: none;
@@ -444,7 +446,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
                 padding: 0px;
             }}
             QPushButton:hover {{
-                background-color: {'#333' if colorMode=='dark' else '#ebebeb'};
+                background-color: {'#333' if get_effective_color_mode()=='dark' else '#ebebeb'};
             }}
         """,
         )
@@ -463,10 +465,10 @@ class CustomPopupWindow(QtWidgets.QWidget):
             f"""
             QLineEdit {{
                 padding: 8px;
-                border: 1px solid {'#777' if colorMode=='dark' else '#ccc'};
+                border: 1px solid {'#777' if get_effective_color_mode()=='dark' else '#ccc'};
                 border-radius: 8px;
-                background-color: {'#333' if colorMode=='dark' else 'white'};
-                color: {'#fff' if colorMode=='dark' else '#000'};
+                background-color: {'#333' if get_effective_color_mode()=='dark' else 'white'};
+                color: {'#fff' if get_effective_color_mode()=='dark' else '#000'};
             }}
         """,
         )
@@ -480,13 +482,13 @@ class CustomPopupWindow(QtWidgets.QWidget):
         send_btn.setStyleSheet(
             f"""
             QPushButton {{
-                background-color: {'#2e7d32' if colorMode=='dark' else '#4CAF50'};
+                background-color: {'#2e7d32' if get_effective_color_mode()=='dark' else '#4CAF50'};
                 border: none;
                 border-radius: 8px;
                 padding: 5px;
             }}
             QPushButton:hover {{
-                background-color: {'#1b5e20' if colorMode=='dark' else '#45a049'};
+                background-color: {'#1b5e20' if get_effective_color_mode()=='dark' else '#45a049'};
             }}
         """,
         )
@@ -519,7 +521,6 @@ class CustomPopupWindow(QtWidgets.QWidget):
             update_label.setStyleSheet("margin-top: 10px;")
             content_layout.addWidget(update_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
 
-        logging.debug("CustomPopupWindow UI setup complete")
         self.installEventFilter(self)
         QtCore.QTimer.singleShot(250, lambda: self.custom_input.setFocus() if self.custom_input else None)
 
@@ -532,7 +533,6 @@ class CustomPopupWindow(QtWidgets.QWidget):
             logging.warning("Settings manager not available, using default actions")
             return create_default_actions_config()
 
-        logging.debug("Loading actions from unified settings")
         return self.app.settings_manager.settings.actions
 
     @staticmethod
@@ -640,17 +640,17 @@ class CustomPopupWindow(QtWidgets.QWidget):
             add_btn.setStyleSheet(
                 f"""
                 QPushButton {{
-                    background-color: {'#333' if colorMode=='dark' else '#e0e0e0'};
-                    border: 1px solid {'#666' if colorMode=='dark' else '#ccc'};
+                    background-color: {'#333' if get_effective_color_mode()=='dark' else '#e0e0e0'};
+                    border: 1px solid {'#666' if get_effective_color_mode()=='dark' else '#ccc'};
                     border-radius: 8px;
                     padding: 10px;
                     font-size: 14px;
                     text-align: center;
-                    color: {'#fff' if colorMode=='dark' else '#000'};
+                    color: {'#fff' if get_effective_color_mode()=='dark' else '#000'};
                     margin-top: 10px;
                 }}
                 QPushButton:hover {{
-                    background-color: {'#444' if colorMode=='dark' else '#d0d0d0'};
+                    background-color: {'#444' if get_effective_color_mode()=='dark' else '#d0d0d0'};
                 }}
             """,
             )
@@ -669,7 +669,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
         circle_style = f"""
             QPushButton {{
-                background-color: {'#666' if colorMode=='dark' else '#999'};
+                background-color: {'#666' if get_effective_color_mode()=='dark' else '#999'};
                 border-radius: 10px;
                 min-width: 16px;
                 min-height: 16px;
@@ -679,7 +679,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
                 margin: 0px;
             }}
             QPushButton:hover {{
-                background-color: {'#888' if colorMode=='dark' else '#bbb'};
+                background-color: {'#888' if get_effective_color_mode()=='dark' else '#bbb'};
             }}
         """
 
@@ -711,7 +711,6 @@ class CustomPopupWindow(QtWidgets.QWidget):
     def toggle_edit_mode(self):
         """Toggle edit mode with improved button labels and state handling."""
         self.edit_mode = not self.edit_mode
-        logging.debug(f'Edit mode toggled: {self.edit_mode}')
 
         if self.edit_mode:
             # Switch to edit mode:
@@ -759,7 +758,6 @@ class CustomPopupWindow(QtWidgets.QWidget):
     def _toggle_edit_mode_silent(self):
         """Toggle edit mode without any user messages - used for internal state changes."""
         self.edit_mode = not self.edit_mode
-        logging.debug(f'Edit mode toggled silently: {self.edit_mode}')
 
         if self.edit_mode:
             # Switch to edit mode:
@@ -845,7 +843,6 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
         if confirm_box.exec_() == QtWidgets.QMessageBox.StandardButton.Yes:
             try:
-                logging.debug("Resetting to default actions")
                 # Reset actions to defaults in unified settings
                 if hasattr(self.app, "settings_manager") and self.app.settings_manager.settings:
                     # Reset actions to defaults
@@ -1024,7 +1021,6 @@ class CustomPopupWindow(QtWidgets.QWidget):
         # Update settings and save
         self.app.settings_manager.settings.actions = new_actions
         self.app.save_settings()
-        logging.debug("Button order updated in unified settings")
 
     def reload_window(self):
         """

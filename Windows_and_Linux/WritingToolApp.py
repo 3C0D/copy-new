@@ -273,6 +273,13 @@ class WritingToolApp(QtWidgets.QApplication):
         self.settings_manager.load_settings()
         self._logger.debug("Unified settings loaded successfully")
 
+        # Apply user's color_mode setting to global colorMode variable
+        user_color_mode = self.settings_manager.color_mode or "auto"
+        from ui.ui_utils import set_color_mode
+
+        set_color_mode(user_color_mode)
+        self._logger.debug(f"Applied color mode: {user_color_mode}")
+
     def save_settings(self):
         """Save the current unified settings."""
         return self.settings_manager.save_settings()

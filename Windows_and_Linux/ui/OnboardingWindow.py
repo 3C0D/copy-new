@@ -2,10 +2,10 @@ import logging
 from typing import TYPE_CHECKING
 
 from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6.QtWidgets import QHBoxLayout, QRadioButton, QComboBox
+from PySide6.QtWidgets import QHBoxLayout, QRadioButton
 
 from ui.ui_utils import ThemedWidget, ui_utils
-from ui.ThemeManager import ThemeAwareMixin, theme_manager
+from ui.ThemeManager import ThemeAwareMixin
 
 if TYPE_CHECKING:
     from Windows_and_Linux.WritingToolApp import WritingToolApp
@@ -29,14 +29,12 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         # Default configuration values
         self.shortcut = "ctrl+space"
         self.theme = "gradient"
-        self.color_mode = "auto"
 
         # UI components that will be referenced later
         self.content_layout: QtWidgets.QVBoxLayout
         self.shortcut_input: QtWidgets.QLineEdit  # Text field for shortcut input
         self.gradient_radio: QRadioButton  # Radio button for gradient theme
         self.plain_radio: QRadioButton  # Radio button for plain theme
-        self.color_mode_dropdown: QtWidgets.QComboBox  # Dropdown for color mode selection
 
         # Control flags
         self.self_close = False  # Flag to distinguish self-closing from user closing
@@ -143,10 +141,6 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         theme_section = self._create_theme_section()
         self.content_layout.addLayout(theme_section)
 
-        # Color mode selection section (auto-saves and applies on change)
-        color_mode_section = self._create_color_mode_section()
-        self.content_layout.addLayout(color_mode_section)
-
         # Navigation button to proceed to next step (API configuration)
         next_button = self._create_next_button()
         self.content_layout.addWidget(next_button)
@@ -249,37 +243,6 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         theme_layout.addLayout(radio_layout)
         return theme_layout
 
-    def _create_color_mode_section(self):
-        """Create the color mode selection section with immediate preview."""
-        color_mode_layout = QtWidgets.QVBoxLayout()
-
-        # Label for color mode selection
-        color_mode_label = QtWidgets.QLabel(_("Color Mode:"))
-        color_mode_label.setStyleSheet(self._get_content_style())
-        color_mode_layout.addWidget(color_mode_label)
-
-        # Dropdown for color mode selection
-        self.color_mode_dropdown = QtWidgets.QComboBox()
-        self.color_mode_dropdown.addItems([_("Auto"), _("Light"), _("Dark")])
-
-        # Set current selection based on saved setting
-        current_mode = self.app.settings_manager.color_mode or "auto"
-        mode_index = {"auto": 0, "light": 1, "dark": 2}.get(current_mode, 0)
-        self.color_mode_dropdown.setCurrentIndex(mode_index)
-
-        # Apply styling to dropdown
-        dropdown_style = self.get_dropdown_style()
-        self.color_mode_dropdown.setStyleSheet(dropdown_style)
-
-        # Connect signal for immediate color mode change and auto-save
-        self.color_mode_dropdown.currentTextChanged.connect(self._on_color_mode_changed)
-
-        # Prevent wheel scroll from interfering with main scroll area
-        self.color_mode_dropdown.wheelEvent = lambda e: e.ignore()
-
-        color_mode_layout.addWidget(self.color_mode_dropdown)
-        return color_mode_layout
-
     def _create_next_button(self):
         """Create the 'Next' button that proceeds to API configuration step."""
         next_button = QtWidgets.QPushButton(_("Next"))
@@ -293,7 +256,6 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         current_mode = self._get_effective_mode()
         color = '#ffffff' if current_mode == 'dark' else '#333333'
         style = f"font-size: 16px; color: {color};"
-        logging.debug(f"📝 OnboardingWindow._get_content_style: mode={current_mode}, color={color}, style={style}")
         return style
 
     def _get_input_style(self):
@@ -312,7 +274,6 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         current_mode = self._get_effective_mode()
         color = '#ffffff' if current_mode == 'dark' else '#333333'
         style = f"color: {color};"
-        logging.debug(f"🔘 OnboardingWindow._get_radio_style: mode={current_mode}, color={color}, style={style}")
         return style
 
     def _get_button_style(self):
@@ -349,7 +310,6 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
 
         if new_theme != self.theme:
             self.theme = new_theme
-            logging.debug(f"Theme changed to: {self.theme}")
 
             # Auto-save theme setting immediately
             self._save_theme_setting()
@@ -364,42 +324,8 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         # Force background redraw to show new theme
         self.background.update()
 
-    def _on_color_mode_changed(self):
-        """Handle color mode selection changes, apply immediately and save to settings."""
-        # Get the selected text and convert to internal format
-        selected_text = self.color_mode_dropdown.currentText()
-        mode_mapping = {_("Auto"): "auto", _("Light"): "light", _("Dark"): "dark"}
-        new_color_mode = mode_mapping.get(selected_text, "auto")
-
-        if new_color_mode != self.color_mode:
-            self.color_mode = new_color_mode
-            logging.debug(f"Color mode changed to: {self.color_mode}")
-
-            # Auto-save color mode setting immediately
-            self._save_color_mode_setting()
-
-            # Apply color mode change to UI immediately (live preview)
-            self._apply_color_mode_change()
-
-    def _apply_color_mode_change(self):
-        """Apply the color mode change immediately to the UI for live preview."""
-        # Update global colorMode variable
-        from ui.ui_utils import set_color_mode
-
-        set_color_mode(self.color_mode)
-
-        # Use centralized theme manager
-        theme_manager.change_theme(self.color_mode)
-
-        # Refresh UI styles with updated colorMode
-        self._refresh_ui_styles()
-
     def _refresh_ui_styles(self):
         """Refresh all UI element styles to reflect the current color mode."""
-        # Update dropdown style
-        if hasattr(self, 'color_mode_dropdown') and self.color_mode_dropdown:
-            self.color_mode_dropdown.setStyleSheet(self.get_dropdown_style())
-
         # Update other UI elements
         if hasattr(self, 'shortcut_input') and self.shortcut_input:
             self.shortcut_input.setStyleSheet(self._get_input_style())
@@ -433,17 +359,8 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         """Save only the theme setting to persistent storage."""
         try:
             self.app.settings_manager.theme = self.theme
-            logging.debug(f"Theme setting saved: {self.theme}")
         except Exception as e:
             logging.error(f"Failed to save theme setting: {e}")
-
-    def _save_color_mode_setting(self):
-        """Save only the color mode setting to persistent storage."""
-        try:
-            self.app.settings_manager.color_mode = self.color_mode
-            logging.debug(f"Color mode setting saved: {self.color_mode}")
-        except Exception as e:
-            logging.error(f"Failed to save color mode setting: {e}")
 
     def _on_next_clicked(self):
         """Handle 'Next' button click - navigate to API configuration step."""
@@ -458,7 +375,6 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         try:
             self.app.settings_manager.hotkey = self.shortcut
             self.app.settings_manager.theme = self.theme
-            self.app.settings_manager.color_mode = self.color_mode
             logging.debug("Settings saved successfully")
         except Exception as e:
             logging.error(f"Failed to save settings: {e}")
