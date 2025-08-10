@@ -8,34 +8,49 @@ Writing Tools now includes automated scripts that handle environment setup and d
 
 - Click the green `<> Code ▼` button toward the very top of this page, and click `Download ZIP`.
 
-**2. Run with Automated Scripts**
-After extracting the folder, navigate to the `Windows_and_Linux` directory and use the automated scripts:
+**2. Run with Python Scripts**
+After extracting the folder, navigate to the `Windows_and_Linux` directory and use the Python scripts in the `scripts/` folder:
 
-- **Windows:**
+- **Development mode (direct execution):**
 
   ```bash
   cd path\to\Windows_and_Linux
-  run.bat dev
+  python scripts/dev_script.py
   ```
 
-- **Linux:**
+- **Development build:**
+
   ```bash
-  cd /path/to/Windows_and_Linux
-  ./run.sh dev
+  python scripts/dev_build.py
+  ```
+
+- **Final build:**
+  ```bash
+  python scripts/final_build.py
   ```
 
 The scripts will automatically:
 
 - ✅ Create a virtual environment (`myvenv/`)
 - ✅ Install all required dependencies
-- ✅ Launch the application in development mode
+- ✅ Launch the application in the selected mode
 
-## 📋 Available Commands
+## 📋 Available Scripts
 
-- `.\run.bat dev` (Windows) / `./run.sh dev` (Linux) - Run in development mode
-- `.\run.bat build-dev` / `./run.sh build-dev` - Create a development build
-- `.\run.bat build-final` / `./run.sh build-final` - Create a final release build
-- `.\run.bat` / `./run.sh` - Interactive menu
+- `python scripts/dev_script.py` - Run in development mode (direct execution)
+- `python scripts/dev_build.py` - Create a development build
+- `python scripts/final_build.py` - Create a final release build
+
+## 🎯 Code Runner (Recommended IDE Extension)
+
+For a better development experience, we recommend using the **Code Runner** extension in VS Code. Settings have been pre-configured to work seamlessly with the terminal.
+
+**Usage Tips:**
+
+- Click the ▷ (play triangle) button to run scripts
+- If you get an error, simply click the triangle again - this is normal behavior
+- To stop a running execution, click the triangle button again
+- When rerunning the same script, you may need to click the triangle twice - this is expected behavior
 
 ### 🔄 Updating Dependencies
 
@@ -65,6 +80,10 @@ This script automatically updates the virtual environment and all dependencies.
 - **build-dev mode**: Debug logs are automatically written to `dist/dev/debug.log` for development analysis
 - **DEV mode**: Debug logs are automatically enabled and appear in console
 - **build-final mode**: No debug file logging (console only)
+
+**⚠️ Important Note for dev_build Mode:**
+
+If you previously ran `dev_script.py` and want to test the initial configuration windows in `dev_build` mode, remember to delete the `data_dev.json` file in `dist/dev/` first. This ensures you see the first-time setup experience.
 
 ## 🔧 Manual Setup (Advanced Users)
 

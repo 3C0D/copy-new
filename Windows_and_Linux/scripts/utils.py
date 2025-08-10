@@ -326,3 +326,12 @@ def setup_environment(venv_path="myvenv", requirements_path="requirements.txt"):
     except Exception as e:
         print(f"Error setting up environment: {e}")
         return False, None
+    
+def get_activation_script(venv_path):
+    """Get the appropriate activation script path for the platform"""
+    if sys.platform.startswith("win"):
+        return os.path.abspath(os.path.join(venv_path, "Scripts", "python.exe"))
+    else:
+        return os.path.abspath(os.path.join(venv_path, "bin", "python"))
+
+
