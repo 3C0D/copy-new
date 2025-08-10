@@ -384,38 +384,6 @@ class WritingToolApp(QtWidgets.QApplication):
         self.update_checker = UpdateChecker(self)
         self.update_checker.check_updates_async()
 
-        # Load provider-specific config from system settings
-        if self.current_provider:
-            provider_config = self._get_provider_config(provider_name)
-            self.current_provider.load_config(provider_config)
-
-        self.create_tray_icon()
-        self.register_hotkey()
-
-        # Set language from system settings
-        lang = self.settings_manager.language or "en"
-        self.change_language(lang if lang != "en" else None)
-
-        # Initialize update checker
-        self.update_checker = UpdateChecker(self)
-        self.update_checker.check_updates_async()
-
-        # Load provider-specific config from system settings
-        if self.current_provider:
-            provider_config = self._get_provider_config(provider_name)
-            self.current_provider.load_config(provider_config)
-
-        self.create_tray_icon()
-        self.register_hotkey()
-
-        # Set language from system settings
-        lang = self.settings_manager.language or "en"
-        self.change_language(lang if lang != "en" else None)
-
-        # Initialize update checker
-        self.update_checker = UpdateChecker(self)
-        self.update_checker.check_updates_async()
-
     # ============================================================================
     # HOTKEY MANAGEMENT METHODS
     # ============================================================================
@@ -971,6 +939,10 @@ class WritingToolApp(QtWidgets.QApplication):
         # This prevents the bug where rapid right-clicks open Settings accidentally
         self.last_tray_click_time = 0
         self.tray_click_debounce_ms = 300  # 300ms debounce period
+
+        self.update_tray_menu()
+        self.tray_icon.show()
+        logging.debug("Tray icon displayed")
 
     def update_tray_menu(self):
         """
