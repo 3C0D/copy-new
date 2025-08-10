@@ -233,9 +233,7 @@ def run_dev_build(venv_path="myvenv"):
         print(f"Error: Build failed with error: {e}")
         return False
     except FileNotFoundError:
-        print(
-            "Error: PyInstaller not found. Please install it with: pip install pyinstaller"
-        )
+        print("Error: PyInstaller not found. Please install it with: pip install pyinstaller")
         return False
 
 
@@ -253,9 +251,7 @@ def launch_build(extra_args=None):
     if extra_args:
         cmd.extend(extra_args)
 
-    print(
-        f"Launching {exe_path} with args: {' '.join(extra_args) if extra_args else 'none'}..."
-    )
+    print(f"Launching {exe_path} with args: {' '.join(extra_args) if extra_args else 'none'}...")
     try:
         if sys.platform.startswith("win"):
             subprocess.Popen(cmd, shell=False)
@@ -297,9 +293,7 @@ def main():
             return 1
 
         # Stop existing processes (both exe and script)
-        terminate_existing_processes(
-            exe_name=get_executable_name(), script_name="main.py"
-        )
+        terminate_existing_processes(exe_name=get_executable_name(), script_name="main.py")
 
         # Run build
         if not run_dev_build():

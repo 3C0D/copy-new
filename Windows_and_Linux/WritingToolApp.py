@@ -139,6 +139,15 @@ class WritingToolApp(QtWidgets.QApplication):
     def _handle_normal_launch(self):
         """Handle normal application launch with configured providers."""
         self._logger.debug("Providers configured, setting up hotkey and tray icon")
+
+        # IMPORTANT: Synchronize global colorMode with saved settings before UI setup
+        # This prevents visual conflicts when data exists with a different color_mode
+        saved_color_mode = self.settings_manager.color_mode or "auto"
+        from ui.ui_utils import set_color_mode
+
+        set_color_mode(saved_color_mode)
+        self._logger.debug(f"Synchronized colorMode with saved setting: {saved_color_mode}")
+
         try:
             self._initialize_ai_provider()
             self._setup_user_interface()

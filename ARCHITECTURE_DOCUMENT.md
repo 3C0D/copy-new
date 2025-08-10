@@ -73,12 +73,115 @@ The Writing Tools application is a Python/PySide6 application that provides AI-a
 
 - `set_color_mode(theme)` - Set global color mode
 - `get_icon_path(icon_name, with_theme=True) -> str` - Icon path resolution
+- `get_effective_color_mode() -> str` - Get current effective color mode
 
 **Exportable classes**:
 
 - `ui_utils` - Static utilities (clear_layout, resize_and_round_image)
-- `ThemedWidget` - Base widget with theming
+- `ThemedWidget` - Base widget with theming and standardized style methods
 - `ThemeBackground` - Themed background widget
+
+### 5. Module `ui/ThemeManager.py`
+
+**Role**: Centralized theme management system
+
+**Main class**: `ThemeManager` (Singleton)
+
+- Centralized theme change notifications via Qt signals
+- Widget registration system for automatic theme updates
+- Standardized style definitions for consistent UI
+
+**Exportable classes**:
+
+- `ThemeManager` - Singleton theme manager with signal-based updates
+- `ThemeAwareMixin` - Mixin class for automatic theme synchronization
+
+**Key methods**:
+
+- `register_widget(widget)` - Register widget for theme updates
+- `change_theme(new_mode)` - Change theme and notify all registered widgets
+- `get_styles() -> dict` - Get all standardized styles for current theme
+
+## Theme Management System
+
+### Architecture Overview
+
+The application uses a centralized theme management system that ensures consistent styling across all UI components and automatic synchronization when themes change.
+
+### Core Components
+
+1. **Global Color Mode** (`ui_utils.py`)
+
+   - `colorMode` global variable stores current effective mode ("dark" or "light")
+   - `set_color_mode(theme)` - Updates global mode, handles "auto" detection
+   - `get_effective_color_mode()` - Returns current effective mode
+
+2. **ThemeManager** (`ui/ThemeManager.py`)
+
+   - Singleton pattern for centralized theme management
+   - Signal-based notification system (`theme_changed` signal)
+   - Widget registration system for automatic updates
+   - Standardized style definitions via `get_styles()`
+
+3. **ThemeAwareMixin** (`ui/ThemeManager.py`)
+
+   - Mixin class for automatic theme synchronization
+   - Auto-registers widgets with ThemeManager
+   - Connects to `theme_changed` signal
+   - Calls `refresh_theme()` method when theme changes
+
+4. **ThemedWidget** (`ui/ui_utils.py`)
+   - Base widget class with standardized style methods
+   - Provides `get_label_style()`, `get_input_style()`, `get_dropdown_style()`, `get_radio_style()`
+   - Includes `ThemeBackground` for consistent backgrounds
+
+### Theme Synchronization Flow
+
+1. **Theme Change Trigger**:
+
+   - User changes color mode in settings → `auto_save_color_mode()`
+   - Calls `set_color_mode()` to update global variable
+   - Calls `theme_manager.change_theme()` to notify all widgets
+
+2. **Automatic Widget Updates**:
+
+   - `ThemeManager.change_theme()` emits `theme_changed` signal
+   - All registered widgets receive signal via `ThemeAwareMixin`
+   - Each widget's `refresh_theme()` method is called automatically
+   - Widgets update their styles using standardized methods
+
+3. **Application Startup Synchronization**:
+   - `_handle_normal_launch()` synchronizes global `colorMode` with saved settings
+   - Prevents visual conflicts when launching with existing data
+   - Same synchronization exists in `show_onboarding()` for first-time users
+
+### Implementation Pattern for New Windows
+
+To make a window theme-aware:
+
+```python
+class MyWindow(ThemeAwareMixin, ThemedWidget):
+    def __init__(self):
+        super().__init__()
+        # Window automatically registers with ThemeManager
+
+    def refresh_theme(self):
+        """Called automatically when theme changes"""
+        # Update all UI elements with current theme
+        self.my_label.setStyleSheet(self.get_label_style())
+        self.my_input.setStyleSheet(self.get_input_style())
+        # ... update other elements
+```
+
+### Style Standardization
+
+All UI components should use standardized style methods:
+
+- **Labels**: `get_label_style()` - Standard text color and font size
+- **Inputs**: `get_input_style()` - Input fields with proper background/border
+- **Dropdowns**: `get_dropdown_style()` - Comboboxes with item view styling
+- **Radio buttons**: `get_radio_style()` - Radio button text color
+- **Custom styles**: Use `get_effective_color_mode()` for theme-aware custom styles
 
 ## Main Module Architecture (WritingToolApp.py)
 
