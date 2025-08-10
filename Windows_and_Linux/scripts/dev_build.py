@@ -80,16 +80,38 @@ def copy_required_files():
 
 def setup_build_dev_mode():
     """
-    Create data_dev.json in dist/dev/ for build-dev mode.
+    Create data_dev.json in dist/dev/ for build-dev mode with correct run_mode.
     """
-    dist_dev_dir = "dist/dev"
-    os.makedirs(dist_dev_dir, exist_ok=True)
+    import json
+    from pathlib import Path
 
-    data_dev_path = os.path.join(dist_dev_dir, "data_dev.json")
+    # Import the default configuration
+    import sys
 
-    # No need to create data_dev.json - app will create it from constants.py
+    sys.path.insert(0, os.path.abspath('.'))
+    from config.data_operations import create_default_settings
 
-    print(f"Build-dev data file ready: {data_dev_path}")
+    dist_dev_dir = Path("dist/dev")
+    dist_dev_dir.mkdir(parents=True, exist_ok=True)
+
+    data_dev_path = dist_dev_dir / "data_dev.json"
+
+    # Create default settings with build-dev run_mode
+    settings = create_default_settings()
+    settings.system["run_mode"] = "build-dev"
+
+    # Convert to dictionary for JSON serialization
+    settings_dict = {
+        "system": dict(settings.system),
+        "actions": {name: dict(action) for name, action in settings.actions.items()},
+        "custom_data": settings.custom_data,
+    }
+
+    # Save to data_dev.json
+    with open(data_dev_path, 'w', encoding='utf-8') as f:
+        json.dump(settings_dict, f, indent=2, ensure_ascii=False)
+
+    print(f"Created data_dev.json with build-dev mode: {data_dev_path}")
 
 
 def run_dev_build(venv_path="myvenv"):

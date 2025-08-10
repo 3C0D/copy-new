@@ -32,6 +32,7 @@ class SystemConfig(TypedDict, total=False):
     language: str
     run_mode: str  # dev, build_dev, build_final
     update_available: bool
+    start_on_boot: bool  # Whether the application should start on system boot
 
     # Provider-specific settings
     ollama_base_url: str

@@ -187,7 +187,12 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             if AutostartManager.get_startup_path():
                 self.autostart_checkbox = QtWidgets.QCheckBox(_("Start on Boot"))
                 self.autostart_checkbox.setStyleSheet(self.get_checkbox_style())
-                self.autostart_checkbox.setChecked(AutostartManager.check_autostart())
+
+                # Synchronize settings with registry state on startup
+                AutostartManager.sync_with_settings(self.app.settings_manager)
+
+                # Set checkbox state from settings (now synchronized)
+                self.autostart_checkbox.setChecked(getattr(self.app.settings_manager, 'start_on_boot', False))
                 self.autostart_checkbox.stateChanged.connect(self.toggle_autostart)
                 content_layout.addWidget(self.autostart_checkbox)
 
@@ -710,10 +715,10 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                 if selected_provider:
                     selected_provider.save_config()
 
-    @staticmethod
-    def toggle_autostart(state):
+    def toggle_autostart(self, state):
         """Toggle the autostart setting based on checkbox state."""
-        AutostartManager.set_autostart(state == 2)
+        enable = state == 2  # Qt.Checked
+        AutostartManager.set_autostart_with_sync(enable, self.app.settings_manager)
 
     def save_settings(self):
         """Save the current settings and close window."""

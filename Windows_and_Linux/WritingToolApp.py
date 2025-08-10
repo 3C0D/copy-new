@@ -179,8 +179,18 @@ class WritingToolApp(QtWidgets.QApplication):
 
     def _setup_user_interface(self):
         """Setup user interface components."""
+        self._sync_autostart_settings()
         self.create_tray_icon()
         self.register_hotkey()
+
+    def _sync_autostart_settings(self):
+        """Synchronize autostart settings between registry and configuration."""
+        try:
+            from ui.AutostartManager import AutostartManager
+
+            AutostartManager.sync_with_settings(self.settings_manager)
+        except Exception as e:
+            self._logger.warning(f"Could not sync autostart settings: {e}")
 
     def _setup_language(self):
         """Configure application language."""
@@ -378,6 +388,7 @@ class WritingToolApp(QtWidgets.QApplication):
             provider_config = self._get_provider_config(provider_name)
             self.current_provider.load_config(provider_config)
 
+        self._sync_autostart_settings()
         self.create_tray_icon()
         self.register_hotkey()
 
@@ -928,13 +939,24 @@ class WritingToolApp(QtWidgets.QApplication):
 
         logging.debug("Creating system tray icon")
 
+        # Check if system tray is available
+        if not QtWidgets.QSystemTrayIcon.isSystemTrayAvailable():
+            logging.error("System tray is not available on this system")
+            return
+
         icon_path = get_icon_path("app_icon", with_theme=False)
-        if not os.path.exists(icon_path):
+        logging.debug(f"Icon path resolved to: {icon_path}")
+
+        if not icon_path or not os.path.exists(icon_path):
             logging.warning(f"Tray icon not found at {icon_path}")
             # Use a default icon if not found
             self.tray_icon = QtWidgets.QSystemTrayIcon(self)
         else:
-            self.tray_icon = QtWidgets.QSystemTrayIcon(QtGui.QIcon(icon_path), self)
+            logging.debug(f"Loading icon from: {icon_path}")
+            icon = QtGui.QIcon(icon_path)
+            if icon.isNull():
+                logging.warning(f"Failed to load icon from {icon_path}")
+            self.tray_icon = QtWidgets.QSystemTrayIcon(icon, self)
         # Set the tooltip (hover name) for the tray icon
         self.tray_icon.setToolTip("WritingTools")
         self.tray_menu = QtWidgets.QMenu()
@@ -947,7 +969,15 @@ class WritingToolApp(QtWidgets.QApplication):
 
         self.update_tray_menu()
         self.tray_icon.show()
-        logging.debug("Tray icon displayed")
+        logging.debug("Tray icon show() called")
+
+        # Verify if it's actually visible
+        if self.tray_icon.isVisible():
+            logging.debug("Tray icon reports as visible")
+        else:
+            logging.warning("Tray icon reports as NOT visible")
+
+        logging.debug("Tray icon setup completed")
 
     def update_tray_menu(self):
         """

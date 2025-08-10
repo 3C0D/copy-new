@@ -9,6 +9,7 @@ class AutostartManager:
     """
     Manages the autostart functionality for Writing Tools.
     Handles setting/removing autostart registry entries on Windows.
+    Synchronizes registry state with application settings.
     """
 
     @staticmethod
@@ -107,4 +108,58 @@ class AutostartManager:
 
         except Exception as e:
             logging.exception(f"Error checking autostart status: {e}")
+            return False
+
+    @staticmethod
+    def sync_with_settings(settings_manager):
+        """
+        Synchronize autostart state between registry and settings.
+        Updates settings to match registry state if they differ.
+
+        Args:
+            settings_manager: The SettingsManager instance to sync with
+
+        Returns:
+            bool: True if sync was successful, False otherwise
+        """
+        try:
+            registry_state = AutostartManager.check_autostart()
+            settings_state = getattr(settings_manager, 'start_on_boot', False)
+
+            if registry_state != settings_state:
+                # Update settings to match registry state
+                settings_manager.start_on_boot = registry_state
+                logging.info(f"Synchronized start_on_boot setting: {registry_state}")
+
+            return True
+
+        except Exception as e:
+            logging.exception(f"Error synchronizing autostart settings: {e}")
+            return False
+
+    @staticmethod
+    def set_autostart_with_sync(enable: bool, settings_manager):
+        """
+        Set autostart state and synchronize with settings.
+
+        Args:
+            enable: Whether to enable autostart
+            settings_manager: The SettingsManager instance to sync with
+
+        Returns:
+            bool: True if operation succeeded, False otherwise
+        """
+        try:
+            # Update registry
+            success = AutostartManager.set_autostart(enable)
+
+            if success:
+                # Update settings to match
+                settings_manager.start_on_boot = enable
+                logging.info(f"Set autostart to {enable} and updated settings")
+
+            return success
+
+        except Exception as e:
+            logging.exception(f"Error setting autostart with sync: {e}")
             return False

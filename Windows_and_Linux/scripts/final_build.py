@@ -9,7 +9,7 @@ import subprocess
 import sys
 import shutil
 import argparse
-import json
+
 
 try:
     from .utils import (
@@ -78,9 +78,39 @@ def copy_required_files():
 
 def setup_build_final_mode():
     """
-    No setup needed - app will create data.json from constants.py
+    Create data.json in dist/production/ for build-final mode with correct run_mode.
     """
-    print("Build-final mode: App will create data.json from constants.py on first run")
+    import json
+    import os
+    from pathlib import Path
+
+    # Import the default configuration
+    import sys
+
+    sys.path.insert(0, os.path.abspath('.'))
+    from config.data_operations import create_default_settings
+
+    production_dir = Path("dist/production")
+    production_dir.mkdir(parents=True, exist_ok=True)
+
+    data_file_path = production_dir / "data.json"
+
+    # Create default settings with build-final run_mode
+    settings = create_default_settings()
+    settings.system["run_mode"] = "build-final"
+
+    # Convert to dictionary for JSON serialization
+    settings_dict = {
+        "system": dict(settings.system),
+        "actions": {name: dict(action) for name, action in settings.actions.items()},
+        "custom_data": settings.custom_data,
+    }
+
+    # Save to data.json
+    with open(data_file_path, 'w', encoding='utf-8') as f:
+        json.dump(settings_dict, f, indent=2, ensure_ascii=False)
+
+    print(f"Created data.json with build-final mode: {data_file_path}")
 
 
 def clean_build_directories():
@@ -277,9 +307,7 @@ def run_final_build(venv_path="myvenv"):
         print(f"Error: Build failed with error: {e}")
         return False
     except FileNotFoundError:
-        print(
-            "Error: PyInstaller not found. Please install it with: pip install pyinstaller"
-        )
+        print("Error: PyInstaller not found. Please install it with: pip install pyinstaller")
         return False
 
 
@@ -325,9 +353,7 @@ def main():
             return 1
 
         # Stop existing processes (both exe and script)
-        terminate_existing_processes(
-            exe_name=get_executable_name(), script_name="main.py"
-        )
+        terminate_existing_processes(exe_name=get_executable_name(), script_name="main.py")
 
         # Run build
         if not run_final_build():
@@ -335,9 +361,7 @@ def main():
             return 1
 
         print("\n===== Final release build completed =====")
-        print(
-            "The executable and required files are in the 'dist/production' directory."
-        )
+        print("The executable and required files are in the 'dist/production' directory.")
         return 0
 
     except KeyboardInterrupt:

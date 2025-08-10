@@ -112,6 +112,7 @@ _DEFAULT_SYSTEM_VALUES_RAW = {
     "language": "en",
     "run_mode": "dev",
     "update_available": False,
+    "start_on_boot": False,  # Whether the application should start on system boot
     "ollama_base_url": "http://localhost:11434",
     "ollama_keep_alive": "5",
     "mistral_base_url": "https://api.mistral.ai/v1",
