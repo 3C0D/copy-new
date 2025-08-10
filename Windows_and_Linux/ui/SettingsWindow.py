@@ -337,9 +337,15 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         """
         # Clean up previous provider UI to prevent memory leaks and layout conflicts
         if self.current_provider_layout:
+            # Remove the old layout from its parent container first
+            if self.current_provider_layout.parent():
+                self.current_provider_layout.parent().removeItem(self.current_provider_layout)
             self.current_provider_layout.setParent(None)
             ui_utils.clear_layout(self.current_provider_layout)
             self.current_provider_layout.deleteLater()
+
+        # Also clear the container layout to ensure no old widgets remain
+        ui_utils.clear_layout(layout)
 
         self.current_provider_layout = QtWidgets.QVBoxLayout()
 
