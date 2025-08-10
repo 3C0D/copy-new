@@ -133,6 +133,10 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         features_widget = self._create_features_section()
         self.content_layout.addWidget(features_widget)
 
+        # Theme detection info section
+        theme_info_widget = self._create_theme_info_section()
+        self.content_layout.addWidget(theme_info_widget)
+
         # Keyboard shortcut configuration section (auto-saves on change)
         shortcut_section = self._create_shortcut_section()
         self.content_layout.addLayout(shortcut_section)
@@ -175,6 +179,18 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         features_label.setStyleSheet(self._get_content_style())
         features_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         return features_label
+
+    def _create_theme_info_section(self):
+        """Create the theme detection info section."""
+        theme_info_content = _(
+            "Theme detection is automatic based on your system settings, but can be customized later in Settings when the app runs in the system tray."
+        )
+
+        theme_info_label = QtWidgets.QLabel(theme_info_content)
+        theme_info_label.setStyleSheet(self._get_info_style())
+        theme_info_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+        theme_info_label.setWordWrap(True)
+        return theme_info_label
 
     def _get_features_content(self):
         """Get the formatted features content listing app capabilities."""
@@ -256,6 +272,13 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         current_mode = self._get_effective_mode()
         color = '#ffffff' if current_mode == 'dark' else '#333333'
         style = f"font-size: 16px; color: {color};"
+        return style
+
+    def _get_info_style(self):
+        """Get the info text styling based on current theme (dark/light mode)."""
+        current_mode = self._get_effective_mode()
+        color = '#aaaaaa' if current_mode == 'dark' else '#666666'
+        style = f"font-size: 14px; color: {color}; font-style: italic; margin: 10px 0;"
         return style
 
     def _get_input_style(self):

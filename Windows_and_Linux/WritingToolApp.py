@@ -273,13 +273,6 @@ class WritingToolApp(QtWidgets.QApplication):
         self.settings_manager.load_settings()
         self._logger.debug("Unified settings loaded successfully")
 
-        # Apply user's color_mode setting to global colorMode variable
-        user_color_mode = self.settings_manager.color_mode or "auto"
-        from ui.ui_utils import set_color_mode
-
-        set_color_mode(user_color_mode)
-        self._logger.debug(f"Applied color mode: {user_color_mode}")
-
     def save_settings(self):
         """Save the current unified settings."""
         return self.settings_manager.save_settings()
@@ -374,6 +367,38 @@ class WritingToolApp(QtWidgets.QApplication):
             (provider for provider in self.providers if provider.internal_name == provider_name),
             self.providers[0],  # Default to first provider
         )
+
+        # Load provider-specific config from system settings
+        if self.current_provider:
+            provider_config = self._get_provider_config(provider_name)
+            self.current_provider.load_config(provider_config)
+
+        self.create_tray_icon()
+        self.register_hotkey()
+
+        # Set language from system settings
+        lang = self.settings_manager.language or "en"
+        self.change_language(lang if lang != "en" else None)
+
+        # Initialize update checker
+        self.update_checker = UpdateChecker(self)
+        self.update_checker.check_updates_async()
+
+        # Load provider-specific config from system settings
+        if self.current_provider:
+            provider_config = self._get_provider_config(provider_name)
+            self.current_provider.load_config(provider_config)
+
+        self.create_tray_icon()
+        self.register_hotkey()
+
+        # Set language from system settings
+        lang = self.settings_manager.language or "en"
+        self.change_language(lang if lang != "en" else None)
+
+        # Initialize update checker
+        self.update_checker = UpdateChecker(self)
+        self.update_checker.check_updates_async()
 
         # Load provider-specific config from system settings
         if self.current_provider:
@@ -942,9 +967,10 @@ class WritingToolApp(QtWidgets.QApplication):
         self.tray_menu = QtWidgets.QMenu()
         self.tray_icon.setContextMenu(self.tray_menu)
 
-        self.update_tray_menu()
-        self.tray_icon.show()
-        logging.debug("Tray icon displayed")
+        # Timer to prevent rapid successive clicks that could accidentally trigger menu items
+        # This prevents the bug where rapid right-clicks open Settings accidentally
+        self.last_tray_click_time = 0
+        self.tray_click_debounce_ms = 300  # 300ms debounce period
 
     def update_tray_menu(self):
         """
@@ -1149,8 +1175,23 @@ class WritingToolApp(QtWidgets.QApplication):
 
     def show_settings(self, providers_only=False, previous_window=None):
         """
-        Show the settings window.
+        Show the settings window with debounce protection against rapid clicks.
         """
+        import time
+
+        current_time = time.time() * 1000  # Convert to milliseconds
+
+        # Prevent rapid successive clicks that could accidentally open Settings
+        # This fixes the bug where rapid right-clicks on tray icon open Settings accidentally
+        if (
+            hasattr(self, 'last_tray_click_time')
+            and (current_time - self.last_tray_click_time) < self.tray_click_debounce_ms
+        ):
+            logging.debug("Settings click ignored due to debounce protection")
+            return
+
+        self.last_tray_click_time = current_time
+
         logging.debug("Showing settings window")
         # Always create a new settings window to handle providers_only correctly
         self.settings_window = ui.SettingsWindow.SettingsWindow(self, providers_only=providers_only)
@@ -1160,6 +1201,7 @@ class WritingToolApp(QtWidgets.QApplication):
             self.settings_window.previous_window = previous_window
 
         self.settings_window.close_signal.connect(self.exit_app)
+
         self.settings_window.retranslate_ui()
         self.settings_window.show()
 
