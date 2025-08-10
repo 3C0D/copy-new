@@ -37,31 +37,19 @@ The scripts will automatically:
 - `.\run.bat build-final` / `./run.sh build-final` - Create a final release build
 - `.\run.bat` / `./run.sh` - Interactive menu
 
-### 🎨 Command Line Arguments
+### 🔄 Updating Dependencies
 
-You can now pass additional arguments to customize the application behavior:
-
-**Theme Options:**
-
-- `--theme light` - Force light theme
-- `--theme dark` - Force dark theme
-- `--theme auto` - Auto-detect theme (default)
-
-**Debug Options:**
-
-- `--debug` - Enable debug logging
-
-**Examples:**
+To update or reinstall dependencies:
 
 ```bash
 # Windows
-.\run.bat dev --theme dark --debug
-.\run.bat build-dev --theme light
+python scripts\update_deps.py
 
 # Linux
-./run.sh dev --theme dark --debug
-./run.sh build-dev --theme light
+python3 scripts/update_deps.py
 ```
+
+This script automatically updates the virtual environment and all dependencies.
 
 > **ℹ️ Note:** The scripts automatically terminate any existing instances before starting, so manual cleanup is not required.
 
@@ -75,7 +63,7 @@ You can now pass additional arguments to customize the application behavior:
 **Debug Logging:**
 
 - **build-dev mode**: Debug logs are automatically written to `dist/dev/debug.log` for development analysis
-- **DEV mode**: Debug logs appear in console only
+- **DEV mode**: Debug logs are automatically enabled and appear in console
 - **build-final mode**: No debug file logging (console only)
 
 ## 🔧 Manual Setup (Advanced Users)
@@ -99,18 +87,19 @@ python3 -m pip install -r requirements.txt
 ```bash
 # Windows
 python main.py
-python main.py --theme dark --debug
 
 # Linux
 python3 main.py
-python3 main.py --theme dark --debug
 ```
 
-**Available arguments:**
-
-- `--theme [light|dark|auto]` - Set theme mode
-- `--debug` - Enable debug logging
+> **ℹ️ Note:** Debug logging is automatically enabled when running from source code.
 
 Of course, you'll need to have [Python installed](https://www.python.org/downloads/)!
+
+## 🛠️ For Developers
+
+If you're planning to contribute or modify the code, check out our comprehensive development guide:
+
+**[📖 Development Strategy and Setup](./Development%20Strategy%20and%20Setup.md)**
 
 ### [**◀️ Back to main page**](https://github.com/theJayTea/WritingTools)

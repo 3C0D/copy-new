@@ -126,4 +126,10 @@ python pyinstaller-build-script.py
    - In Xcode, select "My Mac" as the run destination
    - Click the Play button or press ⌘R to build and run
 
+## 🛠️ For Developers
+
+If you're planning to contribute or modify the code, check out our comprehensive development guide:
+
+**[📖 Development Strategy and Setup](./Development%20Strategy%20and%20Setup.md)**
+
 ### [**◀️ Back to main page**](https://github.com/theJayTea/WritingTools)

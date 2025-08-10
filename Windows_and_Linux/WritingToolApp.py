@@ -58,13 +58,12 @@ class WritingToolApp(QtWidgets.QApplication):
     hotkey_triggered_signal = Signal()
     followup_response_signal = Signal(str)
 
-    def __init__(self, argv, theme_override=None):
+    def __init__(self, argv):
         super().__init__(argv)
         self._logger = logging.getLogger(__name__)
         self._logger.debug("Initializing WritingToolApp")
 
         self._setup_core_attributes()
-        self._setup_theme(theme_override)
         self._setup_signals()
         self._setup_settings()
         self._setup_ui_components()
@@ -84,12 +83,6 @@ class WritingToolApp(QtWidgets.QApplication):
         self.current_provider: Optional['AIProvider'] = None
         self.output_queue = ""
         self.paused = False
-
-    def _setup_theme(self, theme_override):
-        """Configure application theme."""
-        self.theme_override = theme_override
-        if theme_override and theme_override != "auto":
-            self._apply_theme_override(theme_override)
 
     def _setup_signals(self):
         """Connect application signals to their handlers."""
@@ -202,12 +195,6 @@ class WritingToolApp(QtWidgets.QApplication):
     # ============================================================================
     # CONFIGURATION AND SETUP METHODS
     # ============================================================================
-
-    def _apply_theme_override(self, theme):
-        """Apply theme override to the application."""
-        from ui.ui_utils import set_color_mode
-
-        set_color_mode(theme)
 
     def _detect_mode(self) -> str:
         """

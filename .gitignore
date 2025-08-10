@@ -24,7 +24,7 @@ Windows_and_Linux/*.spec
 
 # .vscode
 **/.vscode/
-!**/.vscode/settings.json
+!Windows_and_Linux/.vscode/settings.json
 
 # Translation files
 **/pot_files

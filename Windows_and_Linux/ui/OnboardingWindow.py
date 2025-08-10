@@ -183,7 +183,7 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
     def _create_theme_info_section(self):
         """Create the theme detection info section."""
         theme_info_content = _(
-            "Theme detection is automatic based on your system settings, but can be customized later in Settings when the app runs in the system tray."
+            "Light/Dark theme detection is automatic, but can be customized later in Settings, in the system tray."
         )
 
         theme_info_label = QtWidgets.QLabel(theme_info_content)
@@ -278,7 +278,7 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         """Get the info text styling based on current theme (dark/light mode)."""
         current_mode = self._get_effective_mode()
         color = '#aaaaaa' if current_mode == 'dark' else '#666666'
-        style = f"font-size: 14px; color: {color}; font-style: italic; margin: 10px 0;"
+        style = f"font-size: 16px; color: {color}; font-style: italic; margin: 10px 0;"
         return style
 
     def _get_input_style(self):

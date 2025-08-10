@@ -13,9 +13,3 @@ requests
 # Qt complement
 PySide6-stubs
 
-# Development tools
-ruff
-black
-mypy
-pre-commit
-
