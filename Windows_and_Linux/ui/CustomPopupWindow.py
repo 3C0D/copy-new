@@ -210,6 +210,24 @@ class DraggableButton(QtWidgets.QPushButton):
         """
         self.setStyleSheet(self.base_style)
 
+    def refresh_button_style(self):
+        """Refresh the button style when color mode changes."""
+        self.base_style = f"""
+            QPushButton {{
+                background-color: {"#444" if get_effective_color_mode()=="dark" else "white"};
+                border: 1px solid {"#666" if get_effective_color_mode()=="dark" else "#ccc"};
+                border-radius: 8px;
+                padding: 10px;
+                font-size: 14px;
+                text-align: left;
+                color: {"#fff" if get_effective_color_mode()=="dark" else "#000"};
+            }}
+            QPushButton[hover="true"] {{
+                background-color: {"#555" if get_effective_color_mode()=="dark" else "#f0f0f0"};
+            }}
+        """
+        self.setStyleSheet(self.base_style)
+
     def enterEvent(self, event):
         # Only update the hover property if NOT in edit mode.
         if not self.popup.edit_mode:

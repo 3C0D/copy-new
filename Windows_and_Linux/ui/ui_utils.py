@@ -143,13 +143,36 @@ class ThemedWidget(QWidget):
     def get_dropdown_style(self):
         """Get standardized dropdown styling based on current theme."""
         current_mode = get_effective_color_mode()
-        return f"""
-            font-size: 16px;
-            padding: 5px;
-            background-color: {'#444' if current_mode == 'dark' else 'white'};
-            color: {'#ffffff' if current_mode == 'dark' else '#000000'};
-            border: 1px solid {'#666' if current_mode == 'dark' else '#ccc'};
-        """
+        if current_mode == 'dark':
+            return """
+                QComboBox {
+                    background-color: #444;
+                    color: #ffffff;
+                    border: 1px solid #666;
+                    padding: 5px;
+                    font-size: 16px;
+                }
+                QComboBox QAbstractItemView {
+                    background-color: #444;
+                    color: #ffffff;
+                    selection-background-color: #666;
+                }
+            """
+        else:
+            return """
+                QComboBox {
+                    background-color: white;
+                    color: #000000;
+                    border: 1px solid #ccc;
+                    padding: 5px;
+                    font-size: 16px;
+                }
+                QComboBox QAbstractItemView {
+                    background-color: white;
+                    color: #000000;
+                    selection-background-color: #e0e0e0;
+                }
+            """
 
     def get_input_style(self):
         """Get standardized input field styling based on current theme."""

@@ -109,8 +109,6 @@ _DEFAULT_SYSTEM_VALUES_RAW = {
     "hotkey": "ctrl+space",
     "theme": "gradient",
     "color_mode": "auto",  # Color mode: "auto", "light", or "dark"
-    # DEV TIP: You can change this value to "light" or "dark" to test UI on first windows (OnboardingWindow, etc.)
-    # Note: This only affects first-time windows. Once app is in system tray, use Settings window to change theme.
     "language": "en",
     "auto_update": True,
     "run_mode": "dev",

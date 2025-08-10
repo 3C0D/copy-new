@@ -37,26 +37,6 @@ This script will:
 - ✅ Install/update all dependencies from `requirements.txt`
 - ✅ Handle both new installations and updates
 
-## 🎨 Theme Testing for UI Development
-
-### **Testing Themes on First Windows**
-
-When developing UI components like `OnboardingWindow`, you can test different themes by modifying the default value in `config/constants.py`:
-
-```python
-"color_mode": "auto",  # Change to "light" or "dark" for testing
-```
-
-**Important Notes:**
-- ✅ This affects first-time windows (OnboardingWindow, initial dialogs)
-- ❌ This does NOT affect windows shown after app is in system tray
-- ✅ For system tray windows, use the Settings window to change themes
-- 🔄 Remember to reset to `"auto"` before committing
-
-### **Testing Themes in Settings**
-
-Once the app is running in the system tray, use the Settings window to test theme changes on all other windows.
-
 ## 🔧 VSCode Configuration
 
 ### **Recommended Settings**

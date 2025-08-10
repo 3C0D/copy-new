@@ -30,6 +30,9 @@ class NonEditableModal(QtWidgets.QDialog):
         self.setup_ui()
         self.apply_styles()
 
+        # Register for theme changes
+        self.register_for_theme_changes()
+
         # Center on screen
         self.move(
             QtWidgets.QApplication.primaryScreen().geometry().center() - self.rect().center(),
@@ -78,10 +81,11 @@ class NonEditableModal(QtWidgets.QDialog):
 
     def apply_styles(self):
         """Apply theme styles"""
-        # Direct method through Qt
-        is_dark = self.app.palette().color(QtGui.QPalette.ColorRole.Window).lightness() < 128
-        # is_dark = colorMode == "dark"
-        # is_dark = False
+        # Use the standardized color mode detection
+        from ui.ui_utils import get_effective_color_mode
+
+        current_mode = get_effective_color_mode()
+        is_dark = current_mode == "dark"
 
         if is_dark:
             self.setStyleSheet(
@@ -138,6 +142,31 @@ class NonEditableModal(QtWidgets.QDialog):
                 }
             """,
             )
+
+    def register_for_theme_changes(self):
+        """Register this modal for theme change notifications."""
+        try:
+            from ui.ThemeManager import theme_manager
+
+            theme_manager.register_widget(self)
+            theme_manager.theme_changed.connect(self.refresh_theme)
+        except ImportError:
+            # ThemeManager not available, skip registration
+            pass
+
+    def refresh_theme(self):
+        """Refresh the modal's theme when color mode changes."""
+        self.apply_styles()
+
+    def closeEvent(self, event):
+        """Handle window close event and unregister from theme manager."""
+        try:
+            from ui.ThemeManager import theme_manager
+
+            theme_manager.unregister_widget(self)
+        except ImportError:
+            pass
+        super().closeEvent(event)
 
     @Slot()
     def copy_text(self):

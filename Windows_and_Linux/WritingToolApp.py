@@ -331,6 +331,15 @@ class WritingToolApp(QtWidgets.QApplication):
         Show the onboarding window for first-time users.
         """
         self._logger.debug("Showing onboarding window")
+
+        # IMPORTANT: Synchronize global colorMode with saved settings before showing onboarding
+        # This prevents visual conflicts when data_dev.json exists with a different color_mode
+        saved_color_mode = self.settings_manager.color_mode or "auto"
+        from ui.ui_utils import set_color_mode
+
+        set_color_mode(saved_color_mode)
+        self._logger.debug(f"Synchronized colorMode with saved setting: {saved_color_mode}")
+
         self.onboarding_window = ui.OnboardingWindow.OnboardingWindow(self)
         self.onboarding_window.close_signal.connect(self.on_onboarding_closed)
         self.onboarding_window.show()
@@ -971,9 +980,12 @@ class WritingToolApp(QtWidgets.QApplication):
     @staticmethod
     def apply_dark_mode_styles(menu):
         """
-        Apply styles to the tray menu based on system theme using darkdetect.
+        Apply styles to the tray menu based on current color mode.
         """
-        is_dark_mode = darkdetect.isDark()
+        from ui.ui_utils import get_effective_color_mode
+
+        current_mode = get_effective_color_mode()
+        is_dark_mode = current_mode == "dark"
         palette = menu.palette()
 
         if is_dark_mode:

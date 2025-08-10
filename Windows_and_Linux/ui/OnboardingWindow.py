@@ -133,13 +133,13 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         features_widget = self._create_features_section()
         self.content_layout.addWidget(features_widget)
 
-        # Theme detection info section
-        theme_info_widget = self._create_theme_info_section()
-        self.content_layout.addWidget(theme_info_widget)
-
         # Keyboard shortcut configuration section (auto-saves on change)
         shortcut_section = self._create_shortcut_section()
         self.content_layout.addLayout(shortcut_section)
+
+        # Color mode selection section (auto-saves on change)
+        color_mode_section = self._create_color_mode_section()
+        self.content_layout.addLayout(color_mode_section)
 
         # Theme selection section (auto-saves and applies on change)
         theme_section = self._create_theme_section()
@@ -180,18 +180,6 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         features_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         return features_label
 
-    def _create_theme_info_section(self):
-        """Create the theme detection info section."""
-        theme_info_content = _(
-            "Light/Dark theme detection is automatic, but can be customized later in Settings, in the system tray."
-        )
-
-        theme_info_label = QtWidgets.QLabel(theme_info_content)
-        theme_info_label.setStyleSheet(self._get_info_style())
-        theme_info_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
-        theme_info_label.setWordWrap(True)
-        return theme_info_label
-
     def _get_features_content(self):
         """Get the formatted features content listing app capabilities."""
         return f"""• {_('Instantly optimize your writing with AI by selecting your text and invoking Writing Tools with "ctrl+space", anywhere.')} 
@@ -223,6 +211,37 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         shortcut_layout.addWidget(self.shortcut_input)
 
         return shortcut_layout
+
+    def _create_color_mode_section(self):
+        """Create the color mode selection section with dropdown."""
+        color_mode_layout = QtWidgets.QVBoxLayout()
+
+        # Color mode selection title
+        color_mode_title = QtWidgets.QLabel(_("Color Mode:"))
+        color_mode_title.setStyleSheet(self._get_content_style())
+        color_mode_layout.addWidget(color_mode_title)
+
+        # Dropdown for color mode selection
+        self.color_mode_dropdown = QtWidgets.QComboBox()
+        self.color_mode_dropdown.addItems([_("Auto"), _("Light"), _("Dark")])
+
+        # Set current selection based on saved setting (preserve existing values)
+        current_mode = self.app.settings_manager.color_mode or "auto"
+        mode_index = {"auto": 0, "light": 1, "dark": 2}.get(current_mode, 0)
+        self.color_mode_dropdown.setCurrentIndex(mode_index)
+
+        # Apply styling to dropdown
+        self.color_mode_dropdown.setStyleSheet(self._get_dropdown_style())
+
+        # Auto-save color mode changes for immediate visual feedback
+        self.color_mode_dropdown.currentTextChanged.connect(self.auto_save_color_mode)
+
+        # Prevent wheel scroll from interfering with main scroll area
+        self.color_mode_dropdown.wheelEvent = lambda e: e.ignore()
+
+        color_mode_layout.addWidget(self.color_mode_dropdown)
+
+        return color_mode_layout
 
     def _create_theme_section(self):
         """Create the theme selection section with immediate preview."""
@@ -299,6 +318,40 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         style = f"color: {color};"
         return style
 
+    def _get_dropdown_style(self):
+        """Get the dropdown styling based on current theme."""
+        current_mode = self._get_effective_mode()
+        if current_mode == 'dark':
+            return """
+                QComboBox {
+                    background-color: #444;
+                    color: #ffffff;
+                    border: 1px solid #666;
+                    padding: 5px;
+                    font-size: 14px;
+                }
+                QComboBox QAbstractItemView {
+                    background-color: #444;
+                    color: #ffffff;
+                    selection-background-color: #666;
+                }
+            """
+        else:
+            return """
+                QComboBox {
+                    background-color: white;
+                    color: #000000;
+                    border: 1px solid #ccc;
+                    padding: 5px;
+                    font-size: 14px;
+                }
+                QComboBox QAbstractItemView {
+                    background-color: white;
+                    color: #000000;
+                    selection-background-color: #e0e0e0;
+                }
+            """
+
     def _get_button_style(self):
         """Get the button styling with hover effects."""
         return """
@@ -347,8 +400,42 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         # Force background redraw to show new theme
         self.background.update()
 
+    def auto_save_color_mode(self):
+        """
+        Auto-save color mode when it changes for immediate visual feedback.
+        Preserves existing data and ensures proper persistence.
+        """
+        if hasattr(self, "color_mode_dropdown") and self.color_mode_dropdown is not None:
+            # Get the selected text and convert to internal format
+            selected_text = self.color_mode_dropdown.currentText()
+            mode_mapping = {_("Auto"): "auto", _("Light"): "light", _("Dark"): "dark"}
+            color_mode = mode_mapping.get(selected_text, "auto")
+
+            # Save to settings manager (this preserves existing data in data.json)
+            self.app.settings_manager.color_mode = color_mode
+
+            # IMPORTANT: Explicitly save to file to ensure persistence
+            self.app.settings_manager.save()
+
+            # Update global colorMode variable
+            from ui.ui_utils import set_color_mode
+
+            set_color_mode(color_mode)
+
+            # Apply color mode change immediately via centralized theme manager
+            from ui.ThemeManager import theme_manager
+
+            theme_manager.change_theme(color_mode)
+
+            # Refresh UI styles with updated colorMode
+            self._refresh_ui_styles()
+
     def _refresh_ui_styles(self):
         """Refresh all UI element styles to reflect the current color mode."""
+        # Update color mode dropdown style
+        if hasattr(self, 'color_mode_dropdown') and self.color_mode_dropdown:
+            self.color_mode_dropdown.setStyleSheet(self._get_dropdown_style())
+
         # Update other UI elements
         if hasattr(self, 'shortcut_input') and self.shortcut_input:
             self.shortcut_input.setStyleSheet(self._get_input_style())
@@ -358,6 +445,17 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
             radio_style = self._get_radio_style()
             self.gradient_radio.setStyleSheet(radio_style)
             self.plain_radio.setStyleSheet(radio_style)
+
+        # Update title label
+        if hasattr(self, 'title_label'):
+            for widget in self.findChildren(QtWidgets.QLabel):
+                if widget.objectName() == "title_label":
+                    widget.setStyleSheet(self._get_title_style())
+
+        # Update all content labels
+        for widget in self.findChildren(QtWidgets.QLabel):
+            if widget != self.color_mode_dropdown and not widget.objectName() == "title_label":
+                widget.setStyleSheet(self._get_content_style())
 
         # Update specific labels with their appropriate styles
         for widget in self.findChildren(QtWidgets.QLabel):
