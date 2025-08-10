@@ -22,12 +22,13 @@ if TYPE_CHECKING:
 from config.constants import PROVIDER_DISPLAY_NAMES
 from config.data_operations import get_provider_display_name, get_provider_internal_name
 from ui.AutostartManager import AutostartManager
-from ui.ui_utils import ThemedWidget, colorMode, ui_utils
+from ui.ui_utils import ThemedWidget, ui_utils
+from ui.ThemeManager import ThemeAwareMixin, theme_manager
 
 _ = lambda x: x
 
 
-class SettingsWindow(ThemedWidget):
+class SettingsWindow(ThemeAwareMixin, ThemedWidget):
     """
     The settings window for the application.
     Now with scrolling support for better usability on smaller screens.
@@ -61,6 +62,15 @@ class SettingsWindow(ThemedWidget):
         self.init_ui()
         self.retranslate_ui()
 
+    def _get_effective_mode(self):
+        """Get the effective color mode based on user settings."""
+        user_mode = self.app.settings_manager.color_mode or "auto"
+        if user_mode == "auto":
+            import darkdetect
+
+            return "dark" if darkdetect.isDark() else "light"
+        return user_mode
+
     def init_ui(self):
         """
         Initialize the user interface for the settings window.
@@ -91,6 +101,9 @@ class SettingsWindow(ThemedWidget):
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         scroll_area.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded,
+        )
+        scroll_area.setVerticalScrollBarPolicy(
             QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded,
         )
 
@@ -163,9 +176,8 @@ class SettingsWindow(ThemedWidget):
         # Full settings window (not provider-only mode)
         if not self.providers_only:
             title_label = QtWidgets.QLabel(_("Settings"))
-            title_label.setStyleSheet(
-                f"font-size: 24px; font-weight: bold; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-            )
+            title_label.setObjectName("title_label")  # For specific styling in refresh
+            title_label.setStyleSheet(f"font-size: 24px; font-weight: bold; {self.get_label_style()}")
             content_layout.addWidget(
                 title_label,
                 alignment=QtCore.Qt.AlignmentFlag.AlignCenter,
@@ -174,50 +186,32 @@ class SettingsWindow(ThemedWidget):
             # Autostart functionality only for Windows compiled version
             if AutostartManager.get_startup_path():
                 self.autostart_checkbox = QtWidgets.QCheckBox(_("Start on Boot"))
-                self.autostart_checkbox.setStyleSheet(
-                    f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-                )
+                self.autostart_checkbox.setStyleSheet(self.get_label_style())
                 self.autostart_checkbox.setChecked(AutostartManager.check_autostart())
                 self.autostart_checkbox.stateChanged.connect(self.toggle_autostart)
                 content_layout.addWidget(self.autostart_checkbox)
 
             # Global hotkey configuration
             shortcut_label = QtWidgets.QLabel(_("Shortcut Key:"))
-            shortcut_label.setStyleSheet(
-                f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-            )
+            shortcut_label.setStyleSheet(self.get_label_style())
             content_layout.addWidget(shortcut_label)
 
             self.shortcut_input = QtWidgets.QLineEdit(self.app.settings_manager.hotkey or 'ctrl+space')
-            self.shortcut_input.setStyleSheet(
-                f"""
-                font-size: 16px;
-                padding: 5px;
-                background-color: {'#444' if colorMode == 'dark' else 'white'};
-                color: {'#ffffff' if colorMode == 'dark' else '#000000'};
-                border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
-            """,
-            )
+            self.shortcut_input.setStyleSheet(self.get_input_style())
             # Auto-save when shortcut changes
             self.shortcut_input.textChanged.connect(self.auto_save_shortcut)
             content_layout.addWidget(self.shortcut_input)
 
             # Background theme selection
             theme_label = QtWidgets.QLabel(_("Background Theme:"))
-            theme_label.setStyleSheet(
-                f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-            )
+            theme_label.setStyleSheet(self.get_label_style())
             content_layout.addWidget(theme_label)
 
             theme_layout = QHBoxLayout()
             self.gradient_radio = QRadioButton(_("Blurry Gradient"))
             self.plain_radio = QRadioButton(_("Plain"))
-            self.gradient_radio.setStyleSheet(
-                f"color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-            )
-            self.plain_radio.setStyleSheet(
-                f"color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-            )
+            self.gradient_radio.setStyleSheet(self.get_radio_style())
+            self.plain_radio.setStyleSheet(self.get_radio_style())
             # Use the instance variable instead of re-reading from settings
             self.gradient_radio.setChecked(self.current_theme == "gradient")
             self.plain_radio.setChecked(self.current_theme == "plain")
@@ -230,9 +224,7 @@ class SettingsWindow(ThemedWidget):
 
             # Color mode selection
             color_mode_label = QtWidgets.QLabel(_("Color Mode:"))
-            color_mode_label.setStyleSheet(
-                f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-            )
+            color_mode_label.setStyleSheet(self.get_label_style())
             content_layout.addWidget(color_mode_label)
 
             self.color_mode_dropdown = QtWidgets.QComboBox()
@@ -243,15 +235,7 @@ class SettingsWindow(ThemedWidget):
             mode_index = {"auto": 0, "light": 1, "dark": 2}.get(current_mode, 0)
             self.color_mode_dropdown.setCurrentIndex(mode_index)
 
-            self.color_mode_dropdown.setStyleSheet(
-                f"""
-                font-size: 16px;
-                padding: 5px;
-                background-color: {'#444' if colorMode == 'dark' else 'white'};
-                color: {'#ffffff' if colorMode == 'dark' else '#000000'};
-                border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
-                """
-            )
+            self.color_mode_dropdown.setStyleSheet(self.get_dropdown_style())
 
             # Auto-save color mode changes for immediate visual feedback
             self.color_mode_dropdown.currentTextChanged.connect(self.auto_save_color_mode)
@@ -263,21 +247,11 @@ class SettingsWindow(ThemedWidget):
 
         # AI Provider selection section
         provider_label = QtWidgets.QLabel(_("Choose AI Provider:"))
-        provider_label.setStyleSheet(
-            f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-        )
+        provider_label.setStyleSheet(self.get_label_style())
         content_layout.addWidget(provider_label)
 
         self.provider_dropdown = QtWidgets.QComboBox()
-        self.provider_dropdown.setStyleSheet(
-            f"""
-            font-size: 16px;
-            padding: 5px;
-            background-color: {'#444' if colorMode == 'dark' else 'white'};
-            color: {'#ffffff' if colorMode == 'dark' else '#000000'};
-            border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
-        """,
-        )
+        self.provider_dropdown.setStyleSheet(self.get_dropdown_style())
         self.provider_dropdown.setInsertPolicy(
             QtWidgets.QComboBox.InsertPolicy.NoInsert,
         )
@@ -339,9 +313,9 @@ class SettingsWindow(ThemedWidget):
         screen = QtWidgets.QApplication.primaryScreen().geometry()
         max_height = int(screen.height() * 0.85)  # 85% of screen height
         desired_height = min(
-            800,
+            550,
             max_height,
-        )  # Cap at 800px or 85% of screen height (increased from 720px)
+        )  # Cap at 600px or 85% of screen height (reduced by 100px from 700px to force scroll bars)
         self.resize(
             700,
             desired_height,
@@ -395,9 +369,11 @@ class SettingsWindow(ThemedWidget):
 
         # Provider name display
         provider_name_label = QtWidgets.QLabel(provider.provider_name)
-        provider_name_label.setStyleSheet(
-            f"font-size: 18px; font-weight: bold; color: {'#ffffff' if colorMode == 'dark' else '#333333'};",
-        )
+        # Provider title needs high contrast - force pure white/black
+        # Use effective mode based on user settings
+        current_mode = self._get_effective_mode()
+        provider_color = '#ffffff' if current_mode == 'dark' else '#000000'
+        provider_name_label.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {provider_color};")
         provider_name_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
         provider_header_layout.addWidget(provider_name_label)
 
@@ -406,19 +382,19 @@ class SettingsWindow(ThemedWidget):
         # Provider description if available
         if provider.description:
             description_label = QtWidgets.QLabel(provider.description)
-            description_label.setStyleSheet(
-                f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'}; text-align: center;",
-            )
+            description_label.setStyleSheet(f"{self.get_label_style()} text-align: center;")
             description_label.setWordWrap(True)
             self.current_provider_layout.addWidget(description_label)
 
         # Original single button logic
         if provider.button_text:
             button = QtWidgets.QPushButton(provider.button_text)
+            # Use effective mode based on user settings
+            current_mode = self._get_effective_mode()
             button.setStyleSheet(
                 f"""
                     QPushButton {{
-                        background-color: {'#4CAF50' if colorMode == 'dark' else '#008CBA'};
+                        background-color: {'#4CAF50' if current_mode == 'dark' else '#008CBA'};
                         color: white;
                         padding: 10px;
                         font-size: 16px;
@@ -426,7 +402,7 @@ class SettingsWindow(ThemedWidget):
                         border-radius: 5px;
                     }}
                     QPushButton:hover {{
-                        background-color: {'#45a049' if colorMode == 'dark' else '#007095'};
+                        background-color: {'#45a049' if current_mode == 'dark' else '#007095'};
                     }}
                 """,
             )
@@ -526,7 +502,6 @@ class SettingsWindow(ThemedWidget):
         Add a save/complete setup button at the bottom of the window.
         Button text varies based on context (setup vs normal settings).
         """
-        from ui.ui_utils import colorMode
 
         button_container = QWidget()
         button_layout = QtWidgets.QHBoxLayout(button_container)
@@ -543,10 +518,12 @@ class SettingsWindow(ThemedWidget):
 
         self.save_button = QtWidgets.QPushButton(button_text)
         self.save_button.setFixedSize(150, 40)
+        # Use effective mode based on user settings
+        current_mode = self._get_effective_mode()
         self.save_button.setStyleSheet(
             f"""
             QPushButton {{
-                background-color: {'#0078d4' if colorMode == 'light' else '#106ebe'};
+                background-color: {'#0078d4' if current_mode == 'light' else '#106ebe'};
                 color: white;
                 border: none;
                 border-radius: 6px;
@@ -555,10 +532,10 @@ class SettingsWindow(ThemedWidget):
                 padding: 8px 16px;
             }}
             QPushButton:hover {{
-                background-color: {'#106ebe' if colorMode == 'light' else '#1e88e5'};
+                background-color: {'#106ebe' if current_mode == 'light' else '#1e88e5'};
             }}
             QPushButton:pressed {{
-                background-color: {'#005a9e' if colorMode == 'light' else '#0d47a1'};
+                background-color: {'#005a9e' if current_mode == 'light' else '#0d47a1'};
             }}
         """,
         )
@@ -606,49 +583,65 @@ class SettingsWindow(ThemedWidget):
 
             self.app.settings_manager.color_mode = color_mode
 
-            # Apply color mode change immediately to the UI for live preview
-            self.app._apply_theme_override(color_mode)
+            # Update global colorMode variable
+            from ui.ui_utils import set_color_mode
 
-            # Refresh UI styles to reflect the new color mode
+            set_color_mode(color_mode)
+
+            # Apply color mode change immediately via centralized theme manager
+            theme_manager.change_theme(color_mode)
+
+            # Refresh UI styles with updated colorMode
             self._refresh_ui_styles()
 
     def _refresh_ui_styles(self):
         """Refresh all UI element styles to reflect the current color mode."""
-        # Import colorMode to get the updated value
-        from ui.ui_utils import colorMode
-
         # Update color mode dropdown style
         if hasattr(self, 'color_mode_dropdown') and self.color_mode_dropdown:
-            self.color_mode_dropdown.setStyleSheet(
-                f"""
-                font-size: 16px;
-                padding: 5px;
-                background-color: {'#444' if colorMode == 'dark' else 'white'};
-                color: {'#ffffff' if colorMode == 'dark' else '#000000'};
-                border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
-                """
-            )
+            self.color_mode_dropdown.setStyleSheet(self.get_dropdown_style())
 
-        # Update all labels and other text elements
-        for widget in self.findChildren(QtWidgets.QLabel):
-            if widget.objectName() != "":  # Skip background widgets
-                widget.setStyleSheet(f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};")
+        # Update provider dropdown style
+        if hasattr(self, 'provider_dropdown') and self.provider_dropdown:
+            self.provider_dropdown.setStyleSheet(self.get_dropdown_style())
+
+        # Update specific labels with their individual styles
+        # Title label
+        title_labels = self.findChildren(QtWidgets.QLabel)
+        for widget in title_labels:
+            if widget.text() == _("Settings"):
+                widget.setStyleSheet(f"font-size: 24px; font-weight: bold; {self.get_label_style()}")
+            elif widget.text() in [
+                _("Shortcut Key:"),
+                _("Background Theme:"),
+                _("Color Mode:"),
+                _("Choose AI Provider:"),
+            ]:
+                widget.setStyleSheet(self.get_label_style())
+
+        # Update provider-specific labels by checking all labels
+        for widget in title_labels:
+            # Check if this is a provider name (contains provider name text)
+            if (
+                hasattr(widget, 'text')
+                and widget.text()
+                and any(provider in widget.text() for provider in ["Ollama", "OpenAI", "Anthropic", "Groq"])
+            ):
+                # Provider title needs high contrast - force pure white/black
+                # Use effective mode based on user settings
+                current_mode = self._get_effective_mode()
+                provider_color = '#ffffff' if current_mode == 'dark' else '#000000'
+                widget.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {provider_color};")
+            # Check if this is a description (longer text, not a simple label)
+            elif hasattr(widget, 'text') and widget.text() and len(widget.text()) > 50:
+                widget.setStyleSheet(f"{self.get_label_style()} text-align: center;")
 
         # Update shortcut input if exists
         if hasattr(self, 'shortcut_input') and self.shortcut_input:
-            self.shortcut_input.setStyleSheet(
-                f"""
-                font-size: 16px;
-                padding: 5px;
-                background-color: {'#444' if colorMode == 'dark' else 'white'};
-                color: {'#ffffff' if colorMode == 'dark' else '#000000'};
-                border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
-                """
-            )
+            self.shortcut_input.setStyleSheet(self.get_input_style())
 
         # Update radio buttons if they exist
         if hasattr(self, 'gradient_radio') and self.gradient_radio:
-            radio_style = f"color: {'#ffffff' if colorMode == 'dark' else '#333333'};"
+            radio_style = self.get_radio_style()
             self.gradient_radio.setStyleSheet(radio_style)
             if hasattr(self, 'plain_radio') and self.plain_radio:
                 self.plain_radio.setStyleSheet(radio_style)
@@ -791,3 +784,8 @@ class SettingsWindow(ThemedWidget):
         if self.providers_only:
             self.close_signal.emit()
         super().closeEvent(event)
+
+    def refresh_theme(self):
+        """Appelé automatiquement quand le thème change via ThemeManager."""
+        # Utiliser l'ancienne méthode pour l'instant, sera refactorisée plus tard
+        self._refresh_ui_styles()

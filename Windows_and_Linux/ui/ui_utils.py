@@ -9,6 +9,38 @@ from PySide6.QtGui import QImage, QPixmap
 colorMode = "dark" if darkdetect.isDark() else "light"
 
 
+def get_effective_color_mode():
+    """
+    Get the effective color mode based on current settings.
+    This function provides the same logic as _get_effective_mode() in windows.
+    """
+    import logging
+
+    # Check if colorMode has been overridden by theme_override first
+    global colorMode
+
+    # Import here to avoid circular imports
+    try:
+        from config.settings import SettingsManager
+
+        settings_manager = SettingsManager()
+        user_mode = settings_manager.color_mode or "auto"
+
+        # If user_mode is auto, check if we have a theme override
+        if user_mode == "auto":
+            # Use the global colorMode which might have been set by theme_override
+            effective_mode = colorMode
+        else:
+            effective_mode = user_mode
+
+        # logging.debug(f"🎨 get_effective_color_mode: user_mode={user_mode}, colorMode={colorMode}, effective_mode={effective_mode}")
+        return effective_mode
+    except Exception as e:
+        # Fallback to global colorMode if settings are not available
+        # logging.debug(f"🎨 get_effective_color_mode: Exception {e}, fallback to colorMode={colorMode}")
+        return colorMode
+
+
 def set_color_mode(theme):
     """
     Set the color mode globally, overriding auto-detection.
@@ -45,7 +77,8 @@ def get_icon_path(icon_name, with_theme=True) -> str:
     extensions = [".svg", ".png"]  # SVG takes precedence
 
     if with_theme:
-        theme_suffix = "_dark" if colorMode == "dark" else "_light"
+        current_mode = get_effective_color_mode()
+        theme_suffix = "_dark" if current_mode == "dark" else "_light"
         filenames = [f"{icon_name}{theme_suffix}{ext}" for ext in extensions]
         # Fallback to non-themed version if themed version doesn't exist
         filenames.extend([f"{icon_name}{ext}" for ext in extensions])
@@ -128,31 +161,40 @@ class ThemedWidget(QWidget):
 
     def get_dropdown_style(self):
         """Get standardized dropdown styling based on current theme."""
+        current_mode = get_effective_color_mode()
         return f"""
             font-size: 16px;
             padding: 5px;
-            background-color: {'#444' if colorMode == 'dark' else 'white'};
-            color: {'#ffffff' if colorMode == 'dark' else '#000000'};
-            border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
+            background-color: {'#444' if current_mode == 'dark' else 'white'};
+            color: {'#ffffff' if current_mode == 'dark' else '#000000'};
+            border: 1px solid {'#666' if current_mode == 'dark' else '#ccc'};
         """
 
     def get_input_style(self):
         """Get standardized input field styling based on current theme."""
+        current_mode = get_effective_color_mode()
         return f"""
             font-size: 16px;
             padding: 5px;
-            background-color: {'#444' if colorMode == 'dark' else 'white'};
-            color: {'#ffffff' if colorMode == 'dark' else '#000000'};
-            border: 1px solid {'#666' if colorMode == 'dark' else '#ccc'};
+            background-color: {'#444' if current_mode == 'dark' else 'white'};
+            color: {'#ffffff' if current_mode == 'dark' else '#000000'};
+            border: 1px solid {'#666' if current_mode == 'dark' else '#ccc'};
         """
 
     def get_radio_style(self):
         """Get standardized radio button styling based on current theme."""
-        return f"color: {'#ffffff' if colorMode == 'dark' else '#333333'};"
+        current_mode = get_effective_color_mode()
+        return f"color: {'#ffffff' if current_mode == 'dark' else '#333333'};"
 
     def get_label_style(self):
         """Get standardized label styling based on current theme."""
-        return f"font-size: 16px; color: {'#ffffff' if colorMode == 'dark' else '#333333'};"
+        import logging
+
+        current_mode = get_effective_color_mode()
+        color = '#ffffff' if current_mode == 'dark' else '#333333'
+        style = f"font-size: 16px; color: {color};"
+        logging.debug(f"🏷️ ThemedWidget.get_label_style: mode={current_mode}, color={color}, style={style}")
+        return style
 
 
 class ThemeBackground(QWidget):
@@ -181,10 +223,11 @@ class ThemeBackground(QWidget):
             else:
                 base_dir = os.path.dirname(sys.argv[0])
 
+            current_mode = get_effective_color_mode()
             if self.is_popup:
-                bg_file = "background_popup_dark.png" if colorMode == "dark" else "background_popup.png"
+                bg_file = "background_popup_dark.png" if current_mode == "dark" else "background_popup.png"
             else:
-                bg_file = "background_dark.png" if colorMode == "dark" else "background.png"
+                bg_file = "background_dark.png" if current_mode == "dark" else "background.png"
 
             # Try multiple locations for background files
             possible_paths = [
@@ -207,8 +250,9 @@ class ThemeBackground(QWidget):
             if background_image is None:
                 # Fallback to a solid color if no background found
                 background_image = QtGui.QPixmap(self.width(), self.height())
+                current_mode = get_effective_color_mode()
                 background_image.fill(
-                    QtGui.QColor(50, 50, 50) if colorMode == "dark" else QtGui.QColor(240, 240, 240),
+                    QtGui.QColor(50, 50, 50) if current_mode == "dark" else QtGui.QColor(240, 240, 240),
                 )
             # Adds a path/border using which the border radius would be drawn
             path = QtGui.QPainterPath()
@@ -224,10 +268,11 @@ class ThemeBackground(QWidget):
 
             painter.drawPixmap(self.rect(), background_image)
         else:
-            if colorMode == "dark":
+            current_mode = get_effective_color_mode()
+            if current_mode == "dark":
                 color = QtGui.QColor(35, 35, 35)  # Dark mode color
             else:
-                color = QtGui.QColor(222, 222, 222)  # Light mode color
+                color = QtGui.QColor(255, 255, 255)  # Light mode color - pure white for better contrast
             brush = QtGui.QBrush(color)
             painter.setBrush(brush)
             pen = QtGui.QPen(QtGui.QColor(0, 0, 0, 0))

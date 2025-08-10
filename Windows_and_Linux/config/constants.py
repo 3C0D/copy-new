@@ -108,7 +108,7 @@ _DEFAULT_SYSTEM_VALUES_RAW = {
     "model": DEFAULT_MODELS["gemini"],  # Model corresponding to default provider
     "hotkey": "ctrl+space",
     "theme": "gradient",
-    "color_mode": "auto",  # Color mode: "auto", "light", or "dark"
+    "color_mode": "auto",  # Color mode: "auto", "light", or "dark" - TEMPORAIRE POUR DEBUG
     "language": "en",
     "auto_update": True,
     "run_mode": "dev",

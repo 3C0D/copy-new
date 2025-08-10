@@ -3,7 +3,6 @@ Page revue et commentée
 Vérifier la section scroll.
 """
 
-
 import webbrowser
 
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -91,7 +90,10 @@ class AboutWindow(ThemedWidget):
 
     def _get_title_style(self):
         """Get the title styling based on current theme."""
-        color = '#ffffff' if colorMode == 'dark' else '#333333'
+        from ui.ui_utils import get_effective_color_mode
+
+        current_mode = get_effective_color_mode()
+        color = '#ffffff' if current_mode == 'dark' else '#333333'
         return f"font-size: 24px; font-weight: bold; color: {color};"
 
     def _get_about_content(self):
@@ -195,7 +197,7 @@ class AboutWindow(ThemedWidget):
         scroll_area.setStyleSheet("QScrollArea { background: transparent; border: none; }")
 
         return scroll_area
-    
+
     def _create_update_button(self):
         """Create the update check button with modern styling."""
         update_button = QtWidgets.QPushButton(_("Check for updates"))
@@ -206,7 +208,10 @@ class AboutWindow(ThemedWidget):
 
     def _get_content_style(self):
         """Get the content styling based on current theme."""
-        color = '#ffffff' if colorMode == 'dark' else '#333333'
+        from ui.ui_utils import get_effective_color_mode
+
+        current_mode = get_effective_color_mode()
+        color = '#ffffff' if current_mode == 'dark' else '#333333'
         return f"font-size: 14px; color: {color}; padding: 10px;"
 
     def _get_button_style(self):
@@ -219,15 +224,18 @@ class AboutWindow(ThemedWidget):
             QPushButton:hover { background-color: #45a049; }
             QPushButton:pressed { background-color: #3d8b40; }
             """
-        
+
         # Add theme-specific enhancements
-        if colorMode == 'light':
+        from ui.ui_utils import get_effective_color_mode
+
+        current_mode = get_effective_color_mode()
+        if current_mode == 'light':
             base_style += """
                 QPushButton { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
                 QPushButton:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
                 QPushButton:pressed { box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
             """
-            
+
         return base_style
 
     def check_for_updates(self):

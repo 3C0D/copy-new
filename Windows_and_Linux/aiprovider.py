@@ -135,18 +135,21 @@ class TextSetting(AIProviderSetting):
 
     def render_to_layout(self, layout: QVBoxLayout):
         """Create and add the QLineEdit with its label to the layout."""
+        from ui.ui_utils import get_effective_color_mode
+
         row_layout = QtWidgets.QHBoxLayout()
         label = QtWidgets.QLabel(self.display_name)
-        label.setStyleSheet(f"font-size: 16px; color: {'#ffffff' if colorMode=='dark' else '#333333'};")
+        current_mode = get_effective_color_mode()
+        label.setStyleSheet(f"font-size: 16px; color: {'#ffffff' if current_mode=='dark' else '#333333'};")
         row_layout.addWidget(label)
         self.input = QtWidgets.QLineEdit(self.internal_value)
         self.input.setStyleSheet(
             f"""
             font-size: 16px;
             padding: 5px;
-            background-color: {'#444' if colorMode=='dark' else 'white'};
-            color: {'#ffffff' if colorMode=='dark' else '#000000'};
-            border: 1px solid {'#666' if colorMode=='dark' else '#ccc'};
+            background-color: {'#444' if current_mode=='dark' else 'white'};
+            color: {'#ffffff' if current_mode=='dark' else '#000000'};
+            border: 1px solid {'#666' if current_mode=='dark' else '#ccc'};
         """,
         )
         self.input.setPlaceholderText(self.description)
@@ -192,9 +195,12 @@ class DropdownSetting(AIProviderSetting):
 
     def render_to_layout(self, layout: QVBoxLayout):
         """Create and configure the QComboBox with available options."""
+        from ui.ui_utils import get_effective_color_mode
+
         row_layout = QtWidgets.QHBoxLayout()
         label = QtWidgets.QLabel(self.display_name)
-        label.setStyleSheet(f"font-size: 16px; color: {'#ffffff' if colorMode=='dark' else '#333333'};")
+        current_mode = get_effective_color_mode()
+        label.setStyleSheet(f"font-size: 16px; color: {'#ffffff' if current_mode=='dark' else '#333333'};")
         row_layout.addWidget(label)
         self.dropdown = QtWidgets.QComboBox()
         self.dropdown.setEditable(self.editable)  # Allow custom input if editable
@@ -205,9 +211,9 @@ class DropdownSetting(AIProviderSetting):
             font-size: 16px;
             padding: 5px;
             padding-right: 25px;
-            background-color: {'#444' if colorMode=='dark' else 'white'};
-            color: {'#ffffff' if colorMode=='dark' else '#000000'};
-            border: 1px solid {'#666' if colorMode=='dark' else '#ccc'};
+            background-color: {'#444' if current_mode=='dark' else 'white'};
+            color: {'#ffffff' if current_mode=='dark' else '#000000'};
+            border: 1px solid {'#666' if current_mode=='dark' else '#ccc'};
         """,
         )
         for option, value in self.options:
