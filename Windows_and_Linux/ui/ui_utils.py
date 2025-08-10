@@ -188,7 +188,7 @@ class ThemedWidget(QWidget):
     def get_radio_style(self):
         """Get standardized radio button styling based on current theme."""
         current_mode = get_effective_color_mode()
-        return f"color: {'#ffffff' if current_mode == 'dark' else '#333333'};"
+        return f"color: {'#ffffff' if current_mode == 'dark' else '#333333'}; font-size: 16px;"
 
     def get_label_style(self):
         """Get standardized label styling based on current theme."""
@@ -196,6 +196,36 @@ class ThemedWidget(QWidget):
         color = '#ffffff' if current_mode == 'dark' else '#333333'
         style = f"font-size: 16px; color: {color};"
         return style
+
+    def get_checkbox_style(self):
+        """Get standardized checkbox styling based on current theme."""
+        current_mode = get_effective_color_mode()
+        if current_mode == 'dark':
+            # En mode dark, garder le style original (juste le texte)
+            return f"color: #ffffff; font-size: 16px;"
+        else:
+            # En mode light, améliorer la visibilité des indicateurs
+            return """
+                QCheckBox {
+                    color: #333333;
+                    font-size: 16px;
+                    spacing: 8px;
+                }
+                QCheckBox::indicator {
+                    width: 13px;
+                    height: 13px;
+                    border-radius: 2px;
+                }
+                QCheckBox::indicator:unchecked {
+                    border: 2px solid #666666;
+                    background-color: white;
+                }
+                QCheckBox::indicator:checked {
+                    border: 2px solid #666666;
+                    background-color: #666666;
+                    image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOSIgaGVpZ2h0PSI5IiB2aWV3Qm94PSIwIDAgOSA5IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNNy41IDIuNUwzLjc1IDYuMjVMMi41IDUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==);
+                }
+            """
 
 
 class ThemeBackground(QWidget):

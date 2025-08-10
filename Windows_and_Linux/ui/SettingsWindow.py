@@ -186,7 +186,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             # Autostart functionality only for Windows compiled version
             if AutostartManager.get_startup_path():
                 self.autostart_checkbox = QtWidgets.QCheckBox(_("Start on Boot"))
-                self.autostart_checkbox.setStyleSheet(self.get_label_style())
+                self.autostart_checkbox.setStyleSheet(self.get_checkbox_style())
                 self.autostart_checkbox.setChecked(AutostartManager.check_autostart())
                 self.autostart_checkbox.stateChanged.connect(self.toggle_autostart)
                 content_layout.addWidget(self.autostart_checkbox)
@@ -338,8 +338,13 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         # Clean up previous provider UI to prevent memory leaks and layout conflicts
         if self.current_provider_layout:
             # Remove the old layout from its parent container first
-            if self.current_provider_layout.parent():
-                self.current_provider_layout.parent().removeItem(self.current_provider_layout)
+            parent = self.current_provider_layout.parent()
+            if parent and hasattr(parent, 'removeItem'):
+                # Cast to layout type to access removeItem method
+                from PySide6.QtWidgets import QLayout
+
+                if isinstance(parent, QLayout):
+                    parent.removeItem(self.current_provider_layout)
             self.current_provider_layout.setParent(None)
             ui_utils.clear_layout(self.current_provider_layout)
             self.current_provider_layout.deleteLater()
@@ -640,6 +645,25 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             # Check if this is a description (longer text, not a simple label)
             elif hasattr(widget, 'text') and widget.text() and len(widget.text()) > 50:
                 widget.setStyleSheet(f"{self.get_label_style()} text-align: center;")
+            # Update all other labels (field labels like "API Base URL", "API Model", etc.)
+            elif (
+                hasattr(widget, 'text')
+                and widget.text()
+                and widget.text()
+                not in [
+                    _("Settings"),
+                    _("Shortcut Key:"),
+                    _("Background Theme:"),
+                    _("Color Mode:"),
+                    _("Choose AI Provider:"),
+                ]
+                and len(widget.text()) <= 50
+                and not any(provider in widget.text() for provider in ["Ollama", "OpenAI", "Anthropic", "Groq"])
+            ):
+                # Apply standard label style for field labels
+                current_mode = self._get_effective_mode()
+                label_color = '#ffffff' if current_mode == 'dark' else '#333333'
+                widget.setStyleSheet(f"font-size: 16px; color: {label_color};")
 
         # Update shortcut input if exists
         if hasattr(self, 'shortcut_input') and self.shortcut_input:
@@ -651,6 +675,10 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             self.gradient_radio.setStyleSheet(radio_style)
             if hasattr(self, 'plain_radio') and self.plain_radio:
                 self.plain_radio.setStyleSheet(radio_style)
+
+        # Update checkbox if it exists
+        if hasattr(self, 'autostart_checkbox') and self.autostart_checkbox:
+            self.autostart_checkbox.setStyleSheet(self.get_checkbox_style())
 
         # Force background update
         if hasattr(self, 'background') and self.background:
