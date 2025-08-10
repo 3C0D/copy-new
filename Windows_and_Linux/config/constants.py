@@ -110,7 +110,6 @@ _DEFAULT_SYSTEM_VALUES_RAW = {
     "theme": "gradient",
     "color_mode": "auto",  # Color mode: "auto", "light", or "dark"
     "language": "en",
-    "auto_update": True,
     "run_mode": "dev",
     "update_available": False,
     "ollama_base_url": "http://localhost:11434",

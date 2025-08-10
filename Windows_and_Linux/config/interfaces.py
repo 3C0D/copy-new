@@ -30,7 +30,6 @@ class SystemConfig(TypedDict, total=False):
 
     # Application Settings
     language: str
-    auto_update: bool
     run_mode: str  # dev, build_dev, build_final
     update_available: bool
 
@@ -47,7 +46,6 @@ class ProviderConfig(TypedDict, total=False):
 
 
 class CustomDataStructure(TypedDict, total=False):
-    update_available: bool
     providers: dict[str, ProviderConfig]
 
 
@@ -59,7 +57,6 @@ class UnifiedSettings:
     actions: dict[str, ActionConfig] = field(default_factory=dict)
     custom_data: CustomDataStructure = field(
         default_factory=lambda: CustomDataStructure(
-            update_available=False,
             providers={},
         )
     )
