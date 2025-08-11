@@ -1,0 +1,32 @@
+{
+    "python.defaultInterpreter": "C:/Users/dd200/Desktop/Bureau temp/Mes_projets/copy-new/Windows_and_Linux/myvenv/Scripts/python.exe",
+    "python.pythonPath": "C:/Users/dd200/Desktop/Bureau temp/Mes_projets/copy-new/Windows_and_Linux/myvenv/Scripts/python.exe",
+    "python.terminal.activateEnvironment": true,
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "python.analysis.extraPaths": [
+        "./Windows_and_Linux"
+    ],
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.autoImportCompletions": true,
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": false,
+    "python.formatting.provider": "black",
+    "python.formatting.blackArgs": [
+        "--line-length=100"
+    ],
+    "files.associations": {
+        "*.py": "python"
+    },
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.diagnosticMode": "workspace",
+    "python.analysis.include": [
+        "./Windows_and_Linux/**"
+    ],
+    "python.analysis.exclude": [
+        "**/node_modules",
+        "**/__pycache__",
+        "**/build",
+        "**/dist"
+    ]
+}

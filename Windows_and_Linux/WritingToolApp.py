@@ -180,8 +180,25 @@ class WritingToolApp(QtWidgets.QApplication):
     def _setup_user_interface(self):
         """Setup user interface components."""
         self._sync_autostart_settings()
-        self.create_tray_icon()
+        self._create_tray_icon_with_startup_delay()
         self.register_hotkey()
+
+    def _create_tray_icon_with_startup_delay(self):
+        """
+        Create tray icon with a delay if we're likely starting at boot.
+        This helps with Windows startup timing issues.
+        """
+        # Check if we might be starting at boot (no visible windows, early in session)
+        startup_delay_needed = len(QApplication.topLevelWidgets()) == 0 or getattr(
+            self.settings_manager, 'start_on_boot', False
+        )
+
+        if startup_delay_needed:
+            logging.debug("Detected potential startup scenario, delaying tray icon creation")
+            # Use QTimer to delay tray icon creation
+            QtCore.QTimer.singleShot(2000, self.create_tray_icon)  # 2 second delay
+        else:
+            self.create_tray_icon()
 
     def _sync_autostart_settings(self):
         """Synchronize autostart settings between registry and configuration."""
@@ -311,7 +328,7 @@ class WritingToolApp(QtWidgets.QApplication):
             dict: Provider-specific configuration
         """
 
-        # Configuration par défaut selon le type de provider
+        # Default configuration based on provider type
         default_configs = {
             ("Gemini", "Gemini (Recommended)"): {"api_key": "", "model": self.settings_manager.model or ""},
             ("Ollama", "Ollama (Local)", "Ollama (For Experts)"): {
@@ -332,14 +349,14 @@ class WritingToolApp(QtWidgets.QApplication):
             },
         }
 
-        # Trouver la config par défaut
+        # Find the default config
         config = {}
         for provider_names, default_config in default_configs.items():
             if provider_name in provider_names:
                 config = default_config.copy()
                 break
 
-        # Override avec la config sauvegardée
+        # Override with saved config
         saved_config = self.settings_manager.providers.get(provider_name, {})
         config.update(saved_config)
 
@@ -389,7 +406,7 @@ class WritingToolApp(QtWidgets.QApplication):
             self.current_provider.load_config(provider_config)
 
         self._sync_autostart_settings()
-        self.create_tray_icon()
+        self._create_tray_icon_with_startup_delay()
         self.register_hotkey()
 
         # Set language from system settings
@@ -939,9 +956,9 @@ class WritingToolApp(QtWidgets.QApplication):
 
         logging.debug("Creating system tray icon")
 
-        # Check if system tray is available
-        if not QtWidgets.QSystemTrayIcon.isSystemTrayAvailable():
-            logging.error("System tray is not available on this system")
+        # Check if system tray is available with retry mechanism for startup
+        if not self._is_system_tray_available_with_retry():
+            logging.error("System tray is not available on this system after retries")
             return
 
         icon_path = get_icon_path("app_icon", with_theme=False)
@@ -971,13 +988,66 @@ class WritingToolApp(QtWidgets.QApplication):
         self.tray_icon.show()
         logging.debug("Tray icon show() called")
 
-        # Verify if it's actually visible
-        if self.tray_icon.isVisible():
-            logging.debug("Tray icon reports as visible")
-        else:
-            logging.warning("Tray icon reports as NOT visible")
+        # Verify if it's actually visible with retry
+        self._verify_tray_icon_visibility()
 
         logging.debug("Tray icon setup completed")
+
+    def _is_system_tray_available_with_retry(self, max_retries=5, delay_ms=1000):
+        """
+        Check if system tray is available with retry mechanism.
+        This is especially important during Windows startup when the system tray
+        might not be immediately available.
+
+        Args:
+            max_retries: Maximum number of retry attempts
+            delay_ms: Delay between retries in milliseconds
+
+        Returns:
+            bool: True if system tray becomes available, False otherwise
+        """
+        for attempt in range(max_retries):
+            if QtWidgets.QSystemTrayIcon.isSystemTrayAvailable():
+                if attempt > 0:
+                    logging.info(f"System tray became available after {attempt + 1} attempts")
+                return True
+
+            if attempt < max_retries - 1:  # Don't wait after the last attempt
+                logging.debug(
+                    f"System tray not available, attempt {attempt + 1}/{max_retries}, retrying in {delay_ms}ms..."
+                )
+                QtCore.QTimer.singleShot(delay_ms, lambda: None)
+                self.processEvents()  # Process pending events
+                time.sleep(delay_ms / 1000.0)  # Convert to seconds
+
+        logging.warning(f"System tray not available after {max_retries} attempts")
+        return False
+
+    def _verify_tray_icon_visibility(self, max_retries=3, delay_ms=500):
+        """
+        Verify that the tray icon is actually visible with retry mechanism.
+
+        Args:
+            max_retries: Maximum number of retry attempts
+            delay_ms: Delay between retries in milliseconds
+        """
+        for attempt in range(max_retries):
+            if self.tray_icon and self.tray_icon.isVisible():
+                logging.debug(f"Tray icon confirmed visible after {attempt + 1} attempts")
+                return
+
+            if attempt < max_retries - 1:  # Don't wait after the last attempt
+                logging.debug(f"Tray icon not visible, attempt {attempt + 1}/{max_retries}, retrying...")
+                QtCore.QTimer.singleShot(delay_ms, lambda: None)
+                self.processEvents()  # Process pending events
+                time.sleep(delay_ms / 1000.0)  # Convert to seconds
+                if self.tray_icon:
+                    self.tray_icon.show()  # Try showing again
+
+        if self.tray_icon and not self.tray_icon.isVisible():
+            logging.warning("Tray icon reports as NOT visible after retries")
+        else:
+            logging.debug("Tray icon visibility verification completed")
 
     def update_tray_menu(self):
         """

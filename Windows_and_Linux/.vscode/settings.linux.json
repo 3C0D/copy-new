@@ -1,0 +1,15 @@
+{
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python-envs.pythonProjects": [],
+    "python.defaultInterpreterPath": "./Windows_and_Linux/myvenv/bin/python",
+    "python.pythonPath": "./Windows_and_Linux/myvenv/bin/python",
+    "python.terminal.activateEnvironment": true,
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "files.associations": {
+        "*.py": "python"
+    },
+    "python.analysis.extraPaths": [
+        "./Windows_and_Linux"
+    ],
+    "python.envFile": "${workspaceFolder}/Windows_and_Linux/.env"
+}

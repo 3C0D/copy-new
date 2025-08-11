@@ -52,7 +52,16 @@ def get_icon_path(icon_name, with_theme=True) -> str:
     if getattr(sys, "frozen", False):
         base_dir = os.path.dirname(sys.executable)
     else:
-        base_dir = os.path.dirname(sys.argv[0])
+        # Handle different script execution contexts
+        if sys.argv[0] in ['-c', '']:
+            # Running with python -c or similar, use current working directory
+            base_dir = os.getcwd()
+        else:
+            base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+
+        # If we're in the Windows_and_Linux subdirectory, go up one level
+        if os.path.basename(base_dir) == "Windows_and_Linux":
+            base_dir = os.path.dirname(base_dir)
 
     # Define possible extensions and filenames
     extensions = [".svg", ".png"]  # SVG takes precedence
@@ -70,6 +79,8 @@ def get_icon_path(icon_name, with_theme=True) -> str:
     base_paths = [
         os.path.join(base_dir, "icons"),  # Build location (dist/dev/icons/)
         os.path.join(base_dir, "config", "icons"),  # Dev location
+        os.path.join(base_dir, "Windows_and_Linux", "config", "icons"),  # Root project location
+        os.path.join(base_dir, "Windows_and_Linux", "dist", "dev", "icons"),  # Dev build location
     ]
 
     # Check all combinations of paths and filenames
@@ -252,7 +263,16 @@ class ThemeBackground(QWidget):
             if getattr(sys, "frozen", False):
                 base_dir = os.path.dirname(sys.executable)
             else:
-                base_dir = os.path.dirname(sys.argv[0])
+                # Handle different script execution contexts
+                if sys.argv[0] in ['-c', '']:
+                    # Running with python -c or similar, use current working directory
+                    base_dir = os.getcwd()
+                else:
+                    base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+
+                # If we're in the Windows_and_Linux subdirectory, go up one level
+                if os.path.basename(base_dir) == "Windows_and_Linux":
+                    base_dir = os.path.dirname(base_dir)
 
             current_mode = get_effective_color_mode()
             if self.is_popup:
@@ -263,12 +283,9 @@ class ThemeBackground(QWidget):
             # Try multiple locations for background files
             possible_paths = [
                 os.path.join(base_dir, bg_file),  # Build location (dist/)
-                os.path.join(
-                    base_dir,
-                    "config",
-                    "backgrounds",
-                    bg_file,
-                ),  # Dev location
+                os.path.join(base_dir, "config", "backgrounds", bg_file),  # Dev location
+                os.path.join(base_dir, "Windows_and_Linux", "config", "backgrounds", bg_file),  # Root project location
+                os.path.join(base_dir, "Windows_and_Linux", "dist", "dev", bg_file),  # Dev build location
                 os.path.join("config", "backgrounds", bg_file),  # Relative dev location
             ]
 

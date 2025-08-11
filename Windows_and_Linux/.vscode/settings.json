@@ -1,0 +1,70 @@
+{
+    "python.defaultInterpreterPath": "./myvenv/Scripts/python.exe",
+    "python.analysis.extraPaths": [
+        "./myvenv/Lib/site-packages",
+        "./Windows_and_Linux"
+    ],
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.typeCheckingMode": "basic",
+    "python.terminal.activateEnvironment": true,
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.formatOnType": false,
+    
+    "black-formatter.args": [
+        "--line-length",
+        "120",
+        "-S"
+    ],
+    
+    "code-runner.respectShebang": false,
+    "code-runner.clearPreviousOutput": true,
+    "code-runner.runInTerminal": true,
+    
+    "files.associations": {
+        "*.py": "python"
+    },
+    
+    "python.envFile": "${workspaceFolder}/Windows_and_Linux/.env",
+        // Exclure de la recherche VS Code
+    "search.exclude": {
+        "**/build": true,
+        "**/__pycache__": true,
+        "**/myvenv": true,
+        "**/.git": true,
+        "**/target": true
+    },
+    
+    // Exclure des fichiers surveillés (performances)
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/**": true,
+        "**/build/**": true,
+        "**/dist/**": true,
+        "**/__pycache__/**": true,
+        "**/myvenv/**": true,
+        "**/.pytest_cache/**": true,
+        "**/.mypy_cache/**": true
+    },
+    
+    // Exclure de l'analyse Pylance (c'est ça l'autre option !)
+    "python.analysis.exclude": [
+        "build",
+        "dist", 
+        "__pycache__",
+        "myvenv",
+        ".pytest_cache",
+        ".mypy_cache",
+        "node_modules"
+    ],
+    
+    // Ignorer certains fichiers complètement
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/.DS_Store": true
+    }
+}

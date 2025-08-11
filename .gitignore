@@ -5,8 +5,8 @@
 .idea
 
 # VSCode - Keep settings.json but exclude other files
-.vscode/*
-!.vscode/settings.json
+# .vscode/*
+# !.vscode/settings.json
 
 # Python cache and compiled files
 **/__pycache__
@@ -22,14 +22,6 @@ Windows_and_Linux/build/
 Windows_and_Linux/dist/
 Windows_and_Linux/*.spec
 
-# .vscode
-**/.vscode/
-!Windows_and_Linux/.vscode/settings.json
-
 # Translation files
 **/pot_files
-
-# dev
-Windows_and_Linux/dev_notes
-.ruff_cache
-.mypy_cache
+**/locales
