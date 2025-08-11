@@ -23,6 +23,15 @@ Navigate to the `Windows_and_Linux` directory and use the build scripts:
   ./run.sh build-dev
   ```
 
+- **Development Build with Console (For Debugging):**
+
+  ```bash
+  # Direct script execution with console visible
+  python Windows_and_Linux/scripts/dev_build.py --console
+  ```
+
+  This creates a build where the console window remains visible, allowing you to see logs in real-time instead of only in log files.
+
 - **Final Release Build (Clean):**
 
   ```bash
@@ -43,6 +52,7 @@ Navigate to the `Windows_and_Linux` directory and use the build scripts:
 **Debug Features:**
 
 - **build-dev**: Includes debug file logging to `dist/dev/debug.log` for development analysis
+- **build-dev --console**: Same as build-dev but with console visible for real-time log viewing
 - **build-final**: Production build with minimal logging
 
 The scripts will automatically:

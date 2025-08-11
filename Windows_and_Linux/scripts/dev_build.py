@@ -9,7 +9,12 @@ import subprocess
 import sys
 import shutil
 import json
+import argparse
 from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from config.data_operations import create_default_settings
 from config.settings import SettingsManager
 
@@ -110,8 +115,18 @@ def setup_build_dev_mode():
     print(f"Created data_dev.json with build-dev mode: {data_dev_path}")
 
 
-def run_dev_build(venv_path="myvenv"):
+def run_dev_build(venv_path="myvenv", console_mode=False):
     """Run PyInstaller build for development (faster, less cleanup)"""
+
+    # Remove existing .spec file if switching console mode to force regeneration
+    spec_file = "Writing Tools.spec"
+    if os.path.exists(spec_file):
+        try:
+            os.remove(spec_file)
+            print(f"Removed existing {spec_file} to regenerate with new console mode")
+        except Exception as e:
+            print(f"Warning: Could not remove {spec_file}: {e}")
+
     # Use the virtual environment's Python to run PyInstaller
     python_cmd = get_activation_script(venv_path)
     pyinstaller_command = [
@@ -119,7 +134,7 @@ def run_dev_build(venv_path="myvenv"):
         "-m",
         "PyInstaller",
         "--onefile",
-        "--windowed",
+        "--console" if console_mode else "--windowed",
         "--icon=config/icons/app_icon.ico",
         "--name=Writing Tools",
         "--distpath=dist/dev",  # Output to dist/dev/
@@ -242,9 +257,16 @@ def run_dev_build(venv_path="myvenv"):
     ]
 
     try:
-        print("Starting PyInstaller development build...")
+        mode_text = "console" if console_mode else "windowed"
+        print(f"Starting PyInstaller development build ({mode_text} mode)...")
         subprocess.run(pyinstaller_command, check=True)
-        print("PyInstaller development build completed successfully!")
+        print(f"PyInstaller development build completed successfully ({mode_text} mode)!")
+
+        if console_mode:
+            print("Console mode enabled - logs will be visible in terminal when running the exe")
+        else:
+            print("Windowed mode - logs will be written to dist/dev/build_dev_debug.log")
+
         return True
 
     except subprocess.CalledProcessError as e:
@@ -286,8 +308,18 @@ def main():
     print("===== Writing Tools - Development Build =====")
     print()
 
-    # Parse command line arguments (skip script name)
-    extra_args = sys.argv[1:] if len(sys.argv) > 1 else None
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Writing Tools - Development Build")
+    parser.add_argument(
+        "--console",
+        action="store_true",
+        help="Build with console visible (useful for debugging and seeing logs in real-time)",
+    )
+    parser.add_argument("extra_args", nargs="*", help="Extra arguments to pass to the built executable")
+    args = parser.parse_args()
+
+    console_mode = args.console
+    extra_args = args.extra_args if args.extra_args else None
 
     try:
         # Setup project root
@@ -314,7 +346,7 @@ def main():
         terminate_existing_processes(exe_name=get_executable_name(), script_name="main.py")
 
         # Run build
-        if not run_dev_build():
+        if not run_dev_build(console_mode=console_mode):
             print("\nBuild failed!")
             return 1
 
@@ -326,6 +358,10 @@ def main():
 
         print("\n===== Development build completed and launched =====")
         print("The executable and required files are in the 'dist/dev' directory.")
+        if console_mode:
+            print("Console mode was enabled - you should see logs directly in the terminal when the exe runs.")
+        else:
+            print("Windowed mode - check dist/dev/build_dev_debug.log for detailed logs.")
         return 0
 
     except KeyboardInterrupt:
