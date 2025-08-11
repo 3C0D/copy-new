@@ -188,15 +188,19 @@ class WritingToolApp(QtWidgets.QApplication):
         Create tray icon with a delay if we're likely starting at boot.
         This helps with Windows startup timing issues.
         """
-        # Check if we might be starting at boot (no visible windows, early in session)
-        startup_delay_needed = len(QApplication.topLevelWidgets()) == 0 or getattr(
-            self.settings_manager, 'start_on_boot', False
+        # Check if we might be starting at boot
+        is_frozen = getattr(sys, 'frozen', False)
+        startup_delay_needed = (
+            len(QApplication.topLevelWidgets()) == 0
+            or getattr(self.settings_manager, 'start_on_boot', False)
+            or is_frozen  # Frozen builds (exe) are more likely to be autostart
         )
 
         if startup_delay_needed:
-            logging.debug("Detected potential startup scenario, delaying tray icon creation")
-            # Use QTimer to delay tray icon creation
-            QtCore.QTimer.singleShot(2000, self.create_tray_icon)  # 2 second delay
+            # Shorter delay for better user experience
+            delay = 1000 if is_frozen else 500  # 1s for exe, 0.5s for dev
+            logging.debug(f"Detected potential startup scenario, delaying tray icon creation by {delay}ms")
+            QtCore.QTimer.singleShot(delay, self.create_tray_icon)
         else:
             self.create_tray_icon()
 
@@ -993,7 +997,7 @@ class WritingToolApp(QtWidgets.QApplication):
 
         logging.debug("Tray icon setup completed")
 
-    def _is_system_tray_available_with_retry(self, max_retries=5, delay_ms=1000):
+    def _is_system_tray_available_with_retry(self, max_retries=3, delay_ms=500):
         """
         Check if system tray is available with retry mechanism.
         This is especially important during Windows startup when the system tray
@@ -1023,7 +1027,7 @@ class WritingToolApp(QtWidgets.QApplication):
         logging.warning(f"System tray not available after {max_retries} attempts")
         return False
 
-    def _verify_tray_icon_visibility(self, max_retries=3, delay_ms=500):
+    def _verify_tray_icon_visibility(self, max_retries=2, delay_ms=250):
         """
         Verify that the tray icon is actually visible with retry mechanism.
 

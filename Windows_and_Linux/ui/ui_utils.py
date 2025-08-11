@@ -51,6 +51,12 @@ def get_icon_path(icon_name, with_theme=True) -> str:
     # Use sys.executable for frozen apps, sys.argv[0] for scripts
     if getattr(sys, "frozen", False):
         base_dir = os.path.dirname(sys.executable)
+        # For frozen apps, also check if we have a bundled resource path
+        if hasattr(sys, '_MEIPASS'):
+            # PyInstaller temporary folder
+            bundled_base = sys._MEIPASS
+        else:
+            bundled_base = base_dir
     else:
         # Handle different script execution contexts
         if sys.argv[0] in ['-c', '']:
@@ -76,12 +82,22 @@ def get_icon_path(icon_name, with_theme=True) -> str:
         filenames = [f"{icon_name}{ext}" for ext in extensions]
 
     # Try multiple locations
-    base_paths = [
-        os.path.join(base_dir, "icons"),  # Build location (dist/dev/icons/)
-        os.path.join(base_dir, "config", "icons"),  # Dev location
-        os.path.join(base_dir, "Windows_and_Linux", "config", "icons"),  # Root project location
-        os.path.join(base_dir, "Windows_and_Linux", "dist", "dev", "icons"),  # Dev build location
-    ]
+    if getattr(sys, "frozen", False):
+        # For frozen builds, check bundled resources first
+        base_paths = [
+            os.path.join(bundled_base, "icons"),  # Bundled icons
+            os.path.join(bundled_base, "config", "icons"),  # Bundled config
+            os.path.join(base_dir, "icons"),  # Next to exe
+            os.path.join(base_dir, "config", "icons"),  # Config next to exe
+        ]
+    else:
+        # For dev mode
+        base_paths = [
+            os.path.join(base_dir, "icons"),  # Build location (dist/dev/icons/)
+            os.path.join(base_dir, "config", "icons"),  # Dev location
+            os.path.join(base_dir, "Windows_and_Linux", "config", "icons"),  # Root project location
+            os.path.join(base_dir, "Windows_and_Linux", "dist", "dev", "icons"),  # Dev build location
+        ]
 
     # Check all combinations of paths and filenames
     for base_path in base_paths:
