@@ -9,6 +9,9 @@ import subprocess
 import sys
 import shutil
 import json
+from pathlib import Path
+from config.data_operations import create_default_settings
+from config.settings import SettingsManager
 
 try:
     from .utils import (
@@ -82,14 +85,7 @@ def setup_build_dev_mode():
     """
     Create data_dev.json in dist/dev/ for build-dev mode with correct run_mode.
     """
-    import json
-    from pathlib import Path
-
-    # Import the default configuration
-    import sys
-
     sys.path.insert(0, os.path.abspath('.'))
-    from config.data_operations import create_default_settings
 
     dist_dev_dir = Path("dist/dev")
     dist_dev_dir.mkdir(parents=True, exist_ok=True)
@@ -100,12 +96,12 @@ def setup_build_dev_mode():
     settings = create_default_settings()
     settings.system["run_mode"] = "build-dev"
 
-    # Convert to dictionary for JSON serialization
-    settings_dict = {
-        "system": dict(settings.system),
-        "actions": {name: dict(action) for name, action in settings.actions.items()},
-        "custom_data": settings.custom_data,
-    }
+    # Create a temporary SettingsManager to use _serialize_settings
+    temp_manager = SettingsManager(mode="build-dev")
+    temp_manager.settings = settings
+
+    # Use _serialize_settings instead of manual dictionary creation
+    settings_dict = temp_manager._serialize_settings()
 
     # Save to data_dev.json
     with open(data_dev_path, 'w', encoding='utf-8') as f:

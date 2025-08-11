@@ -45,6 +45,12 @@ import webbrowser
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Callable, Optional, Union, cast
 
+# Import requests at module level for MistralProvider
+try:
+    import requests
+except ImportError:
+    requests = None
+
 if TYPE_CHECKING:
     from Windows_and_Linux.config.interfaces import ProviderConfig
 
@@ -1109,7 +1115,9 @@ class MistralProvider(AIProvider):
             return ""
 
         try:
-            import requests
+            # Check if requests library is available
+            if requests is None:
+                raise ImportError("requests library not available")
 
             # Check if API key and model are configured
             if not self.api_key or self.api_key.strip() == "":

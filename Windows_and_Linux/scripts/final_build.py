@@ -4,11 +4,15 @@ Writing Tools - Final Build Script
 Cross-platform final release build with environment setup
 """
 
+import json
 import os
 import subprocess
 import sys
 import shutil
 import argparse
+from pathlib import Path
+from config.data_operations import create_default_settings
+from config.settings import SettingsManager
 
 
 try:
@@ -80,15 +84,7 @@ def setup_build_final_mode():
     """
     Create data.json in dist/production/ for build-final mode with correct run_mode.
     """
-    import json
-    import os
-    from pathlib import Path
-
-    # Import the default configuration
-    import sys
-
     sys.path.insert(0, os.path.abspath('.'))
-    from config.data_operations import create_default_settings
 
     production_dir = Path("dist/production")
     production_dir.mkdir(parents=True, exist_ok=True)
@@ -99,12 +95,12 @@ def setup_build_final_mode():
     settings = create_default_settings()
     settings.system["run_mode"] = "build-final"
 
-    # Convert to dictionary for JSON serialization
-    settings_dict = {
-        "system": dict(settings.system),
-        "actions": {name: dict(action) for name, action in settings.actions.items()},
-        "custom_data": settings.custom_data,
-    }
+    # Create a temporary SettingsManager to use _serialize_settings
+    temp_manager = SettingsManager(mode="build-final")
+    temp_manager.settings = settings
+
+    # Use _serialize_settings instead of manual dictionary creation
+    settings_dict = temp_manager._serialize_settings()
 
     # Save to data.json
     with open(data_file_path, 'w', encoding='utf-8') as f:
