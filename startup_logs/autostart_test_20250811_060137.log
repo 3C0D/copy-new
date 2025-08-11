@@ -1,6 +1,0 @@
-2025-08-11 06:01:37,975 - INFO - === WRITING TOOLS AUTOSTART MANAGER ===
-2025-08-11 06:01:37,977 - INFO - Installing autostart for Writing Tools...
-2025-08-11 06:01:37,977 - INFO - Found executable: C:\Users\dd200\Desktop\Bureau temp\Mes_projets\copy-new\Windows_and_Linux\dist\production\Writing Tools.exe
-2025-08-11 06:01:37,979 - INFO - ✓ Autostart installed: WritingTools
-2025-08-11 06:01:37,979 - INFO -   Command: "C:\Users\dd200\Desktop\Bureau temp\Mes_projets\copy-new\Windows_and_Linux\dist\production\Writing Tools.exe"
-2025-08-11 06:01:37,981 - INFO - Full log saved to: startup_logs\autostart_test_20250811_060137.log

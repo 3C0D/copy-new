@@ -4,9 +4,15 @@
 # IDE files
 .idea
 
-# VSCode - Keep settings.json but exclude other files
-# .vscode/*
-# !.vscode/settings.json
+# VSCode settings (exclude all VSCode config files)
+.vscode/
+Windows_and_Linux/.vscode/
+
+# Development notes and temporary docs
+dev_notes/
+ARCHITECTURE_DOCUMENT.md
+MODIFICATIONS_LOG.md
+STARTUP_DEBUG_README.md
 
 # Python cache and compiled files
 **/__pycache__

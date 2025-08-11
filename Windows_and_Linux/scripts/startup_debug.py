@@ -1,8 +1,24 @@
 #!/usr/bin/env python3
 """
-Script de debug pour le démarrage de Writing Tools.
-Ce script capture tous les logs détaillés du processus de démarrage
-pour diagnostiquer les problèmes de systray au boot.
+Writing Tools - Startup Debug Script
+
+This script captures detailed startup logs to diagnose systray issues at boot.
+Useful for debugging when the application starts but the systray icon doesn't appear.
+
+Usage:
+    python scripts/startup_debug.py
+
+The script will:
+1. Launch Writing Tools with detailed logging
+2. Monitor systray icon creation and visibility
+3. Save logs to startup_logs/ directory
+4. Display real-time status in console
+
+When to use:
+- Application launches but systray icon is missing
+- Silent startup failures
+- Boot-time systray issues
+- Need detailed startup diagnostics
 """
 
 import logging

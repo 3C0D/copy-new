@@ -1,7 +1,0 @@
-11/08/2025  4:04:51,72 - Startup debug batch started 
-11/08/2025  4:04:51,75 - Launching Python script 
-11/08/2025  4:04:52,13 - Python script failed with error 1 
-11/08/2025  5:13:15,78 - Startup debug batch started 
-11/08/2025  5:13:15,80 - Using venv Python: C:\Users\dd200\Desktop\Bureau temp\Mes_projets\copy-new\Windows_and_Linux\myvenv\Scripts\python.exe 
-11/08/2025  5:13:15,82 - Launching Python script with: C:\Users\dd200\Desktop\Bureau temp\Mes_projets\copy-new\Windows_and_Linux\myvenv\Scripts\python.exe 
-11/08/2025  5:13:24,80 - Python script failed with error 1 

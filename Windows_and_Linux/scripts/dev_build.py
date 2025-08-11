@@ -2,6 +2,20 @@
 """
 Writing Tools - Development Build Script
 Cross-platform development build with environment setup
+
+Usage:
+    python scripts/dev_build.py                    # Standard windowed build
+    python scripts/dev_build.py --console          # Console mode build (for debugging)
+    python scripts/dev_build.py --console --arg    # Console build with extra args
+
+Console Mode:
+    Use --console when you need to see real-time logs and debug output.
+    The executable will show a console window with live application logs.
+    Useful for debugging startup issues, systray problems, or provider errors.
+
+Standard Mode:
+    Default windowed mode hides the console. Logs are written to build_dev_debug.log.
+    Use this for normal development and testing.
 """
 
 import os
