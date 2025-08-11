@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 from config.constants import PROVIDER_DISPLAY_NAMES
 from config.data_operations import get_provider_display_name, get_provider_internal_name
 from ui.AutostartManager import AutostartManager
-from ui.ui_utils import ThemedWidget, ui_utils
+from ui.ui_utils import ThemedWidget, ui_utils, get_icon_path
 from ui.ThemeManager import ThemeAwareMixin, theme_manager
 
 _ = lambda x: x
@@ -366,13 +366,9 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
 
         # Load and display provider logo if available
         if provider.logo:
-            logo_path = os.path.join(
-                os.path.dirname(sys.argv[0]),
-                "config",
-                "icons",
-                f"provider_{provider.logo}.png",
-            )
-            if os.path.exists(logo_path):
+            # Use get_icon_path for proper path resolution in all modes (dev, build, etc.)
+            logo_path = get_icon_path(f"provider_{provider.logo}", with_theme=False)
+            if logo_path and os.path.exists(logo_path):
                 targetPixmap = ui_utils.resize_and_round_image(
                     QImage(logo_path),
                     30,
@@ -382,6 +378,8 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                 logo_label.setPixmap(targetPixmap)
                 logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
                 provider_header_layout.addWidget(logo_label)
+            else:
+                logging.debug(f"Provider logo not found: {logo_path} for provider {provider.logo}")
 
         # Provider name display
         provider_name_label = QtWidgets.QLabel(provider.provider_name)

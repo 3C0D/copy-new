@@ -33,6 +33,7 @@ python3 scripts/update_deps.py
 ```
 
 This script will:
+
 - ✅ Create/update the virtual environment (`myvenv/`)
 - ✅ Install/update all dependencies from `requirements.txt`
 - ✅ Handle both new installations and updates
@@ -45,21 +46,39 @@ The project includes a `.vscode/settings.json` file with optimal configuration:
 
 ```json
 {
-    "python.defaultInterpreterPath": "./myvenv/Scripts/python.exe",
-    "python.terminal.activateEnvironment": true,
-    "python.formatting.provider": "black",
-    "python.analysis.typeCheckingMode": "basic"
+  "python.defaultInterpreterPath": "./myvenv/Scripts/python.exe",
+  "python.terminal.activateEnvironment": true,
+  "python.formatting.provider": "black",
+  "python.analysis.typeCheckingMode": "basic"
 }
 ```
 
 **Key Benefits:**
+
 - 🐍 **Auto Python Detection**: Uses the virtual environment Python automatically
 - 🔄 **Auto Environment**: New terminals automatically activate the virtual environment
 - 🎨 **Black Formatting**: Consistent code formatting (strongly recommended)
 - 🔍 **Type Checking**: Basic level resolves Qt library access issues
 
+### ⚠️ **CRITICAL: Python Interpreter Setup**
+
+**You MUST manually select the Python interpreter** to avoid seeing 20+ import errors:
+
+1. **Open VS Code** in the project directory
+2. **Press `Ctrl+Shift+P`** (or `Cmd+Shift+P` on Mac)
+3. **Type**: `Python: Select Interpreter`
+4. **Choose**: `Windows_and_Linux/myvenv/Scripts/python.exe` (Windows) or `Windows_and_Linux/myvenv/bin/python` (Linux)
+
+**Alternative method:**
+
+- Click on the Python version in the bottom-left status bar
+- Select the virtual environment interpreter
+
+**Without this step**, VS Code will show numerous import errors even though the code runs correctly.
+
 ### **Important Notes**
 
+- ⚠️ **Manual interpreter selection is REQUIRED** (settings.json alone is not sufficient)
 - ✅ **Keep `.vscode/settings.json`** in version control (it's essential for proper setup)
 - ✅ **Scripts work without manual venv activation** (handled automatically)
 - ✅ **Black formatter is strongly recommended** for code consistency

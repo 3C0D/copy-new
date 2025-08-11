@@ -63,19 +63,43 @@ class WritingToolApp(QtWidgets.QApplication):
         self._logger = logging.getLogger(__name__)
         self._logger.debug("Initializing WritingToolApp")
 
-        self._setup_core_attributes()
-        self._setup_signals()
-        self._setup_settings()
-        self._setup_ui_components()
-        self._setup_hotkey_system()
-        self._setup_ai_providers()
-        self._setup_spam_protection()
+        try:
+            self._logger.debug("Setting up core attributes...")
+            self._setup_core_attributes()
 
-        # Initialize app based on configuration state
-        if not self.settings_manager.has_providers_configured():
-            self._handle_first_launch()
-        else:
-            self._handle_normal_launch()
+            self._logger.debug("Setting up signals...")
+            self._setup_signals()
+
+            self._logger.debug("Setting up settings...")
+            self._setup_settings()
+
+            self._logger.debug("Setting up UI components...")
+            self._setup_ui_components()
+
+            self._logger.debug("Setting up hotkey system...")
+            self._setup_hotkey_system()
+
+            self._logger.debug("Setting up AI providers...")
+            self._setup_ai_providers()
+
+            self._logger.debug("Setting up spam protection...")
+            self._setup_spam_protection()
+
+            # Initialize app based on configuration state
+            self._logger.debug("Checking provider configuration...")
+            if not self.settings_manager.has_providers_configured():
+                self._logger.debug("No providers configured, handling first launch...")
+                self._handle_first_launch()
+            else:
+                self._logger.debug("Providers configured, handling normal launch...")
+                self._handle_normal_launch()
+
+        except Exception as e:
+            self._logger.error(f"Critical error during WritingToolApp initialization: {e}")
+            import traceback
+
+            self._logger.error(f"Full traceback: {traceback.format_exc()}")
+            raise
 
     def _setup_core_attributes(self):
         """Initialize core application attributes."""
@@ -197,8 +221,9 @@ class WritingToolApp(QtWidgets.QApplication):
         )
 
         if startup_delay_needed:
-            # Shorter delay for better user experience
-            delay = 1000 if is_frozen else 500  # 1s for exe, 0.5s for dev
+            # Longer delay for Windows startup - systray needs more time to be ready
+            delay = 5000 if is_frozen else 2000  # 5s for exe, 2s for dev
+            logging.info(f"Startup delay detected - waiting {delay/1000}s for system tray to be ready")
             logging.debug(f"Detected potential startup scenario, delaying tray icon creation by {delay}ms")
             QtCore.QTimer.singleShot(delay, self.create_tray_icon)
         else:
@@ -997,7 +1022,7 @@ class WritingToolApp(QtWidgets.QApplication):
 
         logging.debug("Tray icon setup completed")
 
-    def _is_system_tray_available_with_retry(self, max_retries=3, delay_ms=500):
+    def _is_system_tray_available_with_retry(self, max_retries=5, delay_ms=1000):
         """
         Check if system tray is available with retry mechanism.
         This is especially important during Windows startup when the system tray

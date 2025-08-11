@@ -55,6 +55,37 @@ Navigate to the `Windows_and_Linux` directory and use the build scripts:
 - **build-dev --console**: Same as build-dev but with console visible for real-time log viewing
 - **build-final**: Production build with minimal logging
 
+## 🐛 **Debug Mode with Console**
+
+For troubleshooting startup issues and seeing real-time logs:
+
+```bash
+# Build with visible console for debugging
+python Windows_and_Linux/scripts/dev_build.py --console
+```
+
+**What this mode provides:**
+
+- ✅ Console window stays open during execution
+- ✅ Real-time log output visible immediately
+- ✅ Helps diagnose startup crashes and systray issues
+- ✅ Shows exactly where the application fails
+
+**When to use:**
+
+- Application launches but doesn't appear in system tray
+- Startup crashes or silent failures
+- Need to see initialization steps in real-time
+- Debugging provider configuration issues
+
+**Troubleshooting methodology:**
+
+1. Build with `--console` flag
+2. Launch the executable and watch console output
+3. Note the last successful step before any crash
+4. Use the detailed logs to identify the exact problem
+5. Fix the issue and rebuild in normal mode
+
 The scripts will automatically:
 
 - ✅ Create a virtual environment (`myvenv/`)
