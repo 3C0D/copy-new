@@ -106,9 +106,7 @@ class TextSetting(AIProviderSetting):
     def render_to_layout(self, layout: QVBoxLayout):
         row_layout = QtWidgets.QHBoxLayout()
         label = QtWidgets.QLabel(self.display_name)
-        label.setStyleSheet(
-            f"font-size: 16px; color: {'#ffffff' if colorMode=='dark' else '#333333'};"
-        )
+        label.setStyleSheet(f"font-size: 16px; color: {'#ffffff' if colorMode=='dark' else '#333333'};")
         row_layout.addWidget(label)
         self.input = QtWidgets.QLineEdit(self.internal_value)
         self.input.setStyleSheet(
@@ -154,9 +152,7 @@ class DropdownSetting(AIProviderSetting):
     def render_to_layout(self, layout: QVBoxLayout):
         row_layout = QtWidgets.QHBoxLayout()
         label = QtWidgets.QLabel(self.display_name)
-        label.setStyleSheet(
-            f"font-size: 16px; color: {'#ffffff' if colorMode=='dark' else '#333333'};"
-        )
+        label.setStyleSheet(f"font-size: 16px; color: {'#ffffff' if colorMode=='dark' else '#333333'};")
         row_layout.addWidget(label)
         self.dropdown = QtWidgets.QComboBox()
         self.dropdown.setEditable(self.editable)  # Allow custom input if editable
@@ -269,9 +265,7 @@ class AIProvider(ABC):
         if "providers" not in self.app.settings_manager.settings.custom_data:
             self.app.settings_manager.settings.custom_data["providers"] = {}
 
-        self.app.settings_manager.settings.custom_data["providers"][
-            self.provider_name
-        ] = config
+        self.app.settings_manager.settings.custom_data["providers"][self.provider_name] = config
         self.app.settings_manager.save_settings()
 
     @abstractmethod
@@ -334,9 +328,7 @@ class GeminiProvider(AIProvider):
             lambda: webbrowser.open("https://aistudio.google.com/app/apikey"),
         )
 
-    def get_response(
-        self, system_instruction: str, prompt: str, return_response: bool = False
-    ) -> str:
+    def get_response(self, system_instruction: str, prompt: str, return_response: bool = False) -> str:
         """
         Generate content using Gemini.
 
@@ -348,9 +340,7 @@ class GeminiProvider(AIProvider):
 
         # Check if model is configured
         if not self.model:
-            error_msg = (
-                "Gemini API key not configured. Please add your API key in settings."
-            )
+            error_msg = "Gemini API key not configured. Please add your API key in settings."
             logging.error(error_msg)
             if not return_response:
                 # Show a user-friendly message box instead of just emitting to output
@@ -362,15 +352,12 @@ class GeminiProvider(AIProvider):
             return error_msg
 
         # Single-shot call with streaming disabled
-        response = self.model.generate_content(
-            contents=[system_instruction, prompt], stream=False
-        )
+        response = self.model.generate_content(contents=[system_instruction, prompt], stream=False)
 
         try:
             response_text = response.text.rstrip("\n")
             if not return_response and not hasattr(self.app, "current_response_window"):
                 self.app.output_ready_signal.emit(response_text)
-                self.app.replace_text(True)
                 return ""
             return response_text
         except Exception as e:
@@ -383,10 +370,7 @@ class GeminiProvider(AIProvider):
                     "Invalid API Key",
                     "Your Gemini API key is invalid. Please check your API key in Settings and make sure it's correct.",
                 )
-            elif (
-                "quota exceeded" in error_str.lower()
-                or "resource exhausted" in error_str.lower()
-            ):
+            elif "quota exceeded" in error_str.lower() or "resource exhausted" in error_str.lower():
                 self.app.show_message_signal.emit(
                     "Quota Exceeded",
                     "You've exceeded your Gemini API quota. Please check your usage limits or try again later.",
@@ -466,9 +450,7 @@ class OpenAICompatibleProvider(AIProvider):
                 "",
                 "Leave blank if not applicable.",
             ),
-            TextSetting(
-                "api_project", "API Project", "", "Leave blank if not applicable."
-            ),
+            TextSetting("api_project", "API Project", "", "Leave blank if not applicable."),
             DropdownSetting(
                 name="api_model",
                 display_name="API Model",
@@ -488,9 +470,7 @@ class OpenAICompatibleProvider(AIProvider):
             lambda: webbrowser.open("https://platform.openai.com/account/api-keys"),
         )
 
-    def get_response(
-        self, system_instruction: str, prompt: str | list, return_response: bool = False
-    ) -> str:
+    def get_response(self, system_instruction: str, prompt: str | list, return_response: bool = False) -> str:
         """
         Send a chat request to the OpenAI-compatible API.
 
@@ -524,10 +504,7 @@ class OpenAICompatibleProvider(AIProvider):
             logging.error(f"Error while generating content: {error_str}")
 
             # Handle specific OpenAI API errors
-            if (
-                "invalid api key" in error_str.lower()
-                or "unauthorized" in error_str.lower()
-            ):
+            if "invalid api key" in error_str.lower() or "unauthorized" in error_str.lower():
                 self.app.show_message_signal.emit(
                     "Invalid API Key",
                     "Your OpenAI API key is invalid. Please check your API key in Settings and make sure it's correct.",
@@ -537,10 +514,7 @@ class OpenAICompatibleProvider(AIProvider):
                     "Rate Limit Hit",
                     "You've hit an API rate/usage limit. Please try again later or check your OpenAI usage limits.",
                 )
-            elif (
-                "insufficient_quota" in error_str.lower()
-                or "quota" in error_str.lower()
-            ):
+            elif "insufficient_quota" in error_str.lower() or "quota" in error_str.lower():
                 self.app.show_message_signal.emit(
                     "Quota Exceeded",
                     "You've exceeded your OpenAI API quota. Please check your billing and usage limits.",
@@ -573,9 +547,7 @@ def get_ollama_models():
     Returns a list of tuples (display_name, model_name) for installed models.
     """
     try:
-        result = subprocess.run(
-            ["ollama", "list"], capture_output=True, text=True, timeout=10
-        )
+        result = subprocess.run(["ollama", "list"], capture_output=True, text=True, timeout=10)
 
         if result.returncode == 0:
             lines = result.stdout.strip().split("\n")
@@ -669,9 +641,7 @@ class OllamaProvider(AIProvider):
             ),
         )
 
-    def get_response(
-        self, system_instruction: str, prompt: str | list, return_response: bool = False
-    ) -> str:
+    def get_response(self, system_instruction: str, prompt: str | list, return_response: bool = False) -> str:
         """
         Send a chat request to the Ollama server.
 
@@ -821,13 +791,13 @@ class AnthropicProvider(AIProvider):
 
             response_text = response.choices[0].message.content
             logging.debug(f"Anthropic API response: {response_text}")
-            logging.debug(
-                f"Anthropic response length: {len(response_text) if response_text else 0}"
-            )
+            logging.debug(f"Anthropic response length: {len(response_text) if response_text else 0}")
 
             # Handle empty or None response
             if not response_text or response_text.strip() == "":
-                error_msg = "Anthropic API returned an empty response. This might be due to insufficient credits or API limits."
+                error_msg = (
+                    "Anthropic API returned an empty response. This might be due to insufficient credits or API limits."
+                )
                 logging.warning(error_msg)
                 self.app.show_message_signal.emit(
                     "Empty Response",
@@ -926,9 +896,7 @@ class MistralProvider(AIProvider):
         conversation_history=None,
         return_response=False,
     ):
-        logging.debug(
-            f"MistralProvider.get_response called with return_response={return_response}"
-        )
+        logging.debug(f"MistralProvider.get_response called with return_response={return_response}")
         logging.debug(
             f"MistralProvider current config - api_key: {self.api_key[:10] if self.api_key else 'None'}..., api_model: {self.api_model}"
         )
@@ -950,9 +918,7 @@ class MistralProvider(AIProvider):
                 return ""
 
             if not self.api_model or self.api_model.strip() == "":
-                error_msg = (
-                    "Mistral model not selected. Please select a model in settings."
-                )
+                error_msg = "Mistral model not selected. Please select a model in settings."
                 logging.error(error_msg)
                 self.app.show_message_signal.emit(
                     "Model Missing",
@@ -960,9 +926,7 @@ class MistralProvider(AIProvider):
                 )
                 return ""
 
-            logging.debug(
-                f"Mistral API call - Key: {self.api_key[:10]}..., Model: {self.api_model}"
-            )
+            logging.debug(f"Mistral API call - Key: {self.api_key[:10]}..., Model: {self.api_model}")
 
             # Prepare messages using direct requests (like the working test code)
             url = "https://api.mistral.ai/v1/chat/completions"
@@ -1009,9 +973,7 @@ class MistralProvider(AIProvider):
                     response_text = result["choices"][0]["message"]["content"]
 
                     logging.debug(f"Mistral API response: {response_text}")
-                    logging.debug(
-                        f"Mistral response length: {len(response_text) if response_text else 0}"
-                    )
+                    logging.debug(f"Mistral response length: {len(response_text) if response_text else 0}")
 
                     # Handle empty or None response
                     if not response_text or response_text.strip() == "":

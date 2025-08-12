@@ -486,7 +486,6 @@ class GeminiProvider(AIProvider):
             response_text = response.text.rstrip("\n")
             if not return_response and not hasattr(self.app, "current_response_window"):
                 self.app.output_ready_signal.emit(response_text)
-                self.app.replace_text(response_text)
                 return ""
             return response_text
         except Exception as e:
