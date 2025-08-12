@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <style>
+    .icon-stroke-back { stroke: #AAA; }
+    .icon-stroke-front { stroke: #888; }
+    .icon-fill { fill: #666; }
+    @media (prefers-color-scheme: dark) {
+      .icon-stroke-back { stroke: #BBB; }
+      .icon-stroke-front { stroke: #DDD; }
+      .icon-fill { fill: #FFF; }
+    }
+  </style>
+  <!-- Background square with thicker strokes -->
+  <rect x="14" y="6" width="42" height="42" rx="5" ry="5" fill="none" class="icon-stroke-back" stroke-width="2"/>
+  <!-- Front square with thicker strokes -->
+  <rect x="6" y="14" width="42" height="42" rx="5" ry="5" fill="none" class="icon-stroke-front" stroke-width="2"/>
+  <!-- Adaptive centered M↓ text -->
+  <text x="32" y="35" font-size="18" font-family="Arial, sans-serif" class="icon-fill" font-weight="bold" text-anchor="middle">M↓</text>
+</svg>

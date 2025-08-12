@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Carré du fond avec traits plus épais -->
+  <rect x="20" y="12" width="32" height="32" rx="4" ry="4" fill="none" stroke="#666" stroke-width="2"/>
+  <!-- Carré du dessus avec traits plus épais -->
+  <rect x="12" y="20" width="32" height="32" rx="4" ry="4" fill="none" stroke="#333" stroke-width="2"/>
+  <!-- Texte M↓ plus foncé pour le thème light -->
+  <text x="24" y="36" font-size="14" font-family="Arial, sans-serif" fill="#000" font-weight="bold">M↓</text>
+</svg>
