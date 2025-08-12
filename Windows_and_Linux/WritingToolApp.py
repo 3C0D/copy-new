@@ -640,9 +640,15 @@ class WritingToolApp(QtWidgets.QApplication):
         except Exception as e:
             self._logger.error(f"Error clearing clipboard: {e}")
 
-    def process_option(self, option, selected_text, custom_change=None):
+    def process_option(self, option, selected_text, custom_change=None, force_chat=False):
         """
         Process the selected writing option in a separate thread.
+
+        Args:
+            option: The action option to process
+            selected_text: The text selected by the user
+            custom_change: Custom instruction for "Custom" option
+            force_chat: If True, force response to open in ResponseWindow (chat mode)
         """
         self._logger.debug(f"Processing option: {option}")
 
@@ -651,12 +657,20 @@ class WritingToolApp(QtWidgets.QApplication):
             self._logger.error(f"Action not found: {option}")
             return
 
-        if (is_empty_custom := option == "Custom" and not selected_text.strip()) or action_config.get(
-            "open_in_window", False
-        ):
+        # Check if we need to setup response window
+        should_setup_window = (
+            (is_empty_custom := option == "Custom" and not selected_text.strip())
+            or action_config.get("open_in_window", False)
+            or (force_chat and selected_text.strip())  # Force Chat with text
+        )
+
+        if should_setup_window:
             self._setup_response_window(is_empty_custom, option, selected_text)
         elif hasattr(self, "current_response_window"):
             delattr(self, "current_response_window")
+
+        # Store force_chat state for the thread
+        self._current_force_chat = force_chat
 
         # Start processing thread
         threading.Thread(
@@ -760,9 +774,12 @@ class WritingToolApp(QtWidgets.QApplication):
         """Determine if response should be displayed in a window."""
         has_selected_text = selected_text.strip() != ""
         is_custom_option = option == "Custom"
+        force_chat = getattr(self, '_current_force_chat', False)
 
-        return (is_custom_option and not has_selected_text) or (
-            has_selected_text and action_config.get("open_in_window", False)
+        return (
+            (is_custom_option and not has_selected_text)
+            or (has_selected_text and action_config.get("open_in_window", False))
+            or (force_chat and has_selected_text)
         )
 
     def _process_window_response(self, option, selected_text, custom_change, prompt_data):
