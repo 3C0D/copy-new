@@ -368,10 +368,8 @@ class SettingsManager:
         # Dev mode: check if we're already in dist/dev/
         if "dist" in str(self.base_dir) and "dev" in str(self.base_dir):
             return self.base_dir / "dev_debug.log"
-        # We're in the main directory, create dist/dev/ and put log there
-        dist_dev_path = self.base_dir / self.DIST_DEV_PATH
-        dist_dev_path.mkdir(parents=True, exist_ok=True)
-        return dist_dev_path / "dev_debug.log"
+        # We're in the main directory, return path to dist/dev/ (will be created later)
+        return self.base_dir / self.DIST_DEV_PATH / "dev_debug.log"
 
     def _log_initialization_info(self):
         """Log debug information about initialization."""

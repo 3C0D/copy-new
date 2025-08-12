@@ -11,6 +11,10 @@ import sys
 import shutil
 import argparse
 from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from config.data_operations import create_default_settings
 from config.settings import SettingsManager
 
@@ -84,8 +88,6 @@ def setup_build_final_mode():
     """
     Create data.json in dist/production/ for build-final mode with correct run_mode.
     """
-    sys.path.insert(0, os.path.abspath('.'))
-
     production_dir = Path("dist/production")
     production_dir.mkdir(parents=True, exist_ok=True)
 

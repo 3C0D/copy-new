@@ -105,8 +105,6 @@ def setup_build_dev_mode():
     Create or update data_dev.json in dist/dev/ for build-dev mode with correct run_mode.
     Preserves existing configuration if file already exists.
     """
-    sys.path.insert(0, os.path.abspath('.'))
-
     dist_dev_dir = Path("dist/dev")
     dist_dev_dir.mkdir(parents=True, exist_ok=True)
 
@@ -315,6 +313,25 @@ def run_dev_build(venv_path="myvenv", console_mode=False):
         return False
 
 
+def cleanup_temp_directories():
+    """Clean up temporary directories created during PyInstaller analysis."""
+    # Look for nested Windows_and_Linux directories that may have been created
+    nested_path = Path("Windows_and_Linux")
+    if nested_path.exists() and nested_path.is_dir():
+        try:
+            import shutil
+            import time
+
+            # Wait a moment for any file handles to be released
+            time.sleep(1)
+            shutil.rmtree(nested_path)
+            print(f"Cleaned up temporary directory: {nested_path}")
+        except Exception as e:
+            # If cleanup fails, it's not critical - just inform the user
+            print(f"Note: Temporary directory {nested_path} will be cleaned on next build (file in use)")
+            print(f"  This is normal and doesn't affect functionality.")
+
+
 def launch_build(extra_args=None):
     """Launch the built executable, killing any existing instance first."""
     exe_name = get_executable_name()
@@ -400,6 +417,10 @@ def main():
             print("Console mode was enabled - you should see logs directly in the terminal when the exe runs.")
         else:
             print("Windowed mode - check dist/dev/build_dev_debug.log for detailed logs.")
+
+        # Clean up any temporary directories created during PyInstaller analysis
+        # cleanup_temp_directories()
+
         return 0
 
     except KeyboardInterrupt:
