@@ -218,6 +218,12 @@ class SettingsManager:
 
         # Running as compiled executable - auto-detect mode
         exe_dir = os.path.dirname(sys.executable)
+
+        # Special case: if we're in a dist/dev directory, treat as dev mode
+        # This handles the case where dev_build.py creates an exe in dist/dev/
+        if "dist" in exe_dir and "dev" in exe_dir:
+            return "dev"
+
         if os.path.exists(os.path.join(exe_dir, self.DATA_FILE)):
             return "build-final"
         if os.path.exists(os.path.join(exe_dir, self.DATA_DEV_FILE)):
@@ -234,6 +240,11 @@ class SettingsManager:
         """Resolve the configuration directory based on mode."""
         if self._is_build_final():
             return self.base_dir
+        # If we're in dist/dev/, the config directory is in the project root
+        if "dist" in str(self.base_dir) and "dev" in str(self.base_dir):
+            # Go back to project root and find config
+            project_root = self.base_dir.parent.parent
+            return project_root / "config"
         return self.base_dir / "config"
 
     def _resolve_data_file_path(self) -> Path:
@@ -243,6 +254,9 @@ class SettingsManager:
         if self.mode == "build-dev":
             return self.base_dir / self.DATA_DEV_FILE
         # Dev mode: data_dev.json in dist/dev/
+        # But if we're already in dist/dev/, don't add another dist/dev/
+        if "dist" in str(self.base_dir) and "dev" in str(self.base_dir):
+            return self.base_dir / self.DATA_DEV_FILE
         return self.base_dir / self.DIST_DEV_PATH / self.DATA_DEV_FILE
 
     def _ensure_directories_exist(self):
@@ -344,8 +358,20 @@ class SettingsManager:
     def _get_log_file_path(self) -> Path:
         """Get the appropriate log file path based on mode."""
         if self.mode == "build-dev":
-            return self.base_dir / "build_dev_debug.log"
-        return self.base_dir / self.DIST_DEV_PATH / "dev_debug.log"
+            # For build-dev mode, check if we're already in dist/dev/
+            if "dist" in str(self.base_dir) and "dev" in str(self.base_dir):
+                # We're in dist/dev/, use dev_debug.log for consistency
+                return self.base_dir / "dev_debug.log"
+            else:
+                # We're in the main directory, use build_dev_debug.log
+                return self.base_dir / "build_dev_debug.log"
+        # Dev mode: check if we're already in dist/dev/
+        if "dist" in str(self.base_dir) and "dev" in str(self.base_dir):
+            return self.base_dir / "dev_debug.log"
+        # We're in the main directory, create dist/dev/ and put log there
+        dist_dev_path = self.base_dir / self.DIST_DEV_PATH
+        dist_dev_path.mkdir(parents=True, exist_ok=True)
+        return dist_dev_path / "dev_debug.log"
 
     def _log_initialization_info(self):
         """Log debug information about initialization."""

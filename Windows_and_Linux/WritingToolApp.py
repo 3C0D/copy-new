@@ -272,6 +272,12 @@ class WritingToolApp(QtWidgets.QApplication):
             return "dev"
 
         base_dir = os.path.dirname(sys.executable)
+
+        # Special case: if we're in a dist/dev directory, treat as dev mode
+        # This handles the case where dev_build.py creates an exe in dist/dev/
+        if "dist" in base_dir and "dev" in base_dir:
+            return "dev"
+
         if os.path.exists(os.path.join(base_dir, "data.json")):
             return "build-final"
         if os.path.exists(os.path.join(base_dir, "data_dev.json")):

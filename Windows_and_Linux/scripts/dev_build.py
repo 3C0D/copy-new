@@ -102,7 +102,8 @@ def copy_required_files():
 
 def setup_build_dev_mode():
     """
-    Create data_dev.json in dist/dev/ for build-dev mode with correct run_mode.
+    Create or update data_dev.json in dist/dev/ for build-dev mode with correct run_mode.
+    Preserves existing configuration if file already exists.
     """
     sys.path.insert(0, os.path.abspath('.'))
 
@@ -111,22 +112,45 @@ def setup_build_dev_mode():
 
     data_dev_path = dist_dev_dir / "data_dev.json"
 
-    # Create default settings with build-dev run_mode
-    settings = create_default_settings()
-    settings.system["run_mode"] = "build-dev"
+    if data_dev_path.exists():
+        # File exists - load existing settings and only update run_mode
+        print(f"Found existing data_dev.json, preserving configuration: {data_dev_path}")
 
-    # Create a temporary SettingsManager to use _serialize_settings
-    temp_manager = SettingsManager(mode="build-dev")
-    temp_manager.settings = settings
+        # Create a temporary SettingsManager to load existing settings
+        temp_manager = SettingsManager(mode="dev")  # Use dev mode to load from dist/dev/
+        temp_manager.data_file = data_dev_path
+        existing_settings = temp_manager.load_settings()
 
-    # Use _serialize_settings instead of manual dictionary creation
-    settings_dict = temp_manager._serialize_settings()
+        # Only update the run_mode to match build context
+        existing_settings.system["run_mode"] = "dev"  # Keep as dev mode for consistency
 
-    # Save to data_dev.json
-    with open(data_dev_path, 'w', encoding='utf-8') as f:
-        json.dump(settings_dict, f, indent=2, ensure_ascii=False)
+        # Save the updated settings
+        temp_manager.settings = existing_settings
+        settings_dict = temp_manager._serialize_settings()
 
-    print(f"Created data_dev.json with build-dev mode: {data_dev_path}")
+        with open(data_dev_path, 'w', encoding='utf-8') as f:
+            json.dump(settings_dict, f, indent=2, ensure_ascii=False)
+
+        print(f"Updated existing data_dev.json with preserved configuration")
+    else:
+        # File doesn't exist - create new with default settings
+        print(f"Creating new data_dev.json with default settings: {data_dev_path}")
+
+        settings = create_default_settings()
+        settings.system["run_mode"] = "dev"  # Use dev mode for consistency
+
+        # Create a temporary SettingsManager to use _serialize_settings
+        temp_manager = SettingsManager(mode="dev")
+        temp_manager.settings = settings
+
+        # Use _serialize_settings instead of manual dictionary creation
+        settings_dict = temp_manager._serialize_settings()
+
+        # Save to data_dev.json
+        with open(data_dev_path, 'w', encoding='utf-8') as f:
+            json.dump(settings_dict, f, indent=2, ensure_ascii=False)
+
+        print(f"Created new data_dev.json with default settings")
 
 
 def run_dev_build(venv_path="myvenv", console_mode=False):
@@ -333,7 +357,7 @@ def main():
     args = parser.parse_args()
 
     console_mode = args.console
-    extra_args = args.extra_args if args.extra_args else None
+    extra_args = args.extra_args or None
 
     try:
         # Setup project root
