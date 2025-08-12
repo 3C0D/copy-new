@@ -26,6 +26,78 @@ if TYPE_CHECKING:
 _ = lambda x: x
 
 
+class ToggleSwitch(QWidget):
+    """Custom toggle switch widget with sliding circle animation"""
+
+    toggled = QtCore.Signal(bool)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(50, 24)
+        self.setCheckable(True)
+        self._checked = False
+        self._circle_position = 2
+        self._animation = QtCore.QPropertyAnimation(self, b"circle_position")
+        self._animation.setDuration(150)
+
+    def setChecked(self, checked):
+        if self._checked != checked:
+            self._checked = checked
+            self._animate_to_position()
+            self.toggled.emit(checked)
+
+    def isChecked(self):
+        return self._checked
+
+    def setCheckable(self, checkable):
+        # For compatibility with QCheckBox interface
+        pass
+
+    @QtCore.Property(int)
+    def circle_position(self):
+        return self._circle_position
+
+    @circle_position.setter
+    def circle_position(self, pos):
+        self._circle_position = pos
+        self.update()
+
+    def _animate_to_position(self):
+        start_pos = 2 if not self._checked else 28
+        end_pos = 28 if self._checked else 2
+
+        self._animation.setStartValue(start_pos)
+        self._animation.setEndValue(end_pos)
+        self._animation.start()
+
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
+            self.setChecked(not self._checked)
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+
+        # Colors based on theme
+        dark_mode = get_effective_color_mode() == 'dark'
+
+        if self._checked:
+            bg_color = QtGui.QColor("#2196F3")  # Blue when ON
+        else:
+            bg_color = QtGui.QColor("#444" if dark_mode else "#ddd")  # Gray when OFF
+
+        circle_color = QtGui.QColor("white")
+
+        # Draw background
+        painter.setBrush(QtGui.QBrush(bg_color))
+        painter.setPen(QtCore.Qt.PenStyle.NoPen)
+        painter.drawRoundedRect(0, 0, 50, 24, 12, 12)
+
+        # Draw circle
+        painter.setBrush(QtGui.QBrush(circle_color))
+        painter.drawEllipse(self._circle_position, 2, 20, 20)
+
+
 class ButtonEditDialog(QDialog):
     """
     Dialog for editing or creating a button's properties
@@ -332,6 +404,11 @@ class CustomPopupWindow(QtWidgets.QWidget):
         self.custom_input = None
         self.input_area = None
 
+        # Force Chat toggle and lock state
+        self.force_chat_toggle = None
+        self.force_chat_lock = None
+        self.force_chat_area = None
+
         self.button_widgets = []
 
         self.init_ui()
@@ -516,6 +593,10 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
         content_layout.addWidget(self.input_area)
 
+        # Force Chat toggle area (only shown when text is selected)
+        if self.has_text:
+            self.create_force_chat_toggle(content_layout)
+
         if self.has_text:
             self.build_buttons_list()
             self.rebuild_grid_layout(content_layout)
@@ -541,6 +622,114 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
         self.installEventFilter(self)
         QtCore.QTimer.singleShot(250, lambda: self.custom_input.setFocus() if self.custom_input else None)
+
+        # Track edit mode to prevent multiple popups
+        if self.custom_input:
+            # Store original methods
+            self._original_focus_in = self.custom_input.focusInEvent
+            self._original_focus_out = self.custom_input.focusOutEvent
+            # Override with our tracking methods
+            self.custom_input.focusInEvent = self._on_focus_in
+            self.custom_input.focusOutEvent = self._on_focus_out
+        self.edit_mode = False
+
+    def create_force_chat_toggle(self, parent_layout):
+        """Create the Force Chat toggle with lock button."""
+        self.force_chat_area = QWidget()
+        force_chat_layout = QHBoxLayout(self.force_chat_area)
+        force_chat_layout.setContentsMargins(5, 2, 5, 2)
+        force_chat_layout.setSpacing(6)
+
+        # Label
+        label = QLabel("Force Chat:")
+        label.setStyleSheet(f"color: {'#fff' if get_effective_color_mode()=='dark' else '#333'}; font-size: 11px;")
+
+        # Check if we should restore the locked state
+        force_chat_locked = getattr(self.app.settings_manager, 'force_chat_locked', False)
+        force_chat_enabled = getattr(self.app.settings_manager, 'force_chat_enabled', False)
+
+        # Force Chat toggle switch (custom widget with sliding animation)
+        self.force_chat_toggle = ToggleSwitch()
+
+        if force_chat_locked:
+            self.force_chat_toggle.setChecked(force_chat_enabled)
+
+        # Lock button (cadenas) - restore saved state
+        self.force_chat_lock = QPushButton("🔓")
+        self.force_chat_lock.setCheckable(True)
+        self.force_chat_lock.setChecked(force_chat_locked)  # Restore saved state
+        self.force_chat_lock.setFixedSize(20, 20)
+        self.force_chat_lock.setToolTip("Lock this setting to keep it between uses")
+
+        # Update lock icon based on state
+        self.update_lock_icon()
+
+        self.force_chat_lock.setStyleSheet(
+            f"""
+            QPushButton {{
+                background-color: transparent;
+                border: 1px solid {'#666' if get_effective_color_mode()=='dark' else '#555'};
+                border-radius: 4px;
+                padding: 1px;
+                font-size: 10px;
+            }}
+            QPushButton:hover {{
+                background-color: {'#555' if get_effective_color_mode()=='dark' else '#e0e0e0'};
+            }}
+            QPushButton:checked {{
+                background-color: {'#4CAF50' if get_effective_color_mode()=='dark' else '#4CAF50'};
+                color: white;
+                border: 1px solid {'#4CAF50' if get_effective_color_mode()=='dark' else '#4CAF50'};
+            }}
+        """
+        )
+
+        # Connect signals
+        self.force_chat_toggle.toggled.connect(self.on_force_chat_toggled)
+        self.force_chat_lock.toggled.connect(self.on_force_chat_lock_toggled)
+
+        # Add to layout
+        force_chat_layout.addWidget(label)
+        force_chat_layout.addWidget(self.force_chat_toggle)
+        force_chat_layout.addWidget(self.force_chat_lock)
+        force_chat_layout.addStretch()
+
+        parent_layout.addWidget(self.force_chat_area)
+
+    def update_lock_icon(self):
+        """Update the lock icon based on current state."""
+        if self.force_chat_lock and self.force_chat_lock.isChecked():
+            self.force_chat_lock.setText("🔒")
+        else:
+            self.force_chat_lock.setText("🔓")
+
+    def on_force_chat_toggled(self, checked):
+        """Handle Force Chat toggle state change."""
+        # If locked, save the state
+        if self.force_chat_lock and self.force_chat_lock.isChecked():
+            self.app.settings_manager.force_chat_enabled = checked
+            self.app.settings_manager.save()
+
+    def on_force_chat_lock_toggled(self, checked):
+        """Handle Force Chat lock state change."""
+        self.update_lock_icon()
+
+        # Save lock state
+        self.app.settings_manager.force_chat_locked = checked
+
+        if checked:
+            # When locking, save current toggle state
+            self.app.settings_manager.force_chat_enabled = self.force_chat_toggle.isChecked()
+        else:
+            # When unlocking, reset toggle to default (off)
+            self.force_chat_toggle.setChecked(False)
+            self.app.settings_manager.force_chat_enabled = False
+
+        self.app.settings_manager.save()
+
+    def is_force_chat_enabled(self):
+        """Check if Force Chat is currently enabled."""
+        return self.force_chat_toggle and self.force_chat_toggle.isChecked()
 
     def get_actions(self):
         """
@@ -749,9 +938,11 @@ class CustomPopupWindow(QtWidgets.QWidget):
             return
 
         # Only continue if entering edit mode
-        # Toggle the main input area
+        # Toggle the main input area and force chat area
         if self.input_area is not None:
             self.input_area.setVisible(not self.edit_mode)
+        if self.force_chat_area is not None:
+            self.force_chat_area.setVisible(not self.edit_mode)
 
         # Update button overlays
         for btn in self.button_widgets:
@@ -843,6 +1034,8 @@ class CustomPopupWindow(QtWidgets.QWidget):
             self.close_button.show()
         if hasattr(self, 'input_area') and self.input_area is not None:
             self.input_area.setVisible(True)
+        if hasattr(self, 'force_chat_area') and self.force_chat_area is not None:
+            self.force_chat_area.setVisible(not self.edit_mode)
 
     def on_reset_clicked(self):
         """
@@ -865,7 +1058,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
                 if hasattr(self.app, "settings_manager") and self.app.settings_manager.settings:
                     # Reset actions to defaults
                     self.app.settings_manager.settings.actions = create_default_actions_config()
-                    self.app.save_settings()
+                    self.app.settings_manager.save()
                 else:
                     logging.error("Settings manager not available for reset")
 
@@ -1038,7 +1231,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
         # Update settings and save
         self.app.settings_manager.settings.actions = new_actions
-        self.app.save_settings()
+        self.app.settings_manager.save()
 
     def reload_window(self):
         """
@@ -1062,12 +1255,12 @@ class CustomPopupWindow(QtWidgets.QWidget):
     def on_custom_change(self):
         txt = self.custom_input.text().strip() if self.custom_input else ""
         if txt:
-            self.app.process_option("Custom", self.selected_text, txt)
+            self.app.process_option("Custom", self.selected_text, txt, force_chat=self.is_force_chat_enabled())
             self.close()
 
     def on_generic_instruction(self, instruction):
         if not self.edit_mode:
-            self.app.process_option(instruction, self.selected_text)
+            self.app.process_option(instruction, self.selected_text, force_chat=self.is_force_chat_enabled())
             self.close()
 
     def eventFilter(self, obj, event):
@@ -1088,3 +1281,15 @@ class CustomPopupWindow(QtWidgets.QWidget):
                 self.close()
         else:
             super().keyPressEvent(event)
+
+    def _on_focus_in(self, event):
+        """Called when custom_input gains focus."""
+        self.edit_mode = True
+        if hasattr(self, '_original_focus_in'):
+            self._original_focus_in(event)
+
+    def _on_focus_out(self, event):
+        """Called when custom_input loses focus."""
+        self.edit_mode = False
+        if hasattr(self, '_original_focus_out'):
+            self._original_focus_out(event)
