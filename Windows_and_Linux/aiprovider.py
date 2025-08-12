@@ -447,8 +447,10 @@ class GeminiProvider(AIProvider):
             app,
             "Gemini (Recommended)",
             settings,
-            "• Google’s Gemini is a powerful AI model available for free!\n"
+            "• Google's Gemini is a powerful AI model available for free!\n"
             "• An API key is required to connect to Gemini on your behalf.\n"
+            "• Safety filters are set to 'Block Only High' (most permissive setting available).\n"
+            "• If content is still blocked, try rephrasing your request more neutrally.\n"
             "• Click the button below to get your API key.",
             "gemini",
             "Get API Key",
@@ -479,15 +481,89 @@ class GeminiProvider(AIProvider):
                 return ""
             return error_msg
 
-        # Single-shot call with streaming disabled
-        response = self.model.generate_content(contents=[system_instruction, prompt], stream=False)
-
         try:
-            response_text = response.text.rstrip("\n")
+            # Single-shot call with streaming disabled
+            response = self.model.generate_content(contents=[system_instruction, prompt], stream=False)
+
+            # Check if response was blocked by safety filters
+            if not response.candidates:
+                error_msg = "Gemini blocked the request due to safety concerns. Try rephrasing your request."
+                logging.warning("Gemini response blocked - no candidates returned")
+                self.app.show_message_signal.emit(
+                    "Content Blocked",
+                    error_msg,
+                )
+                return ""
+
+            # Check the finish reason of the first candidate
+            candidate = response.candidates[0]
+            
+            # Finish reason meanings:
+            # 1: STOP (normal completion)
+            # 2: SAFETY (blocked by safety filters)  
+            # 3: RECITATION (blocked due to recitation)
+            # 4: OTHER (other reason)
+            if candidate.finish_reason == 2:  # SAFETY
+                error_msg = "Gemini blocked the response due to safety filters. Try rephrasing your request to be more neutral."
+                logging.warning(f"Gemini safety filter triggered. Finish reason: {candidate.finish_reason}")
+                self.app.show_message_signal.emit(
+                    "Content Blocked by Safety Filters",
+                    error_msg,
+                )
+                return ""
+            elif candidate.finish_reason == 3:  # RECITATION
+                error_msg = "Gemini blocked the response due to potential copyright concerns. Try a more original request."
+                logging.warning(f"Gemini recitation filter triggered. Finish reason: {candidate.finish_reason}")
+                self.app.show_message_signal.emit(
+                    "Content Blocked - Copyright Concern",
+                    error_msg,
+                )
+                return ""
+            elif candidate.finish_reason not in [1, None]:  # Not STOP or unset
+                error_msg = f"Gemini could not complete the response (reason code: {candidate.finish_reason}). Please try again."
+                logging.warning(f"Gemini unusual finish reason: {candidate.finish_reason}")
+                self.app.show_message_signal.emit(
+                    "Response Incomplete",
+                    error_msg,
+                )
+                return ""
+
+            # Check if response has content parts
+            if not candidate.content or not candidate.content.parts:
+                error_msg = "Gemini returned an empty response. Please try rephrasing your request."
+                logging.warning("Gemini returned no content parts")
+                self.app.show_message_signal.emit(
+                    "Empty Response",
+                    error_msg,
+                )
+                return ""
+
+            # Safely extract text from response
+            try:
+                response_text = response.text.rstrip("\n")
+            except ValueError as text_error:
+                # Fallback: manually extract text from parts
+                text_parts = []
+                for part in candidate.content.parts:
+                    if hasattr(part, 'text') and part.text:
+                        text_parts.append(part.text)
+                
+                if text_parts:
+                    response_text = "".join(text_parts).rstrip("\n")
+                else:
+                    error_msg = f"Could not extract text from Gemini response: {str(text_error)}"
+                    logging.error(error_msg)
+                    self.app.show_message_signal.emit(
+                        "Response Processing Error",
+                        "Could not process the response from Gemini. Please try again.",
+                    )
+                    return ""
+
             if not return_response and not hasattr(self.app, "current_response_window"):
                 self.app.output_ready_signal.emit(response_text)
                 return ""
             return response_text
+
         except Exception as e:
             error_str = str(e)
             logging.exception(f"Error processing Gemini response: {error_str}")
@@ -508,6 +584,11 @@ class GeminiProvider(AIProvider):
                     "Rate Limit Hit",
                     "You're sending requests too quickly. Please wait a moment and try again.",
                 )
+            elif "finish_reason" in error_str.lower() and "safety" in error_str.lower():
+                self.app.show_message_signal.emit(
+                    "Content Blocked",
+                    "Gemini blocked the request due to safety concerns. Try rephrasing your request to be more neutral.",
+                )
             else:
                 # Generic error with option to check settings
                 self.app.show_message_signal.emit(
@@ -524,7 +605,7 @@ class GeminiProvider(AIProvider):
         Configure the google.generativeai client and create the generative model.
 
         Only initialize model if API key is provided and genai is available.
-        Configures safety settings to block no content types.
+        Uses BLOCK_ONLY_HIGH instead of BLOCK_NONE due to 2025 API restrictions.
         """
         # Only configure if API key is provided and genai is available
         if (
@@ -538,6 +619,20 @@ class GeminiProvider(AIProvider):
             # Use try-except to handle the configure method
             try:
                 genai.configure(api_key=self.api_key)
+                
+                # Updated safety settings for 2025 - BLOCK_NONE is now restricted
+                # Use BLOCK_ONLY_HIGH for maximum permissiveness without special access
+                safety_settings = {
+                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                }
+                
+                # Check if CIVIC_INTEGRITY category exists (may vary by API version)
+                if hasattr(HarmCategory, 'HARM_CATEGORY_CIVIC_INTEGRITY'):
+                    safety_settings[HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY] = HarmBlockThreshold.BLOCK_ONLY_HIGH
+                
                 self.model = genai.GenerativeModel(
                     model_name=self.model_name,
                     generation_config=genai.types.GenerationConfig(
@@ -545,19 +640,22 @@ class GeminiProvider(AIProvider):
                         max_output_tokens=1000,
                         temperature=0.5,
                     ),
-                    safety_settings={
-                        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-                    },
+                    safety_settings=safety_settings,
                 )
+                
+                # Log the safety configuration for debugging
+                logging.info(f"Gemini model initialized with BLOCK_ONLY_HIGH safety settings for model: {self.model_name}")
+                
             except AttributeError as e:
-                print(f"Error configuring Google Generative AI: {e}")
+                logging.error(f"Error configuring Google Generative AI: {e}")
+                self.model = None
+            except Exception as e:
+                # Handle potential API key or configuration errors
+                logging.error(f"Failed to initialize Gemini model: {e}")
                 self.model = None
         else:
             self.model = None
-
+            
     def before_load(self):
         """Clean up model instance before reloading."""
         self.model = None
