@@ -1,8 +1,4 @@
 """
-revoir les import anarchiques dans le code et les rendre compatible avec win and linux. Aussi peutêtre voir dans tout Les modules les imports Pour qu'il respecte la même règle Que ça ça importe sous Windows ou Linux parce que y a eu des méthodes différentes J'ai vu Donc il faudrait homogénéiser ça Et mettre la plus efficace.
-
-
-
 AI Provider Architecture for Writing Tools
 --------------------------------------------
 
@@ -43,24 +39,38 @@ Note: Streaming has been fully removed throughout the code.
 # but all imports (configure, types.HarmCategory, etc.) work correctly at runtime
 # pyright: reportPrivateImportUsage=false
 
+# Standard library imports
 import logging
 import os
 import platform
+import shutil
 import subprocess
 import tempfile
 import webbrowser
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Callable, Optional, Union, cast
 
+# Third-party imports (with fallbacks for optional dependencies)
 try:
     import requests
 except ImportError:
     requests = None
 
-if TYPE_CHECKING:
-    from Windows_and_Linux.config.interfaces import ProviderConfig
+try:
+    from ollama import Client as OllamaClient
+except ImportError:
+    OllamaClient = None
 
-# External libraries
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
+
+# PySide6 imports
+from PySide6 import QtCore, QtWidgets
+from PySide6.QtWidgets import QVBoxLayout
+
+# Google Generative AI imports (with fallbacks)
 try:
     import google.generativeai as genai
     from google.generativeai.types import HarmBlockThreshold, HarmCategory
@@ -70,11 +80,7 @@ except ImportError:
     HarmBlockThreshold = None  # type: ignore
     HarmCategory = None  # type: ignore
 
-from ollama import Client as OllamaClient
-from openai import OpenAI
-from PySide6 import QtWidgets, QtCore
-from PySide6.QtWidgets import QVBoxLayout
-
+# Local imports
 from config.constants import (
     ANTHROPIC_MODELS,
     GEMINI_MODELS,
@@ -84,7 +90,9 @@ from config.constants import (
 from config.data_operations import get_default_model_for_provider
 from ui.ui_utils import colorMode
 
+# Type checking imports
 if TYPE_CHECKING:
+    from Windows_and_Linux.config.interfaces import ProviderConfig
     from Windows_and_Linux.WritingToolApp import WritingToolApp
 
 
@@ -856,12 +864,13 @@ class OpenAICompatibleProvider(AIProvider):
 
     def after_load(self):
         """Initialize OpenAI client with configured settings."""
-        self.client = OpenAI(
-            api_key=self.api_key,
-            base_url=self.api_base,
-            organization=self.api_organisation,
-            project=self.api_project,
-        )
+        if OpenAI is not None:
+            self.client = OpenAI(
+                api_key=self.api_key,
+                base_url=self.api_base,
+                organization=self.api_organisation,
+                project=self.api_project,
+            )
 
     def before_load(self):
         """Clean up client before reloading."""
@@ -876,9 +885,8 @@ def find_ollama_executable():
     """
     Find the Ollama executable in standard installation locations.
     Returns the path to ollama executable or None if not found.
+    Compatible with Windows and Linux platforms.
     """
-    import shutil
-
     # First try to find ollama in PATH
     ollama_path = shutil.which("ollama")
     if ollama_path:
@@ -1366,7 +1374,8 @@ class OllamaProvider(AIProvider):
 
     def after_load(self):
         """Initialize Ollama client with configured base URL."""
-        self.client = OllamaClient(host=self.api_base)
+        if OllamaClient is not None:
+            self.client = OllamaClient(host=self.api_base)
 
     def before_load(self):
         """Clean up client before reloading."""
@@ -1444,7 +1453,7 @@ class AnthropicProvider(AIProvider):
 
         try:
             # Initialize client if not already done
-            if not self.client:
+            if not self.client and OpenAI is not None:
                 self.client = OpenAI(
                     api_key=self.api_key,
                     base_url="https://api.anthropic.com/v1",
@@ -1526,13 +1535,14 @@ class AnthropicProvider(AIProvider):
 
     def after_load(self):
         """Initialize Anthropic client with proper authentication."""
-        self.client = OpenAI(
-            api_key=self.api_key,
-            base_url="https://api.anthropic.com/v1",
-            default_headers={
-                "anthropic-version": "2023-06-01",
-            },
-        )
+        if OpenAI is not None:
+            self.client = OpenAI(
+                api_key=self.api_key,
+                base_url="https://api.anthropic.com/v1",
+                default_headers={
+                    "anthropic-version": "2023-06-01",
+                },
+            )
 
     def before_load(self):
         """Clean up client before reloading."""
