@@ -1,4 +1,8 @@
 """
+revoir les import anarchiques dans le code et les rendre compatible avec win and linux. Aussi peutêtre voir dans tout Les modules les imports Pour qu'il respecte la même règle Que ça ça importe sous Windows ou Linux parce que y a eu des méthodes différentes J'ai vu Donc il faudrait homogénéiser ça Et mettre la plus efficace.
+
+
+
 AI Provider Architecture for Writing Tools
 --------------------------------------------
 
@@ -40,12 +44,14 @@ Note: Streaming has been fully removed throughout the code.
 # pyright: reportPrivateImportUsage=false
 
 import logging
+import os
+import platform
 import subprocess
+import tempfile
 import webbrowser
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Callable, Optional, Union, cast
 
-# Import requests at module level for MistralProvider
 try:
     import requests
 except ImportError:
@@ -192,12 +198,14 @@ class DropdownSetting(AIProviderSetting):
         description: Optional[str] = None,
         options: Optional[list] = None,
         editable: bool = False,
+        refresh_callback: Optional[Callable] = None,
     ):
         super().__init__(name, display_name, default_value, description)
         self.options = options or []
         self.internal_value = default_value
         self.dropdown: Optional[QtWidgets.QComboBox] = None
         self.editable = editable
+        self.refresh_callback = refresh_callback
 
     def render_to_layout(self, layout: QVBoxLayout):
         """Create and configure the QComboBox with available options."""
@@ -243,6 +251,25 @@ class DropdownSetting(AIProviderSetting):
             else:
                 self.dropdown.currentIndexChanged.connect(self.auto_save_callback)
 
+        # Connect refresh callback when dropdown is about to be shown
+        if self.refresh_callback:
+            # Use a custom event filter to detect when dropdown is about to open
+            def on_dropdown_about_to_show():
+                self.refresh_callback()
+
+            # Connect to the aboutToShow signal if available, or use showPopup override
+            if hasattr(self.dropdown, 'aboutToShow'):
+                self.dropdown.aboutToShow.connect(on_dropdown_about_to_show)
+            else:
+                # Override showPopup to call refresh before showing
+                original_show_popup = self.dropdown.showPopup
+
+                def show_popup_with_refresh():
+                    self.refresh_callback()
+                    original_show_popup()
+
+                self.dropdown.showPopup = show_popup_with_refresh
+
         row_layout.addWidget(self.dropdown)
         layout.addLayout(row_layout)
 
@@ -266,6 +293,31 @@ class DropdownSetting(AIProviderSetting):
             return current_text
         # For non-editable dropdowns, return the data
         return self.dropdown.currentData()
+
+    def refresh_options(self, new_options: list):
+        """Refresh the dropdown options dynamically."""
+        if self.dropdown is None:
+            self.options = new_options
+            return
+
+        # Save current selection
+        current_value = self.get_value()
+
+        # Clear and repopulate dropdown
+        self.dropdown.clear()
+        self.options = new_options
+
+        for option, value in self.options:
+            self.dropdown.addItem(option, value)
+
+        # Restore selection if possible
+        if current_value:
+            if self.editable:
+                self.dropdown.setCurrentText(str(current_value))
+            else:
+                index = self.dropdown.findData(current_value)
+                if index != -1:
+                    self.dropdown.setCurrentIndex(index)
 
 
 class AIProvider(ABC):
@@ -311,9 +363,23 @@ class AIProvider(ABC):
         self.button_action = button_action
         self.logo = logo
 
+        # Support for multiple buttons (for providers that need refresh functionality)
+        self.additional_buttons = []
+
         # Initialize dynamic attributes based on provider settings
         # These attributes will be updated during configuration loading
         self._initialize_dynamic_attributes()
+
+    def add_button(self, text: str, action: Callable, style: str = "secondary"):
+        """Add an additional button to the provider UI."""
+        self.additional_buttons.append({"text": text, "action": action, "style": style})
+
+    def refresh_configuration(self):
+        """
+        Refresh the provider configuration dynamically.
+        This method should be overridden by providers that need dynamic reconfiguration.
+        """
+        pass
 
     def _initialize_dynamic_attributes(self):
         """Initialize all dynamic attributes based on provider settings."""
@@ -497,14 +563,16 @@ class GeminiProvider(AIProvider):
 
             # Check the finish reason of the first candidate
             candidate = response.candidates[0]
-            
+
             # Finish reason meanings:
             # 1: STOP (normal completion)
-            # 2: SAFETY (blocked by safety filters)  
+            # 2: SAFETY (blocked by safety filters)
             # 3: RECITATION (blocked due to recitation)
             # 4: OTHER (other reason)
             if candidate.finish_reason == 2:  # SAFETY
-                error_msg = "Gemini blocked the response due to safety filters. Try rephrasing your request to be more neutral."
+                error_msg = (
+                    "Gemini blocked the response due to safety filters. Try rephrasing your request to be more neutral."
+                )
                 logging.warning(f"Gemini safety filter triggered. Finish reason: {candidate.finish_reason}")
                 self.app.show_message_signal.emit(
                     "Content Blocked by Safety Filters",
@@ -512,7 +580,9 @@ class GeminiProvider(AIProvider):
                 )
                 return ""
             elif candidate.finish_reason == 3:  # RECITATION
-                error_msg = "Gemini blocked the response due to potential copyright concerns. Try a more original request."
+                error_msg = (
+                    "Gemini blocked the response due to potential copyright concerns. Try a more original request."
+                )
                 logging.warning(f"Gemini recitation filter triggered. Finish reason: {candidate.finish_reason}")
                 self.app.show_message_signal.emit(
                     "Content Blocked - Copyright Concern",
@@ -547,7 +617,7 @@ class GeminiProvider(AIProvider):
                 for part in candidate.content.parts:
                     if hasattr(part, 'text') and part.text:
                         text_parts.append(part.text)
-                
+
                 if text_parts:
                     response_text = "".join(text_parts).rstrip("\n")
                 else:
@@ -619,7 +689,7 @@ class GeminiProvider(AIProvider):
             # Use try-except to handle the configure method
             try:
                 genai.configure(api_key=self.api_key)
-                
+
                 # Updated safety settings for 2025 - BLOCK_NONE is now restricted
                 # Use BLOCK_ONLY_HIGH for maximum permissiveness without special access
                 safety_settings = {
@@ -628,11 +698,11 @@ class GeminiProvider(AIProvider):
                     HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
                     HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
                 }
-                
+
                 # Check if CIVIC_INTEGRITY category exists (may vary by API version)
                 if hasattr(HarmCategory, 'HARM_CATEGORY_CIVIC_INTEGRITY'):
                     safety_settings[HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY] = HarmBlockThreshold.BLOCK_ONLY_HIGH
-                
+
                 self.model = genai.GenerativeModel(
                     model_name=self.model_name,
                     generation_config=genai.types.GenerationConfig(
@@ -642,10 +712,12 @@ class GeminiProvider(AIProvider):
                     ),
                     safety_settings=safety_settings,
                 )
-                
+
                 # Log the safety configuration for debugging
-                logging.info(f"Gemini model initialized with BLOCK_ONLY_HIGH safety settings for model: {self.model_name}")
-                
+                logging.info(
+                    f"Gemini model initialized with BLOCK_ONLY_HIGH safety settings for model: {self.model_name}"
+                )
+
             except AttributeError as e:
                 logging.error(f"Error configuring Google Generative AI: {e}")
                 self.model = None
@@ -655,7 +727,7 @@ class GeminiProvider(AIProvider):
                 self.model = None
         else:
             self.model = None
-            
+
     def before_load(self):
         """Clean up model instance before reloading."""
         self.model = None
@@ -800,6 +872,261 @@ class OpenAICompatibleProvider(AIProvider):
         self.close_requested = True
 
 
+def find_ollama_executable():
+    """
+    Find the Ollama executable in standard installation locations.
+    Returns the path to ollama executable or None if not found.
+    """
+    import shutil
+
+    # First try to find ollama in PATH
+    ollama_path = shutil.which("ollama")
+    if ollama_path:
+        return ollama_path
+
+    # If not found in PATH, check standard installation locations
+    system = platform.system().lower()
+
+    if system == "windows":
+        # Standard Windows installation locations
+        possible_paths = [
+            os.path.expanduser("~\\AppData\\Local\\Programs\\Ollama\\ollama.exe"),
+            "C:\\Program Files\\Ollama\\ollama.exe",
+            "C:\\Program Files (x86)\\Ollama\\ollama.exe",
+        ]
+    elif system == "linux":
+        # Standard Linux installation locations
+        possible_paths = [
+            "/usr/local/bin/ollama",
+            "/usr/bin/ollama",
+            os.path.expanduser("~/.local/bin/ollama"),
+        ]
+    else:
+        return None
+
+    # Check each possible path
+    for path in possible_paths:
+        if os.path.isfile(path) and os.access(path, os.X_OK):
+            return path
+
+    return None
+
+
+def is_ollama_installed():
+    """
+    Check if Ollama is installed and available on the system.
+    Returns True if Ollama is installed, False otherwise.
+    """
+    ollama_path = find_ollama_executable()
+    if not ollama_path:
+        return False
+
+    try:
+        result = subprocess.run([ollama_path, "--version"], check=False, capture_output=True, text=True, timeout=5)
+        return result.returncode == 0
+    except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+        return False
+
+
+def install_ollama_auto(app):
+    """
+    Automatically detect platform and install Ollama.
+    """
+    system = platform.system().lower()
+
+    if system == "windows":
+        return install_ollama_windows(app)
+    elif system == "linux":
+        return install_ollama_linux(app)
+    else:
+        app.show_message_signal.emit(
+            "Plateforme non supportée",
+            f"L'installation automatique n'est pas supportée sur {system}.\n\nVeuillez installer manuellement depuis https://ollama.com",
+        )
+        return False
+
+
+def install_ollama_windows(app):
+    """
+    Download and install Ollama on Windows automatically.
+    Shows a progress window with animated loading dots during the process.
+    """
+    from ui.ProgressWindow import OllamaInstallProgressWindow
+    from PySide6.QtWidgets import QApplication
+
+    # Create and show progress window
+    progress_window = OllamaInstallProgressWindow()
+    progress_window.show()
+    progress_window.start_animation()
+
+    # Process events to show the window
+    QApplication.processEvents()
+
+    cancelled = False
+
+    def on_cancel():
+        nonlocal cancelled
+        cancelled = True
+
+    progress_window.cancelled.connect(on_cancel)
+
+    try:
+        # Import requests here to avoid issues if not available
+        import requests
+
+        if cancelled:
+            return False
+
+        # Download Ollama installer
+        ollama_url = "https://ollama.com/download/OllamaSetup.exe"
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".exe") as temp_file:
+            temp_path = temp_file.name
+
+            response = requests.get(ollama_url, stream=True, allow_redirects=True)
+            response.raise_for_status()
+
+            total_size = int(response.headers.get('content-length', 0))
+            downloaded = 0
+
+            for chunk in response.iter_content(chunk_size=8192):
+                if cancelled:
+                    progress_window.close()
+                    try:
+                        os.unlink(temp_path)
+                    except:
+                        pass
+                    return False
+
+                if chunk:
+                    temp_file.write(chunk)
+                    downloaded += len(chunk)
+
+                # Process events to keep UI responsive
+                QApplication.processEvents()
+
+        if cancelled:
+            progress_window.close()
+            try:
+                os.unlink(temp_path)
+            except:
+                pass
+            return False
+
+        # Switch to installing state
+        progress_window.set_installing()
+        QApplication.processEvents()
+
+        # Run installer with elevated privileges
+        result = subprocess.run([temp_path], check=False)
+
+        # Switch to finishing state
+        progress_window.set_finishing()
+        QApplication.processEvents()
+
+        # Clean up temp file
+        try:
+            os.unlink(temp_path)
+        except:
+            pass
+
+        progress_window.close()
+
+        if result.returncode == 0:
+            app.show_message_signal.emit(
+                "Installation réussie",
+                "Ollama a été installé avec succès ! Vous pouvez maintenant télécharger des modèles.",
+            )
+            return True
+        else:
+            app.show_message_signal.emit("Installation annulée", "L'installation d'Ollama a été annulée ou a échoué.")
+            return False
+
+    except ImportError:
+        progress_window.close()
+        app.show_message_signal.emit(
+            "Erreur", "La bibliothèque 'requests' n'est pas disponible. Installation manuelle requise."
+        )
+        return False
+    except Exception as e:
+        progress_window.close()
+        logging.exception(f"Error installing Ollama: {e}")
+        app.show_message_signal.emit(
+            "Erreur d'installation",
+            f"Erreur lors de l'installation d'Ollama: {str(e)}\n\nVeuillez installer manuellement depuis https://ollama.com",
+        )
+        return False
+
+
+def install_ollama_linux(app):
+    """
+    Install Ollama on Linux using the official installation script.
+    """
+    from ui.ProgressWindow import OllamaInstallProgressWindow
+    from PySide6.QtWidgets import QApplication
+
+    # Create and show progress window
+    progress_window = OllamaInstallProgressWindow()
+    progress_window.show()
+    progress_window.start_animation()
+
+    # Process events to show the window
+    QApplication.processEvents()
+
+    cancelled = False
+
+    def on_cancel():
+        nonlocal cancelled
+        cancelled = True
+
+    progress_window.cancelled.connect(on_cancel)
+
+    try:
+        if cancelled:
+            return False
+
+        # Use the official Ollama installation script for Linux
+        install_command = "curl -fsSL https://ollama.com/install.sh | sh"
+
+        progress_window.set_installing()
+        QApplication.processEvents()
+
+        # Run the installation command
+        result = subprocess.run(install_command, shell=True, check=False, capture_output=True, text=True)
+
+        if cancelled:
+            progress_window.close()
+            return False
+
+        progress_window.set_finishing()
+        QApplication.processEvents()
+
+        progress_window.close()
+
+        if result.returncode == 0:
+            app.show_message_signal.emit(
+                "Installation réussie",
+                "Ollama a été installé avec succès ! Vous pouvez maintenant télécharger des modèles.",
+            )
+            return True
+        else:
+            error_msg = result.stderr if result.stderr else "Erreur inconnue"
+            app.show_message_signal.emit(
+                "Erreur d'installation",
+                f"L'installation d'Ollama a échoué:\n\n{error_msg}\n\nVeuillez installer manuellement depuis https://ollama.com",
+            )
+            return False
+
+    except Exception as e:
+        progress_window.close()
+        logging.exception(f"Error installing Ollama on Linux: {e}")
+        app.show_message_signal.emit(
+            "Erreur d'installation",
+            f"Erreur lors de l'installation d'Ollama: {str(e)}\n\nVeuillez installer manuellement depuis https://ollama.com",
+        )
+        return False
+
+
 def get_ollama_models():
     """
     Get list of installed Ollama models by running 'ollama list' command.
@@ -808,8 +1135,13 @@ def get_ollama_models():
     Parses the command output to extract model names and sizes.
     Handles error cases (Ollama not installed, no models, etc.).
     """
+    # Find Ollama executable
+    ollama_path = find_ollama_executable()
+    if not ollama_path:
+        return [("Ollama not available - Please install it", "")]
+
     try:
-        result = subprocess.run(["ollama", "list"], check=False, capture_output=True, text=True, timeout=10)
+        result = subprocess.run([ollama_path, "list"], check=False, capture_output=True, text=True, timeout=10)
 
         if result.returncode == 0:
             lines = result.stdout.strip().split("\n")
@@ -887,6 +1219,7 @@ class OllamaProvider(AIProvider):
                 description="Models are automatically detected from your Ollama installation",
                 options=ollama_models,
                 editable=False,  # Don't allow custom model names for Ollama
+                refresh_callback=self._refresh_models,
             ),
             TextSetting(
                 "keep_alive",
@@ -895,18 +1228,82 @@ class OllamaProvider(AIProvider):
                 "E.g. 5",
             ),
         ]
+
+        # Determine button text and action based on Ollama installation status
+        if is_ollama_installed():
+            button_text = "Instructions d'installation"
+            button_action = lambda: webbrowser.open(
+                "https://github.com/theJayTea/WritingTools?tab=readme-ov-file#-optional-ollama-local-llm-instructions-for-windows-v7-onwards"
+            )
+            description = "• Connect to an Ollama server (local LLM).\n• Ollama est installé et prêt à utiliser."
+        else:
+            button_text = "Installer Ollama automatiquement"
+            button_action = lambda: self._install_ollama()
+            description = "• Connect to an Ollama server (local LLM).\n• Ollama n'est pas installé. Cliquez sur le bouton pour l'installer automatiquement."
+
         super().__init__(
             app,
             "Ollama (For Experts)",
             settings,
-            "• Connect to an Ollama server (local LLM).",
+            description,
             "ollama",
-            "Ollama Set-up Instructions",
-            lambda: webbrowser.open(
-                "https://github.com/theJayTea/WritingTools?tab=readme-ov-file#-optional-ollama-local-llm-instructions-for-windows-v7-onwards",
-            ),
+            button_text,
+            button_action,
             "ollama",
         )
+
+        # Add refresh button for updating the interface after installation
+        self.add_button("🔄 Actualiser", self._refresh_ui, "secondary")
+
+    def _refresh_models(self):
+        """Refresh the list of available Ollama models."""
+        ollama_models = get_ollama_models()
+        for setting in self.settings:
+            if setting.name == "api_model" and hasattr(setting, 'refresh_options'):
+                setting.refresh_options(ollama_models)
+                break
+
+    def refresh_configuration(self):
+        """Refresh the Ollama provider configuration based on current installation status."""
+        # Re-detect Ollama installation status and update configuration
+        if is_ollama_installed():
+            self.button_text = "Instructions d'installation"
+            self.button_action = lambda: webbrowser.open(
+                "https://github.com/theJayTea/WritingTools?tab=readme-ov-file#-optional-ollama-local-llm-instructions-for-windows-v7-onwards"
+            )
+            self.description = "• Connect to an Ollama server (local LLM).\n• Ollama est installé et prêt à utiliser."
+        else:
+            self.button_text = "Installer Ollama automatiquement"
+            self.button_action = lambda: self._install_ollama()
+            self.description = "• Connect to an Ollama server (local LLM).\n• Ollama n'est pas installé. Cliquez sur le bouton pour l'installer automatiquement."
+
+        # Update model list and settings
+        ollama_models = get_ollama_models()
+        for setting in self.settings:
+            if setting.name == "api_model" and hasattr(setting, 'refresh_options'):
+                # Refresh the dropdown options
+                setting.refresh_options(ollama_models)
+                # Update default value if models are available and current value is empty
+                current_value = setting.get_value() if hasattr(setting, 'get_value') else ""
+                if ollama_models and ollama_models[0][1] and not current_value:
+                    setting.set_value(ollama_models[0][1])
+                break
+
+    def _refresh_ui(self):
+        """Refresh the UI to reflect current Ollama installation status."""
+        # Use the refresh_configuration method to update the provider
+        self.refresh_configuration()
+
+        # Refresh the provider UI
+        if hasattr(self.app, 'settings_window') and self.app.settings_window:
+            self.app.settings_window._on_provider_changed()
+
+    def _install_ollama(self):
+        """Handle Ollama installation and UI refresh."""
+        success = install_ollama_auto(self.app)
+        if success:
+            # Automatically refresh UI after successful installation
+            self._refresh_ui()
 
     def get_response(self, system_instruction: str, prompt: Union[str, list], return_response: bool = False) -> str:
         """

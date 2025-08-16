@@ -340,6 +340,9 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         Initialize the user interface for the provider, including logo, name, description and all settings.
         Dynamically builds UI based on provider configuration.
         """
+        # Refresh provider configuration before building UI (for dynamic providers like Ollama)
+        if hasattr(provider, 'refresh_configuration'):
+            provider.refresh_configuration()
         # Clean up previous provider UI to prevent memory leaks and layout conflicts
         if self.current_provider_layout:
             # Remove the old layout from its parent container first
@@ -400,29 +403,72 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             description_label.setWordWrap(True)
             self.current_provider_layout.addWidget(description_label)
 
-        # Original single button logic
-        if provider.button_text:
-            button = QtWidgets.QPushButton(provider.button_text)
-            # Use effective mode based on user settings
-            current_mode = self._get_effective_mode()
-            button.setStyleSheet(
-                f"""
-                    QPushButton {{
-                        background-color: {'#4CAF50' if current_mode == 'dark' else '#008CBA'};
-                        color: white;
-                        padding: 10px;
-                        font-size: 16px;
-                        border: none;
-                        border-radius: 5px;
-                    }}
-                    QPushButton:hover {{
-                        background-color: {'#45a049' if current_mode == 'dark' else '#007095'};
-                    }}
-                """,
-            )
-            button.clicked.connect(provider.button_action)
+        # Button container for multiple buttons
+        if provider.button_text or (hasattr(provider, 'additional_buttons') and provider.additional_buttons):
+            button_container = QtWidgets.QHBoxLayout()
+            button_container.setSpacing(10)
+
+            # Main button
+            if provider.button_text:
+                main_button = QtWidgets.QPushButton(provider.button_text)
+                current_mode = self._get_effective_mode()
+                main_button.setStyleSheet(
+                    f"""
+                        QPushButton {{
+                            background-color: {'#4CAF50' if current_mode == 'dark' else '#008CBA'};
+                            color: white;
+                            padding: 10px;
+                            font-size: 16px;
+                            border: none;
+                            border-radius: 5px;
+                        }}
+                        QPushButton:hover {{
+                            background-color: {'#45a049' if current_mode == 'dark' else '#007095'};
+                        }}
+                    """,
+                )
+                main_button.clicked.connect(provider.button_action)
+                button_container.addWidget(main_button)
+
+            # Additional buttons
+            if hasattr(provider, 'additional_buttons'):
+                for button_config in provider.additional_buttons:
+                    additional_button = QtWidgets.QPushButton(button_config["text"])
+                    current_mode = self._get_effective_mode()
+
+                    # Different style for secondary buttons
+                    if button_config.get("style") == "secondary":
+                        bg_color = '#666666' if current_mode == 'dark' else '#cccccc'
+                        hover_color = '#555555' if current_mode == 'dark' else '#bbbbbb'
+                        text_color = '#ffffff' if current_mode == 'dark' else '#333333'
+                    else:
+                        bg_color = '#4CAF50' if current_mode == 'dark' else '#008CBA'
+                        hover_color = '#45a049' if current_mode == 'dark' else '#007095'
+                        text_color = 'white'
+
+                    additional_button.setStyleSheet(
+                        f"""
+                            QPushButton {{
+                                background-color: {bg_color};
+                                color: {text_color};
+                                padding: 8px 12px;
+                                font-size: 14px;
+                                border: none;
+                                border-radius: 4px;
+                            }}
+                            QPushButton:hover {{
+                                background-color: {hover_color};
+                            }}
+                        """,
+                    )
+                    additional_button.clicked.connect(button_config["action"])
+                    button_container.addWidget(additional_button)
+
+            # Center the button container
+            button_widget = QtWidgets.QWidget()
+            button_widget.setLayout(button_container)
             self.current_provider_layout.addWidget(
-                button,
+                button_widget,
                 alignment=QtCore.Qt.AlignmentFlag.AlignCenter,
             )
 

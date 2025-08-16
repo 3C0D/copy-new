@@ -61,8 +61,11 @@ class SettingsManager:
         self.config_dir = self._resolve_config_directory()
         self.settings: UnifiedSettings = create_default_settings()  # Always initialized!
         self._logger = logging.getLogger(__name__)
-        self._setup_logging()
         self.data_file = self._resolve_data_file_path()
+
+        # Setup logging (with build context detection inside _setup_logging)
+        self._setup_logging()
+
         self._log_initialization_info()
 
     @property
@@ -175,13 +178,34 @@ class SettingsManager:
 
         provider_config = providers[active_provider]
 
-        # For Ollama, we don't require an API key
+        # For Ollama, we need both a valid model AND Ollama to be installed
         if active_provider == "ollama":
-            return True
+            # Check if api_model is configured and not empty
+            api_model = provider_config.get("api_model", "")
+            model_configured = bool(api_model and api_model.strip())
+
+            # Also check if Ollama is actually installed and available
+            if model_configured:
+                try:
+                    # Import here to avoid circular imports
+                    from aiprovider import is_ollama_installed
+
+                    ollama_available = is_ollama_installed()
+                    return model_configured and ollama_available
+                except ImportError:
+                    # If we can't import the function, assume Ollama is not available
+                    return False
+            return False
 
         # For all other providers, we require a valid API key
         if "api_key" in provider_config:
-            return bool(provider_config["api_key"])
+            api_key_valid = bool(provider_config["api_key"])
+            # Also check if api_model is configured for providers that use it
+            if "api_model" in provider_config:
+                api_model = provider_config.get("api_model", "")
+                api_model_valid = bool(api_model and api_model.strip())
+                return api_key_valid and api_model_valid
+            return api_key_valid
 
         # If no api_key field exists, the provider is not configured
         return False
@@ -330,6 +354,15 @@ class SettingsManager:
         """Setup file logging for dev and build-dev modes."""
         if not self._is_development_mode():
             return
+
+        # Additional check: don't setup logging if we're in a build script context
+        import inspect
+
+        stack = inspect.stack()
+        for frame_info in stack:
+            filename = frame_info.filename
+            if 'dev_build.py' in filename or 'final_build.py' in filename or 'PyInstaller' in filename:
+                return  # Skip logging setup in build contexts
 
         try:
             self._configure_file_handler()
