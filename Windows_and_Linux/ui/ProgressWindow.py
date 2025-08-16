@@ -18,7 +18,7 @@ class ProgressWindow(QDialog):
     # Signal emitted when user cancels the operation
     cancelled = QtCore.Signal()
     
-    def __init__(self, title="Opération en cours", message="Veuillez patienter", parent=None):
+    def __init__(self, title="Operation in progress", message="Please wait", parent=None):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setModal(True)
@@ -51,7 +51,7 @@ class ProgressWindow(QDialog):
         layout.addWidget(self.progress_bar)
         
         # Cancel button
-        self.cancel_button = QPushButton("Annuler")
+        self.cancel_button = QPushButton("Cancel")
         self.cancel_button.clicked.connect(self._on_cancel)
         layout.addWidget(self.cancel_button)
         
@@ -142,19 +142,19 @@ class OllamaInstallProgressWindow(ProgressWindow):
     
     def __init__(self, parent=None):
         super().__init__(
-            title="Installation d'Ollama",
-            message="Téléchargement d'Ollama en cours",
+            title="Ollama Installation",
+            message="Ollama download in progress",
             parent=parent
         )
         
     def set_downloading(self):
         """Set the window to downloading state."""
-        self.update_message("Téléchargement d'Ollama en cours")
+        self.update_message("Ollama download in progress")
         
     def set_installing(self):
         """Set the window to installing state."""
-        self.update_message("Installation d'Ollama en cours")
+        self.update_message("Ollama installation in progress")
         
     def set_finishing(self):
         """Set the window to finishing state."""
-        self.update_message("Finalisation de l'installation")
+        self.update_message("Finishing Ollama installation")

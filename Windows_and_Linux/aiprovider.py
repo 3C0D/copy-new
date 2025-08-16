@@ -977,8 +977,8 @@ def install_ollama_auto(app):
         return install_ollama_linux(app)
     else:
         app.show_message_signal.emit(
-            "Plateforme non supportée",
-            f"L'installation automatique n'est pas supportée sur {system}.\n\nVeuillez installer manuellement depuis https://ollama.com",
+            "Unsupported platform",
+            f"Automatic installation is not supported on {system}.\n\nPlease install manually from https://ollama.com",
         )
         return False
 
@@ -1274,7 +1274,7 @@ class OllamaProvider(AIProvider):
             )
             description = "• Connect to an Ollama server (local LLM).\n• Ollama is installed and ready to use."
         else:
-            button_text = "Installer Ollama automatiquement"
+            button_text = "Install Ollama automatically"
             button_action = lambda: self._install_ollama()
             description = "• Connect to an Ollama server (local LLM).\n• Ollama is not installed. Click the button to automatically install it."
 
@@ -1304,7 +1304,7 @@ class OllamaProvider(AIProvider):
         """Refresh the Ollama provider configuration based on current installation status."""
         # Re-detect Ollama installation status and update configuration
         if is_ollama_installed():
-            self.button_text = "Instructions d'installation"
+            self.button_text = "Installation instructions"
             self.button_action = lambda: webbrowser.open(
                 "https://github.com/theJayTea/WritingTools?tab=readme-ov-file#-optional-ollama-local-llm-instructions-for-windows-v7-onwards"
             )
