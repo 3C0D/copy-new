@@ -191,7 +191,7 @@ class SettingsManager:
                     from aiprovider import is_ollama_installed
 
                     ollama_available = is_ollama_installed()
-                    return model_configured and ollama_available
+                    return ollama_available
                 except ImportError:
                     # If we can't import the function, assume Ollama is not available
                     return False

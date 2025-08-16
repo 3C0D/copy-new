@@ -376,7 +376,7 @@ class AIProvider(ABC):
 
         # Initialize dynamic attributes based on provider settings
         # These attributes will be updated during configuration loading
-        self._initialize_dynamic_attributes()
+        # self._initialize_dynamic_attributes()
 
     def add_button(self, text: str, action: Callable, style: str = "secondary"):
         """Add an additional button to the provider UI."""
@@ -389,10 +389,10 @@ class AIProvider(ABC):
         """
         pass
 
-    def _initialize_dynamic_attributes(self):
-        """Initialize all dynamic attributes based on provider settings."""
-        for setting in self.settings:
-            setattr(self, setting.name, setting.default_value or "")
+    # def _initialize_dynamic_attributes(self):
+    #     """Initialize all dynamic attributes based on provider settings."""
+    #     for setting in self.settings:
+    #         setattr(self, setting.name, setting.default_value or "")
 
     @property
     def api_model(self) -> str:
@@ -912,7 +912,8 @@ def find_ollama_executable():
     else:
         return None
 
-    # Check each possible path
+    # Check each possible path if exists and is executable
+    # os.X_OK mode checks for execute permissions
     for path in possible_paths:
         if os.path.isfile(path) and os.access(path, os.X_OK):
             return path
@@ -930,6 +931,7 @@ def is_ollama_installed():
         return False
 
     try:
+        # 'ollama --version' in less than 5 seconds
         result = subprocess.run([ollama_path, "--version"], check=False, capture_output=True, text=True, timeout=5)
         return result.returncode == 0
     except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
@@ -1239,15 +1241,15 @@ class OllamaProvider(AIProvider):
 
         # Determine button text and action based on Ollama installation status
         if is_ollama_installed():
-            button_text = "Instructions d'installation"
+            button_text = "Installation instructions"
             button_action = lambda: webbrowser.open(
                 "https://github.com/theJayTea/WritingTools?tab=readme-ov-file#-optional-ollama-local-llm-instructions-for-windows-v7-onwards"
             )
-            description = "• Connect to an Ollama server (local LLM).\n• Ollama est installé et prêt à utiliser."
+            description = "• Connect to an Ollama server (local LLM).\n• Ollama is installed and ready to use."
         else:
             button_text = "Installer Ollama automatiquement"
             button_action = lambda: self._install_ollama()
-            description = "• Connect to an Ollama server (local LLM).\n• Ollama n'est pas installé. Cliquez sur le bouton pour l'installer automatiquement."
+            description = "• Connect to an Ollama server (local LLM).\n• Ollama is not installed. Click the button to automatically install it."
 
         super().__init__(
             app,
@@ -1261,7 +1263,7 @@ class OllamaProvider(AIProvider):
         )
 
         # Add refresh button for updating the interface after installation
-        self.add_button("🔄 Actualiser", self._refresh_ui, "secondary")
+        self.add_button("🔄 Refresh", self._refresh_ui, "secondary")
 
     def _refresh_models(self):
         """Refresh the list of available Ollama models."""
@@ -1279,11 +1281,11 @@ class OllamaProvider(AIProvider):
             self.button_action = lambda: webbrowser.open(
                 "https://github.com/theJayTea/WritingTools?tab=readme-ov-file#-optional-ollama-local-llm-instructions-for-windows-v7-onwards"
             )
-            self.description = "• Connect to an Ollama server (local LLM).\n• Ollama est installé et prêt à utiliser."
+            self.description = "• Connect to an Ollama server (local LLM).\n• Ollama is installed and ready to use."
         else:
-            self.button_text = "Installer Ollama automatiquement"
+            self.button_text = "Automatically install Ollama"
             self.button_action = lambda: self._install_ollama()
-            self.description = "• Connect to an Ollama server (local LLM).\n• Ollama n'est pas installé. Cliquez sur le bouton pour l'installer automatiquement."
+            self.description = "• Connect to an Ollama server (local LLM).\n• Ollama is not installed. Click the button to automatically install it."
 
         # Update model list and settings
         ollama_models = get_ollama_models()

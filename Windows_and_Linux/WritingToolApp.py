@@ -1382,5 +1382,7 @@ class WritingToolApp(QtWidgets.QApplication):
         logging.debug("Stopping the listener")
         if self.hotkey_listener is not None:
             self.hotkey_listener.stop()
+        logging.debug("Restoring default SIGINT handler")
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
         logging.debug("Exiting application")
         self.quit()
