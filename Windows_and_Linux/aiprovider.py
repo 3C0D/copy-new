@@ -180,14 +180,24 @@ class TextSetting(AIProviderSetting):
         layout.addLayout(row_layout)
 
     def set_value(self, value):
-        """Store value internally for future rendering."""
+        """Store value internally and update widget if it exists."""
         self.internal_value = value
+        if self.input is not None:
+            try:
+                self.input.setText(str(value))
+            except RuntimeError:
+                # Widget has been deleted, just store the value
+                pass
 
     def get_value(self):
         """Return widget value or empty string if not yet rendered."""
         if self.input is not None:
-            return self.input.text()
-        return ""
+            try:
+                return self.input.text()
+            except RuntimeError:
+                # Widget has been deleted, return stored value or empty string
+                return getattr(self, 'internal_value', "")
+        return getattr(self, 'internal_value', "")
 
 
 class DropdownSetting(AIProviderSetting):
@@ -282,25 +292,42 @@ class DropdownSetting(AIProviderSetting):
         layout.addLayout(row_layout)
 
     def set_value(self, value):
-        """Store value for selection during rendering."""
+        """Store value for selection during rendering and update widget if it exists."""
         self.internal_value = value
+        if self.dropdown is not None:
+            try:
+                # Try to find and select the matching option
+                for i in range(self.dropdown.count()):
+                    if self.dropdown.itemData(i) == value:
+                        self.dropdown.setCurrentIndex(i)
+                        return
+                # If not found and editable, set the text directly
+                if self.editable:
+                    self.dropdown.setCurrentText(str(value))
+            except RuntimeError:
+                # Widget has been deleted, just store the value
+                pass
 
     def get_value(self):
         """Return selected or entered value from the dropdown."""
         if self.dropdown is None:
-            return ""
+            return getattr(self, 'internal_value', "")
 
-        if self.editable:
-            # For editable dropdowns, first check if current text matches a dropdown option
-            current_text = self.dropdown.currentText()
-            # Look for matching option and return its data value
-            for i in range(self.dropdown.count()):
-                if self.dropdown.itemText(i) == current_text:
-                    return self.dropdown.itemData(i)
-            # If no match found, return the text as-is (custom input)
-            return current_text
-        # For non-editable dropdowns, return the data
-        return self.dropdown.currentData()
+        try:
+            if self.editable:
+                # For editable dropdowns, first check if current text matches a dropdown option
+                current_text = self.dropdown.currentText()
+                # Look for matching option and return its data value
+                for i in range(self.dropdown.count()):
+                    if self.dropdown.itemText(i) == current_text:
+                        return self.dropdown.itemData(i)
+                # If no match found, return the text as-is (custom input)
+                return current_text
+            # For non-editable dropdowns, return the data
+            return self.dropdown.currentData()
+        except RuntimeError:
+            # Widget has been deleted, return stored value or empty string
+            return getattr(self, 'internal_value', "")
 
     def refresh_options(self, new_options: list):
         """Refresh the dropdown options dynamically."""
