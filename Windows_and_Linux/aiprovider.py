@@ -335,24 +335,28 @@ class DropdownSetting(AIProviderSetting):
             self.options = new_options
             return
 
-        # Save current selection
-        current_value = self.get_value()
+        try:
+            # Save current selection
+            current_value = self.get_value()
 
-        # Clear and repopulate dropdown
-        self.dropdown.clear()
-        self.options = new_options
+            # Clear and repopulate dropdown
+            self.dropdown.clear()
+            self.options = new_options
 
-        for option, value in self.options:
-            self.dropdown.addItem(option, value)
+            for option, value in self.options:
+                self.dropdown.addItem(option, value)
 
-        # Restore selection if possible
-        if current_value:
-            if self.editable:
-                self.dropdown.setCurrentText(str(current_value))
-            else:
-                index = self.dropdown.findData(current_value)
-                if index != -1:
-                    self.dropdown.setCurrentIndex(index)
+            # Restore selection if possible
+            if current_value:
+                if self.editable:
+                    self.dropdown.setCurrentText(str(current_value))
+                else:
+                    index = self.dropdown.findData(current_value)
+                    if index != -1:
+                        self.dropdown.setCurrentIndex(index)
+        except RuntimeError:
+            # Widget has been deleted, just update the options
+            self.options = new_options
 
 
 class AIProvider(ABC):
