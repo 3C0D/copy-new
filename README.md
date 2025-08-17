@@ -5,23 +5,26 @@ A powerful AI-powered writing assistant that integrates seamlessly with your wor
 ## 🚀 Quick Start
 
 ### **Run from Source** (Fastest for development)
+
 ```bash
 python Windows_and_Linux/scripts/dev_script.py
 ```
 
 ### **Build and Test** (Recommended for testing)
+
 ```bash
 python Windows_and_Linux/scripts/dev_build.py
 ```
 
 ### **Debug Mode** (When things go wrong)
+
 ```bash
 python Windows_and_Linux/scripts/dev_build.py --console
 ```
 
 ## ✨ Features
 
-- **🤖 Multiple AI Providers**: OpenAI, Gemini, Ollama, Anthropic, Mistral
+- **🤖 Multiple AI Providers**: OpenAI, Gemini, Ollama (auto-install), Anthropic, Mistral
 - **⚡ Global Hotkeys**: Quick access from anywhere
 - **🎨 Smart Theming**: Auto dark/light mode detection
 - **📋 System Tray**: Unobtrusive background operation
@@ -31,18 +34,22 @@ python Windows_and_Linux/scripts/dev_build.py --console
 ## 🛠️ Development
 
 ### **Prerequisites**
+
 - Python 3.8+
 - Virtual environment (automatically created)
 - Windows 10/11 or Linux
 
 ### **Development Workflow**
+
 1. **Quick Testing**: `python Windows_and_Linux/scripts/dev_script.py`
 2. **Build Testing**: `python Windows_and_Linux/scripts/dev_build.py`
 3. **Debug Issues**: `python Windows_and_Linux/scripts/dev_build.py --console`
 4. **Production Build**: `python Windows_and_Linux/scripts/final_build.py`
 
 ### **VS Code Integration**
+
 All scripts work perfectly with Code Runner:
+
 1. Open any script file
 2. Press `Ctrl+F5`
 3. Script runs with proper environment setup
@@ -50,6 +57,7 @@ All scripts work perfectly with Code Runner:
 ## 🐛 Troubleshooting
 
 ### **Systray Icon Missing**
+
 ```bash
 # Debug startup issues
 python Windows_and_Linux/scripts/startup_debug.py
@@ -59,6 +67,7 @@ python Windows_and_Linux/scripts/install_startup_debug.py
 ```
 
 ### **Build Failures**
+
 ```bash
 # Update dependencies first
 python Windows_and_Linux/scripts/update_deps.py
@@ -68,6 +77,7 @@ python Windows_and_Linux/scripts/dev_build.py --console
 ```
 
 ### **Provider Issues**
+
 - Check API keys in Settings
 - Verify internet connection
 - Try different provider in Settings window
@@ -84,6 +94,7 @@ python Windows_and_Linux/scripts/dev_build.py --console
 
 1. **Launch** the application using any of the methods above
 2. **Configure** your AI provider in the system tray settings
+   - For Ollama: Click "Install Ollama" for automatic setup, then install models via command line (`ollama pull llama3.2`)
 3. **Set up hotkeys** for quick access
 4. **Select text** anywhere and use your hotkey
 5. **Choose** from predefined prompts or create custom ones
@@ -92,6 +103,7 @@ python Windows_and_Linux/scripts/dev_build.py --console
 ## 🔧 Architecture
 
 This version features a complete architectural overhaul with:
+
 - **Multi-mode system** (dev/build-dev/build-final)
 - **Robust settings management** with automatic migration
 - **Enhanced debugging tools** for development

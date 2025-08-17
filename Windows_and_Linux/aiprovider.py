@@ -1313,19 +1313,19 @@ class OllamaProvider(AIProvider):
 
         # Determine button text and action based on Ollama installation status
         if is_ollama_installed():
-            button_text = "Installation instructions"
-            button_action = lambda: webbrowser.open(
-                "https://github.com/theJayTea/WritingTools?tab=readme-ov-file#-optional-ollama-local-llm-instructions-for-windows-v7-onwards"
-            )
+            button_text = "Install Ollama"
+            button_action = lambda: self._install_ollama()
             description = "• Connect to an Ollama server (local LLM).\n• Ollama is installed and ready to use."
         else:
-            button_text = "Install Ollama automatically"
+            button_text = "Install Ollama"
             button_action = lambda: self._install_ollama()
-            description = "• Connect to an Ollama server (local LLM).\n• Ollama is not installed. Click the button to automatically install it."
+            description = (
+                "• Connect to an Ollama server (local LLM).\n• Ollama is not installed. Click the button to install it."
+            )
 
         super().__init__(
             app,
-            "Ollama (For Experts)",
+            "Ollama",
             settings,
             description,
             "ollama",
@@ -1334,8 +1334,9 @@ class OllamaProvider(AIProvider):
             "ollama",
         )
 
-        # Add delete model button
-        self.add_button("🗑️ Delete Model", self._delete_model, "secondary")
+        # Add delete model button only if Ollama is installed and models exist
+        if is_ollama_installed():
+            self.add_button("🗑️ Delete Model", self._delete_model, "secondary")
 
     def _refresh_models(self):
         """Refresh the list of available Ollama models."""
@@ -1348,16 +1349,22 @@ class OllamaProvider(AIProvider):
     def refresh_configuration(self):
         """Refresh the Ollama provider configuration based on current installation status."""
         # Re-detect Ollama installation status and update configuration
-        if is_ollama_installed():
-            self.button_text = "Installation instructions"
-            self.button_action = lambda: webbrowser.open(
-                "https://github.com/theJayTea/WritingTools?tab=readme-ov-file#-optional-ollama-local-llm-instructions-for-windows-v7-onwards"
-            )
+        ollama_installed = is_ollama_installed()
+
+        self.button_text = "Install Ollama"
+        self.button_action = lambda: self._install_ollama()
+
+        if ollama_installed:
             self.description = "• Connect to an Ollama server (local LLM).\n• Ollama is installed and ready to use."
         else:
-            self.button_text = "Automatically install Ollama"
-            self.button_action = lambda: self._install_ollama()
-            self.description = "• Connect to an Ollama server (local LLM).\n• Ollama is not installed. Click the button to automatically install it."
+            self.description = (
+                "• Connect to an Ollama server (local LLM).\n• Ollama is not installed. Click the button to install it."
+            )
+
+        # Update additional buttons based on installation status
+        self.additional_buttons = []
+        if ollama_installed:
+            self.add_button("🗑️ Delete Model", self._delete_model, "secondary")
 
         # Update model list and settings
         ollama_models = get_ollama_models()
