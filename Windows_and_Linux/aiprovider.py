@@ -1224,6 +1224,47 @@ def get_ollama_models():
         return [("Ollama not available - Please install it", "")]
 
 
+def remove_ollama_model(model_name: str) -> tuple[bool, str]:
+    """
+    Remove an Ollama model using the 'ollama rm' command.
+
+    Args:
+        model_name: The name of the model to remove (e.g., "llama3.2:1b")
+
+    Returns:
+        tuple: (success: bool, message: str)
+            - success: True if model was removed successfully, False otherwise
+            - message: Success or error message
+    """
+    # Find Ollama executable
+    ollama_path = find_ollama_executable()
+    if not ollama_path:
+        return False, "Ollama not available - Please install it"
+
+    try:
+        # Run 'ollama rm <model_name>' command
+        result = subprocess.run(
+            [ollama_path, "rm", model_name], check=False, capture_output=True, text=True, timeout=30
+        )
+
+        if result.returncode == 0:
+            return True, f"Model '{model_name}' removed successfully"
+        else:
+            # Handle specific error cases
+            error_msg = result.stderr.strip() if result.stderr else "Unknown error"
+            if "not found" in error_msg.lower():
+                return False, f"Model '{model_name}' not found"
+            elif "in use" in error_msg.lower():
+                return False, f"Model '{model_name}' is currently in use and cannot be removed"
+            else:
+                return False, f"Failed to remove model '{model_name}': {error_msg}"
+
+    except subprocess.TimeoutExpired:
+        return False, f"Timeout while removing model '{model_name}'"
+    except (FileNotFoundError, Exception) as e:
+        return False, f"Error removing model '{model_name}': {str(e)}"
+
+
 class OllamaProvider(AIProvider):
     """
     Provider for connecting to an Ollama server.
@@ -1293,8 +1334,8 @@ class OllamaProvider(AIProvider):
             "ollama",
         )
 
-        # Add refresh button for updating the interface after installation
-        self.add_button("🔄 Refresh", self._refresh_ui, "secondary")
+        # Add delete model button
+        self.add_button("🗑️ Delete Model", self._delete_model, "secondary")
 
     def _refresh_models(self):
         """Refresh the list of available Ollama models."""
@@ -1330,21 +1371,146 @@ class OllamaProvider(AIProvider):
                     setting.set_value(ollama_models[0][1])
                 break
 
-    def _refresh_ui(self):
-        """Refresh the UI to reflect current Ollama installation status."""
-        # Use the refresh_configuration method to update the provider
-        self.refresh_configuration()
-
-        # Refresh the provider UI
-        if hasattr(self.app, 'settings_window') and self.app.settings_window:
-            self.app.settings_window._on_provider_changed()
-
     def _install_ollama(self):
         """Handle Ollama installation and UI refresh."""
         success = install_ollama_auto(self.app)
         if success:
-            # Automatically refresh UI after successful installation
-            self._refresh_ui()
+            # Automatically refresh configuration after successful installation
+            self.refresh_configuration()
+            # Refresh the provider UI
+            if hasattr(self.app, 'settings_window') and self.app.settings_window:
+                self.app.settings_window._on_provider_changed()
+
+    def _delete_model(self):
+        """Handle Ollama model deletion with confirmation dialog."""
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QMessageBox
+        from ui.ui_utils import get_effective_color_mode
+
+        # Get available models
+        ollama_models = get_ollama_models()
+
+        # Filter out invalid models (messages like "Please install Ollama models first")
+        valid_models = [(display, model) for display, model in ollama_models if model and model.strip()]
+
+        if not valid_models:
+            self.app.show_message_signal.emit(
+                "No Models Available", "No Ollama models are available to delete. Please install some models first."
+            )
+            return
+
+        # Create model selection dialog
+        dialog = QDialog()
+        dialog.setWindowTitle("Delete Ollama Model")
+        dialog.setModal(True)
+        dialog.resize(400, 200)
+
+        # Apply theme styling
+        current_mode = get_effective_color_mode()
+        dialog.setStyleSheet(
+            f"""
+            QDialog {{
+                background-color: {'#2b2b2b' if current_mode == 'dark' else '#ffffff'};
+                color: {'#ffffff' if current_mode == 'dark' else '#000000'};
+            }}
+            QLabel {{
+                color: {'#ffffff' if current_mode == 'dark' else '#333333'};
+                font-size: 14px;
+            }}
+            QComboBox {{
+                font-size: 14px;
+                padding: 5px;
+                background-color: {'#444' if current_mode == 'dark' else 'white'};
+                color: {'#ffffff' if current_mode == 'dark' else '#000000'};
+                border: 1px solid {'#666' if current_mode == 'dark' else '#ccc'};
+            }}
+            QPushButton {{
+                font-size: 14px;
+                padding: 8px 16px;
+                border: 1px solid {'#666' if current_mode == 'dark' else '#ccc'};
+                background-color: {'#444' if current_mode == 'dark' else '#f0f0f0'};
+                color: {'#ffffff' if current_mode == 'dark' else '#000000'};
+            }}
+            QPushButton:hover {{
+                background-color: {'#555' if current_mode == 'dark' else '#e0e0e0'};
+            }}
+        """
+        )
+
+        layout = QVBoxLayout(dialog)
+
+        # Warning label
+        warning_label = QLabel("⚠️ Warning: This will permanently delete the selected model from your system.")
+        warning_label.setStyleSheet("color: #ff6b6b; font-weight: bold;")
+        layout.addWidget(warning_label)
+
+        # Model selection
+        model_label = QLabel("Select model to delete:")
+        layout.addWidget(model_label)
+
+        model_combo = QComboBox()
+        for display_name, model_name in valid_models:
+            model_combo.addItem(display_name, model_name)
+        layout.addWidget(model_combo)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(dialog.reject)
+        button_layout.addWidget(cancel_button)
+
+        delete_button = QPushButton("Delete Model")
+        delete_button.setStyleSheet(
+            delete_button.styleSheet()
+            + """
+            QPushButton {
+                background-color: #dc3545;
+                color: white;
+                border: 1px solid #dc3545;
+            }
+            QPushButton:hover {
+                background-color: #c82333;
+            }
+        """
+        )
+        delete_button.clicked.connect(dialog.accept)
+        button_layout.addWidget(delete_button)
+
+        layout.addLayout(button_layout)
+
+        # Show dialog and handle result
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            selected_model = model_combo.currentData()
+            if selected_model:
+                self._confirm_and_delete_model(selected_model)
+
+    def _confirm_and_delete_model(self, model_name: str):
+        """Show final confirmation and delete the model."""
+        from PySide6.QtWidgets import QMessageBox
+
+        # Final confirmation
+        reply = QMessageBox.question(
+            None,
+            "Confirm Deletion",
+            f"Are you absolutely sure you want to delete the model '{model_name}'?\n\n"
+            f"This action cannot be undone and will free up disk space.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            # Perform the deletion
+            success, message = remove_ollama_model(model_name)
+
+            if success:
+                self.app.show_message_signal.emit("Model Deleted", message)
+                # Refresh the model list and UI
+                self.refresh_configuration()
+                # Refresh the provider UI
+                if hasattr(self.app, 'settings_window') and self.app.settings_window:
+                    self.app.settings_window._on_provider_changed()
+            else:
+                self.app.show_message_signal.emit("Deletion Failed", message)
 
     def get_response(self, system_instruction: str, prompt: Union[str, list], return_response: bool = False) -> str:
         """
