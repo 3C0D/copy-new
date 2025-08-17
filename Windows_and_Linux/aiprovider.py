@@ -204,7 +204,7 @@ class DropdownSetting(AIProviderSetting):
     """
     A dropdown setting (e.g., for selecting a model).
 
-    Uses a QComboBox that can be editable or not.
+    Uses a non-editable QComboBox.
     Options are stored as tuples (display_name, value).
     """
 
@@ -215,14 +215,12 @@ class DropdownSetting(AIProviderSetting):
         default_value: Optional[str] = None,
         description: Optional[str] = None,
         options: Optional[list] = None,
-        editable: bool = False,
         refresh_callback: Optional[Callable] = None,
     ):
         super().__init__(name, display_name, default_value, description)
         self.options = options or []
         self.internal_value = default_value
         self.dropdown: Optional[QtWidgets.QComboBox] = None
-        self.editable = editable
         self.refresh_callback = refresh_callback
 
     def render_to_layout(self, layout: QVBoxLayout):
@@ -235,7 +233,6 @@ class DropdownSetting(AIProviderSetting):
         label.setStyleSheet(f"font-size: 16px; color: {'#ffffff' if current_mode=='dark' else '#333333'};")
         row_layout.addWidget(label)
         self.dropdown = QtWidgets.QComboBox()
-        self.dropdown.setEditable(self.editable)  # Allow custom input if editable
         # Ensure dropdown can receive focus and clicks properly
         self.dropdown.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.dropdown.setStyleSheet(
@@ -253,21 +250,13 @@ class DropdownSetting(AIProviderSetting):
 
         # Set current value
         if self.dropdown is not None:
-            if self.editable:
-                # For editable dropdowns, set the text directly
-                self.dropdown.setCurrentText(str(self.internal_value) if self.internal_value is not None else "")
-            else:
-                # For non-editable dropdowns, find by data
-                index = self.dropdown.findData(self.internal_value)
-                if index != -1:
-                    self.dropdown.setCurrentIndex(index)
+            index = self.dropdown.findData(self.internal_value)
+            if index != -1:
+                self.dropdown.setCurrentIndex(index)
 
         # Connect auto-save if callback is set
         if self.auto_save_callback:
-            if self.editable:
-                self.dropdown.currentTextChanged.connect(self.auto_save_callback)
-            else:
-                self.dropdown.currentIndexChanged.connect(self.auto_save_callback)
+            self.dropdown.currentIndexChanged.connect(self.auto_save_callback)
 
         # Connect refresh callback when dropdown is about to be shown
         if self.refresh_callback:
@@ -296,34 +285,21 @@ class DropdownSetting(AIProviderSetting):
         self.internal_value = value
         if self.dropdown is not None:
             try:
-                # Try to find and select the matching option
+                # Find and select the matching option
                 for i in range(self.dropdown.count()):
                     if self.dropdown.itemData(i) == value:
                         self.dropdown.setCurrentIndex(i)
                         return
-                # If not found and editable, set the text directly
-                if self.editable:
-                    self.dropdown.setCurrentText(str(value))
             except RuntimeError:
                 # Widget has been deleted, just store the value
                 pass
 
     def get_value(self):
-        """Return selected or entered value from the dropdown."""
+        """Return selected value from the dropdown."""
         if self.dropdown is None:
             return getattr(self, 'internal_value', "")
 
         try:
-            if self.editable:
-                # For editable dropdowns, first check if current text matches a dropdown option
-                current_text = self.dropdown.currentText()
-                # Look for matching option and return its data value
-                for i in range(self.dropdown.count()):
-                    if self.dropdown.itemText(i) == current_text:
-                        return self.dropdown.itemData(i)
-                # If no match found, return the text as-is (custom input)
-                return current_text
-            # For non-editable dropdowns, return the data
             return self.dropdown.currentData()
         except RuntimeError:
             # Widget has been deleted, return stored value or empty string
@@ -348,12 +324,9 @@ class DropdownSetting(AIProviderSetting):
 
             # Restore selection if possible
             if current_value:
-                if self.editable:
-                    self.dropdown.setCurrentText(str(current_value))
-                else:
-                    index = self.dropdown.findData(current_value)
-                    if index != -1:
-                        self.dropdown.setCurrentIndex(index)
+                index = self.dropdown.findData(current_value)
+                if index != -1:
+                    self.dropdown.setCurrentIndex(index)
         except RuntimeError:
             # Widget has been deleted, just update the options
             self.options = new_options
@@ -1300,7 +1273,6 @@ class OllamaProvider(AIProvider):
                 default_value=default_ollama_model,
                 description="Models are automatically detected from your Ollama installation",
                 options=ollama_models,
-                editable=False,  # Don't allow custom model names for Ollama
                 refresh_callback=self._refresh_models,
             ),
             TextSetting(
@@ -1617,7 +1589,6 @@ class AnthropicProvider(AIProvider):
                 default_value=get_default_model_for_provider("anthropic"),
                 description="Select Claude model to use",
                 options=ANTHROPIC_MODELS,
-                editable=False,
             ),
         ]
         super().__init__(
@@ -1784,7 +1755,6 @@ class MistralProvider(AIProvider):
                 default_value=get_default_model_for_provider("mistral"),
                 description="Select Mistral model to use",
                 options=MISTRAL_MODELS,
-                editable=False,
             ),
         ]
         super().__init__(
