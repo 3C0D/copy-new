@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import sys
 
 import darkdetect
@@ -36,42 +37,33 @@ def set_color_mode(theme):
         colorMode = theme
 
 
-def get_icon_path(icon_name, with_theme=True) -> str:
+def get_icon_path(icon_name, with_theme=True) -> Path:
     """
     Get the correct path for an icon, handling both dev and build modes.
     Supports both PNG and SVG formats, with SVG taking precedence.
-
     Args:
         icon_name: Name of the icon without extension (e.g., "send", "app_icon", "copy_md")
         with_theme: Whether to append theme suffix (_dark/_light)
-
     Returns:
         Path to the icon file
     """
     # Use sys.executable for frozen apps, sys.argv[0] for scripts
     if getattr(sys, "frozen", False):
-        base_dir = os.path.dirname(sys.executable)
-        # For frozen apps, also check if we have a bundled resource path
-        if hasattr(sys, '_MEIPASS'):
-            # PyInstaller temporary folder
-            bundled_base = sys._MEIPASS
-        else:
-            bundled_base = base_dir
+        base_dir = Path(sys.executable).parent
     else:
         # Handle different script execution contexts
         if sys.argv[0] in ['-c', '']:
             # Running with python -c or similar, use current working directory
-            base_dir = os.getcwd()
+            base_dir = Path.cwd()
         else:
-            base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-
+            # base_dir = Path(sys.argv[0]).parent.resolve()
+            base_dir = Path(sys.argv[0]).parent
         # If we're in the Windows_and_Linux subdirectory, go up one level
-        if os.path.basename(base_dir) == "Windows_and_Linux":
-            base_dir = os.path.dirname(base_dir)
-
+        if base_dir.name == "Windows_and_Linux":
+            base_dir = base_dir.parent
+    
     # Define possible extensions and filenames
     extensions = [".svg", ".png"]  # SVG takes precedence
-
     if with_theme:
         current_mode = get_effective_color_mode()
         theme_suffix = "_dark" if current_mode == "dark" else "_light"
@@ -80,34 +72,31 @@ def get_icon_path(icon_name, with_theme=True) -> str:
         filenames.extend([f"{icon_name}{ext}" for ext in extensions])
     else:
         filenames = [f"{icon_name}{ext}" for ext in extensions]
-
+    
     # Try multiple locations
     if getattr(sys, "frozen", False):
-        # For frozen builds, check bundled resources first
+        # For frozen builds
         base_paths = [
-            os.path.join(bundled_base, "icons"),  # Bundled icons
-            os.path.join(bundled_base, "config", "icons"),  # Bundled config
-            os.path.join(base_dir, "icons"),  # Next to exe
-            os.path.join(base_dir, "config", "icons"),  # Config next to exe
+            base_dir / "icons",  # Next to exe
+            base_dir / "config" / "icons",  # Config next to exe
         ]
     else:
         # For dev mode
         base_paths = [
-            os.path.join(base_dir, "icons"),  # Build location (dist/dev/icons/)
-            os.path.join(base_dir, "config", "icons"),  # Dev location
-            os.path.join(base_dir, "Windows_and_Linux", "config", "icons"),  # Root project location
-            os.path.join(base_dir, "Windows_and_Linux", "dist", "dev", "icons"),  # Dev build location
+            base_dir / "icons",  # Build location (dist/dev/icons/)
+            base_dir / "config" / "icons",  # Dev location
+            # base_dir / "Windows_and_Linux" / "config" / "icons",  # Root project location
+            # base_dir / "Windows_and_Linux" / "dist" / "dev" / "icons",  # Dev build location
         ]
-
+    
     # Check all combinations of paths and filenames
     for base_path in base_paths:
         for filename in filenames:
-            full_path = os.path.join(base_path, filename)
-            if os.path.exists(full_path):
+            full_path = base_path / filename
+            if full_path.exists():
                 return full_path
-
-    return ""
-
+    
+    return Path()
 
 class ui_utils:
     @classmethod
@@ -154,8 +143,8 @@ class ThemedWidget(QWidget):
     def setup_window_and_layout(self):
         # Set window icon
         icon_path = get_icon_path("app_icon", with_theme=False)
-        if os.path.exists(icon_path):
-            self.setWindowIcon(QtGui.QIcon(icon_path))
+        if icon_path.exists():
+            self.setWindowIcon(QtGui.QIcon(icon_path.as_posix()))
 
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)

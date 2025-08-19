@@ -12,6 +12,7 @@ from pathlib import Path
 # Configuration
 DEFAULT_VENV_NAME = "myvenv"
 DEFAULT_SCRIPT_NAME = "main.py"
+MODE = "dev"
 
 
 if os.name == "nt":  # Windows
@@ -21,6 +22,8 @@ if os.name == "nt":  # Windows
         get_python_executable,
         setup_environment,
         terminate_existing_processes,
+        check_data,
+        clear_console,
     )
 else:  # Linux/Unix
     from .utils import (  # type: ignore
@@ -29,26 +32,9 @@ else:  # Linux/Unix
         get_python_executable,
         setup_environment,
         terminate_existing_processes,
+        check_data,
+        clear_console,
     )
-
-
-def setup_dev_settings():
-    """Setup settings for dev mode using new dist/dev/ logic"""
-    print("Setting up development settings...")
-
-    # In dev mode, the application will use dist/dev/data_dev.json
-    dist_dev_dir = Path("dist/dev")
-    dist_dev_dir.mkdir(parents=True, exist_ok=True)
-
-    data_dev_path = dist_dev_dir / "data_dev.json"
-
-    if data_dev_path.exists():
-        print(f"Using existing settings from: {data_dev_path}")
-    else:
-        print(
-            "No existing settings found. Application will create settings on first run.",
-        )
-        print(f"Settings will be saved to: {data_dev_path}")
 
 
 def launch_application(
@@ -58,24 +44,25 @@ def launch_application(
 ):
     """Launch the main application using the virtual environment"""
     python_cmd = get_python_executable(venv_path)
+    python_path = Path(python_cmd)
 
-    if not Path(python_cmd).exists():
-        print(f"Error: Python executable not found at {python_cmd}")
+    if not python_path.exists():
+        print(f"Error: Python executable not found at {python_path}")
         return False
 
     # main.py should be in the current directory (Windows_and_Linux)
     script_path = Path(script_name)
     if not script_path.exists():
-        print(f"Error: Main script not found: {script_name}")
+        print(f"Error: Main script not found: {script_path}")
         return False
 
     # Build command with extra arguments
-    cmd = [python_cmd, str(script_path)]
+    cmd = [str(python_path), str(script_path)]
     if extra_args:
         cmd.extend(extra_args)
 
     print(
-        f"Launching {script_name} with args: {' '.join(extra_args) if extra_args else 'none'}...",
+        f"Launching {script_path.name} with args: {' '.join(extra_args) if extra_args else 'none'}...",
     )
 
     try:
@@ -93,11 +80,6 @@ def launch_application(
         return False
 
 
-def clear_console():
-    """Clear console screen (cross-platform)"""
-    os.system("cls" if os.name == "nt" else "clear")
-
-
 def main():
     """Main function"""
     clear_console()
@@ -110,7 +92,7 @@ def main():
     try:
         # Setup project root
         project_root = get_project_root()
-        print(f"Project root: {project_root}")
+        print(f"Project root: {project_root.name}")
 
         # Setup environment (virtual env + dependencies)
         print("Setting up development environment...")
@@ -127,7 +109,7 @@ def main():
         )
 
         # Setup development settings
-        setup_dev_settings()
+        check_data(MODE)
 
         # Launch application with extra arguments
         print()

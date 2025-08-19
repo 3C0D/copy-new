@@ -27,7 +27,7 @@ Navigate to the `Windows_and_Linux` directory and use the build scripts:
 
   ```bash
   # Direct script execution with console visible
-  python Windows_and_Linux/scripts/dev_build.py --console
+  python Windows_and_Linux/scripts/build_dev.py --console
   ```
 
   This creates a build where the console window remains visible, allowing you to see logs in real-time instead of only in log files.
@@ -61,7 +61,7 @@ For troubleshooting startup issues and seeing real-time logs:
 
 ```bash
 # Build with visible console for debugging
-python Windows_and_Linux/scripts/dev_build.py --console
+python Windows_and_Linux/scripts/build_dev.py --console
 ```
 
 **What this mode provides:**
@@ -92,7 +92,7 @@ The scripts will automatically:
 - ✅ Install all required dependencies
 - ✅ Build the executable with PyInstaller
 - ✅ Copy all necessary assets and configurations
-- ✅ Launch the built application (dev-build only)
+- ✅ Launch the built application (build-dev only)
 
 **Build Output:**
 

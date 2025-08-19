@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script to quickly build and test console mode for dev_build
+Test script to quickly build and test console mode for build_dev
 """
 
 import os
@@ -25,7 +25,7 @@ def main():
     print("Building with console mode...")
     try:
         result = subprocess.run([
-            sys.executable, "scripts/dev_build.py", "--console"
+            sys.executable, "scripts/build_dev.py", "--console"
         ], check=True, capture_output=False)
         
         print("\n✅ Console build completed successfully!")

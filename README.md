@@ -13,13 +13,13 @@ python Windows_and_Linux/scripts/dev_script.py
 ### **Build and Test** (Recommended for testing)
 
 ```bash
-python Windows_and_Linux/scripts/dev_build.py
+python Windows_and_Linux/scripts/build_dev.py
 ```
 
 ### **Debug Mode** (When things go wrong)
 
 ```bash
-python Windows_and_Linux/scripts/dev_build.py --console
+python Windows_and_Linux/scripts/build_dev.py --console
 ```
 
 ## ✨ Features
@@ -42,9 +42,9 @@ python Windows_and_Linux/scripts/dev_build.py --console
 ### **Development Workflow**
 
 1. **Quick Testing**: `python Windows_and_Linux/scripts/dev_script.py`
-2. **Build Testing**: `python Windows_and_Linux/scripts/dev_build.py`
-3. **Debug Issues**: `python Windows_and_Linux/scripts/dev_build.py --console`
-4. **Production Build**: `python Windows_and_Linux/scripts/final_build.py`
+2. **Build Testing**: `python Windows_and_Linux/scripts/build_dev.py`
+3. **Debug Issues**: `python Windows_and_Linux/scripts/build_dev.py --console`
+4. **Production Build**: `python Windows_and_Linux/scripts/build_final.py`
 
 ### **VS Code Integration**
 
@@ -73,7 +73,7 @@ python Windows_and_Linux/scripts/install_startup_debug.py
 python Windows_and_Linux/scripts/update_deps.py
 
 # Then try console mode for detailed output
-python Windows_and_Linux/scripts/dev_build.py --console
+python Windows_and_Linux/scripts/build_dev.py --console
 ```
 
 ### **Provider Issues**

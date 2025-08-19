@@ -371,7 +371,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         if provider.logo:
             # Use get_icon_path for proper path resolution in all modes (dev, build, etc.)
             logo_path = get_icon_path(f"provider_{provider.logo}", with_theme=False)
-            if logo_path and os.path.exists(logo_path):
+            if logo_path.exists():
                 targetPixmap = ui_utils.resize_and_round_image(
                     QImage(logo_path),
                     30,

@@ -5,7 +5,6 @@ Handles loading, saving, and merging of all application settings with smart attr
 
 import json
 import logging
-import os
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -42,7 +41,6 @@ class SettingsManager:
     _INTERNAL_ATTRS = {
         'mode',
         'base_dir',
-        'config_dir',
         'settings',
         '_logger',
         'data_file',
@@ -54,13 +52,14 @@ class SettingsManager:
         '_INTERNAL_ATTRS',
     }
 
-    def __init__(self, mode: str = ""):
+    def __init__(self, mode: str = "dev"):
         """Initialize the settings manager with intelligent mode detection and fallback logic."""
-        self.mode = self._detect_mode(mode)
-        self.base_dir = self._get_base_directory()
-        self.config_dir = self._resolve_config_directory()
-        self.settings: UnifiedSettings = create_default_settings()  # Always initialized!
         self._logger = logging.getLogger(__name__)
+        self.mode = mode
+        self._logger.debug(f"Set mode in settings: {self.mode}")
+        self.base_dir = self._get_base_directory()
+        self._logger.debug(f"Base directory in settings: {self.base_dir.absolute().name}")
+        self.settings: UnifiedSettings = create_default_settings()  # Always initialized!
         self.data_file = self._resolve_data_file_path()
 
         # Setup logging (with build context detection inside _setup_logging)
@@ -146,7 +145,7 @@ class SettingsManager:
         self.settings.system["run_mode"] = self.mode
         return self.settings
 
-    def save_settings(self) -> bool:
+    def save(self) -> bool:
         """Save the current settings to file."""
         if not self.settings:
             self._logger.error("No settings to save")
@@ -159,10 +158,6 @@ class SettingsManager:
         except Exception as e:
             self._logger.error(f"Error saving settings to {self.data_file}: {e}")
             return False
-
-    def save(self) -> bool:
-        """Convenience method for save_settings()."""
-        return self.save_settings()
 
     #
     # PROVIDER-SPECIFIC OPERATIONS
@@ -232,56 +227,20 @@ class SettingsManager:
     # INTERNAL METHODS - FILE SYSTEM OPERATIONS
     #
 
-    def _detect_mode(self, provided_mode: str) -> str:
-        """Detect the operating mode with intelligent fallback logic."""
-        if provided_mode:
-            return provided_mode
-
-        if not getattr(sys, "frozen", False):
-            return "dev"
-
-        # Running as compiled executable - auto-detect mode
-        exe_dir = os.path.dirname(sys.executable)
-
-        # Special case: if we're in a dist/dev directory, treat as dev mode
-        # This handles the case where dev_build.py creates an exe in dist/dev/
-        if "dist" in exe_dir and "dev" in exe_dir:
-            return "dev"
-
-        if os.path.exists(os.path.join(exe_dir, self.DATA_FILE)):
-            return "build-final"
-        if os.path.exists(os.path.join(exe_dir, self.DATA_DEV_FILE)):
-            return "build-dev"
-        return "build-dev"  # fallback
-
     def _get_base_directory(self) -> Path:
         """Get the base directory based on execution context."""
         if getattr(sys, "frozen", False):
-            return Path(os.path.dirname(sys.executable))
-        return Path(os.path.dirname(sys.argv[0]))
-
-    def _resolve_config_directory(self) -> Path:
-        """Resolve the configuration directory based on mode."""
-        if self._is_build_final():
-            return self.base_dir
-        # If we're in dist/dev/, the config directory is in the project root
-        if "dist" in str(self.base_dir) and "dev" in str(self.base_dir):
-            # Go back to project root and find config
-            project_root = self.base_dir.parent.parent
-            return project_root / "config"
-        return self.base_dir / "config"
+            return Path(sys.executable).parent
+        return Path(sys.argv[0]).parent
 
     def _resolve_data_file_path(self) -> Path:
         """Determine the data file path with intelligent fallback logic."""
         if self._is_build_final():
             return self.base_dir / self.DATA_FILE
-        if self.mode == "build-dev":
+        elif self._is_build_dev():
             return self.base_dir / self.DATA_DEV_FILE
-        # Dev mode: data_dev.json in dist/dev/
-        # But if we're already in dist/dev/, don't add another dist/dev/
-        if "dist" in str(self.base_dir) and "dev" in str(self.base_dir):
-            return self.base_dir / self.DATA_DEV_FILE
-        return self.base_dir / self.DIST_DEV_PATH / self.DATA_DEV_FILE
+        else:
+            return self.base_dir / self.DIST_DEV_PATH / self.DATA_DEV_FILE
 
     def _ensure_directories_exist(self):
         """Ensure necessary directories exist for dev and build-dev modes."""
@@ -314,7 +273,6 @@ class SettingsManager:
     def _write_settings_to_file(self) -> bool:
         """Write settings data to the file."""
         self._logger.debug("Saving settings:")
-        self._logger.debug(f"  mode: {self.mode}")
         self._logger.debug(f"  data_file: {self.data_file}")
 
         # Ensure the directory exists
@@ -361,7 +319,8 @@ class SettingsManager:
         stack = inspect.stack()
         for frame_info in stack:
             filename = frame_info.filename
-            if 'dev_build.py' in filename or 'final_build.py' in filename or 'PyInstaller' in filename:
+            
+            if 'build_dev.py' in filename or 'build_final.py' in filename or 'PyInstaller' in filename:
                 return  # Skip logging setup in build contexts
 
         try:
@@ -390,26 +349,21 @@ class SettingsManager:
 
     def _get_log_file_path(self) -> Path:
         """Get the appropriate log file path based on mode."""
+        base_dir_name = Path(self.base_dir.absolute().name)
         if self.mode == "build-dev":
-            # For build-dev mode, check if we're already in dist/dev/
-            if "dist" in str(self.base_dir) and "dev" in str(self.base_dir):
-                # We're in dist/dev/, use dev_debug.log for consistency
-                return self.base_dir / "dev_debug.log"
-            else:
-                # We're in the main directory, use build_dev_debug.log
-                return self.base_dir / "build_dev_debug.log"
-        # Dev mode: check if we're already in dist/dev/
-        if "dist" in str(self.base_dir) and "dev" in str(self.base_dir):
-            return self.base_dir / "dev_debug.log"
-        # We're in the main directory, return path to dist/dev/ (will be created later)
-        return self.base_dir / self.DIST_DEV_PATH / "dev_debug.log"
+            # For build-dev, log file goes in the same directory as the executable
+            self._logger.debug(f"build-dev logging path: {base_dir_name/ 'build_dev_debug.log'}")
+            return self.base_dir / "build_dev_debug.log"
+        else:
+            # For dev mode, log file goes in dist/dev/
+            self._logger.debug(f"dev logging path: {base_dir_name/ self.DIST_DEV_PATH / 'dev_debug.log'}")
+            return self.base_dir / self.DIST_DEV_PATH / "dev_debug.log"          
 
     def _log_initialization_info(self):
         """Log debug information about initialization."""
         self._logger.debug("SettingsManager initialized:")
-        self._logger.debug(f"  base_dir: {self.base_dir}")
+        self._logger.debug(f"  base_dir: {self.base_dir.absolute().name}")
         self._logger.debug(f"  mode: {self.mode}")
-        self._logger.debug(f"  config_dir: {self.config_dir}")
         self._logger.debug(f"  data_file: {self.data_file}")
 
     #
@@ -423,3 +377,7 @@ class SettingsManager:
     def _is_development_mode(self) -> bool:
         """Check if running in development mode (dev or build-dev)."""
         return self.mode in ["dev", "build-dev"]
+    
+    def _is_build_dev(self) -> bool:
+        """Check if running in build-dev mode."""
+        return self.mode == "build-dev"

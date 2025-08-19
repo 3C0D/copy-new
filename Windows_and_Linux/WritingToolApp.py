@@ -12,7 +12,8 @@ import signal
 import sys
 import threading
 import time
-from typing import TYPE_CHECKING, Optional
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 import darkdetect
 import pyperclip
@@ -103,8 +104,8 @@ class WritingToolApp(QtWidgets.QApplication):
 
     def _setup_core_attributes(self):
         """Initialize core application attributes."""
-        self.current_response_window: Optional['ResponseWindow'] = None
-        self.current_provider: Optional['AIProvider'] = None
+        self.current_response_window: ResponseWindow | None = None
+        self.current_provider: AIProvider | None  = None
         self.output_queue = ""
         self.paused = False
 
@@ -117,6 +118,7 @@ class WritingToolApp(QtWidgets.QApplication):
     def _setup_settings(self):
         """Initialize settings manager and load configuration."""
         mode = self._detect_mode()
+        self._logger.debug(f"Running mode: {mode}")
         self.settings_manager = SettingsManager(mode=mode)
         self.load_settings()
 
@@ -268,21 +270,21 @@ class WritingToolApp(QtWidgets.QApplication):
         Returns:
             str: "dev", "build-dev", or "build-final"
         """
+
+        base_dir = Path(sys.executable).parent
+        self._logger.debug(f"Base directory name in build detect_mode: {base_dir.name}")
+        
+        # dev
         if not getattr(sys, "frozen", False):
             return "dev"
-
-        base_dir = os.path.dirname(sys.executable)
-
-        # Special case: if we're in a dist/dev directory, treat as dev mode
-        # This handles the case where dev_build.py creates an exe in dist/dev/
-        if "dist" in base_dir and "dev" in base_dir:
-            return "dev"
-
-        if os.path.exists(os.path.join(base_dir, "data.json")):
-            return "build-final"
-        if os.path.exists(os.path.join(base_dir, "data_dev.json")):
+        
+        # build-dev
+        elif base_dir.name == "dev":
             return "build-dev"
-        return "build-dev"
+        
+        # build-final
+        else:
+            return "build-final"
 
     def setup_translations(self, lang=None):
         """Setup application translations for the specified language."""
@@ -333,7 +335,7 @@ class WritingToolApp(QtWidgets.QApplication):
 
     def save_settings(self):
         """Save the current unified settings."""
-        return self.settings_manager.save_settings()
+        return self.settings_manager.save()
 
     # ============================================================================
     # HOTKEY AND INPUT HANDLING METHODS
@@ -562,8 +564,8 @@ class WritingToolApp(QtWidgets.QApplication):
 
             # Set the window icon
             icon_path = get_icon_path("app_icon", with_theme=False)
-            if os.path.exists(icon_path):
-                self.setWindowIcon(QtGui.QIcon(icon_path))
+            if icon_path.exists():
+                self.setWindowIcon(QtGui.QIcon(icon_path.as_posix()))
             # Get the screen containing the cursor
             cursor_pos = QCursor.pos()
             screen = QGuiApplication.screenAt(cursor_pos)
@@ -1016,13 +1018,13 @@ class WritingToolApp(QtWidgets.QApplication):
         icon_path = get_icon_path("app_icon", with_theme=False)
         logging.debug(f"Icon path resolved to: {icon_path}")
 
-        if not icon_path or not os.path.exists(icon_path):
+        if not icon_path.exists():
             logging.warning(f"Tray icon not found at {icon_path}")
             # Use a default icon if not found
             self.tray_icon = QtWidgets.QSystemTrayIcon(self)
         else:
             logging.debug(f"Loading icon from: {icon_path}")
-            icon = QtGui.QIcon(icon_path)
+            icon = QtGui.QIcon(icon_path.as_posix())
             if icon.isNull():
                 logging.warning(f"Failed to load icon from {icon_path}")
             self.tray_icon = QtWidgets.QSystemTrayIcon(icon, self)

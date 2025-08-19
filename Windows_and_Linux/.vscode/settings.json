@@ -1,4 +1,9 @@
 {
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.diagnosticMode": "workspace",
+    "python.analysis.include": [
+        "./Windows_and_Linux/**"
+    ],
     "python.defaultInterpreterPath": "./myvenv/Scripts/python.exe",
     "python.analysis.extraPaths": [
         "./myvenv/Lib/site-packages",
@@ -16,9 +21,6 @@
         "120",
         "-S"
     ],
-    "code-runner.respectShebang": false,
-    "code-runner.clearPreviousOutput": true,
-    "code-runner.runInTerminal": true,
     "files.associations": {
         "*.py": "python"
     },

@@ -158,7 +158,7 @@ class NonEditableModal(QtWidgets.QDialog):
         """Refresh the modal's theme when color mode changes."""
         self.apply_styles()
 
-    def closeEvent(self, event):
+    def closeEvent(self, arg__1):
         """Handle window close event and unregister from theme manager."""
         try:
             from ui.ThemeManager import theme_manager
@@ -166,7 +166,7 @@ class NonEditableModal(QtWidgets.QDialog):
             theme_manager.unregister_widget(self)
         except ImportError:
             pass
-        super().closeEvent(event)
+        super().closeEvent(arg__1)
 
     @Slot()
     def copy_text(self):
@@ -178,14 +178,14 @@ class NonEditableModal(QtWidgets.QDialog):
         except Exception as e:
             logging.exception(f"Error copying text: {e}")
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, arg__1):
         """Handle key press events"""
-        if event.key() == Qt.Key.Key_Escape:
+        if arg__1.key() == Qt.Key.Key_Escape:
             self.close()
-        elif event.key() == Qt.Key.Key_Return and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+        elif arg__1.key() == Qt.Key.Key_Return and arg__1.modifiers() == Qt.KeyboardModifier.ControlModifier:
             self.copy_text()
         else:
-            super().keyPressEvent(event)
+            super().keyPressEvent(arg__1)
 
 
 # Example usage for testing

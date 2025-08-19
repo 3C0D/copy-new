@@ -48,7 +48,7 @@ import subprocess
 import tempfile
 import webbrowser
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Callable, Optional, Union, cast
+from typing import TYPE_CHECKING, Callable, Union, cast
 
 # Third-party imports (with fallbacks for optional dependencies)
 try:
@@ -107,15 +107,15 @@ class AIProviderSetting(ABC):
     def __init__(
         self,
         name: str,
-        display_name: Optional[str] = None,
-        default_value: Optional[str] = None,
-        description: Optional[str] = None,
+        display_name: str | None = None,
+        default_value: str | None = None,
+        description: str | None = None,
     ):
         self.name = name
         self.display_name = display_name if display_name else name
         self.default_value = default_value if default_value else ""
         self.description = description if description else ""
-        self.auto_save_callback: Optional[Callable] = None
+        self.auto_save_callback: Callable | None = None
 
     @abstractmethod
     def render_to_layout(self, layout: QVBoxLayout):
@@ -145,13 +145,13 @@ class TextSetting(AIProviderSetting):
     def __init__(
         self,
         name: str,
-        display_name: Optional[str] = None,
-        default_value: Optional[str] = None,
-        description: Optional[str] = None,
+        display_name: str | None = None,
+        default_value: str | None = None,
+        description: str | None = None,
     ):
         super().__init__(name, display_name, default_value, description)
         self.internal_value = default_value
-        self.input: Optional[QtWidgets.QLineEdit] = None
+        self.input: QtWidgets.QLineEdit | None = None
 
     def render_to_layout(self, layout: QVBoxLayout):
         """Create and add the QLineEdit with its label to the layout."""
@@ -211,16 +211,16 @@ class DropdownSetting(AIProviderSetting):
     def __init__(
         self,
         name: str,
-        display_name: Optional[str] = None,
-        default_value: Optional[str] = None,
-        description: Optional[str] = None,
-        options: Optional[list] = None,
-        refresh_callback: Optional[Callable] = None,
+        display_name: str | None = None,
+        default_value: str | None = None,
+        description: str | None = None,
+        options: list | None = None,
+        refresh_callback: Callable | None = None,
     ):
         super().__init__(name, display_name, default_value, description)
         self.options = options or []
         self.internal_value = default_value
-        self.dropdown: Optional[QtWidgets.QComboBox] = None
+        self.dropdown: QtWidgets.QComboBox | None = None
         self.refresh_callback = refresh_callback
 
     def render_to_layout(self, layout: QVBoxLayout):
@@ -353,7 +353,7 @@ class AIProvider(ABC):
     api_organisation: str
     api_project: str
     keep_alive: str
-    logo: Optional[str]
+    logo: str | None
 
     def __init__(
         self,
@@ -363,8 +363,8 @@ class AIProvider(ABC):
         description: str = "An unfinished AI provider!",
         internal_name: str = "",
         button_text: str = "Go to URL",
-        button_action: Optional[Callable] = None,
-        logo: Optional[str] = None,
+        button_action: Callable | None = None,
+        logo: str | None = None,
     ):
         self.provider_name = provider_name
         self.internal_name = internal_name
@@ -462,9 +462,7 @@ class AIProvider(ABC):
             self.app.settings_manager.providers = {}
 
         self.app.settings_manager.providers[self.internal_name] = cast('ProviderConfig', config)
-
-        # Use settings_manager directly instead of going through app.save_settings()
-        self.app.settings_manager.save_settings()
+        self.app.settings_manager.save()
 
     @abstractmethod
     def after_load(self):

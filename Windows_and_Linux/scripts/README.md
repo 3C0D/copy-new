@@ -24,10 +24,10 @@ python scripts/dev_script.py
 
 ---
 
-### **`dev_build.py`** - Development Build
+### **`build_dev.py`** - Development Build
 ```bash
-python scripts/dev_build.py                    # Standard windowed build
-python scripts/dev_build.py --console          # Console mode (for debugging)
+python scripts/build_dev.py                    # Standard windowed build
+python scripts/build_dev.py --console          # Console mode (for debugging)
 ```
 **Purpose**: Create a development executable with fast build times and debug capabilities.
 
@@ -52,9 +52,9 @@ python scripts/dev_build.py --console          # Console mode (for debugging)
 
 ---
 
-### **`final_build.py`** - Production Build
+### **`build_final.py`** - Production Build
 ```bash
-python scripts/final_build.py
+python scripts/build_final.py
 ```
 **Purpose**: Create the final production executable with full optimization and cleanup.
 
@@ -160,14 +160,14 @@ python scripts/test_console_build.py
 
 ### **Common Development Workflow**
 1. **Quick Test**: `python scripts/dev_script.py`
-2. **Build Test**: `python scripts/dev_build.py`
-3. **Debug Issues**: `python scripts/dev_build.py --console`
-4. **Final Build**: `python scripts/final_build.py`
+2. **Build Test**: `python scripts/build_dev.py`
+3. **Debug Issues**: `python scripts/build_dev.py --console`
+4. **Final Build**: `python scripts/build_final.py`
 
 ### **Debugging Workflow**
 1. **Startup Issues**: `python scripts/startup_debug.py`
 2. **Boot Problems**: `python scripts/install_startup_debug.py`
-3. **Console Debugging**: `python scripts/dev_build.py --console`
+3. **Console Debugging**: `python scripts/build_dev.py --console`
 
 ### **VS Code Code Runner**
 All scripts are optimized for Code Runner. Simply:
@@ -195,11 +195,11 @@ All scripts are optimized for Code Runner. Simply:
 
 ### **Systray Issues**
 - Use `python scripts/startup_debug.py`
-- Try console mode: `python scripts/dev_build.py --console`
+- Try console mode: `python scripts/build_dev.py --console`
 - Check Windows system tray settings
 
 ### **Performance Issues**
-- Use `python scripts/final_build.py` for optimized builds
+- Use `python scripts/build_final.py` for optimized builds
 - Check for background processes
 - Verify system resources
 

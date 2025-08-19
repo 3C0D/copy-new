@@ -315,13 +315,13 @@ class DraggableButton(QtWidgets.QPushButton):
             self.style().polish(self)
         super().leaveEvent(event)
 
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
+    def mousePressEvent(self, e):
+        if e.button() == Qt.MouseButton.LeftButton:
             if self.popup.edit_mode:
-                self.drag_start_position = event.pos()
-                event.accept()
+                self.drag_start_position = e.pos()
+                e.accept()
                 return
-        super().mousePressEvent(event)
+        super().mousePressEvent(e)
 
     def mouseMoveEvent(self, event):
         if not (event.buttons() & Qt.MouseButton.LeftButton) or not self.drag_start_position:
@@ -444,8 +444,8 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
         self.reset_button = QPushButton()
         reset_icon_path = get_icon_path("restore", with_theme=True)
-        if os.path.exists(reset_icon_path):
-            self.reset_button.setIcon(QtGui.QIcon(reset_icon_path))
+        if reset_icon_path.exists():
+            self.reset_button.setIcon(QtGui.QIcon(reset_icon_path.as_posix()))
         self.reset_button.setText("")
         self.reset_button.setFixedSize(24, 24)
         self.reset_button.setStyleSheet(
@@ -506,8 +506,8 @@ class CustomPopupWindow(QtWidgets.QWidget):
         # Edit button (pencil icon) - only shown when not in edit mode
         self.edit_button = QPushButton()
         pencil_icon = get_icon_path("pencil", with_theme=True)
-        if os.path.exists(pencil_icon):
-            self.edit_button.setIcon(QtGui.QIcon(pencil_icon))
+        if pencil_icon.exists():
+            self.edit_button.setIcon(QtGui.QIcon(pencil_icon.as_posix()))
         self.edit_button.setFixedSize(24, 24)
         self.edit_button.setStyleSheet(
             f"""
@@ -572,8 +572,8 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
         send_btn = QPushButton()
         send_icon = get_icon_path("send", with_theme=True)
-        if os.path.exists(send_icon):
-            send_btn.setIcon(QtGui.QIcon(send_icon))
+        if send_icon.exists():
+            send_btn.setIcon(QtGui.QIcon(send_icon.as_posix()))
         send_btn.setStyleSheet(
             f"""
             QPushButton {{
@@ -767,8 +767,8 @@ class CustomPopupWindow(QtWidgets.QWidget):
                 continue
             b = DraggableButton(self, name, name)
             icon_path = get_icon_path(action_config.get("icon", None), with_theme=True)
-            if os.path.exists(icon_path):
-                b.setIcon(QtGui.QIcon(icon_path))
+            if icon_path.exists():
+                b.setIcon(QtGui.QIcon(icon_path.as_posix()))
 
             # Add tooltip with tool name and description
             tooltip_text = name
@@ -889,8 +889,8 @@ class CustomPopupWindow(QtWidgets.QWidget):
         from ui.ui_utils import get_icon_path
 
         pencil_icon = get_icon_path("pencil", with_theme=True)
-        if os.path.exists(pencil_icon):
-            edit_btn.setIcon(QtGui.QIcon(pencil_icon))
+        if pencil_icon.exists():
+            edit_btn.setIcon(QtGui.QIcon(pencil_icon.as_posix()))
         edit_btn.setStyleSheet(circle_style)
         edit_btn.clicked.connect(partial(self.edit_button_clicked, btn))
         edit_btn.show()
@@ -899,8 +899,8 @@ class CustomPopupWindow(QtWidgets.QWidget):
         delete_btn = QPushButton(btn.icon_container)
         delete_btn.setGeometry(btn.width() - 23, 3, 16, 16)
         del_icon = get_icon_path("trash", with_theme=True)
-        if os.path.exists(del_icon):
-            delete_btn.setIcon(QtGui.QIcon(del_icon))
+        if del_icon.exists():
+            delete_btn.setIcon(QtGui.QIcon(del_icon.as_posix()))
         delete_btn.setStyleSheet(circle_style)
         delete_btn.clicked.connect(partial(self.delete_button_clicked, btn))
         delete_btn.show()

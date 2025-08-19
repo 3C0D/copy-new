@@ -23,8 +23,8 @@ This document outlines the significant architectural and functional changes made
 ### **Build System Modernization**
 - **Original**: Manual PyInstaller commands
 - **New**: Automated build scripts with:
-  - `scripts/dev_build.py` - Fast development builds
-  - `scripts/final_build.py` - Production builds
+  - `scripts/build_dev.py` - Fast development builds
+  - `scripts/build_final.py` - Production builds
   - `scripts/dev_script.py` - Direct source execution
   - Console mode support (`--console` flag)
   - Automatic environment setup
@@ -51,9 +51,9 @@ This document outlines the significant architectural and functional changes made
 - **New**: Optimized for VS Code Code Runner
 - **Simple Commands**:
   - `python scripts/dev_script.py` - Run from source
-  - `python scripts/dev_build.py` - Build and run
-  - `python scripts/dev_build.py --console` - Debug build
-  - `python scripts/final_build.py` - Production build
+  - `python scripts/build_dev.py` - Build and run
+  - `python scripts/build_dev.py --console` - Debug build
+  - `python scripts/build_final.py` - Production build
 
 ## 🎯 User Experience
 
@@ -94,9 +94,9 @@ This document outlines the significant architectural and functional changes made
 ### **Development Workflow**
 1. **Clone**: Use this enhanced version
 2. **Setup**: Run `python scripts/dev_script.py` for immediate testing
-3. **Build**: Use `python scripts/dev_build.py` for executable testing
+3. **Build**: Use `python scripts/build_dev.py` for executable testing
 4. **Debug**: Add `--console` flag when issues arise
-5. **Deploy**: Use `python scripts/final_build.py` for distribution
+5. **Deploy**: Use `python scripts/build_final.py` for distribution
 
 ## 🎯 Why These Changes?
 

@@ -21,12 +21,12 @@ After extracting the folder, navigate to the `Windows_and_Linux` directory and u
 - **Development build:**
 
   ```bash
-  python scripts/dev_build.py
+  python scripts/build_dev.py
   ```
 
 - **Final build:**
   ```bash
-  python scripts/final_build.py
+  python scripts/build_final.py
   ```
 
 The scripts will automatically:
@@ -38,8 +38,8 @@ The scripts will automatically:
 ## 📋 Available Scripts
 
 - `python scripts/dev_script.py` - Run in development mode (direct execution)
-- `python scripts/dev_build.py` - Create a development build
-- `python scripts/final_build.py` - Create a final release build
+- `python scripts/build_dev.py` - Create a development build
+- `python scripts/build_final.py` - Create a final release build
 
 ## 🎯 Code Runner (Recommended IDE Extension)
 
@@ -81,9 +81,9 @@ This script automatically updates the virtual environment and all dependencies.
 - **DEV mode**: Debug logs are automatically enabled and appear in console
 - **build-final mode**: No debug file logging (console only)
 
-**⚠️ Important Note for dev_build Mode:**
+**⚠️ Important Note for build_dev Mode:**
 
-If you previously ran `dev_script.py` and want to test the initial configuration windows in `dev_build` mode, remember to delete the `data_dev.json` file in `dist/dev/` first. This ensures you see the first-time setup experience.
+If you previously ran `dev_script.py` and want to test the initial configuration windows in `build_dev` mode, remember to delete the `data_dev.json` file in `dist/dev/` first. This ensures you see the first-time setup experience.
 
 ## 🔧 Manual Setup (Advanced Users)
 

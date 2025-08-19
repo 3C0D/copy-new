@@ -21,157 +21,69 @@ Standard Mode:
 import os
 import subprocess
 import sys
-import shutil
-import json
 import argparse
 from pathlib import Path
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from Windows_and_Linux.scripts.utils import copy_required_files
 
-from config.data_operations import create_default_settings
-from config.settings import SettingsManager
+# Configuration
+DEFAULT_VENV_NAME = "myvenv"
+DEFAULT_SCRIPT_NAME = "main.py"
+MODE = "build-dev"
 
-try:
-    from .utils import (
-        get_project_root,
-        setup_environment,
-        terminate_existing_processes,
-        verify_requirements,
-        get_activation_script,
-        get_executable_name,
-    )
-except ImportError:
+if os.name == "nt":  # Windows
     from utils import (
         get_project_root,
         setup_environment,
         terminate_existing_processes,
-        verify_requirements,
         get_activation_script,
         get_executable_name,
+        check_data,
+        clear_console,
+        copy_required_files,
+    )
+else:  # Linux/Unix
+    from .utils import (
+        get_project_root,
+        setup_environment,
+        terminate_existing_processes,
+        get_activation_script,
+        get_executable_name,
+        check_data,
+        clear_console,
+        copy_required_files
     )
 
 
-def copy_required_files():
-    """
-    Copy required files for the development build to dist/dev/.
-    """
-    # Create dist/dev directory
-    dev_dir = "dist/dev"
-    os.makedirs(dev_dir, exist_ok=True)
-
-    # --- Asset files (always copied) ---
-    assets_to_copy = [
-        ("config/icons", f"{dev_dir}/icons"),
-        ("config/backgrounds/background.png", f"{dev_dir}/background.png"),
-        ("config/backgrounds/background_dark.png", f"{dev_dir}/background_dark.png"),
-        ("config/backgrounds/background_popup.png", f"{dev_dir}/background_popup.png"),
-        (
-            "config/backgrounds/background_popup_dark.png",
-            f"{dev_dir}/background_popup_dark.png",
-        ),
-    ]
-
-    print("Copying required files for development build to dist/dev/...")
-
-    # --- Copy assets ---
-    for src, dst in assets_to_copy:
-        try:
-            if not os.path.exists(src):
-                print(f"Warning: Asset file/directory not found: {src}")
-                continue
-
-            if os.path.isdir(src):
-                if os.path.exists(dst):
-                    shutil.rmtree(dst)
-                shutil.copytree(src, dst)
-            else:
-                os.makedirs(os.path.dirname(dst), exist_ok=True)
-                shutil.copy2(src, dst)
-            print(f"Copied asset: {src} -> {dst}")
-        except Exception as e:
-            print(f"Error copying asset {src}: {e}")
-            return False
-
-    # --- Create data_dev.json in dist/dev/ for build-dev mode ---
-    setup_build_dev_mode()
-
-    print("Note: Build-dev mode - settings will be saved to dist/dev/data_dev.json")
-    return True
-
-
-def setup_build_dev_mode():
-    """
-    Create or update data_dev.json in dist/dev/ for build-dev mode with correct run_mode.
-    Preserves existing configuration if file already exists.
-    """
-    dist_dev_dir = Path("dist/dev")
-    dist_dev_dir.mkdir(parents=True, exist_ok=True)
-
-    data_dev_path = dist_dev_dir / "data_dev.json"
-
-    if data_dev_path.exists():
-        # File exists - load existing settings and only update run_mode
-        print(f"Found existing data_dev.json, preserving configuration: {data_dev_path}")
-
-        # Create a temporary SettingsManager to load existing settings
-        temp_manager = SettingsManager(mode="dev")  # Use dev mode to load from dist/dev/
-        temp_manager.data_file = data_dev_path
-        existing_settings = temp_manager.load_settings()
-
-        # Only update the run_mode to match build context
-        existing_settings.system["run_mode"] = "dev"  # Keep as dev mode for consistency
-
-        # Save the updated settings
-        temp_manager.settings = existing_settings
-        settings_dict = temp_manager._serialize_settings()
-
-        with open(data_dev_path, 'w', encoding='utf-8') as f:
-            json.dump(settings_dict, f, indent=2, ensure_ascii=False)
-
-        print(f"Updated existing data_dev.json with preserved configuration")
-    else:
-        # File doesn't exist - create new with default settings
-        print(f"Creating new data_dev.json with default settings: {data_dev_path}")
-
-        settings = create_default_settings()
-        settings.system["run_mode"] = "dev"  # Use dev mode for consistency
-
-        # Create a temporary SettingsManager to use _serialize_settings
-        temp_manager = SettingsManager(mode="dev")
-        temp_manager.settings = settings
-
-        # Use _serialize_settings instead of manual dictionary creation
-        settings_dict = temp_manager._serialize_settings()
-
-        # Save to data_dev.json
-        with open(data_dev_path, 'w', encoding='utf-8') as f:
-            json.dump(settings_dict, f, indent=2, ensure_ascii=False)
-
-        print(f"Created new data_dev.json with default settings")
-
+def copy_required_files_dev():
+    """Copy required files for the development build to dist/dev/."""
+    return copy_required_files("development", "dev")
 
 def run_dev_build(venv_path="myvenv", console_mode=False):
     """Run PyInstaller build for development (faster, less cleanup)"""
 
     # Remove existing .spec file if switching console mode to force regeneration
-    spec_file = "Writing Tools.spec"
-    if os.path.exists(spec_file):
+    spec_file = Path("Writing Tools.spec")
+    if spec_file.exists():
         try:
-            os.remove(spec_file)
+            spec_file.unlink()
             print(f"Removed existing {spec_file} to regenerate with new console mode")
         except Exception as e:
             print(f"Warning: Could not remove {spec_file}: {e}")
 
     # Use the virtual environment's Python to run PyInstaller
     python_cmd = get_activation_script(venv_path)
+    
+    # Build icon path
+    icon_path = Path("config/icons/app_icon.ico")
+    
     pyinstaller_command = [
         python_cmd,
         "-m",
         "PyInstaller",
         "--onefile",
         "--console" if console_mode else "--windowed",
-        "--icon=config/icons/app_icon.ico",
+        f"--icon={icon_path}",
         "--name=Writing Tools",
         "--distpath=dist/dev",  # Output to dist/dev/
         "--noconfirm",  # Removed --clean for faster builds
@@ -289,7 +201,7 @@ def run_dev_build(venv_path="myvenv", console_mode=False):
         "PySide6.Qt3DAnimation",
         "--exclude-module",
         "PySide6.Qt3DExtras",
-        "main.py",
+        f"{DEFAULT_SCRIPT_NAME}",
     ]
 
     try:
@@ -313,36 +225,17 @@ def run_dev_build(venv_path="myvenv", console_mode=False):
         return False
 
 
-def cleanup_temp_directories():
-    """Clean up temporary directories created during PyInstaller analysis."""
-    # Look for nested Windows_and_Linux directories that may have been created
-    nested_path = Path("Windows_and_Linux")
-    if nested_path.exists() and nested_path.is_dir():
-        try:
-            import shutil
-            import time
-
-            # Wait a moment for any file handles to be released
-            time.sleep(1)
-            shutil.rmtree(nested_path)
-            print(f"Cleaned up temporary directory: {nested_path}")
-        except Exception as e:
-            # If cleanup fails, it's not critical - just inform the user
-            print(f"Note: Temporary directory {nested_path} will be cleaned on next build (file in use)")
-            print(f"  This is normal and doesn't affect functionality.")
-
-
 def launch_build(extra_args=None):
     """Launch the built executable, killing any existing instance first."""
     exe_name = get_executable_name()
-    exe_path = os.path.join("dist", "dev", exe_name)
+    exe_path = Path("dist") / "dev" / exe_name
 
-    if not os.path.exists(exe_path):
+    if not exe_path.exists():
         print(f"Error: Built executable not found at {exe_path}")
         return False
 
     # Build command with extra arguments
-    cmd = [exe_path]
+    cmd = [str(exe_path)]
     if extra_args:
         cmd.extend(extra_args)
 
@@ -360,9 +253,6 @@ def launch_build(extra_args=None):
 
 def main():
     """Main function"""
-    print("===== Writing Tools - Development Build =====")
-    print()
-
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Writing Tools - Development Build")
     parser.add_argument(
@@ -372,34 +262,41 @@ def main():
     )
     parser.add_argument("extra_args", nargs="*", help="Extra arguments to pass to the built executable")
     args = parser.parse_args()
+    
+    clear_console()
+    print("===== Writing Tools - Development Build =====")
+    print()
 
     console_mode = args.console
     extra_args = args.extra_args or None
 
     try:
         # Setup project root
-        get_project_root()
-
-        # Verify required files exist
-        required_files = ["main.py", "requirements.txt"]
-        if not verify_requirements(required_files):
-            return 1
+        project_root = get_project_root()
+        print(f"Project root: {project_root.name}")
 
         # Setup environment (virtual env + dependencies)
-        print("Setting up build environment...")
-        success, _ = setup_environment()
+        print("Setting up development environment...")
+        success, python_exe_version = setup_environment(DEFAULT_VENV_NAME)
         if not success:
             print("\nFailed to setup environment!")
             return 1
-
+        
         # Copy required files
-        if not copy_required_files():
+        if not copy_required_files_dev():
             print("\nFailed to copy required files!")
             return 1
 
         # Stop existing processes (both exe and script)
-        terminate_existing_processes(exe_name=get_executable_name(), script_name="main.py")
-
+        print("Terminating existing processes...")
+        terminate_existing_processes(
+            exe_name=get_executable_name(),
+            script_name=DEFAULT_SCRIPT_NAME,
+        )
+        
+        # Setup development settings
+        check_data(MODE)
+        
         # Run build
         if not run_dev_build(console_mode=console_mode):
             print("\nBuild failed!")
@@ -417,9 +314,6 @@ def main():
             print("Console mode was enabled - you should see logs directly in the terminal when the exe runs.")
         else:
             print("Windowed mode - check dist/dev/build_dev_debug.log for detailed logs.")
-
-        # Clean up any temporary directories created during PyInstaller analysis
-        # cleanup_temp_directories()
 
         return 0
 

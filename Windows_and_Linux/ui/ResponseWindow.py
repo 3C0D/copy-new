@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import markdown2
 from PySide6 import QtCore, QtGui
@@ -202,7 +202,9 @@ class MessageContainer(QWidget):
             from ui.ui_utils import get_icon_path
 
             icon_path = get_icon_path("copy_md", with_theme=True)
-            self.copy_btn.setIcon(QtGui.QIcon(icon_path))
+            if icon_path.exists():
+                self.copy_btn.setIcon(QtGui.QIcon(icon_path.as_posix()))
+                
             from ui.ui_utils import get_effective_color_mode
 
             current_mode = get_effective_color_mode()
@@ -287,8 +289,8 @@ class ChatContentScrollArea(QScrollArea):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.content_widget: Optional[QWidget] = None
-        self.layout: Optional[QVBoxLayout] = None
+        self.content_widget: QWidget | None = None
+        self.layout: QVBoxLayout | None = None
         self.setup_ui()
 
     def setup_ui(self):
@@ -456,7 +458,7 @@ class ResponseWindow(ThemedWidget):
         self.loading_container = None
         self.chat_area = None
         self.chat_history = []
-        self.current_text_display: Optional[MarkdownTextBrowser] = None
+        self.current_text_display: MarkdownTextBrowser | None = None
 
         # Setup thinking animation with full range of dots
         self.thinking_timer = QtCore.QTimer(self)
@@ -524,7 +526,7 @@ class ResponseWindow(ThemedWidget):
             btn = QPushButton()
             from ui.ui_utils import get_icon_path
 
-            btn.setIcon(QtGui.QIcon(get_icon_path(icon, with_theme=True)))
+            btn.setIcon(QtGui.QIcon(get_icon_path(icon, with_theme=True).as_posix()))
             btn.setStyleSheet(self.get_button_style())
             btn.setToolTip(tooltip)
             btn.clicked.connect(action)
@@ -605,7 +607,7 @@ class ResponseWindow(ThemedWidget):
         send_button = QPushButton()
         from ui.ui_utils import get_icon_path
 
-        send_button.setIcon(QtGui.QIcon(get_icon_path("send", with_theme=True)))
+        send_button.setIcon(QtGui.QIcon(get_icon_path("send", with_theme=True).as_posix()))
         send_button.setStyleSheet(
             f"""
             QPushButton {{
