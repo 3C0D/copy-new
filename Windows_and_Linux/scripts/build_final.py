@@ -5,9 +5,9 @@ Cross-platform final release build with environment setup
 """
 
 import os
+import shutil
 import subprocess
 import sys
-import shutil
 from pathlib import Path
 
 # Configuration
@@ -17,25 +17,25 @@ MODE = "build-final"
 
 if os.name == "nt":  # Windows
     from utils import (
-        get_project_root,
-        setup_environment,
-        terminate_existing_processes,
-        get_activation_script,
-        get_executable_name,
         check_data,
         clear_console,
         copy_required_files,
+        get_activation_script,
+        get_executable_name,
+        get_project_root,
+        setup_environment,
+        terminate_existing_processes,
     )
 else:  # Linux/Unix
     from .utils import (
-        get_project_root,
-        setup_environment,
-        terminate_existing_processes,
-        get_activation_script,
-        get_executable_name,
         check_data,
         clear_console,
         copy_required_files,
+        get_activation_script,
+        get_executable_name,
+        get_project_root,
+        setup_environment,
+        terminate_existing_processes,
     )
 
 
@@ -47,7 +47,7 @@ def copy_required_files_production():
 def clean_build_directories():
     """Clean build directories for a fresh build, preserving dist/dev/"""
     print("Cleaning build directories...")
-    
+
     # Clean build and __pycache__ completely
     directories_to_clean = [Path("build"), Path("__pycache__")]
     for directory in directories_to_clean:
@@ -57,7 +57,7 @@ def clean_build_directories():
                 print(f"Cleaned: {directory}")
             except Exception as e:
                 print(f"Warning: Could not clean {directory}: {e}")
-    
+
     # For dist/, only clean production directory and old files in root
     dist_dir = Path("dist")
     if dist_dir.exists():
@@ -69,7 +69,7 @@ def clean_build_directories():
                 print(f"Cleaned: {dist_production_dir}")
             except Exception as e:
                 print(f"Warning: Could not clean {dist_production_dir}: {e}")
-        
+
         # Remove any old files in dist root (from previous builds)
         try:
             for item in dist_dir.iterdir():
@@ -82,11 +82,11 @@ def clean_build_directories():
                         print(f"Cleaned old directory: {item}")
         except Exception as e:
             print(f"Warning: Could not clean dist root: {e}")
-        
+
         print("Preserved: dist/dev/ (if exists)")
     else:
         print("Directory not found (skipping): dist")
-    
+
     # Also clean .spec files
     current_dir = Path(".")
     for file in current_dir.glob("*.spec"):
@@ -101,10 +101,10 @@ def run_build_final(venv_path="myvenv"):
     """Run PyInstaller build for final release (clean, optimized)"""
     # Use the virtual environment's Python to run PyInstaller
     python_cmd = get_activation_script(venv_path)
-    
+
     # Build icon path
     icon_path = Path("config/icons/app_icon.ico")
-    
+
     pyinstaller_command = [
         python_cmd,
         "-m",
@@ -282,11 +282,8 @@ def main():
 
         # Stop existing processes (both exe and script)
         print("Terminating existing processes...")
-        terminate_existing_processes(
-            exe_name=get_executable_name(),
-            script_name=DEFAULT_SCRIPT_NAME
-        )
-        
+        terminate_existing_processes(exe_name=get_executable_name(), script_name=DEFAULT_SCRIPT_NAME)
+
         check_data(MODE)
 
         # Run build
@@ -299,10 +296,10 @@ def main():
         return 0
 
     except KeyboardInterrupt:
-        print("\nBuild cancelled by user.")
+        print(f"\n{MODE} cancelled by user.")
         return 1
     except Exception as e:
-        print(f"\nUnexpected error: {e}")
+        print(f"\nUnexpected error in {MODE}: {e}")
         return 1
 
 

@@ -8,22 +8,21 @@ L285   No sure about that:      # Add save button (especially important for prov
 """
 
 import logging
-import os
-import sys
 from typing import TYPE_CHECKING
 
-from PySide6 import QtCore, QtWidgets, QtGui
+from PySide6 import QtCore, QtWidgets
 from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QHBoxLayout, QRadioButton, QScrollArea, QWidget
 
 if TYPE_CHECKING:
-    from aiprovider import AIProvider
     from Windows_and_Linux.WritingToolApp import WritingToolApp
+
+    from aiprovider import AIProvider
 from config.constants import PROVIDER_DISPLAY_NAMES
-from config.data_operations import get_provider_display_name, get_provider_internal_name
+from config.data_operations import get_provider_display_name
 from ui.AutostartManager import AutostartManager
-from ui.ui_utils import ThemedWidget, ui_utils, get_icon_path
 from ui.ThemeManager import ThemeAwareMixin, theme_manager
+from ui.ui_utils import ThemedWidget, get_icon_path, ui_utils
 
 _ = lambda x: x
 
@@ -36,7 +35,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
 
     close_signal = QtCore.Signal()
 
-    def __init__(self, app: 'WritingToolApp', providers_only=False):
+    def __init__(self, app: "WritingToolApp", providers_only=False):
         super().__init__()
         self.app = app
         self.current_provider_layout = None
@@ -192,7 +191,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                 AutostartManager.sync_with_settings(self.app.settings_manager)
 
                 # Set checkbox state from settings (now synchronized)
-                self.autostart_checkbox.setChecked(getattr(self.app.settings_manager, 'start_on_boot', False))
+                self.autostart_checkbox.setChecked(getattr(self.app.settings_manager, "start_on_boot", False))
                 self.autostart_checkbox.stateChanged.connect(self.toggle_autostart)
                 content_layout.addWidget(self.autostart_checkbox)
 
@@ -201,7 +200,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             shortcut_label.setStyleSheet(self.get_label_style())
             content_layout.addWidget(shortcut_label)
 
-            self.shortcut_input = QtWidgets.QLineEdit(self.app.settings_manager.hotkey or 'ctrl+space')
+            self.shortcut_input = QtWidgets.QLineEdit(self.app.settings_manager.hotkey or "ctrl+space")
             self.shortcut_input.setStyleSheet(self.get_input_style())
             # Auto-save when shortcut changes
             self.shortcut_input.textChanged.connect(self.auto_save_shortcut)
@@ -335,19 +334,19 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
     def retranslate_ui(self):
         self.setWindowTitle(_("Settings"))
 
-    def init_provider_ui(self, provider: 'AIProvider', layout):
+    def init_provider_ui(self, provider: "AIProvider", layout):
         """
         Initialize the user interface for the provider, including logo, name, description and all settings.
         Dynamically builds UI based on provider configuration.
         """
         # Refresh provider configuration before building UI (for dynamic providers like Ollama)
-        if hasattr(provider, 'refresh_configuration'):
+        if hasattr(provider, "refresh_configuration"):
             provider.refresh_configuration()
         # Clean up previous provider UI to prevent memory leaks and layout conflicts
         if self.current_provider_layout:
             # Remove the old layout from its parent container first
             parent = self.current_provider_layout.parent()
-            if parent and hasattr(parent, 'removeItem'):
+            if parent and hasattr(parent, "removeItem"):
                 # Cast to layout type to access removeItem method
                 from PySide6.QtWidgets import QLayout
 
@@ -389,7 +388,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         # Provider title needs high contrast - force pure white/black
         # Use effective mode based on user settings
         current_mode = self._get_effective_mode()
-        provider_color = '#ffffff' if current_mode == 'dark' else '#000000'
+        provider_color = "#ffffff" if current_mode == "dark" else "#000000"
         provider_name_label.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {provider_color};")
         provider_name_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
         provider_header_layout.addWidget(provider_name_label)
@@ -404,7 +403,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             self.current_provider_layout.addWidget(description_label)
 
         # Button container for multiple buttons
-        if provider.button_text or (hasattr(provider, 'additional_buttons') and provider.additional_buttons):
+        if provider.button_text or (hasattr(provider, "additional_buttons") and provider.additional_buttons):
             button_container = QtWidgets.QHBoxLayout()
             button_container.setSpacing(10)
 
@@ -415,7 +414,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                 main_button.setStyleSheet(
                     f"""
                         QPushButton {{
-                            background-color: {'#4CAF50' if current_mode == 'dark' else '#008CBA'};
+                            background-color: {"#4CAF50" if current_mode == "dark" else "#008CBA"};
                             color: white;
                             padding: 10px;
                             font-size: 16px;
@@ -423,7 +422,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                             border-radius: 5px;
                         }}
                         QPushButton:hover {{
-                            background-color: {'#45a049' if current_mode == 'dark' else '#007095'};
+                            background-color: {"#45a049" if current_mode == "dark" else "#007095"};
                         }}
                     """,
                 )
@@ -431,20 +430,20 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                 button_container.addWidget(main_button)
 
             # Additional buttons
-            if hasattr(provider, 'additional_buttons'):
+            if hasattr(provider, "additional_buttons"):
                 for button_config in provider.additional_buttons:
                     additional_button = QtWidgets.QPushButton(button_config["text"])
                     current_mode = self._get_effective_mode()
 
                     # Different style for secondary buttons
                     if button_config.get("style") == "secondary":
-                        bg_color = '#666666' if current_mode == 'dark' else '#cccccc'
-                        hover_color = '#555555' if current_mode == 'dark' else '#bbbbbb'
-                        text_color = '#ffffff' if current_mode == 'dark' else '#333333'
+                        bg_color = "#666666" if current_mode == "dark" else "#cccccc"
+                        hover_color = "#555555" if current_mode == "dark" else "#bbbbbb"
+                        text_color = "#ffffff" if current_mode == "dark" else "#333333"
                     else:
-                        bg_color = '#4CAF50' if current_mode == 'dark' else '#008CBA'
-                        hover_color = '#45a049' if current_mode == 'dark' else '#007095'
-                        text_color = 'white'
+                        bg_color = "#4CAF50" if current_mode == "dark" else "#008CBA"
+                        hover_color = "#45a049" if current_mode == "dark" else "#007095"
+                        text_color = "white"
 
                     additional_button.setStyleSheet(
                         f"""
@@ -583,7 +582,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         self.save_button.setStyleSheet(
             f"""
             QPushButton {{
-                background-color: {'#0078d4' if current_mode == 'light' else '#106ebe'};
+                background-color: {"#0078d4" if current_mode == "light" else "#106ebe"};
                 color: white;
                 border: none;
                 border-radius: 6px;
@@ -592,10 +591,10 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                 padding: 8px 16px;
             }}
             QPushButton:hover {{
-                background-color: {'#106ebe' if current_mode == 'light' else '#1e88e5'};
+                background-color: {"#106ebe" if current_mode == "light" else "#1e88e5"};
             }}
             QPushButton:pressed {{
-                background-color: {'#005a9e' if current_mode == 'light' else '#0d47a1'};
+                background-color: {"#005a9e" if current_mode == "light" else "#0d47a1"};
             }}
         """,
         )
@@ -657,11 +656,11 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
     def _refresh_ui_styles(self):
         """Refresh all UI element styles to reflect the current color mode."""
         # Update color mode dropdown style
-        if hasattr(self, 'color_mode_dropdown') and self.color_mode_dropdown:
+        if hasattr(self, "color_mode_dropdown") and self.color_mode_dropdown:
             self.color_mode_dropdown.setStyleSheet(self.get_dropdown_style())
 
         # Update provider dropdown style
-        if hasattr(self, 'provider_dropdown') and self.provider_dropdown:
+        if hasattr(self, "provider_dropdown") and self.provider_dropdown:
             self.provider_dropdown.setStyleSheet(self.get_dropdown_style())
 
         # Update specific labels with their individual styles
@@ -682,21 +681,21 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         for widget in title_labels:
             # Check if this is a provider name (contains provider name text)
             if (
-                hasattr(widget, 'text')
+                hasattr(widget, "text")
                 and widget.text()
                 and any(provider in widget.text() for provider in ["Ollama", "OpenAI", "Anthropic", "Groq"])
             ):
                 # Provider title needs high contrast - force pure white/black
                 # Use effective mode based on user settings
                 current_mode = self._get_effective_mode()
-                provider_color = '#ffffff' if current_mode == 'dark' else '#000000'
+                provider_color = "#ffffff" if current_mode == "dark" else "#000000"
                 widget.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {provider_color};")
             # Check if this is a description (longer text, not a simple label)
-            elif hasattr(widget, 'text') and widget.text() and len(widget.text()) > 50:
+            elif hasattr(widget, "text") and widget.text() and len(widget.text()) > 50:
                 widget.setStyleSheet(f"{self.get_label_style()} text-align: center;")
             # Update all other labels (field labels like "API Base URL", "API Model", etc.)
             elif (
-                hasattr(widget, 'text')
+                hasattr(widget, "text")
                 and widget.text()
                 and widget.text()
                 not in [
@@ -711,26 +710,26 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             ):
                 # Apply standard label style for field labels
                 current_mode = self._get_effective_mode()
-                label_color = '#ffffff' if current_mode == 'dark' else '#333333'
+                label_color = "#ffffff" if current_mode == "dark" else "#333333"
                 widget.setStyleSheet(f"font-size: 16px; color: {label_color};")
 
         # Update shortcut input if exists
-        if hasattr(self, 'shortcut_input') and self.shortcut_input:
+        if hasattr(self, "shortcut_input") and self.shortcut_input:
             self.shortcut_input.setStyleSheet(self.get_input_style())
 
         # Update radio buttons if they exist
-        if hasattr(self, 'gradient_radio') and self.gradient_radio:
+        if hasattr(self, "gradient_radio") and self.gradient_radio:
             radio_style = self.get_radio_style()
             self.gradient_radio.setStyleSheet(radio_style)
-            if hasattr(self, 'plain_radio') and self.plain_radio:
+            if hasattr(self, "plain_radio") and self.plain_radio:
                 self.plain_radio.setStyleSheet(radio_style)
 
         # Update checkbox if it exists
-        if hasattr(self, 'autostart_checkbox') and self.autostart_checkbox:
+        if hasattr(self, "autostart_checkbox") and self.autostart_checkbox:
             self.autostart_checkbox.setStyleSheet(self.get_checkbox_style())
 
         # Force background update
-        if hasattr(self, 'background') and self.background:
+        if hasattr(self, "background") and self.background:
             self.background.update()
 
     def auto_save_provider(self):

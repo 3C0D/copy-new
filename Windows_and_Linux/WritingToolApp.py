@@ -15,7 +15,6 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import darkdetect
 import pyperclip
 from pynput import keyboard as pykeyboard
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -41,7 +40,6 @@ from aiprovider import (
     OllamaProvider,
     OpenAICompatibleProvider,
 )
-
 from config.settings import SettingsManager
 from ui.ui_utils import get_icon_path
 from update_checker import UpdateChecker
@@ -105,7 +103,7 @@ class WritingToolApp(QtWidgets.QApplication):
     def _setup_core_attributes(self):
         """Initialize core application attributes."""
         self.current_response_window: ResponseWindow | None = None
-        self.current_provider: AIProvider | None  = None
+        self.current_provider: AIProvider | None = None
         self.output_queue = ""
         self.paused = False
 
@@ -215,17 +213,17 @@ class WritingToolApp(QtWidgets.QApplication):
         This helps with Windows startup timing issues.
         """
         # Check if we might be starting at boot
-        is_frozen = getattr(sys, 'frozen', False)
+        is_frozen = getattr(sys, "frozen", False)
         startup_delay_needed = (
             len(QApplication.topLevelWidgets()) == 0
-            or getattr(self.settings_manager, 'start_on_boot', False)
+            or getattr(self.settings_manager, "start_on_boot", False)
             or is_frozen  # Frozen builds (exe) are more likely to be autostart
         )
 
         if startup_delay_needed:
             # Longer delay for Windows startup - systray needs more time to be ready
             delay = 5000 if is_frozen else 2000  # 5s for exe, 2s for dev
-            logging.info(f"Startup delay detected - waiting {delay/1000}s for system tray to be ready")
+            logging.info(f"Startup delay detected - waiting {delay / 1000}s for system tray to be ready")
             logging.debug(f"Detected potential startup scenario, delaying tray icon creation by {delay}ms")
             QtCore.QTimer.singleShot(delay, self.create_tray_icon)
         else:
@@ -273,15 +271,15 @@ class WritingToolApp(QtWidgets.QApplication):
 
         base_dir = Path(sys.executable).parent
         self._logger.debug(f"Base directory name in build detect_mode: {base_dir.name}")
-        
+
         # dev
         if not getattr(sys, "frozen", False):
             return "dev"
-        
+
         # build-dev
         elif base_dir.name == "dev":
             return "build-dev"
-        
+
         # build-final
         else:
             return "build-final"
@@ -724,7 +722,7 @@ class WritingToolApp(QtWidgets.QApplication):
                 return
 
             self.output_queue = ""
-            should_open_window = self._should_display_in_window(option, selected_text, prompt_data['action_config'])
+            should_open_window = self._should_display_in_window(option, selected_text, prompt_data["action_config"])
 
             if should_open_window:
                 self._process_window_response(option, selected_text, custom_change, prompt_data)
@@ -753,9 +751,9 @@ class WritingToolApp(QtWidgets.QApplication):
         """Handle case where no text is selected."""
         if is_custom_option:
             return {
-                'prompt': custom_change,
-                'system_instruction': "You are a friendly, helpful, compassionate, and endearing AI conversational assistant. Avoid making assumptions or generating harmful, biased, or inappropriate content. When in doubt, do not make up information. Ask the user for clarification if needed. Try not be unnecessarily repetitive in your response. You can, and should as appropriate, use Markdown formatting to make your response nicely readable.",
-                'action_config': {},
+                "prompt": custom_change,
+                "system_instruction": "You are a friendly, helpful, compassionate, and endearing AI conversational assistant. Avoid making assumptions or generating harmful, biased, or inappropriate content. When in doubt, do not make up information. Ask the user for clarification if needed. Try not be unnecessarily repetitive in your response. You can, and should as appropriate, use Markdown formatting to make your response nicely readable.",
+                "action_config": {},
             }
         else:
             self.show_message_signal.emit("Error", "Please select text to use this option.")
@@ -776,13 +774,13 @@ class WritingToolApp(QtWidgets.QApplication):
         else:
             prompt = f"{prompt_prefix}{selected_text}"
 
-        return {'prompt': prompt, 'system_instruction': system_instruction, 'action_config': action_config}
+        return {"prompt": prompt, "system_instruction": system_instruction, "action_config": action_config}
 
     def _should_display_in_window(self, option, selected_text, action_config):
         """Determine if response should be displayed in a window."""
         has_selected_text = selected_text.strip() != ""
         is_custom_option = option == "Custom"
-        force_chat = getattr(self, '_current_force_chat', False)
+        force_chat = getattr(self, "_current_force_chat", False)
 
         return (
             (is_custom_option and not has_selected_text)
@@ -797,7 +795,7 @@ class WritingToolApp(QtWidgets.QApplication):
 
         self._logger.debug("Getting response for window display")
         response = self.current_provider.get_response(
-            prompt_data['system_instruction'], str(prompt_data['prompt']), return_response=True
+            prompt_data["system_instruction"], str(prompt_data["prompt"]), return_response=True
         )
         self._logger.debug(f"Got response of length: {len(response) if response else 0}")
 
@@ -829,8 +827,8 @@ class WritingToolApp(QtWidgets.QApplication):
             return
 
         self._logger.debug("Getting response for direct replacement")
-        prompt_str = str(prompt_data['prompt'])
-        self.current_provider.get_response(prompt_data['system_instruction'], prompt_str)
+        prompt_str = str(prompt_data["prompt"])
+        self.current_provider.get_response(prompt_data["system_instruction"], prompt_str)
         self._logger.debug("Response processed")
 
     def _handle_processing_error(self, error):
@@ -915,7 +913,7 @@ class WritingToolApp(QtWidgets.QApplication):
                 # For Summary and Key Points, show in response window
                 if hasattr(self, "current_response_window") and self.current_response_window:
                     # Use chat_area.add_message instead of append_text
-                    if hasattr(self.current_response_window, 'chat_area') and self.current_response_window.chat_area:
+                    if hasattr(self.current_response_window, "chat_area") and self.current_response_window.chat_area:
                         self.current_response_window.chat_area.add_message(new_text)
 
                     # If this is the initial response, add it to chat history
@@ -1179,7 +1177,7 @@ class WritingToolApp(QtWidgets.QApplication):
         - Converts internal roles to Gemini's user/model format
         - Uses chat sessions with proper history formatting
         - Maintains context through chat.send_message()
-    
+
     b) OpenAI-compatible:
         - Uses standard OpenAI message array format
         - Includes system instruction and full conversation history
@@ -1241,7 +1239,7 @@ class WritingToolApp(QtWidgets.QApplication):
                         chat_messages.append({"role": gemini_role, "parts": msg["content"]})
 
                     # Start chat with history
-                    if hasattr(self.current_provider, 'model') and self.current_provider.model:
+                    if hasattr(self.current_provider, "model") and self.current_provider.model:
                         chat = self.current_provider.model.start_chat(history=chat_messages)
 
                         # Get response using the chat
@@ -1318,7 +1316,7 @@ class WritingToolApp(QtWidgets.QApplication):
         # Prevent rapid successive clicks that could accidentally open Settings
         # This fixes the bug where rapid right-clicks on tray icon open Settings accidentally
         if (
-            hasattr(self, 'last_tray_click_time')
+            hasattr(self, "last_tray_click_time")
             and (current_time - self.last_tray_click_time) < self.tray_click_debounce_ms
         ):
             logging.debug("Settings click ignored due to debounce protection")

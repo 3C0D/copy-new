@@ -64,7 +64,6 @@ def main():
         # Install requirements
         if install_requirements():
             print("\nInstallation completed successfully")
-            print("You can now run: python dev_script.py")
             return 0
         print("\nInstallation failed")
         return 1

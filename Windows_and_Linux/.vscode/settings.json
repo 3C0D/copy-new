@@ -4,28 +4,36 @@
     "python.analysis.include": [
         "./Windows_and_Linux/**"
     ],
-    "python.defaultInterpreterPath": "./myvenv/Scripts/python.exe",
+    "python.defaultInterpreterPath": "./Windows_and_Linux/myvenv/Scripts/python.exe",
     "python.analysis.extraPaths": [
-        "./myvenv/Lib/site-packages",
+        "./Windows_and_Linux/myvenv/Lib/site-packages",
         "./Windows_and_Linux"
     ],
     "python.analysis.autoSearchPaths": true,
     "python.analysis.typeCheckingMode": "basic",
     "python.terminal.activateEnvironment": true,
     "python.terminal.activateEnvInCurrentTerminal": true,
-    "editor.defaultFormatter": "ms-python.black-formatter",
-    "editor.formatOnSave": true,
+    
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+        },
+        "files.trimTrailingWhitespace": true
+    },
+    
+    "ruff.configuration": "./Windows_and_Linux/pyproject.toml",
+    "ruff.path": ["./Windows_and_Linux/myvenv/Scripts/ruff.exe"],
+    "python.formatting.provider": "none",
     "editor.formatOnType": false,
-    "black-formatter.args": [
-        "--line-length",
-        "120",
-        "-S"
-    ],
+    
     "files.associations": {
         "*.py": "python"
     },
     "python.envFile": "${workspaceFolder}/Windows_and_Linux/.env",
-    // Exclure de la recherche VS Code
+    
     "search.exclude": {
         "**/build": true,
         "**/__pycache__": true,
@@ -33,7 +41,6 @@
         "**/.git": true,
         "**/target": true
     },
-    // Exclure des fichiers surveillés (performances)
     "files.watcherExclude": {
         "**/.git/objects/**": true,
         "**/.git/subtree-cache/**": true,
@@ -44,7 +51,6 @@
         "**/.pytest_cache/**": true,
         "**/.mypy_cache/**": true
     },
-    // Exclure de l'analyse Pylance (c'est ça l'autre option !)
     "python.analysis.exclude": [
         "build",
         "dist",
@@ -53,10 +59,14 @@
         ".pytest_cache",
         ".mypy_cache"
     ],
-    // Ignorer certains fichiers complètement
     "files.exclude": {
         "**/__pycache__": true,
         "**/*.pyc": true,
         "**/.DS_Store": true
-    }
+    },
+    
+    "files.trimTrailingWhitespace": true,
+    "files.trimFinalNewlines": true,
+    "files.insertFinalNewline": true,
+    "editor.renderWhitespace": "boundary"
 }

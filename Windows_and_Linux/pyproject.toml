@@ -1,0 +1,38 @@
+[tool.ruff]
+line-length = 120
+
+# Directories to exclude
+exclude = [
+    "build",
+    "dist",
+    "__pycache__",
+    "myvenv",
+    ".pytest_cache",
+    ".mypy_cache",
+]
+
+[tool.ruff.format]
+# Formatting configuration
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.ruff.lint]
+# Linting rules (optional)
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "UP", # pyupgrade
+    "W291", # trailing-whitespace
+    "W292", # no-newline-at-end-of-file
+    "W293", # blank-line-with-whitespace
+]
+
+ignore = [
+    "E501", # line-too-long (handled by the formatter)
+]
+
+[tool.ruff.lint.extend-per-file-ignores]
+# Ignore certain rules for certain files if necessary

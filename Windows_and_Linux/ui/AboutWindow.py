@@ -6,7 +6,8 @@ Vérifier la section scroll.
 import webbrowser
 
 from PySide6 import QtCore, QtGui, QtWidgets
-from ui.ui_utils import ThemedWidget, colorMode
+
+from ui.ui_utils import ThemedWidget
 
 _ = lambda x: x
 
@@ -93,7 +94,7 @@ class AboutWindow(ThemedWidget):
         from ui.ui_utils import get_effective_color_mode
 
         current_mode = get_effective_color_mode()
-        color = '#ffffff' if current_mode == 'dark' else '#333333'
+        color = "#ffffff" if current_mode == "dark" else "#333333"
         return f"font-size: 24px; font-weight: bold; color: {color};"
 
     def _get_about_content(self):
@@ -103,11 +104,11 @@ class AboutWindow(ThemedWidget):
             <p style='margin-bottom: 20px;'>
                 {_("Writing Tools is a free & lightweight tool that helps you improve your writing with AI, similar to Apple's new Apple Intelligence feature. It works with an extensive range of AI LLMs, both online and locally run.")}
             </p>
-            
+
             <p style='margin-bottom: 20px;'>
                 <strong>{_("Created with care by Jesai, a high school student.")}</strong><br><br>
-                {_("Feel free to check out my other AI app")}, 
-                <a href="https://play.google.com/store/apps/details?id=com.jesai.blissai"><strong>Bliss AI</strong></a>. 
+                {_("Feel free to check out my other AI app")},
+                <a href="https://play.google.com/store/apps/details?id=com.jesai.blissai"><strong>Bliss AI</strong></a>.
                 {_("It's a novel AI tutor that's free on the Google Play Store :)")}<br><br>
                 <strong>{_("Contact me")}:</strong> jesaitarun@gmail.com
             </p>
@@ -122,8 +123,8 @@ class AboutWindow(ThemedWidget):
             </div>
 
             <p style='margin-top: 20px;'>
-                If you have a Mac, check out the 
-                <a href="https://github.com/theJayTea/WritingTools#-macos">Writing Tools macOS port</a> 
+                If you have a Mac, check out the
+                <a href="https://github.com/theJayTea/WritingTools#-macos">Writing Tools macOS port</a>
                 by <a href="https://github.com/Aryamirsepasi">Arya Mirsepasi</a>!
             </p>
         </div>
@@ -211,7 +212,7 @@ class AboutWindow(ThemedWidget):
         from ui.ui_utils import get_effective_color_mode
 
         current_mode = get_effective_color_mode()
-        color = '#ffffff' if current_mode == 'dark' else '#333333'
+        color = "#ffffff" if current_mode == "dark" else "#333333"
         return f"font-size: 14px; color: {color}; padding: 10px;"
 
     def _get_button_style(self):
@@ -229,7 +230,7 @@ class AboutWindow(ThemedWidget):
         from ui.ui_utils import get_effective_color_mode
 
         current_mode = get_effective_color_mode()
-        if current_mode == 'light':
+        if current_mode == "light":
             base_style += """
                 QPushButton { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
                 QPushButton:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.15); }

@@ -1,11 +1,11 @@
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import darkdetect
 from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6.QtWidgets import QWidget
 from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtWidgets import QWidget
 
 colorMode = "dark" if darkdetect.isDark() else "light"
 
@@ -52,7 +52,7 @@ def get_icon_path(icon_name, with_theme=True) -> Path:
         base_dir = Path(sys.executable).parent
     else:
         # Handle different script execution contexts
-        if sys.argv[0] in ['-c', '']:
+        if sys.argv[0] in ["-c", ""]:
             # Running with python -c or similar, use current working directory
             base_dir = Path.cwd()
         else:
@@ -61,7 +61,7 @@ def get_icon_path(icon_name, with_theme=True) -> Path:
         # If we're in the Windows_and_Linux subdirectory, go up one level
         if base_dir.name == "Windows_and_Linux":
             base_dir = base_dir.parent
-    
+
     # Define possible extensions and filenames
     extensions = [".svg", ".png"]  # SVG takes precedence
     if with_theme:
@@ -72,7 +72,7 @@ def get_icon_path(icon_name, with_theme=True) -> Path:
         filenames.extend([f"{icon_name}{ext}" for ext in extensions])
     else:
         filenames = [f"{icon_name}{ext}" for ext in extensions]
-    
+
     # Try multiple locations
     if getattr(sys, "frozen", False):
         # For frozen builds
@@ -88,15 +88,16 @@ def get_icon_path(icon_name, with_theme=True) -> Path:
             # base_dir / "Windows_and_Linux" / "config" / "icons",  # Root project location
             # base_dir / "Windows_and_Linux" / "dist" / "dev" / "icons",  # Dev build location
         ]
-    
+
     # Check all combinations of paths and filenames
     for base_path in base_paths:
         for filename in filenames:
             full_path = base_path / filename
             if full_path.exists():
                 return full_path
-    
+
     return Path()
+
 
 class ui_utils:
     @classmethod
@@ -159,7 +160,7 @@ class ThemedWidget(QWidget):
     def get_dropdown_style(self):
         """Get standardized dropdown styling based on current theme."""
         current_mode = get_effective_color_mode()
-        if current_mode == 'dark':
+        if current_mode == "dark":
             return """
                 QComboBox {
                     background-color: #444;
@@ -196,9 +197,9 @@ class ThemedWidget(QWidget):
         return f"""
             font-size: 16px;
             padding: 5px;
-            background-color: {'#444' if current_mode == 'dark' else 'white'};
-            color: {'#ffffff' if current_mode == 'dark' else '#000000'};
-            border: 1px solid {'#666' if current_mode == 'dark' else '#ccc'};
+            background-color: {"#444" if current_mode == "dark" else "white"};
+            color: {"#ffffff" if current_mode == "dark" else "#000000"};
+            border: 1px solid {"#666" if current_mode == "dark" else "#ccc"};
         """
 
     def get_radio_style(self):
@@ -209,16 +210,16 @@ class ThemedWidget(QWidget):
     def get_label_style(self):
         """Get standardized label styling based on current theme."""
         current_mode = get_effective_color_mode()
-        color = '#ffffff' if current_mode == 'dark' else '#333333'
+        color = "#ffffff" if current_mode == "dark" else "#333333"
         style = f"font-size: 16px; color: {color};"
         return style
 
     def get_checkbox_style(self):
         """Get standardized checkbox styling based on current theme."""
         current_mode = get_effective_color_mode()
-        if current_mode == 'dark':
+        if current_mode == "dark":
             # En mode dark, garder le style original (juste le texte)
-            return f"color: #ffffff; font-size: 16px;"
+            return "color: #ffffff; font-size: 16px;"
         else:
             # En mode light, améliorer la visibilité des indicateurs
             return """
@@ -269,7 +270,7 @@ class ThemeBackground(QWidget):
                 base_dir = os.path.dirname(sys.executable)
             else:
                 # Handle different script execution contexts
-                if sys.argv[0] in ['-c', '']:
+                if sys.argv[0] in ["-c", ""]:
                     # Running with python -c or similar, use current working directory
                     base_dir = os.getcwd()
                 else:

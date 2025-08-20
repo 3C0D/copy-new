@@ -4,6 +4,7 @@ import time
 from typing import TYPE_CHECKING
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
+
 if TYPE_CHECKING:
     from Windows_and_Linux.WritingToolApp import WritingToolApp
 

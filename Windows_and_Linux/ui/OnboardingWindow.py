@@ -1,11 +1,11 @@
 import logging
 from typing import TYPE_CHECKING
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 from PySide6.QtWidgets import QHBoxLayout, QRadioButton
 
-from ui.ui_utils import ThemedWidget, ui_utils
 from ui.ThemeManager import ThemeAwareMixin
+from ui.ui_utils import ThemedWidget, ui_utils
 
 if TYPE_CHECKING:
     from Windows_and_Linux.WritingToolApp import WritingToolApp
@@ -22,7 +22,7 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
     # Signal emitted when window is closed (not when proceeding to next step)
     close_signal = QtCore.Signal()
 
-    def __init__(self, app: 'WritingToolApp'):
+    def __init__(self, app: "WritingToolApp"):
         super().__init__()
         self.app = app
 
@@ -168,7 +168,7 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
     def _get_title_style(self):
         """Get the title styling based on current theme (dark/light mode)."""
         current_mode = self._get_effective_mode()
-        color = '#ffffff' if current_mode == 'dark' else '#333333'
+        color = "#ffffff" if current_mode == "dark" else "#333333"
         return f"font-size: 24px; font-weight: bold; color: {color};"
 
     def _create_features_section(self):
@@ -182,16 +182,16 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
 
     def _get_features_content(self):
         """Get the formatted features content listing app capabilities."""
-        return f"""• {_('Instantly optimize your writing with AI by selecting your text and invoking Writing Tools with "ctrl+space", anywhere.')} 
+        return f"""• {_('Instantly optimize your writing with AI by selecting your text and invoking Writing Tools with "ctrl+space", anywhere.')}
 
 • {_('Get a summary you can chat with of articles, YouTube videos, or documents by select all text with "ctrl+a"')}
-  {_('(or select the YouTube transcript from its description), invoking Writing Tools, and choosing Summary.')}
+  {_("(or select the YouTube transcript from its description), invoking Writing Tools, and choosing Summary.")}
 
-• {_('Chat with AI anytime by invoking Writing Tools without selecting any text.')}
+• {_("Chat with AI anytime by invoking Writing Tools without selecting any text.")}
 
-• {_('Supports an extensive range of AI models:')}
-    - {_('Gemini 2.0')}
-    - {_('ANY OpenAI Compatible API — including local LLMs!')}
+• {_("Supports an extensive range of AI models:")}
+    - {_("Gemini 2.0")}
+    - {_("ANY OpenAI Compatible API — including local LLMs!")}
         """
 
     def _create_shortcut_section(self):
@@ -289,14 +289,14 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
     def _get_content_style(self):
         """Get the content styling based on current theme (dark/light mode)."""
         current_mode = self._get_effective_mode()
-        color = '#ffffff' if current_mode == 'dark' else '#333333'
+        color = "#ffffff" if current_mode == "dark" else "#333333"
         style = f"font-size: 16px; color: {color};"
         return style
 
     def _get_info_style(self):
         """Get the info text styling based on current theme (dark/light mode)."""
         current_mode = self._get_effective_mode()
-        color = '#aaaaaa' if current_mode == 'dark' else '#666666'
+        color = "#aaaaaa" if current_mode == "dark" else "#666666"
         style = f"font-size: 16px; color: {color}; font-style: italic; margin: 10px 0;"
         return style
 
@@ -306,22 +306,22 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         return f"""
             font-size: 16px;
             padding: 5px;
-            background-color: {'#444' if current_mode == 'dark' else 'white'};
-            color: {'#ffffff' if current_mode == 'dark' else '#000000'};
-            border: 1px solid {'#666' if current_mode == 'dark' else '#ccc'};
+            background-color: {"#444" if current_mode == "dark" else "white"};
+            color: {"#ffffff" if current_mode == "dark" else "#000000"};
+            border: 1px solid {"#666" if current_mode == "dark" else "#ccc"};
         """
 
     def _get_radio_style(self):
         """Get the radio button styling based on current theme."""
         current_mode = self._get_effective_mode()
-        color = '#ffffff' if current_mode == 'dark' else '#333333'
+        color = "#ffffff" if current_mode == "dark" else "#333333"
         style = f"color: {color};"
         return style
 
     def _get_dropdown_style(self):
         """Get the dropdown styling based on current theme."""
         current_mode = self._get_effective_mode()
-        if current_mode == 'dark':
+        if current_mode == "dark":
             return """
                 QComboBox {
                     background-color: #444;
@@ -433,21 +433,21 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
     def _refresh_ui_styles(self):
         """Refresh all UI element styles to reflect the current color mode."""
         # Update color mode dropdown style
-        if hasattr(self, 'color_mode_dropdown') and self.color_mode_dropdown:
+        if hasattr(self, "color_mode_dropdown") and self.color_mode_dropdown:
             self.color_mode_dropdown.setStyleSheet(self._get_dropdown_style())
 
         # Update other UI elements
-        if hasattr(self, 'shortcut_input') and self.shortcut_input:
+        if hasattr(self, "shortcut_input") and self.shortcut_input:
             self.shortcut_input.setStyleSheet(self._get_input_style())
 
         # Update radio buttons
-        if hasattr(self, 'gradient_radio') and self.gradient_radio:
+        if hasattr(self, "gradient_radio") and self.gradient_radio:
             radio_style = self._get_radio_style()
             self.gradient_radio.setStyleSheet(radio_style)
             self.plain_radio.setStyleSheet(radio_style)
 
         # Update title label
-        if hasattr(self, 'title_label'):
+        if hasattr(self, "title_label"):
             for widget in self.findChildren(QtWidgets.QLabel):
                 if widget.objectName() == "title_label":
                     widget.setStyleSheet(self._get_title_style())
@@ -465,7 +465,7 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
                 widget.setStyleSheet(self._get_content_style())
 
         # Force background update
-        if hasattr(self, 'background') and self.background:
+        if hasattr(self, "background") and self.background:
             self.background.update()
 
     def _save_shortcut_setting(self):

@@ -18,10 +18,10 @@ Standard Mode:
     Use this for normal development and testing.
 """
 
+import argparse
 import os
 import subprocess
 import sys
-import argparse
 from pathlib import Path
 
 from Windows_and_Linux.scripts.utils import copy_required_files
@@ -33,31 +33,32 @@ MODE = "build-dev"
 
 if os.name == "nt":  # Windows
     from utils import (
-        get_project_root,
-        setup_environment,
-        terminate_existing_processes,
-        get_activation_script,
-        get_executable_name,
         check_data,
         clear_console,
         copy_required_files,
-    )
-else:  # Linux/Unix
-    from .utils import (
+        get_activation_script,
+        get_executable_name,
         get_project_root,
         setup_environment,
         terminate_existing_processes,
-        get_activation_script,
-        get_executable_name,
+    )
+else:  # Linux/Unix
+    from .utils import (
         check_data,
         clear_console,
-        copy_required_files
+        copy_required_files,
+        get_activation_script,
+        get_executable_name,
+        get_project_root,
+        setup_environment,
+        terminate_existing_processes,
     )
 
 
 def copy_required_files_dev():
     """Copy required files for the development build to dist/dev/."""
     return copy_required_files("development", "dev")
+
 
 def run_dev_build(venv_path="myvenv", console_mode=False):
     """Run PyInstaller build for development (faster, less cleanup)"""
@@ -73,10 +74,10 @@ def run_dev_build(venv_path="myvenv", console_mode=False):
 
     # Use the virtual environment's Python to run PyInstaller
     python_cmd = get_activation_script(venv_path)
-    
+
     # Build icon path
     icon_path = Path("config/icons/app_icon.ico")
-    
+
     pyinstaller_command = [
         python_cmd,
         "-m",
@@ -262,7 +263,7 @@ def main():
     )
     parser.add_argument("extra_args", nargs="*", help="Extra arguments to pass to the built executable")
     args = parser.parse_args()
-    
+
     clear_console()
     print("===== Writing Tools - Development Build =====")
     print()
@@ -281,7 +282,7 @@ def main():
         if not success:
             print("\nFailed to setup environment!")
             return 1
-        
+
         # Copy required files
         if not copy_required_files_dev():
             print("\nFailed to copy required files!")
@@ -293,10 +294,10 @@ def main():
             exe_name=get_executable_name(),
             script_name=DEFAULT_SCRIPT_NAME,
         )
-        
+
         # Setup development settings
         check_data(MODE)
-        
+
         # Run build
         if not run_dev_build(console_mode=console_mode):
             print("\nBuild failed!")
@@ -318,10 +319,10 @@ def main():
         return 0
 
     except KeyboardInterrupt:
-        print("\nBuild cancelled by user.")
+        print(f"\n{MODE} cancelled by user.")
         return 1
     except Exception as e:
-        print(f"\nUnexpected error: {e}")
+        print(f"\nUnexpected error in {MODE}: {e}")
         return 1
 
 

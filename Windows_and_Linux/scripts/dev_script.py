@@ -17,23 +17,23 @@ MODE = "dev"
 
 if os.name == "nt":  # Windows
     from utils import (  # type: ignore
+        check_data,
+        clear_console,
         get_executable_name,
         get_project_root,
         get_python_executable,
         setup_environment,
         terminate_existing_processes,
-        check_data,
-        clear_console,
     )
 else:  # Linux/Unix
     from .utils import (  # type: ignore
+        check_data,
+        clear_console,
         get_executable_name,
         get_project_root,
         get_python_executable,
         setup_environment,
         terminate_existing_processes,
-        check_data,
-        clear_console,
     )
 
 
@@ -121,13 +121,10 @@ def main():
         return 0
 
     except KeyboardInterrupt:
-        print("\nOperation cancelled by user.")
+        print(f"\n{MODE} cancelled by user.")
         return 130  # Standard Unix exit code for SIGINT
     except Exception as e:
-        print(f"\nUnexpected error: {e}")
-        import traceback
-
-        traceback.print_exc()
+        print(f"\nErreur dans {MODE}: {e}")
         return 1
 
 

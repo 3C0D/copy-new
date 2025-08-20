@@ -88,7 +88,6 @@ from config.constants import (
     OPENAI_MODELS,
 )
 from config.data_operations import get_default_model_for_provider
-from ui.ui_utils import colorMode
 
 # Type checking imports
 if TYPE_CHECKING:
@@ -160,16 +159,16 @@ class TextSetting(AIProviderSetting):
         row_layout = QtWidgets.QHBoxLayout()
         label = QtWidgets.QLabel(self.display_name)
         current_mode = get_effective_color_mode()
-        label.setStyleSheet(f"font-size: 16px; color: {'#ffffff' if current_mode=='dark' else '#333333'};")
+        label.setStyleSheet(f"font-size: 16px; color: {'#ffffff' if current_mode == 'dark' else '#333333'};")
         row_layout.addWidget(label)
         self.input = QtWidgets.QLineEdit(self.internal_value)
         self.input.setStyleSheet(
             f"""
             font-size: 16px;
             padding: 5px;
-            background-color: {'#444' if current_mode=='dark' else 'white'};
-            color: {'#ffffff' if current_mode=='dark' else '#000000'};
-            border: 1px solid {'#666' if current_mode=='dark' else '#ccc'};
+            background-color: {"#444" if current_mode == "dark" else "white"};
+            color: {"#ffffff" if current_mode == "dark" else "#000000"};
+            border: 1px solid {"#666" if current_mode == "dark" else "#ccc"};
         """,
         )
         self.input.setPlaceholderText(self.description)
@@ -196,8 +195,8 @@ class TextSetting(AIProviderSetting):
                 return self.input.text()
             except RuntimeError:
                 # Widget has been deleted, return stored value or empty string
-                return getattr(self, 'internal_value', "")
-        return getattr(self, 'internal_value', "")
+                return getattr(self, "internal_value", "")
+        return getattr(self, "internal_value", "")
 
 
 class DropdownSetting(AIProviderSetting):
@@ -230,7 +229,7 @@ class DropdownSetting(AIProviderSetting):
         row_layout = QtWidgets.QHBoxLayout()
         label = QtWidgets.QLabel(self.display_name)
         current_mode = get_effective_color_mode()
-        label.setStyleSheet(f"font-size: 16px; color: {'#ffffff' if current_mode=='dark' else '#333333'};")
+        label.setStyleSheet(f"font-size: 16px; color: {'#ffffff' if current_mode == 'dark' else '#333333'};")
         row_layout.addWidget(label)
         self.dropdown = QtWidgets.QComboBox()
         # Ensure dropdown can receive focus and clicks properly
@@ -240,9 +239,9 @@ class DropdownSetting(AIProviderSetting):
             font-size: 16px;
             padding: 5px;
             padding-right: 25px;
-            background-color: {'#444' if current_mode=='dark' else 'white'};
-            color: {'#ffffff' if current_mode=='dark' else '#000000'};
-            border: 1px solid {'#666' if current_mode=='dark' else '#ccc'};
+            background-color: {"#444" if current_mode == "dark" else "white"};
+            color: {"#ffffff" if current_mode == "dark" else "#000000"};
+            border: 1px solid {"#666" if current_mode == "dark" else "#ccc"};
         """,
         )
         for option, value in self.options:
@@ -265,7 +264,7 @@ class DropdownSetting(AIProviderSetting):
                 self.refresh_callback()
 
             # Connect to the aboutToShow signal if available, or use showPopup override
-            if hasattr(self.dropdown, 'aboutToShow'):
+            if hasattr(self.dropdown, "aboutToShow"):
                 self.dropdown.aboutToShow.connect(on_dropdown_about_to_show)
             else:
                 # Override showPopup to call refresh before showing
@@ -297,13 +296,13 @@ class DropdownSetting(AIProviderSetting):
     def get_value(self):
         """Return selected value from the dropdown."""
         if self.dropdown is None:
-            return getattr(self, 'internal_value', "")
+            return getattr(self, "internal_value", "")
 
         try:
             return self.dropdown.currentData()
         except RuntimeError:
             # Widget has been deleted, return stored value or empty string
-            return getattr(self, 'internal_value', "")
+            return getattr(self, "internal_value", "")
 
     def refresh_options(self, new_options: list):
         """Refresh the dropdown options dynamically."""
@@ -357,7 +356,7 @@ class AIProvider(ABC):
 
     def __init__(
         self,
-        app: 'WritingToolApp',
+        app: "WritingToolApp",
         provider_name: str,
         settings: list[AIProviderSetting],
         description: str = "An unfinished AI provider!",
@@ -401,7 +400,7 @@ class AIProvider(ABC):
     @property
     def api_model(self) -> str:
         """Generic getter for the api_model attribute."""
-        return getattr(self, '_api_model', '')
+        return getattr(self, "_api_model", "")
 
     @api_model.setter
     def api_model(self, value: str):
@@ -461,7 +460,7 @@ class AIProvider(ABC):
         if "providers" not in self.app.settings_manager.settings.custom_data:
             self.app.settings_manager.providers = {}
 
-        self.app.settings_manager.providers[self.internal_name] = cast('ProviderConfig', config)
+        self.app.settings_manager.providers[self.internal_name] = cast("ProviderConfig", config)
         self.app.settings_manager.save()
 
     @abstractmethod
@@ -501,7 +500,7 @@ class GeminiProvider(AIProvider):
     Handles safety settings to allow less restricted content.
     """
 
-    def __init__(self, app: 'WritingToolApp'):
+    def __init__(self, app: "WritingToolApp"):
         self.close_requested = False
         self.model = None
 
@@ -625,7 +624,7 @@ class GeminiProvider(AIProvider):
                 # Fallback: manually extract text from parts
                 text_parts = []
                 for part in candidate.content.parts:
-                    if hasattr(part, 'text') and part.text:
+                    if hasattr(part, "text") and part.text:
                         text_parts.append(part.text)
 
                 if text_parts:
@@ -710,7 +709,7 @@ class GeminiProvider(AIProvider):
                 }
 
                 # Check if CIVIC_INTEGRITY category exists (may vary by API version)
-                if hasattr(HarmCategory, 'HARM_CATEGORY_CIVIC_INTEGRITY'):
+                if hasattr(HarmCategory, "HARM_CATEGORY_CIVIC_INTEGRITY"):
                     safety_settings[HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY] = HarmBlockThreshold.BLOCK_ONLY_HIGH
 
                 self.model = genai.GenerativeModel(
@@ -756,7 +755,7 @@ class OpenAICompatibleProvider(AIProvider):
     and project authentication.
     """
 
-    def __init__(self, app: 'WritingToolApp'):
+    def __init__(self, app: "WritingToolApp"):
         self.close_requested = None
         self.client = None
 
@@ -963,8 +962,9 @@ def install_ollama_windows(app):
     Download and install Ollama on Windows automatically.
     Shows a progress window with animated loading dots during the process.
     """
-    from ui.ProgressWindow import OllamaInstallProgressWindow
     from PySide6.QtWidgets import QApplication
+
+    from ui.ProgressWindow import OllamaInstallProgressWindow
 
     # Create and show progress window
     progress_window = OllamaInstallProgressWindow()
@@ -998,7 +998,7 @@ def install_ollama_windows(app):
             response = requests.get(ollama_url, stream=True, allow_redirects=True)
             response.raise_for_status()
 
-            total_size = int(response.headers.get('content-length', 0))
+            total_size = int(response.headers.get("content-length", 0))
             downloaded = 0
 
             for chunk in response.iter_content(chunk_size=8192):
@@ -1074,8 +1074,9 @@ def install_ollama_linux(app):
     """
     Install Ollama on Linux using the official installation script.
     """
-    from ui.ProgressWindow import OllamaInstallProgressWindow
     from PySide6.QtWidgets import QApplication
+
+    from ui.ProgressWindow import OllamaInstallProgressWindow
 
     # Create and show progress window
     progress_window = OllamaInstallProgressWindow()
@@ -1245,7 +1246,7 @@ class OllamaProvider(AIProvider):
     and custom models.
     """
 
-    def __init__(self, app: 'WritingToolApp'):
+    def __init__(self, app: "WritingToolApp"):
         self.close_requested = None
         self.client = None
         self.app = app
@@ -1312,7 +1313,7 @@ class OllamaProvider(AIProvider):
         """Refresh the list of available Ollama models."""
         ollama_models = get_ollama_models()
         for setting in self.settings:
-            if setting.name == "api_model" and hasattr(setting, 'refresh_options'):
+            if setting.name == "api_model" and hasattr(setting, "refresh_options"):
                 setting.refresh_options(ollama_models)
                 break
 
@@ -1339,11 +1340,11 @@ class OllamaProvider(AIProvider):
         # Update model list and settings
         ollama_models = get_ollama_models()
         for setting in self.settings:
-            if setting.name == "api_model" and hasattr(setting, 'refresh_options'):
+            if setting.name == "api_model" and hasattr(setting, "refresh_options"):
                 # Refresh the dropdown options
                 setting.refresh_options(ollama_models)
                 # Update default value if models are available and current value is empty
-                current_value = setting.get_value() if hasattr(setting, 'get_value') else ""
+                current_value = setting.get_value() if hasattr(setting, "get_value") else ""
                 if ollama_models and ollama_models[0][1] and not current_value:
                     setting.set_value(ollama_models[0][1])
                 break
@@ -1355,12 +1356,13 @@ class OllamaProvider(AIProvider):
             # Automatically refresh configuration after successful installation
             self.refresh_configuration()
             # Refresh the provider UI
-            if hasattr(self.app, 'settings_window') and self.app.settings_window:
+            if hasattr(self.app, "settings_window") and self.app.settings_window:
                 self.app.settings_window._on_provider_changed()
 
     def _delete_model(self):
         """Handle Ollama model deletion with confirmation dialog."""
-        from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QMessageBox
+        from PySide6.QtWidgets import QComboBox, QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
+
         from ui.ui_utils import get_effective_color_mode
 
         # Get available models
@@ -1386,29 +1388,29 @@ class OllamaProvider(AIProvider):
         dialog.setStyleSheet(
             f"""
             QDialog {{
-                background-color: {'#2b2b2b' if current_mode == 'dark' else '#ffffff'};
-                color: {'#ffffff' if current_mode == 'dark' else '#000000'};
+                background-color: {"#2b2b2b" if current_mode == "dark" else "#ffffff"};
+                color: {"#ffffff" if current_mode == "dark" else "#000000"};
             }}
             QLabel {{
-                color: {'#ffffff' if current_mode == 'dark' else '#333333'};
+                color: {"#ffffff" if current_mode == "dark" else "#333333"};
                 font-size: 14px;
             }}
             QComboBox {{
                 font-size: 14px;
                 padding: 5px;
-                background-color: {'#444' if current_mode == 'dark' else 'white'};
-                color: {'#ffffff' if current_mode == 'dark' else '#000000'};
-                border: 1px solid {'#666' if current_mode == 'dark' else '#ccc'};
+                background-color: {"#444" if current_mode == "dark" else "white"};
+                color: {"#ffffff" if current_mode == "dark" else "#000000"};
+                border: 1px solid {"#666" if current_mode == "dark" else "#ccc"};
             }}
             QPushButton {{
                 font-size: 14px;
                 padding: 8px 16px;
-                border: 1px solid {'#666' if current_mode == 'dark' else '#ccc'};
-                background-color: {'#444' if current_mode == 'dark' else '#f0f0f0'};
-                color: {'#ffffff' if current_mode == 'dark' else '#000000'};
+                border: 1px solid {"#666" if current_mode == "dark" else "#ccc"};
+                background-color: {"#444" if current_mode == "dark" else "#f0f0f0"};
+                color: {"#ffffff" if current_mode == "dark" else "#000000"};
             }}
             QPushButton:hover {{
-                background-color: {'#555' if current_mode == 'dark' else '#e0e0e0'};
+                background-color: {"#555" if current_mode == "dark" else "#e0e0e0"};
             }}
         """
         )
@@ -1484,7 +1486,7 @@ class OllamaProvider(AIProvider):
                 # Refresh the model list and UI
                 self.refresh_configuration()
                 # Refresh the provider UI
-                if hasattr(self.app, 'settings_window') and self.app.settings_window:
+                if hasattr(self.app, "settings_window") and self.app.settings_window:
                     self.app.settings_window._on_provider_changed()
             else:
                 self.app.show_message_signal.emit("Deletion Failed", message)
@@ -1570,7 +1572,7 @@ class AnthropicProvider(AIProvider):
     Implements authentication via API key and supports different Claude models.
     """
 
-    def __init__(self, app: 'WritingToolApp'):
+    def __init__(self, app: "WritingToolApp"):
         self.close_requested = None
         self.client = None
         self.app = app
@@ -1736,7 +1738,7 @@ class MistralProvider(AIProvider):
     Uses direct HTTP requests for better control and reliability.
     """
 
-    def __init__(self, app: 'WritingToolApp'):
+    def __init__(self, app: "WritingToolApp"):
         self.close_requested = None
         self.client = None
         self.app = app

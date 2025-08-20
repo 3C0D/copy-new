@@ -124,7 +124,7 @@ class AutostartManager:
         """
         try:
             registry_state = AutostartManager.check_autostart()
-            settings_state = getattr(settings_manager, 'start_on_boot', False)
+            settings_state = getattr(settings_manager, "start_on_boot", False)
 
             if registry_state != settings_state:
                 # Update settings to match registry state

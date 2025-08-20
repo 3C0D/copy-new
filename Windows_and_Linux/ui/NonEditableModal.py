@@ -2,7 +2,7 @@ import logging
 
 import markdown2
 import pyperclip
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 from PySide6.QtCore import Qt, Slot
 
 # from ui.ui_utils import colorMode

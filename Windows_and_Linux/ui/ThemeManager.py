@@ -4,7 +4,8 @@ Remplace les méthodes get_*_style() éparpillées par un système unifié.
 """
 
 from PySide6 import QtCore
-from ui.ui_utils import colorMode, set_color_mode, get_effective_color_mode
+
+from ui.ui_utils import get_effective_color_mode, set_color_mode
 
 
 class ThemeManager(QtCore.QObject):
@@ -21,7 +22,7 @@ class ThemeManager(QtCore.QObject):
         return cls._instance
 
     def __init__(self):
-        if hasattr(self, '_initialized'):
+        if hasattr(self, "_initialized"):
             return
         super().__init__()
         self._initialized = True
@@ -45,7 +46,7 @@ class ThemeManager(QtCore.QObject):
 
         # Rafraîchir tous les widgets enregistrés
         for widget in self._registered_widgets[:]:  # Copie pour éviter les modifications pendant l'itération
-            if hasattr(widget, 'refresh_theme'):
+            if hasattr(widget, "refresh_theme"):
                 try:
                     widget.refresh_theme()
                 except RuntimeError:
@@ -56,41 +57,41 @@ class ThemeManager(QtCore.QObject):
     def get_styles():
         """Retourne tous les styles standardisés basés sur le thème actuel."""
         current_mode = get_effective_color_mode()
-        is_dark = current_mode == 'dark'
+        is_dark = current_mode == "dark"
 
         return {
-            'label': f"font-size: 16px; color: {'#ffffff' if is_dark else '#333333'};",
-            'title': f"font-size: 24px; font-weight: bold; color: {'#ffffff' if is_dark else '#000000'};",
-            'provider_title': f"font-size: 18px; font-weight: bold; color: {'#ffffff' if is_dark else '#000000'};",
-            'input': f"""
+            "label": f"font-size: 16px; color: {'#ffffff' if is_dark else '#333333'};",
+            "title": f"font-size: 24px; font-weight: bold; color: {'#ffffff' if is_dark else '#000000'};",
+            "provider_title": f"font-size: 18px; font-weight: bold; color: {'#ffffff' if is_dark else '#000000'};",
+            "input": f"""
                 font-size: 16px;
                 padding: 5px;
-                background-color: {'#444' if is_dark else 'white'};
-                color: {'#ffffff' if is_dark else '#000000'};
-                border: 1px solid {'#666' if is_dark else '#ccc'};
+                background-color: {"#444" if is_dark else "white"};
+                color: {"#ffffff" if is_dark else "#000000"};
+                border: 1px solid {"#666" if is_dark else "#ccc"};
             """,
-            'dropdown': f"""
+            "dropdown": f"""
                 font-size: 16px;
                 padding: 5px;
-                background-color: {'#444' if is_dark else 'white'};
-                color: {'#ffffff' if is_dark else '#000000'};
-                border: 1px solid {'#666' if is_dark else '#ccc'};
+                background-color: {"#444" if is_dark else "white"};
+                color: {"#ffffff" if is_dark else "#000000"};
+                border: 1px solid {"#666" if is_dark else "#ccc"};
             """,
-            'radio': f"color: {'#ffffff' if is_dark else '#333333'};",
-            'button': f"""
+            "radio": f"color: {'#ffffff' if is_dark else '#333333'};",
+            "button": f"""
                 QPushButton {{
-                    background-color: {'#444' if is_dark else '#f0f0f0'};
-                    color: {'#ffffff' if is_dark else '#000000'};
-                    border: 1px solid {'#666' if is_dark else '#ccc'};
+                    background-color: {"#444" if is_dark else "#f0f0f0"};
+                    color: {"#ffffff" if is_dark else "#000000"};
+                    border: 1px solid {"#666" if is_dark else "#ccc"};
                     border-radius: 5px;
                     padding: 8px;
                     font-size: 14px;
                 }}
                 QPushButton:hover {{
-                    background-color: {'#555' if is_dark else '#e0e0e0'};
+                    background-color: {"#555" if is_dark else "#e0e0e0"};
                 }}
             """,
-            'action_button': """
+            "action_button": """
                 QPushButton {
                     background-color: #4CAF50;
                     color: white;
@@ -117,7 +118,7 @@ class ThemeAwareMixin:
 
     def _on_theme_changed(self, new_mode):
         """Appelé automatiquement quand le thème change."""
-        if hasattr(self, 'refresh_theme'):
+        if hasattr(self, "refresh_theme"):
             self.refresh_theme()
 
     def get_styles(self):
@@ -127,7 +128,7 @@ class ThemeAwareMixin:
     def closeEvent(self, event):
         """Désenregistrer le widget quand il se ferme."""
         theme_manager.unregister_widget(self)
-        if hasattr(super(), 'closeEvent'):
+        if hasattr(super(), "closeEvent"):
             super().closeEvent(event)
 
 

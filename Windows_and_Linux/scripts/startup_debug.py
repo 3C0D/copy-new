@@ -46,7 +46,7 @@ def setup_detailed_logging():
         level=logging.DEBUG,
         format="%(asctime)s.%(msecs)03d - %(levelname)s - %(name)s - %(funcName)s:%(lineno)d - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
-        handlers=[logging.FileHandler(log_file, encoding='utf-8'), logging.StreamHandler(sys.stdout)],
+        handlers=[logging.FileHandler(log_file, encoding="utf-8"), logging.StreamHandler(sys.stdout)],
     )
 
     # Log des informations système au démarrage
@@ -61,7 +61,7 @@ def setup_detailed_logging():
     logger.info(f"Working directory: {os.getcwd()}")
     logger.info(f"Frozen: {getattr(sys, 'frozen', False)}")
 
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         logger.info(f"Executable path: {sys.executable}")
         logger.info(f"Base directory: {os.path.dirname(sys.executable)}")
 
@@ -76,9 +76,9 @@ def setup_detailed_logging():
         logger.error(f"Error getting platform info: {e}")
 
     # Variables d'environnement importantes
-    env_vars = ['PATH', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'TEMP']
+    env_vars = ["PATH", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "TEMP"]
     for var in env_vars:
-        value = os.environ.get(var, 'NOT_SET')
+        value = os.environ.get(var, "NOT_SET")
         logger.info(f"ENV {var}: {value}")
 
     return logger, log_file
@@ -91,7 +91,7 @@ def log_systray_environment():
     try:
         # Importer PySide6 et vérifier la disponibilité
         logger.info("Importing PySide6...")
-        from PySide6 import QtWidgets, QtCore, QtGui
+        from PySide6 import QtWidgets
 
         logger.info("PySide6 imported successfully")
 
@@ -245,15 +245,15 @@ def main():
             time.sleep(1)
             if app.tray_icon:
                 visible = app.tray_icon.isVisible()
-                logger.info(f"Second {i+1}: Tray icon visible = {visible}")
+                logger.info(f"Second {i + 1}: Tray icon visible = {visible}")
 
                 # Log des détails de l'icône
-                if hasattr(app.tray_icon, 'icon') and not app.tray_icon.icon().isNull():
-                    logger.info(f"Second {i+1}: Icon is set and valid")
+                if hasattr(app.tray_icon, "icon") and not app.tray_icon.icon().isNull():
+                    logger.info(f"Second {i + 1}: Icon is set and valid")
                 else:
-                    logger.warning(f"Second {i+1}: Icon is null or not set")
+                    logger.warning(f"Second {i + 1}: Icon is null or not set")
             else:
-                logger.info(f"Second {i+1}: No tray icon object")
+                logger.info(f"Second {i + 1}: No tray icon object")
 
         logger.info("Debug session completed successfully")
         logger.info(f"Full log saved to: {log_file}")

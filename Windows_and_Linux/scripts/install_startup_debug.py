@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+r"""
 Writing Tools - Startup Debug Installer
 
 This script configures Windows registry entries to automatically launch
@@ -20,11 +20,10 @@ When to use:
 - Investigating boot-time environment differences
 """
 
+import logging
 import os
 import sys
 import winreg
-import logging
-from pathlib import Path
 
 
 def setup_logging():
@@ -38,7 +37,7 @@ def setup_logging():
 
 def get_script_directory():
     """Obtient le répertoire du script"""
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         return os.path.dirname(sys.executable)
     else:
         return os.path.dirname(os.path.abspath(__file__))
