@@ -105,7 +105,7 @@ class ui_utils:
         """
         Clear the layout of all widgets.
         """
-        while (child := layout.takeAt(0)) != None:
+        while (child := layout.takeAt(0)) is not None:
             # If the child is a layout, delete it
             if child.layout():
                 cls.clear_layout(child.layout())

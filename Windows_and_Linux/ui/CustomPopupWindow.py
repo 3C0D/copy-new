@@ -22,7 +22,8 @@ from ui.ui_utils import ThemeBackground, get_effective_color_mode
 if TYPE_CHECKING:
     from Windows_and_Linux.WritingToolApp import WritingToolApp
 
-_ = lambda x: x
+def _(x):
+    return x
 
 
 class ToggleSwitch(QWidget):
