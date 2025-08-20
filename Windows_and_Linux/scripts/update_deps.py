@@ -36,7 +36,7 @@ def install_requirements():
 
     # Setup environment (creates venv + installs requirements)
     print("Setting up virtual environment and installing dependencies...")
-    success, python_version = setup_environment(DEFAULT_VENV_NAME, REQUIREMENTS_FILE)
+    success, _ = setup_environment(DEFAULT_VENV_NAME, REQUIREMENTS_FILE)
 
     if success:
         print("Dependencies installed successfully")

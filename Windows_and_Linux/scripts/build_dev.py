@@ -24,13 +24,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-from Windows_and_Linux.scripts.utils import copy_required_files
-
 # Configuration
 DEFAULT_VENV_NAME = "myvenv"
 DEFAULT_SCRIPT_NAME = "main.py"
 MODE = "build-dev"
 
+# Import utilities based on platform
 if os.name == "nt":  # Windows
     from utils import (
         check_data,
@@ -278,7 +277,7 @@ def main():
 
         # Setup environment (virtual env + dependencies)
         print("Setting up development environment...")
-        success, python_exe_version = setup_environment(DEFAULT_VENV_NAME)
+        success, _ = setup_environment(DEFAULT_VENV_NAME)
         if not success:
             print("\nFailed to setup environment!")
             return 1

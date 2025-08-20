@@ -342,7 +342,7 @@ class DraggableButton(QtWidgets.QPushButton):
             drag.setHotSpot(event.pos())
 
             self.drag_start_position = None
-            drop_action = drag.exec_(Qt.DropAction.MoveAction)
+            _ = drag.exec_(Qt.DropAction.MoveAction)
 
     def dragEnterEvent(self, event):
         if self.popup.edit_mode and event.mimeData().hasFormat("application/x-button-index"):

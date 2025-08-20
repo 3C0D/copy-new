@@ -9,7 +9,10 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.ui_utils import ThemedWidget
 
-_ = lambda x: x
+
+def _(x):
+    """Translation function placeholder."""
+    return x
 
 
 class AboutWindow(ThemedWidget):

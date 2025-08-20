@@ -998,7 +998,7 @@ def install_ollama_windows(app):
             response = requests.get(ollama_url, stream=True, allow_redirects=True)
             response.raise_for_status()
 
-            total_size = int(response.headers.get("content-length", 0))
+            _ = int(response.headers.get("content-length", 0))
             downloaded = 0
 
             for chunk in response.iter_content(chunk_size=8192):
@@ -1006,7 +1006,7 @@ def install_ollama_windows(app):
                     progress_window.close()
                     try:
                         os.unlink(temp_path)
-                    except:
+                    except OSError:
                         pass
                     return False
 
@@ -1021,7 +1021,7 @@ def install_ollama_windows(app):
             progress_window.close()
             try:
                 os.unlink(temp_path)
-            except:
+            except OSError:
                 pass
             return False
 
@@ -1039,7 +1039,7 @@ def install_ollama_windows(app):
         # Clean up temp file
         try:
             os.unlink(temp_path)
-        except:
+        except OSError:
             pass
 
         progress_window.close()
@@ -1283,13 +1283,16 @@ class OllamaProvider(AIProvider):
         ]
 
         # Determine button text and action based on Ollama installation status
+        def install_ollama_action():
+            return self._install_ollama()
+
         if is_ollama_installed():
             button_text = "Install Ollama"
-            button_action = lambda: self._install_ollama()
+            button_action = install_ollama_action
             description = "• Connect to an Ollama server (local LLM).\n• Ollama is installed and ready to use."
         else:
             button_text = "Install Ollama"
-            button_action = lambda: self._install_ollama()
+            button_action = install_ollama_action
             description = (
                 "• Connect to an Ollama server (local LLM).\n• Ollama is not installed. Click the button to install it."
             )

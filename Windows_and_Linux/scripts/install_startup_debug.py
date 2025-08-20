@@ -54,7 +54,6 @@ def install_startup_debug():
         # Chemins des scripts
         python_script = os.path.join(script_dir, "startup_debug.py")
         batch_script = os.path.join(script_dir, "startup_debug.bat")
-        ps_script = os.path.join(script_dir, "startup_debug.ps1")
 
         # Vérifier que les scripts existent
         if not os.path.exists(python_script):

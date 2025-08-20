@@ -116,7 +116,7 @@ class ThemeAwareMixin:
         # Connecter le signal de changement de thème
         theme_manager.theme_changed.connect(self._on_theme_changed)
 
-    def _on_theme_changed(self, new_mode):
+    def _on_theme_changed(self, _):
         """Appelé automatiquement quand le thème change."""
         if hasattr(self, "refresh_theme"):
             self.refresh_theme()

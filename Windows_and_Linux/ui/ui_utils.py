@@ -257,7 +257,7 @@ class ThemeBackground(QWidget):
         self.is_popup = is_popup
         self.border_radius = border_radius
 
-    def paintEvent(self, event):
+    def paintEvent(self, _):
         """
         Override the paint event to draw the background based on the selected theme.
         """

@@ -25,7 +25,7 @@ def main():
     # Test console build
     print("Building with console mode...")
     try:
-        result = subprocess.run([sys.executable, "scripts/build_dev.py", "--console"], check=True, capture_output=False)
+        subprocess.run([sys.executable, "scripts/build_dev.py", "--console"], check=True, capture_output=False)
 
         print("\n✅ Console build completed successfully!")
         print("The executable should now show console output when run.")

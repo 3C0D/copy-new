@@ -260,7 +260,7 @@ def main():
 
         # Setup environment (virtual env + dependencies)
         print("Setting up development environment...")
-        success, python_exe_version = setup_environment(DEFAULT_VENV_NAME)
+        success, _ = setup_environment(DEFAULT_VENV_NAME)
         if not success:
             print("\nFailed to setup environment!")
             return 1
