@@ -10,11 +10,8 @@ from pathlib import Path
 
 
 def main():
-    """Test console build functionality"""
-    print("===== Testing Console Build =====")
-    print()
-
-    # Change to Windows_and_Linux directory if needed
+    """Main function to run build_dev in console mode"""
+    # Change to Windows_and_Linux directory
     script_dir = Path(__file__).parent
     windows_linux_dir = script_dir.parent
 
@@ -26,19 +23,6 @@ def main():
     print("Building with console mode...")
     try:
         subprocess.run([sys.executable, "scripts/build_dev.py", "--console"], check=True, capture_output=False)
-
-        print("\n✅ Console build completed successfully!")
-        print("The executable should now show console output when run.")
-
-        # Check if exe exists
-        exe_path = Path("dist/dev/Writing Tools.exe")
-        if exe_path.exists():
-            print(f"✅ Executable found at: {exe_path}")
-            print("\nTo test console output, run:")
-            print(f'  "{exe_path.absolute()}"')
-            print("\nYou should see logs directly in the console window.")
-        else:
-            print("❌ Executable not found")
 
     except subprocess.CalledProcessError as e:
         print(f"❌ Build failed: {e}")
