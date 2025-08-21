@@ -127,7 +127,9 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
 
         # Main title at the top
         title_label = self._create_title_label()
-        self.content_layout.addWidget(title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.content_layout.addWidget(
+            title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter
+        )
 
         # Features description section
         features_widget = self._create_features_section()
@@ -199,7 +201,9 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         shortcut_layout = QtWidgets.QVBoxLayout()
 
         # Label explaining the shortcut configuration
-        shortcut_label = QtWidgets.QLabel(_('Customize your shortcut key (default: "ctrl+space"):'))
+        shortcut_label = QtWidgets.QLabel(
+            _('Customize your shortcut key (default: "ctrl+space"):')
+        )
         shortcut_label.setStyleSheet(self._get_content_style())
         shortcut_layout.addWidget(shortcut_label)
 
@@ -454,14 +458,19 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
 
         # Update all content labels
         for widget in self.findChildren(QtWidgets.QLabel):
-            if widget != self.color_mode_dropdown and not widget.objectName() == "title_label":
+            if (
+                widget != self.color_mode_dropdown
+                and not widget.objectName() == "title_label"
+            ):
                 widget.setStyleSheet(self._get_content_style())
 
         # Update specific labels with their appropriate styles
         for widget in self.findChildren(QtWidgets.QLabel):
             if widget.objectName() == "title_label":
                 widget.setStyleSheet(self._get_title_style())
-            elif widget.objectName() != "":  # Skip background widgets but apply content style to others
+            elif (
+                widget.objectName() != ""
+            ):  # Skip background widgets but apply content style to others
                 widget.setStyleSheet(self._get_content_style())
 
         # Force background update

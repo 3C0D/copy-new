@@ -10,77 +10,108 @@ from config.interfaces import ActionConfig, SystemConfig
 
 GEMINI_MODELS = [
     (
-        "Gemini 2.0 Flash Lite (intelligent | very fast | 30 uses/min)",
+        "* Gemini 2.0 Flash Lite (intelligent | very fast | 30 uses/min)",  # * indicates vision support
         "gemini-2.0-flash-lite-preview-02-05",
+        {"vision": True},
     ),
     (
-        "Gemini 2.0 Flash (very intelligent | fast | 15 uses/min)",
+        "* Gemini 2.0 Flash (very intelligent | fast | 15 uses/min)",  # * indicates vision support
         "gemini-2.0-flash",
+        {"vision": True},
     ),
     (
-        "Gemini 2.0 Flash Thinking (most intelligent | slow | 10 uses/min)",
+        "* Gemini 2.0 Flash Thinking (most intelligent | slow | 10 uses/min)",  # * indicates vision support
         "gemini-2.0-flash-thinking-exp-01-21",
+        {"vision": True},
     ),
     (
-        "Gemini 2.0 Pro (most intelligent | slow | 2 uses/min)",
+        "* Gemini 2.0 Pro (most intelligent | slow | 2 uses/min)",  # * indicates vision support
         "gemini-2.0-pro-exp-02-05",
+        {"vision": True},
     ),
     (
-        "Gemini 2.5 Flash (very intelligent | fast | 15 uses/min, 1500 uses/day)",
+        "* Gemini 2.5 Flash (very intelligent | fast | 15 uses/min, 1500 uses/day)",  # * indicates vision support
         "gemini-2.5-flash",
+        {"vision": True},
     ),
     (
-        "Gemini 2.5 Pro (most intelligent | slow | 2 uses/min, 50 uses/day)",
+        "* Gemini 2.5 Pro (most intelligent | slow | 2 uses/min, 50 uses/day)",  # * indicates vision support
         "gemini-2.5-pro",
+        {"vision": True},
     ),
 ]
 
 OPENAI_MODELS = [
-    ("GPT-4o (Optimized)", "gpt-4o"),
-    ("GPT-4o Mini (Lightweight)", "gpt-4o-mini"),
-    ("GPT-4 (Most Capable)", "gpt-4"),
-    ("GPT-3.5 Turbo (Fast)", "gpt-3.5-turbo"),
+    ("* GPT-4o (Optimized)", "gpt-4o", {"vision": True}),  # * indicates vision support
+    (
+        "* GPT-4o Mini (Lightweight)",
+        "gpt-4o-mini",
+        {"vision": True},
+    ),  # * indicates vision support
+    ("GPT-4 (Most Capable)", "gpt-4", {"vision": False}),
+    ("GPT-3.5 Turbo (Fast)", "gpt-3.5-turbo", {"vision": False}),
 ]
 
 ANTHROPIC_MODELS = [
-    ("Claude 3.5 Sonnet (Best for Most Users)", "claude-3-5-sonnet-20241022"),
-    ("Claude 3.5 Haiku (Fastest, Most Affordable)", "claude-3-5-haiku-20241022"),
-    ("Claude 3 Opus (Most Capable, Expensive)", "claude-3-opus-20240229"),
+    (
+        "Claude 3.5 Sonnet (Best for Most Users)",
+        "claude-3-5-sonnet-20241022",
+        {"vision": False},
+    ),
+    (
+        "Claude 3.5 Haiku (Fastest, Most Affordable)",
+        "claude-3-5-haiku-20241022",
+        {"vision": False},
+    ),
+    (
+        "Claude 3 Opus (Most Capable, Expensive)",
+        "claude-3-opus-20240229",
+        {"vision": False},
+    ),
 ]
 
 MISTRAL_MODELS = [
     (
         "Mistral 7B (lightweight | fast | legacy model)",
         "open-mistral-7b",
+        {"vision": False},
     ),
     (
         "Mistral Nemo (efficient | medium speed | research model)",
         "open-mistral-nemo",
+        {"vision": False},
     ),
     (
         "Mistral Small (balanced | free model with multimodal)",
         "mistral-small-latest",
+        {"vision": True},
     ),
     (
-        "Pixtral 12B (multimodal | image understanding)",
+        "* Pixtral 12B (multimodal | vision)",  # * indicates vision support
         "pixtral-12b-2409",
+        {"vision": True},
+    ),
+    (
+        "* Mistral Devstral Medium Latest (multimodal | vision)",  # * indicates vision support
+        "mistral-devstral-medium-latest",
+        {"vision": True},
     ),
 ]
 
 # Common Ollama models (users can add custom ones)
 # NOTE: Ollama models are now automatically detected from the system
 OLLAMA_COMMON_MODELS = [
-    ("Llama 3.1 8B (Recommended)", "llama3.1:8b"),
-    ("Llama 3.1 70B (More Capable)", "llama3.1:70b"),
-    ("Llama 3.2 3B (Lightweight)", "llama3.2:3b"),
-    ("Gemma 2 9B", "gemma2:9b"),
-    ("Gemma 2 27B", "gemma2:27b"),
-    ("Gemma 3N 2B", "gemma3n:e2b"),
-    ("Gemma 3N 4B", "gemma3n:4b"),
-    ("Qwen 2.5 7B", "qwen2.5:7b"),
-    ("Qwen 2.5 14B", "qwen2.5:14b"),
-    ("CodeLlama 7B", "codellama:7b"),
-    ("CodeLlama 13B", "codellama:13b"),
+    ("Llama 3.1 8B (Recommended)", "llama3.1:8b", {"vision": False}),
+    ("Llama 3.1 70B (More Capable)", "llama3.1:70b", {"vision": False}),
+    ("Llama 3.2 3B (Lightweight)", "llama3.2:3b", {"vision": False}),
+    ("Gemma 2 9B", "gemma2:9b", {"vision": False}),
+    ("Gemma 2 27B", "gemma2:27b", {"vision": False}),
+    ("Gemma 3N 2B", "gemma3n:e2b", {"vision": False}),
+    ("Gemma 3N 4B", "gemma3n:4b", {"vision": False}),
+    ("Qwen 2.5 7B", "qwen2.5:7b", {"vision": False}),
+    ("Qwen 2.5 14B", "qwen2.5:14b", {"vision": False}),
+    ("CodeLlama 7B", "codellama:7b", {"vision": False}),
+    ("CodeLlama 13B", "codellama:13b", {"vision": False}),
 ]
 
 # Provider internal names to display names mapping
@@ -240,5 +271,6 @@ EXAMPLE_ACTION_VALUES_RAW = {
 DEFAULT_SYSTEM_VALUES: SystemConfig = cast("SystemConfig", _DEFAULT_SYSTEM_VALUES_RAW)
 
 DEFAULT_ACTIONS_VALUES: dict[str, ActionConfig] = {
-    name: cast("ActionConfig", values) for name, values in _DEFAULT_ACTIONS_VALUES_RAW.items()
+    name: cast("ActionConfig", values)
+    for name, values in _DEFAULT_ACTIONS_VALUES_RAW.items()
 }

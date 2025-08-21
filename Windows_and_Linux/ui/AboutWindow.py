@@ -1,8 +1,3 @@
-"""
-Page revue et commentée
-Vérifier la section scroll.
-"""
-
 import webbrowser
 
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -75,7 +70,9 @@ class AboutWindow(ThemedWidget):
         """Load and display the about content."""
         # Title
         title_label = self._create_title_label()
-        self.content_layout.addWidget(title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.content_layout.addWidget(
+            title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter
+        )
 
         # Scrollable main content
         about_content = self._get_about_content()
@@ -153,9 +150,15 @@ class AboutWindow(ThemedWidget):
             (
                 "Soszust40",
                 "https://github.com/Soszust40",
-                _("Helped add dark mode, the plain theme, tray menu fixes, and UI improvements."),
+                _(
+                    "Helped add dark mode, the plain theme, tray menu fixes, and UI improvements."
+                ),
             ),
-            ("Alok Saboo", "https://github.com/arsaboo", _("Helped improve the reliability of text selection.")),
+            (
+                "Alok Saboo",
+                "https://github.com/arsaboo",
+                _("Helped improve the reliability of text selection."),
+            ),
             (
                 "raghavdhingra24",
                 "https://github.com/raghavdhingra24",
@@ -168,7 +171,11 @@ class AboutWindow(ThemedWidget):
                     "Significantly improved the About window, making it scrollable and cleaning things up. Also improved our .gitignore & requirements.txt."
                 ),
             ),
-            ("Vadim Karpenko", "https://github.com/Vadim-Karpenko", _("Helped add the start-on-boot setting.")),
+            (
+                "Vadim Karpenko",
+                "https://github.com/Vadim-Karpenko",
+                _("Helped add the start-on-boot setting."),
+            ),
         ]
 
         html_parts = []
@@ -198,7 +205,9 @@ class AboutWindow(ThemedWidget):
         # Needed ?
         scroll_area.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
 
-        scroll_area.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+        scroll_area.setStyleSheet(
+            "QScrollArea { background: transparent; border: none; }"
+        )
 
         return scroll_area
 
@@ -251,7 +260,9 @@ class AboutWindow(ThemedWidget):
         super().resizeEvent(event)
         # Enforce minimum dimensions
         if self.width() < self.min_width or self.height() < self.min_height:
-            self.resize(max(self.width(), self.min_width), max(self.height(), self.min_height))
+            self.resize(
+                max(self.width(), self.min_width), max(self.height(), self.min_height)
+            )
 
     def original_app(self):
         """Open the original app GitHub page."""

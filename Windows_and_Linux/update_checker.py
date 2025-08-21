@@ -14,7 +14,7 @@ UPDATE_DOWNLOAD_URL = "https://github.com/theJayTea/WritingTools/releases"
 
 
 class UpdateChecker:
-    def __init__(self, app: 'WritingToolApp'):
+    def __init__(self, app: "WritingToolApp"):
         self.app = app
 
     def _fetch_latest_version(self):

@@ -8,7 +8,7 @@ import logging
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from .data_operations import (
     create_default_settings,
@@ -39,17 +39,17 @@ class SettingsManager:
 
     # Internal attributes that shouldn't be proxied to settings
     _INTERNAL_ATTRS = {
-        'mode',
-        'base_dir',
-        'settings',
-        '_logger',
-        'data_file',
-        'DIST_DEV_PATH',
-        'DATA_FILE',
-        'DATA_DEV_FILE',
-        'LOG_MAX_BYTES',
-        'LOG_BACKUP_COUNT',
-        '_INTERNAL_ATTRS',
+        "mode",
+        "base_dir",
+        "settings",
+        "_logger",
+        "data_file",
+        "DIST_DEV_PATH",
+        "DATA_FILE",
+        "DATA_DEV_FILE",
+        "LOG_MAX_BYTES",
+        "LOG_BACKUP_COUNT",
+        "_INTERNAL_ATTRS",
     }
 
     def __init__(self, mode: str = "dev"):
@@ -103,7 +103,9 @@ class SettingsManager:
             return self.settings.system[name]
 
         # Not found - raise standard AttributeError
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+        raise AttributeError(
+            f"'{self.__class__.__name__}' object has no attribute '{name}'"
+        )
 
     def __setattr__(self, name: str, value):
         """
@@ -113,12 +115,12 @@ class SettingsManager:
             settings_manager.hotkey = "ctrl+space"  # -> settings.system["hotkey"]
         """
         # Internal class attributes and private attributes
-        if name in self._INTERNAL_ATTRS or name.startswith('_'):
+        if name in self._INTERNAL_ATTRS or name.startswith("_"):
             super().__setattr__(name, value)
             return
 
         # During __init__, settings doesn't exist yet
-        if not hasattr(self, 'settings'):
+        if not hasattr(self, "settings"):
             super().__setattr__(name, value)
             return
 
@@ -139,7 +141,9 @@ class SettingsManager:
             if user_data is not None:
                 self.settings = create_unified_settings_from_data(user_data)
         else:
-            self._logger.debug(f"No settings file found at {self.data_file}, using defaults")
+            self._logger.debug(
+                f"No settings file found at {self.data_file}, using defaults"
+            )
 
         # Update run_mode to match current execution mode
         self.settings.system["run_mode"] = self.mode
@@ -252,7 +256,7 @@ class SettingsManager:
             dist_dev_dir = self.base_dir / self.DIST_DEV_PATH
             dist_dev_dir.mkdir(parents=True, exist_ok=True)
 
-    def _load_user_data(self) -> Optional[Dict[str, Any]]:
+    def _load_user_data(self) -> Optional[dict[str, Any]]:
         """Load user data from the data file."""
         try:
             with open(self.data_file, encoding="utf-8") as f:
@@ -260,7 +264,9 @@ class SettingsManager:
 
             # Validate that it's a dictionary
             if not isinstance(raw_data, dict):
-                self._logger.error(f"Invalid data format in {self.data_file}: expected dict, got {type(raw_data)}")
+                self._logger.error(
+                    f"Invalid data format in {self.data_file}: expected dict, got {type(raw_data)}"
+                )
                 return None
 
             self._logger.debug(f"Loaded user data from {self.data_file}")
@@ -299,7 +305,9 @@ class SettingsManager:
                 name: dict(action) for name, action in self.settings.actions.items()
             },  # Convert ActionConfig TypedDict to dict
             "custom_data": {
-                "update_available": self.settings.custom_data.get("update_available", False),
+                "update_available": self.settings.custom_data.get(
+                    "update_available", False
+                ),
                 "providers": self.providers,
             },
         }
@@ -319,8 +327,12 @@ class SettingsManager:
         stack = inspect.stack()
         for frame_info in stack:
             filename = frame_info.filename
-            
-            if 'build_dev.py' in filename or 'build_final.py' in filename or 'PyInstaller' in filename:
+
+            if (
+                "build_dev.py" in filename
+                or "build_final.py" in filename
+                or "PyInstaller" in filename
+            ):
                 return  # Skip logging setup in build contexts
 
         try:
@@ -341,7 +353,9 @@ class SettingsManager:
             encoding="utf-8",
         )
         file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+        file_handler.setFormatter(
+            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        )
 
         root_logger = logging.getLogger()
         root_logger.addHandler(file_handler)
@@ -352,12 +366,16 @@ class SettingsManager:
         base_dir_name = Path(self.base_dir.absolute().name)
         if self.mode == "build-dev":
             # For build-dev, log file goes in the same directory as the executable
-            self._logger.debug(f"build-dev logging path: {base_dir_name/ 'build_dev_debug.log'}")
+            self._logger.debug(
+                f"build-dev logging path: {base_dir_name / 'build_dev_debug.log'}"
+            )
             return self.base_dir / "build_dev_debug.log"
         else:
             # For dev mode, log file goes in dist/dev/
-            self._logger.debug(f"dev logging path: {base_dir_name/ self.DIST_DEV_PATH / 'dev_debug.log'}")
-            return self.base_dir / self.DIST_DEV_PATH / "dev_debug.log"          
+            self._logger.debug(
+                f"dev logging path: {base_dir_name / self.DIST_DEV_PATH / 'dev_debug.log'}"
+            )
+            return self.base_dir / self.DIST_DEV_PATH / "dev_debug.log"
 
     def _log_initialization_info(self):
         """Log debug information about initialization."""
@@ -377,7 +395,7 @@ class SettingsManager:
     def _is_development_mode(self) -> bool:
         """Check if running in development mode (dev or build-dev)."""
         return self.mode in ["dev", "build-dev"]
-    
+
     def _is_build_dev(self) -> bool:
         """Check if running in build-dev mode."""
         return self.mode == "build-dev"

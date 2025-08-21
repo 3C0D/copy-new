@@ -402,8 +402,12 @@ class ChatContentScrollArea(QScrollArea):
                 total_height += widget_height
 
         # Add spacing between messages and margins
-        total_height += self.layout.spacing() * (self.layout.count() - 2)  # Message spacing
-        total_height += self.layout.contentsMargins().top() + self.layout.contentsMargins().bottom()
+        total_height += self.layout.spacing() * (
+            self.layout.count() - 2
+        )  # Message spacing
+        total_height += (
+            self.layout.contentsMargins().top() + self.layout.contentsMargins().bottom()
+        )
 
         # Set minimum height with some padding
         if self.content_widget:
@@ -440,7 +444,9 @@ class ChatContentScrollArea(QScrollArea):
                         doc_size = text_display.document().size()
                         exact_height = int(doc_size.height() + 20)  # Reduced padding
                         text_display.setMinimumHeight(exact_height)
-                        text_display.setMaximumHeight(exact_height)  # Fixed height for all messages
+                        text_display.setMaximumHeight(
+                            exact_height
+                        )  # Fixed height for all messages
 
 
 class ResponseWindow(ThemedWidget):
@@ -607,7 +613,9 @@ class ResponseWindow(ThemedWidget):
         send_button = QPushButton()
         from ui.ui_utils import get_icon_path
 
-        send_button.setIcon(QtGui.QIcon(get_icon_path("send", with_theme=True).as_posix()))
+        send_button.setIcon(
+            QtGui.QIcon(get_icon_path("send", with_theme=True).as_posix())
+        )
         send_button.setStyleSheet(
             f"""
             QPushButton {{
@@ -672,7 +680,9 @@ class ResponseWindow(ThemedWidget):
 
     def update_thinking_dots(self):
         """Update the thinking animation dots with proper cycling"""
-        self.thinking_dots_state = (self.thinking_dots_state + 1) % len(self.thinking_dots)
+        self.thinking_dots_state = (self.thinking_dots_state + 1) % len(
+            self.thinking_dots
+        )
         dots = self.thinking_dots[self.thinking_dots_state]
 
         if self.loading_label and self.loading_label.isVisible():
@@ -816,7 +826,9 @@ class ResponseWindow(ThemedWidget):
             and "response_window_zoom" in self.app.settings_manager.settings.custom_data
             and text_display
         ):
-            text_display.zoom_factor = self.app.settings_manager.settings.custom_data["response_window_zoom"]
+            text_display.zoom_factor = self.app.settings_manager.settings.custom_data[
+                "response_window_zoom"
+            ]
             text_display._apply_zoom()
 
         QtCore.QTimer.singleShot(100, self._adjust_window_height)
@@ -830,11 +842,18 @@ class ResponseWindow(ThemedWidget):
             text_display = self.chat_area.add_message(response_text)
 
             # Maintain consistent zoom level
-            if hasattr(self, "current_text_display") and self.current_text_display and text_display:
+            if (
+                hasattr(self, "current_text_display")
+                and self.current_text_display
+                and text_display
+            ):
                 text_display.zoom_factor = self.current_text_display.zoom_factor
                 text_display._apply_zoom()
 
-            if len(self.chat_history) > 0 and self.chat_history[-1]["role"] != "assistant":
+            if (
+                len(self.chat_history) > 0
+                and self.chat_history[-1]["role"] != "assistant"
+            ):
                 self.chat_history.append(
                     {"role": "assistant", "content": response_text},
                 )
@@ -860,7 +879,11 @@ class ResponseWindow(ThemedWidget):
 
         # Add user message and maintain zoom level
         text_display = self.chat_area.add_message(message, is_user=True)
-        if hasattr(self, "current_text_display") and self.current_text_display and text_display:
+        if (
+            hasattr(self, "current_text_display")
+            and self.current_text_display
+            and text_display
+        ):
             text_display.zoom_factor = self.current_text_display.zoom_factor
             text_display._apply_zoom()
 
@@ -885,7 +908,9 @@ class ResponseWindow(ThemedWidget):
         if hasattr(self, "current_text_display") and self.current_text_display:
             if not self.app.settings_manager.settings.custom_data:
                 self.app.settings_manager.settings.custom_data = {}
-            self.app.settings_manager.response_window_zoom = self.current_text_display.zoom_factor
+            self.app.settings_manager.response_window_zoom = (
+                self.current_text_display.zoom_factor
+            )
             self.app.save_settings()
 
         self.chat_history = []

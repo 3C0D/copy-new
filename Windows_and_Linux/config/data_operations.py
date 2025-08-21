@@ -25,7 +25,11 @@ def get_provider_display_name(provider: str) -> str:
 def get_provider_internal_name(display_name: str) -> str:
     """Get the internal name from display name"""
     return next(
-        (internal for internal, display in PROVIDER_DISPLAY_NAMES.items() if display == display_name),
+        (
+            internal
+            for internal, display in PROVIDER_DISPLAY_NAMES.items()
+            if display == display_name
+        ),
         display_name,
     )
 

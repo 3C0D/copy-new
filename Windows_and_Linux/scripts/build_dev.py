@@ -211,7 +211,9 @@ def run_dev_build(venv_path="myvenv", console_mode=False):
         print(f"PyInstaller development build completed successfully ({mode_text} mode)!")
 
         if console_mode:
-            print("Console mode enabled - logs will be visible in terminal when running the exe")
+            print(
+                "Console mode enabled - logs will be visible in terminal when running the exe"
+            )
         else:
             print("Windowed mode - logs will be written to dist/dev/build_dev_debug.log")
 
@@ -221,7 +223,9 @@ def run_dev_build(venv_path="myvenv", console_mode=False):
         print(f"Error: Build failed with error: {e}")
         return False
     except FileNotFoundError:
-        print("Error: PyInstaller not found. Please install it with: pip install pyinstaller")
+        print(
+            "Error: PyInstaller not found. Please install it with: pip install pyinstaller"
+        )
         return False
 
 
@@ -239,7 +243,9 @@ def launch_build(extra_args=None):
     if extra_args:
         cmd.extend(extra_args)
 
-    print(f"Launching {exe_path} with args: {' '.join(extra_args) if extra_args else 'none'}...")
+    print(
+        f"Launching {exe_path} with args: {' '.join(extra_args) if extra_args else 'none'}..."
+    )
     try:
         if sys.platform.startswith("win"):
             subprocess.Popen(cmd, shell=False)
@@ -260,7 +266,9 @@ def main():
         action="store_true",
         help="Build with console visible (useful for debugging and seeing logs in real-time)",
     )
-    parser.add_argument("extra_args", nargs="*", help="Extra arguments to pass to the built executable")
+    parser.add_argument(
+        "extra_args", nargs="*", help="Extra arguments to pass to the built executable"
+    )
     args = parser.parse_args()
 
     clear_console()
@@ -311,7 +319,9 @@ def main():
         print("\n===== Development build completed and launched =====")
         print("The executable and required files are in the 'dist/dev' directory.")
         if console_mode:
-            print("Console mode was enabled - you should see logs directly in the terminal when the exe runs.")
+            print(
+                "Console mode was enabled - you should see logs directly in the terminal when the exe runs."
+            )
         else:
             print("Windowed mode - check dist/dev/build_dev_debug.log for detailed logs.")
 

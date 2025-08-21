@@ -1,3 +1,10 @@
+"""
+Writing Tools - CustomPopupWindow module
+Used for displaying a custom popup window with various input fields and options.
+
+
+"""
+
 import logging
 from functools import partial
 from typing import TYPE_CHECKING
@@ -17,10 +24,12 @@ from PySide6.QtWidgets import (
 )
 
 from config.data_operations import create_default_actions_config
+from config.interfaces import ActionConfig
 from ui.ui_utils import ThemeBackground, get_effective_color_mode
 
 if TYPE_CHECKING:
     from Windows_and_Linux.WritingToolApp import WritingToolApp
+
 
 def _(x):
     return x
@@ -54,7 +63,7 @@ class ToggleSwitch(QWidget):
         pass
 
     @QtCore.Property(int)
-    def circle_position(self):
+    def circle_position(self):  # type: ignore
         return self._circle_position
 
     @circle_position.setter
@@ -145,7 +154,9 @@ class ButtonEditDialog(QDialog):
         layout.addWidget(self.name_input)
 
         # Instruction (changed to a multiline QPlainTextEdit)
-        instruction_label = QLabel("What should your AI do with your selected text? (System Instruction)")
+        instruction_label = QLabel(
+            "What should your AI do with your selected text? (System Instruction)"
+        )
         instruction_label.setStyleSheet(
             f"color: {'#fff' if get_effective_color_mode() == 'dark' else '#333'}; font-weight: bold;"
         )
@@ -189,7 +200,9 @@ class ButtonEditDialog(QDialog):
         self.replace_radio = QRadioButton("Replace the selected text")
         self.window_radio = QRadioButton("In a pop-up window (with follow-up support)")
         for r in (self.replace_radio, self.window_radio):
-            r.setStyleSheet(f"color: {'#fff' if get_effective_color_mode() == 'dark' else '#333'};")
+            r.setStyleSheet(
+                f"color: {'#fff' if get_effective_color_mode() == 'dark' else '#333'};"
+            )
 
         self.replace_radio.setChecked(not self.button_data.get("open_in_window", False))
         self.window_radio.setChecked(self.button_data.get("open_in_window", False))
@@ -323,11 +336,14 @@ class DraggableButton(QtWidgets.QPushButton):
                 return
         super().mousePressEvent(e)
 
-    def mouseMoveEvent(self, event):
-        if not (event.buttons() & Qt.MouseButton.LeftButton) or not self.drag_start_position:
+    def mouseMoveEvent(self, arg__1: QtGui.QMouseEvent):
+        if (
+            not (arg__1.buttons() & Qt.MouseButton.LeftButton)
+            or not self.drag_start_position
+        ):
             return
 
-        distance = (event.pos() - self.drag_start_position).manhattanLength()
+        distance = (arg__1.pos() - self.drag_start_position).manhattanLength()
         if distance < QtWidgets.QApplication.startDragDistance():
             return
 
@@ -340,13 +356,15 @@ class DraggableButton(QtWidgets.QPushButton):
 
             pixmap = self.grab()
             drag.setPixmap(pixmap)
-            drag.setHotSpot(event.pos())
+            drag.setHotSpot(arg__1.pos())
 
             self.drag_start_position = None
             _ = drag.exec_(Qt.DropAction.MoveAction)
 
     def dragEnterEvent(self, event):
-        if self.popup.edit_mode and event.mimeData().hasFormat("application/x-button-index"):
+        if self.popup.edit_mode and event.mimeData().hasFormat(
+            "application/x-button-index"
+        ):
             event.acceptProposedAction()
             self.setStyleSheet(
                 self.base_style
@@ -364,7 +382,9 @@ class DraggableButton(QtWidgets.QPushButton):
         event.accept()
 
     def dropEvent(self, event):
-        if not self.popup.edit_mode or not event.mimeData().hasFormat("application/x-button-index"):
+        if not self.popup.edit_mode or not event.mimeData().hasFormat(
+            "application/x-button-index"
+        ):
             event.ignore()
             return
 
@@ -403,6 +423,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
         self.close_button = None
         self.custom_input = None
         self.input_area = None
+        self.update_label = None
 
         # Force Chat toggle and lock state
         self.force_chat_toggle = None
@@ -411,10 +432,17 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
         self.button_widgets = []
 
+        # Variables for dragging functionality
+        self.is_dragging = False
+        self.drag_start_position = None
+        self.top_bar_widget = None  # Reference to top bar widget
+
         self.init_ui()
 
     def init_ui(self):
-        self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)
+        self.setWindowFlags(
+            Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint
+        )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowTitle("Writing Tools")
 
@@ -435,7 +463,9 @@ class CustomPopupWindow(QtWidgets.QWidget):
         content_layout.setSpacing(10)
 
         # TOP BAR LAYOUT & STYLE
-        top_bar = QHBoxLayout()
+        self.top_bar_widget = QtWidgets.QWidget()
+        self.top_bar_widget.setFixedHeight(30)  # Fixed height for drag area
+        top_bar = QHBoxLayout(self.top_bar_widget)
         top_bar.setContentsMargins(0, 0, 0, 0)
         top_bar.setSpacing(0)
 
@@ -464,7 +494,14 @@ class CustomPopupWindow(QtWidgets.QWidget):
         )
         self.reset_button.clicked.connect(self.on_reset_clicked)
         self.reset_button.setToolTip(_("Reset to Default Buttons"))
+        self.reset_button.installEventFilter(self)
         top_bar.addWidget(self.reset_button, 0, Qt.AlignmentFlag.AlignLeft)
+
+        # Configure mouse events for draggable top bar
+        self.setup_draggable_top_bar()
+
+        # Add top bar to main layout
+        content_layout.addWidget(self.top_bar_widget)
 
         # The label "Drag to rearrange" (BOLD as requested)
         self.drag_label = QLabel("Drag to rearrange")
@@ -477,7 +514,11 @@ class CustomPopupWindow(QtWidgets.QWidget):
         )
         self.drag_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.drag_label.hide()
-        top_bar.addWidget(self.drag_label, 1, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignHCenter)
+        top_bar.addWidget(
+            self.drag_label,
+            1,
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignHCenter,
+        )
 
         # Close button for edit mode (right side)
         self.edit_close_button = QPushButton("×")
@@ -501,6 +542,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
         self.edit_close_button.clicked.connect(self.exit_edit_mode)
         self.edit_close_button.setToolTip(_("Exit Edit Mode"))
         self.edit_close_button.hide()
+        self.edit_close_button.installEventFilter(self)
         top_bar.addWidget(self.edit_close_button, 0, Qt.AlignmentFlag.AlignRight)
 
         # Edit button (pencil icon) - only shown when not in edit mode
@@ -524,6 +566,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
         )
         self.edit_button.clicked.connect(self.enter_edit_mode)
         self.edit_button.setToolTip(_("Edit Tools Layout"))
+        self.edit_button.installEventFilter(self)
         top_bar.addWidget(self.edit_button, 0, Qt.AlignmentFlag.AlignLeft)
 
         # Close button block:
@@ -546,6 +589,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
         """,
         )
         self.close_button.clicked.connect(self.close)
+        self.close_button.installEventFilter(self)
         top_bar.addWidget(self.close_button, 0, Qt.AlignmentFlag.AlignRight)
         content_layout.addLayout(top_bar)
 
@@ -555,7 +599,9 @@ class CustomPopupWindow(QtWidgets.QWidget):
         input_layout.setContentsMargins(0, 0, 0, 0)
 
         self.custom_input = QLineEdit()
-        self.custom_input.setPlaceholderText(_("Describe your change...") if self.has_text else _("Ask your AI..."))
+        self.custom_input.setPlaceholderText(
+            _("Describe your change...") if self.has_text else _("Ask your AI...")
+        )
         self.custom_input.setStyleSheet(
             f"""
             QLineEdit {{
@@ -587,7 +633,9 @@ class CustomPopupWindow(QtWidgets.QWidget):
             }}
         """,
         )
-        send_btn.setFixedSize(self.custom_input.sizeHint().height(), self.custom_input.sizeHint().height())
+        send_btn.setFixedSize(
+            self.custom_input.sizeHint().height(), self.custom_input.sizeHint().height()
+        )
         send_btn.clicked.connect(self.on_custom_change)
         input_layout.addWidget(send_btn)
 
@@ -612,16 +660,98 @@ class CustomPopupWindow(QtWidgets.QWidget):
         update_available = self.app.settings_manager.update_available or False
 
         if update_available:
-            update_label = QLabel()
-            update_label.setOpenExternalLinks(True)
-            update_label.setText(
-                '<a href="https://github.com/theJayTea/WritingTools/releases" style="color:rgb(255, 0, 0); text-decoration: underline; font-weight: bold;">There\'s an update! :D Download now.</a>',
+            self.update_label = QLabel()
+            self.update_label.setOpenExternalLinks(True)
+            self.update_label.setText(
+                '<a href="https://github.com/theJayTea/WritingTools/releases" '
+                'style="color:rgb(255, 0, 0); text-decoration: underline; font-weight: bold;">'
+                "There's an update! :D Download now."
+                "</a>"
             )
-            update_label.setStyleSheet("margin-top: 10px;")
-            content_layout.addWidget(update_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
+
+            self.update_label.setStyleSheet("margin-top: 10px;")
+            content_layout.addWidget(
+                self.update_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter
+            )
 
         self.installEventFilter(self)
-        QtCore.QTimer.singleShot(250, lambda: self.custom_input.setFocus() if self.custom_input else None)
+        QtCore.QTimer.singleShot(
+            250, lambda: self.custom_input.setFocus() if self.custom_input else None
+        )
+
+    def setup_draggable_top_bar(self):
+        """Configure top bar to be draggable"""
+        if self.top_bar_widget:
+            # Install event filter on top bar
+            self.top_bar_widget.installEventFilter(self)
+
+            # Change cursor to indicate draggable area
+            self.top_bar_widget.setCursor(Qt.CursorShape.OpenHandCursor)
+
+    def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent):
+        # Handle buttons cursors first
+        if watched in [
+            self.close_button,
+            self.edit_close_button,
+            self.reset_button,
+            self.edit_button,
+        ]:
+            if event.type() in [QtCore.QEvent.Type.Enter, QtCore.QEvent.Type.Leave]:
+                if watched == self.close_button and self.close_button:
+                    self.close_button.setCursor(Qt.CursorShape.ArrowCursor)
+                elif watched == self.edit_close_button and self.edit_close_button:
+                    self.edit_close_button.setCursor(Qt.CursorShape.ArrowCursor)
+                elif watched == self.reset_button and self.reset_button:
+                    self.reset_button.setCursor(Qt.CursorShape.ArrowCursor)
+                elif watched == self.edit_button and self.edit_button:
+                    self.edit_button.setCursor(Qt.CursorShape.ArrowCursor)
+            return False
+
+        # Handle dragging via top bar
+        if watched == self.top_bar_widget and isinstance(event, QtGui.QMouseEvent):
+            if event.type() == QtCore.QEvent.Type.MouseButtonPress:
+                if event.button() == Qt.MouseButton.LeftButton:
+                    self.is_dragging = True
+                    self.drag_start_position = (
+                        event.globalPosition().toPoint() - self.pos()
+                    )
+                    if self.top_bar_widget:
+                        self.top_bar_widget.setCursor(Qt.CursorShape.ClosedHandCursor)
+                    return True
+
+            elif event.type() == QtCore.QEvent.Type.MouseMove:
+                if self.is_dragging and event.buttons() == Qt.MouseButton.LeftButton:
+                    if self.drag_start_position is not None:
+                        new_position = (
+                            event.globalPosition().toPoint() - self.drag_start_position
+                        )
+                        self.move(new_position)
+                    return True
+
+            elif event.type() == QtCore.QEvent.Type.MouseButtonRelease:
+                if event.button() == Qt.MouseButton.LeftButton:
+                    self.is_dragging = False
+                    self.drag_start_position = None
+                    if self.top_bar_widget:
+                        self.top_bar_widget.setCursor(Qt.CursorShape.OpenHandCursor)
+                    return True
+
+            elif event.type() == QtCore.QEvent.Type.Enter:
+                if not self.is_dragging:
+                    if self.top_bar_widget:
+                        self.top_bar_widget.setCursor(Qt.CursorShape.OpenHandCursor)
+
+            elif event.type() == QtCore.QEvent.Type.Leave:
+                if not self.is_dragging:
+                    if self.top_bar_widget:
+                        self.top_bar_widget.setCursor(Qt.CursorShape.ArrowCursor)
+
+        # Hide on deactivate only if NOT in edit mode
+        if event.type() == QtCore.QEvent.Type.WindowDeactivate:
+            if not self.edit_mode:
+                self.hide()
+                return True
+        return super().eventFilter(watched, event)
 
     def create_force_chat_toggle(self, parent_layout):
         """Create the Force Chat toggle with lock button."""
@@ -632,11 +762,15 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
         # Label
         label = QLabel("Force Chat:")
-        label.setStyleSheet(f"color: {'#fff' if get_effective_color_mode() == 'dark' else '#333'}; font-size: 11px;")
+        label.setStyleSheet(
+            f"color: {'#fff' if get_effective_color_mode() == 'dark' else '#333'}; font-size: 11px;"
+        )
 
         # Check if we should restore the locked state
         force_chat_locked = getattr(self.app.settings_manager, "force_chat_locked", False)
-        force_chat_enabled = getattr(self.app.settings_manager, "force_chat_enabled", False)
+        force_chat_enabled = getattr(
+            self.app.settings_manager, "force_chat_enabled", False
+        )
 
         # Force Chat toggle switch (custom widget with sliding animation)
         self.force_chat_toggle = ToggleSwitch()
@@ -688,7 +822,10 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
     def update_lock_icon(self):
         """Update the lock icon based on current state."""
-        if self.force_chat_lock and self.force_chat_lock.isChecked():
+        # Ensure the lock button exists
+        if not self.force_chat_lock:
+            return
+        if self.force_chat_lock.isChecked():
             self.force_chat_lock.setText("🔒")
         else:
             self.force_chat_lock.setText("🔓")
@@ -707,9 +844,15 @@ class CustomPopupWindow(QtWidgets.QWidget):
         # Save lock state
         self.app.settings_manager.force_chat_locked = checked
 
+        # Ensure toggle widget exists
+        if not self.force_chat_toggle:
+            return
+
         if checked:
             # When locking, save current toggle state
-            self.app.settings_manager.force_chat_enabled = self.force_chat_toggle.isChecked()
+            self.app.settings_manager.force_chat_enabled = (
+                self.force_chat_toggle.isChecked()
+            )
         else:
             # When unlocking, reset toggle to default (off)
             self.force_chat_toggle.setChecked(False)
@@ -717,32 +860,35 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
         self.app.settings_manager.save()
 
-    def is_force_chat_enabled(self):
+    def is_force_chat_enabled(self) -> bool:
         """Check if Force Chat is currently enabled."""
-        return self.force_chat_toggle and self.force_chat_toggle.isChecked()
+        return bool(self.force_chat_toggle and self.force_chat_toggle.isChecked())
 
-    def get_actions(self):
+    def get_actions(self) -> dict[str, ActionConfig]:
         """
         Get actions directly from the unified settings system.
         Returns ActionConfig objects, no conversion needed.
         """
-        if not hasattr(self.app, "settings_manager") or not self.app.settings_manager.settings:
+        if (
+            not hasattr(self.app, "settings_manager")
+            or not self.app.settings_manager.settings
+        ):
             logging.warning("Settings manager not available, using default actions")
             return create_default_actions_config()
 
         return self.app.settings_manager.settings.actions
 
     @staticmethod
-    def action_config_to_dict(action_config):
+    def action_config_to_dict(action_config: ActionConfig) -> dict:
         """
         Convert ActionConfig to dict format for ButtonEditDialog compatibility.
         Only use when dict format is specifically needed.
         """
         return {
-            "prefix": action_config.prefix,
-            "instruction": action_config.instruction,
-            "icon": action_config.icon,
-            "open_in_window": action_config.open_in_window,
+            "prefix": action_config.get("prefix", ""),
+            "instruction": action_config.get("instruction", ""),
+            "icon": action_config.get("icon", ""),
+            "open_in_window": action_config.get("open_in_window", False),
         }
 
     def build_buttons_list(self):
@@ -776,7 +922,11 @@ class CustomPopupWindow(QtWidgets.QWidget):
                 # Truncate long instructions for tooltip
                 instruction = action_config.get("instruction", "")
                 if instruction:
-                    instruction = instruction[:100] + "..." if len(instruction) > 100 else instruction
+                    instruction = (
+                        instruction[:100] + "..."
+                        if len(instruction) > 100
+                        else instruction
+                    )
                 tooltip_text = f"{name}\n{instruction}"
             b.setToolTip(tooltip_text)
 
@@ -790,7 +940,9 @@ class CustomPopupWindow(QtWidgets.QWidget):
             parent_layout = self.background.layout()
 
         # Use force_edit_mode if provided, otherwise use current edit_mode
-        edit_mode_to_use = force_edit_mode if force_edit_mode is not None else self.edit_mode
+        edit_mode_to_use = (
+            force_edit_mode if force_edit_mode is not None else self.edit_mode
+        )
 
         # Remove existing grid and Add New button - PROPERLY DELETE WIDGETS
         for i in reversed(range(parent_layout.count())):
@@ -863,7 +1015,9 @@ class CustomPopupWindow(QtWidgets.QWidget):
             btn.icon_container.deleteLater()
 
         btn.icon_container = QtWidgets.QWidget(btn)
-        btn.icon_container.setAttribute(QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
+        btn.icon_container.setAttribute(
+            QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents, False
+        )
 
         btn.icon_container.setGeometry(0, 0, btn.width(), btn.height())
 
@@ -928,6 +1082,8 @@ class CustomPopupWindow(QtWidgets.QWidget):
             self.input_area.setVisible(False)
         if self.force_chat_area is not None:
             self.force_chat_area.setVisible(False)
+        if self.update_label is not None:
+            self.update_label.setVisible(False)
 
         # Add edit overlays to buttons
         self.add_edit_overlays_to_buttons()
@@ -957,7 +1113,11 @@ class CustomPopupWindow(QtWidgets.QWidget):
             self.edit_close_button.hide()
         if hasattr(self, "drag_label") and self.drag_label is not None:
             self.drag_label.hide()
-        if self.has_text and hasattr(self, "edit_button") and self.edit_button is not None:
+        if (
+            self.has_text
+            and hasattr(self, "edit_button")
+            and self.edit_button is not None
+        ):
             self.edit_button.show()
         if hasattr(self, "close_button") and self.close_button is not None:
             self.close_button.show()
@@ -971,13 +1131,16 @@ class CustomPopupWindow(QtWidgets.QWidget):
         Reset options to default actions and reload the interface.
         """
         confirm_box = QtWidgets.QMessageBox()
-        confirm_box.setWindowFlags(confirm_box.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
+        confirm_box.setWindowFlags(
+            confirm_box.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
+        )
         confirm_box.setWindowTitle("Confirm Reset to Defaults?")
         confirm_box.setText(
             "This will reset all buttons to their original configuration.\nYour custom buttons will be removed.\n\nAre you sure you want to continue?",
         )
         confirm_box.setStandardButtons(
-            QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
+            QtWidgets.QMessageBox.StandardButton.Yes
+            | QtWidgets.QMessageBox.StandardButton.No
         )
         confirm_box.setDefaultButton(QtWidgets.QMessageBox.StandardButton.No)
 
@@ -985,9 +1148,14 @@ class CustomPopupWindow(QtWidgets.QWidget):
             try:
                 logging.debug("Resetting to default actions")
                 # Reset actions to defaults in unified settings
-                if hasattr(self.app, "settings_manager") and self.app.settings_manager.settings:
+                if (
+                    hasattr(self.app, "settings_manager")
+                    and self.app.settings_manager.settings
+                ):
                     # Reset actions to defaults
-                    self.app.settings_manager.settings.actions = create_default_actions_config()
+                    self.app.settings_manager.settings.actions = (
+                        create_default_actions_config()
+                    )
                     self.app.settings_manager.save()
                 else:
                     logging.error("Settings manager not available for reset")
@@ -998,14 +1166,20 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
                 # Show success message
                 success_msg = QtWidgets.QMessageBox()
-                success_msg.setWindowFlags(success_msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
+                success_msg.setWindowFlags(
+                    success_msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
+                )
                 success_msg.setWindowTitle("Reset Complete")
-                success_msg.setText("Buttons have been reset to their default configuration.")
+                success_msg.setText(
+                    "Buttons have been reset to their default configuration."
+                )
                 success_msg.exec_()
 
             except Exception as e:
                 logging.exception(f"Error resetting options: {e}")
-                self.app.show_message_signal.emit("Error", f"An error occurred while resetting: {e!s}")
+                self.app.show_message_signal.emit(
+                    "Error", f"An error occurred while resetting: {e!s}"
+                )
 
     def add_new_button_clicked(self):
         dialog = ButtonEditDialog(self, title="Add New Button")
@@ -1024,9 +1198,13 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
             # Show success message
             msg = QtWidgets.QMessageBox()
-            msg.setWindowFlags(msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
+            msg.setWindowFlags(
+                msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
+            )
             msg.setWindowTitle("Button Added")
-            msg.setText("Your new button has been saved and is now available in the tools list.")
+            msg.setText(
+                "Your new button has been saved and is now available in the tools list."
+            )
             msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
             msg.exec_()
 
@@ -1065,7 +1243,9 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
             # Show success message
             msg = QtWidgets.QMessageBox()
-            msg.setWindowFlags(msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
+            msg.setWindowFlags(
+                msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
+            )
             msg.setWindowTitle("Button Updated")
             msg.setText("Your button changes have been saved and are now active.")
             msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
@@ -1078,10 +1258,15 @@ class CustomPopupWindow(QtWidgets.QWidget):
         """Handle deletion of a button."""
         key = btn.key
         confirm = QtWidgets.QMessageBox()
-        confirm.setWindowFlags(confirm.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
+        confirm.setWindowFlags(
+            confirm.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
+        )
         confirm.setWindowTitle("Confirm Delete?")
         confirm.setText("Are you sure you want to continue?")
-        confirm.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+        confirm.setStandardButtons(
+            QtWidgets.QMessageBox.StandardButton.Yes
+            | QtWidgets.QMessageBox.StandardButton.No
+        )
         confirm.setDefaultButton(QtWidgets.QMessageBox.StandardButton.No)
 
         if confirm.exec_() == QtWidgets.QMessageBox.StandardButton.Yes:
@@ -1103,14 +1288,19 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
             except Exception as e:
                 logging.exception(f"Error deleting button: {e}")
-                self.app.show_message_signal.emit("Error", f"An error occurred while deleting the button: {e!s}")
+                self.app.show_message_signal.emit(
+                    "Error", f"An error occurred while deleting the button: {e!s}"
+                )
 
     def update_json_from_grid(self):
         """
         Called after a drop reorder. Reflect the new order in unified settings,
         so that user's custom arrangement persists.
         """
-        if not hasattr(self.app, "settings_manager") or not self.app.settings_manager.settings:
+        if (
+            not hasattr(self.app, "settings_manager")
+            or not self.app.settings_manager.settings
+        ):
             logging.error("Settings manager not available, cannot update order")
             return
 
@@ -1156,41 +1346,25 @@ class CustomPopupWindow(QtWidgets.QWidget):
     def on_custom_change(self):
         txt = self.custom_input.text().strip() if self.custom_input else ""
         if txt:
-            self.app.process_option("Custom", self.selected_text, txt, force_chat=self.is_force_chat_enabled())
+            self.app.process_option(
+                "Custom", self.selected_text, txt, force_chat=self.is_force_chat_enabled()
+            )
             self.close()
 
     def on_generic_instruction(self, instruction):
         if not self.edit_mode:
-            self.app.process_option(instruction, self.selected_text, force_chat=self.is_force_chat_enabled())
+            self.app.process_option(
+                instruction, self.selected_text, force_chat=self.is_force_chat_enabled()
+            )
             self.close()
-
-    def eventFilter(self, obj, event):
-        # Hide on deactivate only if NOT in edit mode
-        if event.type() == QtCore.QEvent.Type.WindowDeactivate:
-            if not self.edit_mode:
-                self.hide()
-                return True
-        return super().eventFilter(obj, event)
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Escape:
             if self.edit_mode:
                 # If in edit mode, exit edit mode (like clicking the close button)
-                self.toggle_edit_mode()
+                self.exit_edit_mode()
             else:
                 # If not in edit mode, close the window
                 self.close()
         else:
             super().keyPressEvent(event)
-
-    def _on_focus_in(self, event):
-        """Called when custom_input gains focus."""
-        self.edit_mode = True
-        if hasattr(self, "_original_focus_in"):
-            self._original_focus_in(event)
-
-    def _on_focus_out(self, event):
-        """Called when custom_input loses focus."""
-        self.edit_mode = False
-        if hasattr(self, "_original_focus_out"):
-            self._original_focus_out(event)

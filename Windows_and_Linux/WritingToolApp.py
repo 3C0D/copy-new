@@ -94,7 +94,9 @@ class WritingToolApp(QtWidgets.QApplication):
                 self._handle_normal_launch()
 
         except Exception as e:
-            self._logger.error(f"Critical error during WritingToolApp initialization: {e}")
+            self._logger.error(
+                f"Critical error during WritingToolApp initialization: {e}"
+            )
             import traceback
 
             self._logger.error(f"Full traceback: {traceback.format_exc()}")
@@ -157,7 +159,9 @@ class WritingToolApp(QtWidgets.QApplication):
 
     def _handle_first_launch(self):
         """Handle first-time application launch."""
-        self._logger.debug("First launch detected (no providers configured), showing onboarding")
+        self._logger.debug(
+            "First launch detected (no providers configured), showing onboarding"
+        )
         self.show_onboarding()
 
     def _handle_normal_launch(self):
@@ -170,7 +174,9 @@ class WritingToolApp(QtWidgets.QApplication):
         from ui.ui_utils import set_color_mode
 
         set_color_mode(saved_color_mode)
-        self._logger.debug(f"Synchronized colorMode with saved setting: {saved_color_mode}")
+        self._logger.debug(
+            f"Synchronized colorMode with saved setting: {saved_color_mode}"
+        )
 
         try:
             self._initialize_ai_provider()
@@ -186,12 +192,18 @@ class WritingToolApp(QtWidgets.QApplication):
         self._logger.debug(f"Selected provider: {provider_internal_name}")
 
         self.current_provider = next(
-            (provider for provider in self.providers if provider.internal_name == provider_internal_name),
+            (
+                provider
+                for provider in self.providers
+                if provider.internal_name == provider_internal_name
+            ),
             None,
         )
 
         if not self.current_provider:
-            self._logger.warning(f"Provider {provider_internal_name} not found. Using default provider.")
+            self._logger.warning(
+                f"Provider {provider_internal_name} not found. Using default provider."
+            )
             self.current_provider = self.providers[0]
 
         if self.current_provider:
@@ -223,8 +235,12 @@ class WritingToolApp(QtWidgets.QApplication):
         if startup_delay_needed:
             # Longer delay for Windows startup - systray needs more time to be ready
             delay = 5000 if is_frozen else 2000  # 5s for exe, 2s for dev
-            logging.info(f"Startup delay detected - waiting {delay / 1000}s for system tray to be ready")
-            logging.debug(f"Detected potential startup scenario, delaying tray icon creation by {delay}ms")
+            logging.info(
+                f"Startup delay detected - waiting {delay / 1000}s for system tray to be ready"
+            )
+            logging.debug(
+                f"Detected potential startup scenario, delaying tray icon creation by {delay}ms"
+            )
             QtCore.QTimer.singleShot(delay, self.create_tray_icon)
         else:
             self.create_tray_icon()
@@ -348,7 +364,9 @@ class WritingToolApp(QtWidgets.QApplication):
         self.recent_triggers.append(current_time)
 
         # Remove old triggers outside the window
-        self.recent_triggers = [t for t in self.recent_triggers if current_time - t <= self.TRIGGER_WINDOW]
+        self.recent_triggers = [
+            t for t in self.recent_triggers if current_time - t <= self.TRIGGER_WINDOW
+        ]
 
         return len(self.recent_triggers) >= self.MAX_TRIGGERS
 
@@ -365,21 +383,27 @@ class WritingToolApp(QtWidgets.QApplication):
 
         # Default configuration based on provider type
         default_configs = {
-            ("Gemini", "Gemini (Recommended)"): {"api_key": "", "model": self.settings_manager.model or ""},
+            ("Gemini", "Gemini (Recommended)"): {
+                "api_key": "",
+                "model": self.settings_manager.model or "",
+            },
             ("Ollama", "Ollama (Local)", "Ollama (For Experts)"): {
-                "base_url": self.settings_manager.ollama_base_url or "http://localhost:11434",
+                "base_url": self.settings_manager.ollama_base_url
+                or "http://localhost:11434",
                 "model": "",
                 "keep_alive": self.settings_manager.ollama_keep_alive or "5",
             },
             ("Mistral", "Mistral AI"): {
                 "api_key": "",
                 "api_model": "",
-                "base_url": self.settings_manager.mistral_base_url or "https://api.mistral.ai/v1",
+                "base_url": self.settings_manager.mistral_base_url
+                or "https://api.mistral.ai/v1",
             },
             ("Anthropic", "Anthropic (Claude)"): {"api_key": "", "model": ""},
             ("OpenAI", "OpenAI-Compatible"): {
                 "api_key": "",
-                "base_url": self.settings_manager.openai_base_url or "https://api.openai.com/v1",
+                "base_url": self.settings_manager.openai_base_url
+                or "https://api.openai.com/v1",
                 "model": "",
             },
         }
@@ -409,7 +433,9 @@ class WritingToolApp(QtWidgets.QApplication):
         from ui.ui_utils import set_color_mode
 
         set_color_mode(saved_color_mode)
-        self._logger.debug(f"Synchronized colorMode with saved setting: {saved_color_mode}")
+        self._logger.debug(
+            f"Synchronized colorMode with saved setting: {saved_color_mode}"
+        )
 
         self.onboarding_window = ui.OnboardingWindow.OnboardingWindow(self)
         self.onboarding_window.close_signal.connect(self.on_onboarding_closed)
@@ -431,7 +457,11 @@ class WritingToolApp(QtWidgets.QApplication):
             self.settings_manager.provider = provider_name
 
         self.current_provider = next(
-            (provider for provider in self.providers if provider.internal_name == provider_name),
+            (
+                provider
+                for provider in self.providers
+                if provider.internal_name == provider_name
+            ),
             self.providers[0],  # Default to first provider
         )
 
@@ -464,7 +494,10 @@ class WritingToolApp(QtWidgets.QApplication):
 
         # Parse the shortcut string, for example ctrl+alt+h -> <ctrl>+<alt>+<h>. Space are removed.
         shortcut = "+".join(
-            [f"{t}" if len(t) <= 1 else f"<{t}>" for t in [part.strip() for part in orig_shortcut.split("+")]],
+            [
+                f"{t}" if len(t) <= 1 else f"<{t}>"
+                for t in [part.strip() for part in orig_shortcut.split("+")]
+            ],
         )
         self._logger.debug(f"Registering global hotkey for shortcut: {shortcut}")
 
@@ -486,7 +519,9 @@ class WritingToolApp(QtWidgets.QApplication):
             # Helper function to standardize key event
             def for_canonical(f):
                 return lambda k: f(
-                    self.hotkey_listener.canonical(k) if k is not None and self.hotkey_listener is not None else k
+                    self.hotkey_listener.canonical(k)
+                    if k is not None and self.hotkey_listener is not None
+                    else k
                 )
 
             # Create a listener and store it as an attribute to stop it later
@@ -533,7 +568,9 @@ class WritingToolApp(QtWidgets.QApplication):
             self.output_queue = ""
 
         # noinspection PyTypeChecker
-        QtCore.QMetaObject.invokeMethod(self, "_show_popup", QtCore.Qt.ConnectionType.QueuedConnection)
+        QtCore.QMetaObject.invokeMethod(
+            self, "_show_popup", QtCore.Qt.ConnectionType.QueuedConnection
+        )
 
     @Slot()
     def _show_popup(self):
@@ -558,7 +595,9 @@ class WritingToolApp(QtWidgets.QApplication):
                     self.popup_window.close()
                 self.popup_window = None
             self._logger.debug("Creating new popup window")
-            self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(self, selected_text)
+            self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(
+                self, selected_text
+            )
 
             # Set the window icon
             icon_path = get_icon_path("app_icon", with_theme=False)
@@ -604,7 +643,9 @@ class WritingToolApp(QtWidgets.QApplication):
         """
         # Backup the clipboard
         clipboard_backup = pyperclip.paste()
-        self._logger.debug(f'Clipboard backup: "{clipboard_backup}" (sleep: {sleep_duration}s)')
+        self._logger.debug(
+            f'Clipboard backup: "{clipboard_backup}" (sleep: {sleep_duration}s)'
+        )
 
         # Clear the clipboard
         self.clear_clipboard()
@@ -687,7 +728,9 @@ class WritingToolApp(QtWidgets.QApplication):
 
     def _setup_response_window(self, is_empty_custom, option, selected_text):
         window_title = "Chat" if is_empty_custom else option
-        self.current_response_window = self.show_response_window(window_title, selected_text)
+        self.current_response_window = self.show_response_window(
+            window_title, selected_text
+        )
 
         # Initialize chat history inline
         self.current_response_window.chat_history = (
@@ -722,10 +765,14 @@ class WritingToolApp(QtWidgets.QApplication):
                 return
 
             self.output_queue = ""
-            should_open_window = self._should_display_in_window(option, selected_text, prompt_data["action_config"])
+            should_open_window = self._should_display_in_window(
+                option, selected_text, prompt_data["action_config"]
+            )
 
             if should_open_window:
-                self._process_window_response(option, selected_text, custom_change, prompt_data)
+                self._process_window_response(
+                    option, selected_text, custom_change, prompt_data
+                )
             else:
                 self._process_direct_replacement(prompt_data)
 
@@ -745,7 +792,9 @@ class WritingToolApp(QtWidgets.QApplication):
         if not has_selected_text:
             return self._handle_no_text_selected(is_custom_option, custom_change)
         else:
-            return self._handle_text_selected(option, selected_text, custom_change, is_custom_option)
+            return self._handle_text_selected(
+                option, selected_text, custom_change, is_custom_option
+            )
 
     def _handle_no_text_selected(self, is_custom_option, custom_change):
         """Handle case where no text is selected."""
@@ -756,10 +805,14 @@ class WritingToolApp(QtWidgets.QApplication):
                 "action_config": {},
             }
         else:
-            self.show_message_signal.emit("Error", "Please select text to use this option.")
+            self.show_message_signal.emit(
+                "Error", "Please select text to use this option."
+            )
             return None
 
-    def _handle_text_selected(self, option, selected_text, custom_change, is_custom_option):
+    def _handle_text_selected(
+        self, option, selected_text, custom_change, is_custom_option
+    ):
         """Handle case where text is selected."""
         action_config = self.settings_manager.actions.get(option)
         if not action_config:
@@ -774,7 +827,11 @@ class WritingToolApp(QtWidgets.QApplication):
         else:
             prompt = f"{prompt_prefix}{selected_text}"
 
-        return {"prompt": prompt, "system_instruction": system_instruction, "action_config": action_config}
+        return {
+            "prompt": prompt,
+            "system_instruction": system_instruction,
+            "action_config": action_config,
+        }
 
     def _should_display_in_window(self, option, selected_text, action_config):
         """Determine if response should be displayed in a window."""
@@ -795,7 +852,9 @@ class WritingToolApp(QtWidgets.QApplication):
 
         self._logger.debug("Getting response for window display")
         response = self.current_provider.get_response(
-            prompt_data["system_instruction"], str(prompt_data["prompt"]), return_response=True
+            prompt_data["system_instruction"],
+            str(prompt_data["prompt"]),
+            return_response=True,
         )
         self._logger.debug(f"Got response of length: {len(response) if response else 0}")
 
@@ -808,7 +867,9 @@ class WritingToolApp(QtWidgets.QApplication):
         has_selected_text = selected_text.strip() != ""
 
         if is_custom_option and not has_selected_text and self.current_response_window:
-            self.current_response_window.chat_history.append({"role": "user", "content": custom_change})
+            self.current_response_window.chat_history.append(
+                {"role": "user", "content": custom_change}
+            )
 
     def _update_response_window(self, response):
         """Update response window with AI response (thread-safe)."""
@@ -854,7 +915,9 @@ class WritingToolApp(QtWidgets.QApplication):
         For API errors, adds a button to open settings.
         """
         msg_box = QMessageBox(None)
-        msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
+        msg_box.setWindowFlags(
+            msg_box.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
+        )
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
 
@@ -863,8 +926,13 @@ class WritingToolApp(QtWidgets.QApplication):
 
         # For API errors, add a button to open settings
         settings_button = None
-        if any(keyword in title.lower() for keyword in ["api", "key", "quota", "rate limit", "connection"]):
-            settings_button = msg_box.addButton("Open Settings", QMessageBox.ButtonRole.ActionRole)
+        if any(
+            keyword in title.lower()
+            for keyword in ["api", "key", "quota", "rate limit", "connection"]
+        ):
+            settings_button = msg_box.addButton(
+                "Open Settings", QMessageBox.ButtonRole.ActionRole
+            )
 
         # Show the message box
         msg_box.exec()
@@ -888,7 +956,9 @@ class WritingToolApp(QtWidgets.QApplication):
         Replaces the text by pasting in the LLM generated text. With "Key Points" and "Summary", invokes a window with the output instead.
         If pasting fails (non-editable page), shows the text in a modal window.
         """
-        self._logger.debug(f"replace_text called with text length: {len(new_text) if new_text else 0}")
+        self._logger.debug(
+            f"replace_text called with text length: {len(new_text) if new_text else 0}"
+        )
         error_message = "ERROR_TEXT_INCOMPATIBLE_WITH_REQUEST"
 
         # Confirm new_text exists and is a string
@@ -898,7 +968,9 @@ class WritingToolApp(QtWidgets.QApplication):
 
             # If the new text is the error message, show a message box
             if current_output == error_message:
-                self.show_message_signal.emit("Error", "The text is incompatible with the requested change.")
+                self.show_message_signal.emit(
+                    "Error", "The text is incompatible with the requested change."
+                )
                 return
 
             # Check if we're building up to the error message (to prevent partial pasting)
@@ -911,13 +983,21 @@ class WritingToolApp(QtWidgets.QApplication):
             logging.debug("Processing output text")
             try:
                 # For Summary and Key Points, show in response window
-                if hasattr(self, "current_response_window") and self.current_response_window:
+                if (
+                    hasattr(self, "current_response_window")
+                    and self.current_response_window
+                ):
                     # Use chat_area.add_message instead of append_text
-                    if hasattr(self.current_response_window, "chat_area") and self.current_response_window.chat_area:
+                    if (
+                        hasattr(self.current_response_window, "chat_area")
+                        and self.current_response_window.chat_area
+                    ):
                         self.current_response_window.chat_area.add_message(new_text)
 
                     # If this is the initial response, add it to chat history
-                    if len(self.current_response_window.chat_history) == 1:  # Only original text exists
+                    if (
+                        len(self.current_response_window.chat_history) == 1
+                    ):  # Only original text exists
                         self.current_response_window.chat_history.append(
                             {
                                 "role": "assistant",
@@ -950,7 +1030,9 @@ class WritingToolApp(QtWidgets.QApplication):
 
                     # If selection is the same, paste failed (non-editable page)
                     if original_selection == new_selection and original_selection.strip():
-                        logging.debug("Paste failed - showing modal window for non-editable page")
+                        logging.debug(
+                            "Paste failed - showing modal window for non-editable page"
+                        )
                         # noinspection PyTypeChecker
                         QtCore.QMetaObject.invokeMethod(
                             self,
@@ -982,7 +1064,9 @@ class WritingToolApp(QtWidgets.QApplication):
                 self.non_editable_modal = None
 
             # Create and show the modal window
-            self.non_editable_modal = ui.NonEditableModal.NonEditableModal(self, transformed_text)
+            self.non_editable_modal = ui.NonEditableModal.NonEditableModal(
+                self, transformed_text
+            )
 
             # Connect close event to clean up reference
             self.non_editable_modal.finished.connect(self._on_modal_closed)
@@ -1061,7 +1145,9 @@ class WritingToolApp(QtWidgets.QApplication):
         for attempt in range(max_retries):
             if QtWidgets.QSystemTrayIcon.isSystemTrayAvailable():
                 if attempt > 0:
-                    logging.info(f"System tray became available after {attempt + 1} attempts")
+                    logging.info(
+                        f"System tray became available after {attempt + 1} attempts"
+                    )
                 return True
 
             if attempt < max_retries - 1:  # Don't wait after the last attempt
@@ -1089,7 +1175,9 @@ class WritingToolApp(QtWidgets.QApplication):
                 return
 
             if attempt < max_retries - 1:  # Don't wait after the last attempt
-                logging.debug(f"Tray icon not visible, attempt {attempt + 1}/{max_retries}, retrying...")
+                logging.debug(
+                    f"Tray icon not visible, attempt {attempt + 1}/{max_retries}, retrying..."
+                )
                 QtCore.QTimer.singleShot(delay_ms, lambda: None)
                 self.processEvents()  # Process pending events
                 time.sleep(delay_ms / 1000.0)  # Convert to seconds
@@ -1119,7 +1207,9 @@ class WritingToolApp(QtWidgets.QApplication):
         settings_action.triggered.connect(self.show_settings)
 
         # Pause/Resume toggle action
-        self.toggle_action = self.tray_menu.addAction(self._("Resume") if self.paused else self._("Pause"))
+        self.toggle_action = self.tray_menu.addAction(
+            self._("Resume") if self.paused else self._("Pause")
+        )
         self.toggle_action.triggered.connect(self.toggle_paused)
 
         # About menu item
@@ -1135,7 +1225,9 @@ class WritingToolApp(QtWidgets.QApplication):
         logging.debug("Toggle paused state")
         self.paused = not self.paused
         if self.toggle_action is not None:
-            self.toggle_action.setText(self._("Resume") if self.paused else self._("Pause"))
+            self.toggle_action.setText(
+                self._("Resume") if self.paused else self._("Pause")
+            )
         logging.debug("App is paused" if self.paused else "App is resumed")
 
     @staticmethod
@@ -1152,13 +1244,21 @@ class WritingToolApp(QtWidgets.QApplication):
         if is_dark_mode:
             logging.debug("Tray icon dark")
             # Dark mode colors
-            palette.setColor(QtGui.QPalette.ColorRole.Window, QtGui.QColor("#2d2d2d"))  # Dark background
-            palette.setColor(QtGui.QPalette.ColorRole.WindowText, QtGui.QColor("#ffffff"))  # White text
+            palette.setColor(
+                QtGui.QPalette.ColorRole.Window, QtGui.QColor("#2d2d2d")
+            )  # Dark background
+            palette.setColor(
+                QtGui.QPalette.ColorRole.WindowText, QtGui.QColor("#ffffff")
+            )  # White text
         else:
             logging.debug("Tray icon light")
             # Light mode colors
-            palette.setColor(QtGui.QPalette.ColorRole.Window, QtGui.QColor("#ffffff"))  # Light background
-            palette.setColor(QtGui.QPalette.ColorRole.WindowText, QtGui.QColor("#000000"))  # Black text
+            palette.setColor(
+                QtGui.QPalette.ColorRole.Window, QtGui.QColor("#ffffff")
+            )  # Light background
+            palette.setColor(
+                QtGui.QPalette.ColorRole.WindowText, QtGui.QColor("#000000")
+            )  # Black text
 
         menu.setPalette(palette)
 
@@ -1229,18 +1329,27 @@ class WritingToolApp(QtWidgets.QApplication):
                 logging.debug("Sending request to AI provider")
 
                 # Format conversation differently based on provider
-                if self.current_provider and isinstance(self.current_provider, GeminiProvider):
+                if self.current_provider and isinstance(
+                    self.current_provider, GeminiProvider
+                ):
                     # For Gemini, use the proper history format with roles
                     chat_messages = []
 
                     # Convert our roles to Gemini's expected roles
                     for msg in history:
                         gemini_role = "model" if msg["role"] == "assistant" else "user"
-                        chat_messages.append({"role": gemini_role, "parts": msg["content"]})
+                        chat_messages.append(
+                            {"role": gemini_role, "parts": msg["content"]}
+                        )
 
                     # Start chat with history
-                    if hasattr(self.current_provider, "model") and self.current_provider.model:
-                        chat = self.current_provider.model.start_chat(history=chat_messages)
+                    if (
+                        hasattr(self.current_provider, "model")
+                        and self.current_provider.model
+                    ):
+                        chat = self.current_provider.model.start_chat(
+                            history=chat_messages
+                        )
 
                         # Get response using the chat
                         response = chat.send_message(question)
@@ -1248,7 +1357,9 @@ class WritingToolApp(QtWidgets.QApplication):
                     else:
                         response_text = "Error: Provider model not available"
 
-                elif self.current_provider and isinstance(self.current_provider, OllamaProvider):
+                elif self.current_provider and isinstance(
+                    self.current_provider, OllamaProvider
+                ):
                     # For Ollama, prepare messages with system instruction and history
                     messages = [{"role": "system", "content": system_instruction}]
 
@@ -1284,7 +1395,9 @@ class WritingToolApp(QtWidgets.QApplication):
                 logging.debug(f"Got response of length: {len(response_text)}")
 
                 # Add response to chat history
-                response_window.chat_history.append({"role": "assistant", "content": response_text})
+                response_window.chat_history.append(
+                    {"role": "assistant", "content": response_text}
+                )
 
                 # Emit response via signal
                 self.followup_response_signal.emit(response_text)
@@ -1297,10 +1410,14 @@ class WritingToolApp(QtWidgets.QApplication):
                         "Error - Rate Limit Hit",
                         "Whoops! You've hit the per-minute rate limit of the Gemini API. Please try again in a few moments.\n\nIf this happens often, simply switch to a Gemini model with a higher usage limit in Settings.",
                     )
-                    self.followup_response_signal.emit("Sorry, an error occurred while processing your question.")
+                    self.followup_response_signal.emit(
+                        "Sorry, an error occurred while processing your question."
+                    )
                 else:
                     self.show_message_signal.emit("Error", f"An error occurred: {e}")
-                    self.followup_response_signal.emit("Sorry, an error occurred while processing your question.")
+                    self.followup_response_signal.emit(
+                        "Sorry, an error occurred while processing your question."
+                    )
 
         # Start the thread
         threading.Thread(target=process_thread, daemon=True).start()
@@ -1326,7 +1443,9 @@ class WritingToolApp(QtWidgets.QApplication):
 
         logging.debug("Showing settings window")
         # Always create a new settings window to handle providers_only correctly
-        self.settings_window = ui.SettingsWindow.SettingsWindow(self, providers_only=providers_only)
+        self.settings_window = ui.SettingsWindow.SettingsWindow(
+            self, providers_only=providers_only
+        )
 
         # Set reference to previous window for navigation
         if previous_window:
@@ -1354,7 +1473,9 @@ class WritingToolApp(QtWidgets.QApplication):
         """
         Listener for Ctrl+C to exit the app.
         """
-        signal.signal(signal.SIGINT, lambda signum, frame: self.handle_sigint(signum, frame))
+        signal.signal(
+            signal.SIGINT, lambda signum, frame: self.handle_sigint(signum, frame)
+        )
         # This empty timer is needed to make sure that the sigint handler gets checked inside the main loop:
         # without it, the sigint handle would trigger only when an event is triggered, either by a hotkey combination
         # or by another GUI event like spawning a new window. With this we trigger it every 100ms with an empy lambda

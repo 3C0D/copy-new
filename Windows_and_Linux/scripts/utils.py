@@ -68,9 +68,18 @@ def copy_required_files(build_type, target_dir):
     assets_to_copy = [
         (Path("config/icons"), dist_target_dir / "icons"),
         (Path("config/backgrounds/background.png"), dist_target_dir / "background.png"),
-        (Path("config/backgrounds/background_dark.png"), dist_target_dir / "background_dark.png"),
-        (Path("config/backgrounds/background_popup.png"), dist_target_dir / "background_popup.png"),
-        (Path("config/backgrounds/background_popup_dark.png"), dist_target_dir / "background_popup_dark.png"),
+        (
+            Path("config/backgrounds/background_dark.png"),
+            dist_target_dir / "background_dark.png",
+        ),
+        (
+            Path("config/backgrounds/background_popup.png"),
+            dist_target_dir / "background_popup.png",
+        ),
+        (
+            Path("config/backgrounds/background_popup_dark.png"),
+            dist_target_dir / "background_popup_dark.png",
+        ),
     ]
 
     print(f"Copying required files for {build_type} build to {cwd}/dist/{target_dir}/...")
@@ -218,7 +227,14 @@ def install_dependencies(venv_path, requirements_path):
                     line = line.strip()
                     if line and not line.startswith("#"):
                         # Extract package name (before ==, >=, <=, etc.)
-                        pkg_name = line.split("==")[0].split(">=")[0].split("<=")[0].split("<")[0].split(">")[0].strip()
+                        pkg_name = (
+                            line.split("==")[0]
+                            .split(">=")[0]
+                            .split("<=")[0]
+                            .split("<")[0]
+                            .split(">")[0]
+                            .strip()
+                        )
                         current_requirements.add(pkg_name.lower())
 
             # Read previous requirements if exists
@@ -247,7 +263,9 @@ def install_dependencies(venv_path, requirements_path):
             # Remove obsolete packages
             if packages_to_remove:
                 print(f"🗑️  Removing obsolete packages: {', '.join(packages_to_remove)}")
-                cmd_uninstall = [python_cmd, "-m", "pip", "uninstall", "-y"] + list(packages_to_remove)
+                cmd_uninstall = [python_cmd, "-m", "pip", "uninstall", "-y"] + list(
+                    packages_to_remove
+                )
                 try:
                     subprocess.run(cmd_uninstall, check=True, capture_output=True)
                     print("✅ Obsolete packages removed successfully.")
@@ -256,7 +274,15 @@ def install_dependencies(venv_path, requirements_path):
 
             # Install/update current requirements.-q silent install
             print("📦 Installing/updating dependencies...")
-            cmd_install = [python_cmd, "-m", "pip", "install", "-q", "-r", str(requirements_abs_path)]
+            cmd_install = [
+                python_cmd,
+                "-m",
+                "pip",
+                "install",
+                "-q",
+                "-r",
+                str(requirements_abs_path),
+            ]
             subprocess.run(cmd_install, check=True)
 
             # Save current state for next time
@@ -316,10 +342,10 @@ def kill_python_script_process(script_name):
     try:
         if sys.platform.startswith("win"):
             # Use WMIC to find and terminate the specific Python script
-            command = (
-                f"wmic process where \"name='python.exe' and commandline like '%%{script_name}%%'\" call terminate"
+            command = f"wmic process where \"name='python.exe' and commandline like '%%{script_name}%%'\" call terminate"
+            result = subprocess.run(
+                command, check=False, capture_output=True, text=True, shell=True
             )
-            result = subprocess.run(command, check=False, capture_output=True, text=True, shell=True)
 
             if "No instance(s) available" in result.stdout:
                 print(f"No existing Python process found for: {script_name}")

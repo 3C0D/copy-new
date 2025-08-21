@@ -46,7 +46,10 @@ def setup_detailed_logging():
         level=logging.DEBUG,
         format="%(asctime)s.%(msecs)03d - %(levelname)s - %(name)s - %(funcName)s:%(lineno)d - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
-        handlers=[logging.FileHandler(log_file, encoding="utf-8"), logging.StreamHandler(sys.stdout)],
+        handlers=[
+            logging.FileHandler(log_file, encoding="utf-8"),
+            logging.StreamHandler(sys.stdout),
+        ],
     )
 
     # Log des informations système au démarrage
@@ -91,7 +94,7 @@ def log_systray_environment():
     try:
         # Importer PySide6 et vérifier la disponibilité
         logger.info("Importing PySide6...")
-        from PySide6 import QtWidgets
+        from PySide6 import QtGui, QtWidgets
 
         logger.info("PySide6 imported successfully")
 
@@ -111,7 +114,7 @@ def log_systray_environment():
 
         # Informations sur les écrans
         logger.info("Screen information:")
-        screens = app.screens()
+        screens = QtGui.QGuiApplication.screens()
         logger.info(f"Number of screens: {len(screens)}")
         for i, screen in enumerate(screens):
             logger.info(f"Screen {i}: {screen.name()} - {screen.geometry()}")
@@ -190,7 +193,9 @@ def main():
             import subprocess
 
             script_path = os.path.abspath(__file__)
-            result = subprocess.run([project_python, script_path], capture_output=True, text=True)
+            result = subprocess.run(
+                [project_python, script_path], capture_output=True, text=True
+            )
 
             logger.info(f"Subprocess exit code: {result.returncode}")
             if result.stdout:

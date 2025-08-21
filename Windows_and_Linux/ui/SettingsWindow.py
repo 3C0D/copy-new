@@ -24,7 +24,13 @@ from ui.AutostartManager import AutostartManager
 from ui.ThemeManager import ThemeAwareMixin, theme_manager
 from ui.ui_utils import ThemedWidget, get_icon_path, ui_utils
 
-_ = lambda x: x
+
+def _(x):
+    """
+    Function for translation placeholder.
+    Returns the input unchanged, used as a placeholder for translation.
+    """
+    return x
 
 
 class SettingsWindow(ThemeAwareMixin, ThemedWidget):
@@ -41,6 +47,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         self.current_provider_layout = None
         # Special mode to show only provider settings (during first setup)
         self.providers_only = providers_only
+
         self.gradient_radio = None
         self.plain_radio = None
         self.color_mode_dropdown = None
@@ -55,7 +62,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         self.current_theme = self.app.settings_manager.theme or "gradient"
 
         # Set the correct theme from saved settings
-        if hasattr(self, "background") and self.background is not None:
+        if self.background is not None:
             self.background.theme = self.current_theme
 
         self.init_ui()
@@ -89,12 +96,13 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         )
         # Show on top initially but allow user to move to background
         self.setWindowState(QtCore.Qt.WindowState.WindowActive)
-        self.raise_()
-        self.activateWindow()
+        self.raise_()  # Bring window to the front
+        self.activateWindow()  # Give focus to the window to make it active
 
-        main_layout = QtWidgets.QVBoxLayout(self.background)  # Set icon, margin, and spacing in ThemedWidget
+        main_layout = QtWidgets.QVBoxLayout(
+            self.background
+        )  # Set icon, margin, and spacing in ThemedWidget
 
-        # Earlier scroll_area and scroll_content creation moved up
         # Create scroll area
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
@@ -176,7 +184,9 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         if not self.providers_only:
             title_label = QtWidgets.QLabel(_("Settings"))
             title_label.setObjectName("title_label")  # For specific styling in refresh
-            title_label.setStyleSheet(f"font-size: 24px; font-weight: bold; {self.get_label_style()}")
+            title_label.setStyleSheet(
+                f"font-size: 24px; font-weight: bold; {self.get_label_style()}"
+            )
             content_layout.addWidget(
                 title_label,
                 alignment=QtCore.Qt.AlignmentFlag.AlignCenter,
@@ -191,7 +201,9 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                 AutostartManager.sync_with_settings(self.app.settings_manager)
 
                 # Set checkbox state from settings (now synchronized)
-                self.autostart_checkbox.setChecked(getattr(self.app.settings_manager, "start_on_boot", False))
+                self.autostart_checkbox.setChecked(
+                    getattr(self.app.settings_manager, "start_on_boot", False)
+                )
                 self.autostart_checkbox.stateChanged.connect(self.toggle_autostart)
                 content_layout.addWidget(self.autostart_checkbox)
 
@@ -200,7 +212,9 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             shortcut_label.setStyleSheet(self.get_label_style())
             content_layout.addWidget(shortcut_label)
 
-            self.shortcut_input = QtWidgets.QLineEdit(self.app.settings_manager.hotkey or "ctrl+space")
+            self.shortcut_input = QtWidgets.QLineEdit(
+                self.app.settings_manager.hotkey or "ctrl+space"
+            )
             self.shortcut_input.setStyleSheet(self.get_input_style())
             # Auto-save when shortcut changes
             self.shortcut_input.textChanged.connect(self.auto_save_shortcut)
@@ -291,7 +305,11 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         # Initialize provider UI
         current_internal_name = self.provider_dropdown.currentData()
         provider_instance = next(
-            (provider for provider in self.app.providers if provider.internal_name == current_internal_name),
+            (
+                provider
+                for provider in self.app.providers
+                if provider.internal_name == current_internal_name
+            ),
             self.app.providers[0],
         )
         self.init_provider_ui(provider_instance, self.provider_container)
@@ -381,7 +399,9 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                 logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
                 provider_header_layout.addWidget(logo_label)
             else:
-                logging.debug(f"Provider logo not found: {logo_path} for provider {provider.logo}")
+                logging.debug(
+                    f"Provider logo not found: {logo_path} for provider {provider.logo}"
+                )
 
         # Provider name display
         provider_name_label = QtWidgets.QLabel(provider.provider_name)
@@ -389,7 +409,9 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         # Use effective mode based on user settings
         current_mode = self._get_effective_mode()
         provider_color = "#ffffff" if current_mode == "dark" else "#000000"
-        provider_name_label.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {provider_color};")
+        provider_name_label.setStyleSheet(
+            f"font-size: 18px; font-weight: bold; color: {provider_color};"
+        )
         provider_name_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
         provider_header_layout.addWidget(provider_name_label)
 
@@ -398,12 +420,16 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         # Provider description if available
         if provider.description:
             description_label = QtWidgets.QLabel(provider.description)
-            description_label.setStyleSheet(f"{self.get_label_style()} text-align: center;")
+            description_label.setStyleSheet(
+                f"{self.get_label_style()} text-align: center;"
+            )
             description_label.setWordWrap(True)
             self.current_provider_layout.addWidget(description_label)
 
         # Button container for multiple buttons
-        if provider.button_text or (hasattr(provider, "additional_buttons") and provider.additional_buttons):
+        if provider.button_text or (
+            hasattr(provider, "additional_buttons") and provider.additional_buttons
+        ):
             button_container = QtWidgets.QHBoxLayout()
             button_container.setSpacing(10)
 
@@ -493,6 +519,12 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
 
         # Prevent dropdown controls from interfering with main scroll area
         self.disable_dropdown_scroll(self.current_provider_layout)
+
+        # Add italic comment about vision models
+        # row_layout = QtWidgets.QHBoxLayout()
+        vision_comment = QtWidgets.QLabel(_("* Models with vision support"))
+        vision_comment.setStyleSheet(f"{self.get_label_style()} font-style: italic;")
+        layout.addWidget(vision_comment)
 
     def disable_dropdown_scroll(self, layout):
         """
@@ -613,7 +645,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         Auto-save shortcut when it changes to provide immediate feedback.
         Automatically registers the new hotkey with the system.
         """
-        if hasattr(self, "shortcut_input") and self.shortcut_input is not None and not self.providers_only:
+        if self.shortcut_input is not None and not self.providers_only:
             self.app.settings_manager.hotkey = self.shortcut_input.text() or "ctrl+space"
             self.app.register_hotkey()
 
@@ -621,12 +653,12 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         """
         Auto-save theme when it changes for immediate visual feedback.
         """
-        if hasattr(self, "gradient_radio") and self.gradient_radio is not None and not self.providers_only:
+        if self.gradient_radio is not None and not self.providers_only:
             theme = "gradient" if self.gradient_radio.isChecked() else "plain"
             self.app.settings_manager.theme = theme
 
             # Apply theme change immediately to the background for live preview
-            if hasattr(self, "background") and self.background is not None:
+            if self.background is not None:
                 self.background.theme = theme
                 self.background.update()
 
@@ -634,7 +666,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         """
         Auto-save color mode when it changes for immediate visual feedback.
         """
-        if hasattr(self, "color_mode_dropdown") and self.color_mode_dropdown is not None and not self.providers_only:
+        if self.color_mode_dropdown is not None and not self.providers_only:
             # Get the selected text and convert to internal format
             selected_text = self.color_mode_dropdown.currentText()
             mode_mapping = {_("Auto"): "auto", _("Light"): "light", _("Dark"): "dark"}
@@ -656,11 +688,11 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
     def _refresh_ui_styles(self):
         """Refresh all UI element styles to reflect the current color mode."""
         # Update color mode dropdown style
-        if hasattr(self, "color_mode_dropdown") and self.color_mode_dropdown:
+        if self.color_mode_dropdown:
             self.color_mode_dropdown.setStyleSheet(self.get_dropdown_style())
 
         # Update provider dropdown style
-        if hasattr(self, "provider_dropdown") and self.provider_dropdown:
+        if self.provider_dropdown:
             self.provider_dropdown.setStyleSheet(self.get_dropdown_style())
 
         # Update specific labels with their individual styles
@@ -668,7 +700,9 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         title_labels = self.findChildren(QtWidgets.QLabel)
         for widget in title_labels:
             if widget.text() == _("Settings"):
-                widget.setStyleSheet(f"font-size: 24px; font-weight: bold; {self.get_label_style()}")
+                widget.setStyleSheet(
+                    f"font-size: 24px; font-weight: bold; {self.get_label_style()}"
+                )
             elif widget.text() in [
                 _("Shortcut Key:"),
                 _("Background Theme:"),
@@ -683,13 +717,18 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             if (
                 hasattr(widget, "text")
                 and widget.text()
-                and any(provider in widget.text() for provider in ["Ollama", "OpenAI", "Anthropic", "Groq"])
+                and any(
+                    provider in widget.text()
+                    for provider in ["Ollama", "OpenAI", "Anthropic", "Groq"]
+                )
             ):
                 # Provider title needs high contrast - force pure white/black
                 # Use effective mode based on user settings
                 current_mode = self._get_effective_mode()
                 provider_color = "#ffffff" if current_mode == "dark" else "#000000"
-                widget.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {provider_color};")
+                widget.setStyleSheet(
+                    f"font-size: 18px; font-weight: bold; color: {provider_color};"
+                )
             # Check if this is a description (longer text, not a simple label)
             elif hasattr(widget, "text") and widget.text() and len(widget.text()) > 50:
                 widget.setStyleSheet(f"{self.get_label_style()} text-align: center;")
@@ -706,7 +745,10 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                     _("Choose AI Provider:"),
                 ]
                 and len(widget.text()) <= 50
-                and not any(provider in widget.text() for provider in ["Ollama", "OpenAI", "Anthropic", "Groq"])
+                and not any(
+                    provider in widget.text()
+                    for provider in ["Ollama", "OpenAI", "Anthropic", "Groq"]
+                )
             ):
                 # Apply standard label style for field labels
                 current_mode = self._get_effective_mode()
@@ -714,29 +756,29 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                 widget.setStyleSheet(f"font-size: 16px; color: {label_color};")
 
         # Update shortcut input if exists
-        if hasattr(self, "shortcut_input") and self.shortcut_input:
+        if self.shortcut_input:
             self.shortcut_input.setStyleSheet(self.get_input_style())
 
         # Update radio buttons if they exist
-        if hasattr(self, "gradient_radio") and self.gradient_radio:
+        if self.gradient_radio:
             radio_style = self.get_radio_style()
             self.gradient_radio.setStyleSheet(radio_style)
-            if hasattr(self, "plain_radio") and self.plain_radio:
+            if self.plain_radio:
                 self.plain_radio.setStyleSheet(radio_style)
 
         # Update checkbox if it exists
-        if hasattr(self, "autostart_checkbox") and self.autostart_checkbox:
+        if self.autostart_checkbox:
             self.autostart_checkbox.setStyleSheet(self.get_checkbox_style())
 
         # Force background update
-        if hasattr(self, "background") and self.background:
+        if self.background:
             self.background.update()
 
     def auto_save_provider(self):
         """
         Auto-save provider selection when it changes.
         """
-        if hasattr(self, "provider_dropdown") and self.provider_dropdown is not None:
+        if self.provider_dropdown is not None:
             provider_internal_name = self.provider_dropdown.currentData()
             if provider_internal_name:
                 self.app.settings_manager.provider = provider_internal_name
@@ -747,12 +789,16 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         """
         Save current provider-specific settings.
         """
-        if hasattr(self, "provider_dropdown") and self.provider_dropdown is not None:
+        if self.provider_dropdown is not None:
             provider_internal_name = self.provider_dropdown.currentData()
             if provider_internal_name:
                 # Find the corresponding provider instance
                 selected_provider = next(
-                    (provider for provider in self.app.providers if provider.internal_name == provider_internal_name),
+                    (
+                        provider
+                        for provider in self.app.providers
+                        if provider.internal_name == provider_internal_name
+                    ),
                     None,
                 )
                 if selected_provider:
@@ -802,12 +848,14 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         """
         # Save general app settings (not in providers_only mode)
         if not self.providers_only:
-            if hasattr(self, "shortcut_input") and self.shortcut_input is not None:
-                self.app.settings_manager.hotkey = self.shortcut_input.text() or "ctrl+space"
-            if hasattr(self, "gradient_radio") and self.gradient_radio is not None:
+            if self.shortcut_input is not None:
+                self.app.settings_manager.hotkey = (
+                    self.shortcut_input.text() or "ctrl+space"
+                )
+            if self.gradient_radio is not None:
                 theme = "gradient" if self.gradient_radio.isChecked() else "plain"
                 self.app.settings_manager.theme = theme or "gradient"
-            if hasattr(self, "color_mode_dropdown") and self.color_mode_dropdown is not None:
+            if self.color_mode_dropdown is not None:
                 selected_text = self.color_mode_dropdown.currentText()
                 mode_mapping = {_("Auto"): "auto", _("Light"): "light", _("Dark"): "dark"}
                 color_mode = mode_mapping.get(selected_text, "auto")
@@ -817,13 +865,22 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             self.app.create_tray_icon()
 
         # Save provider selection using internal name from dropdown data
-        if hasattr(self, "provider_dropdown") and self.provider_dropdown is not None:
+        if self.provider_dropdown is not None:
             provider_internal_name = self.provider_dropdown.currentData()
-            self.app.settings_manager.provider = provider_internal_name or "gemini"
+            if not provider_internal_name:
+                provider_internal_name = "gemini"
+        else:
+            provider_internal_name = "gemini"
+
+        self.app.settings_manager.provider = provider_internal_name
 
         # Find the corresponding provider instance
         selected_provider = next(
-            (provider for provider in self.app.providers if provider.internal_name == provider_internal_name),
+            (
+                provider
+                for provider in self.app.providers
+                if provider.internal_name == provider_internal_name
+            ),
             self.app.providers[0],
         )
 
@@ -850,10 +907,16 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         Handle provider dropdown change by rebuilding the provider-specific UI.
         This ensures the settings interface matches the selected provider's requirements.
         """
-        current_internal_name = self.provider_dropdown.currentData() if self.provider_dropdown else None
+        current_internal_name = (
+            self.provider_dropdown.currentData() if self.provider_dropdown else None
+        )
 
         provider_instance = next(
-            (provider for provider in self.app.providers if provider.internal_name == current_internal_name),
+            (
+                provider
+                for provider in self.app.providers
+                if provider.internal_name == current_internal_name
+            ),
             self.app.providers[0],
         )
         self.init_provider_ui(provider_instance, self.provider_container)

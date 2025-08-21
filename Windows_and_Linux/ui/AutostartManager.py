@@ -1,8 +1,13 @@
 import logging
 import sys
 
-if sys.platform.startswith("win32"):
-    import winreg
+try:
+    if sys.platform.startswith("win32"):
+        import winreg
+    else:
+        winreg = None
+except ImportError:
+    winreg = None
 
 
 class AutostartManager:
@@ -44,6 +49,10 @@ class AutostartManager:
         Returns:
             bool: True if operation succeeded, False if failed or unsupported
         """
+        if not sys.platform.startswith("win32") or winreg is None:
+            logging.warning("Autostart not supported on this platform")
+            return False
+
         try:
             startup_path = AutostartManager.get_startup_path()
             if not startup_path:
@@ -54,11 +63,15 @@ class AutostartManager:
             try:
                 if enable:
                     # Open/create key and set value
-                    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_WRITE)
+                    key = winreg.OpenKey(
+                        winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_WRITE
+                    )
                     winreg.SetValueEx(key, "WritingTools", 0, winreg.REG_SZ, startup_path)
                 else:
                     # Open key and delete value if it exists
-                    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_WRITE)
+                    key = winreg.OpenKey(
+                        winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_WRITE
+                    )
                     try:
                         winreg.DeleteValue(key, "WritingTools")
                     except OSError:
@@ -84,6 +97,9 @@ class AutostartManager:
         Returns:
             bool: True if autostart is enabled, False if disabled or unsupported
         """
+        if not sys.platform.startswith("win32") or winreg is None:
+            return False
+
         try:
             startup_path = AutostartManager.get_startup_path()
             if not startup_path:

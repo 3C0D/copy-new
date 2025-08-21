@@ -155,7 +155,9 @@ class ThemedWidget(QWidget):
 
     def add_minimize_button(self):
         """Add minimize button to the window."""
-        self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowType.WindowMinimizeButtonHint)
+        self.setWindowFlags(
+            self.windowFlags() | QtCore.Qt.WindowType.WindowMinimizeButtonHint
+        )
 
     def get_dropdown_style(self):
         """Get standardized dropdown styling based on current theme."""
@@ -257,7 +259,7 @@ class ThemeBackground(QWidget):
         self.is_popup = is_popup
         self.border_radius = border_radius
 
-    def paintEvent(self, _):
+    def paintEvent(self, event):
         """
         Override the paint event to draw the background based on the selected theme.
         """
@@ -282,16 +284,26 @@ class ThemeBackground(QWidget):
 
             current_mode = get_effective_color_mode()
             if self.is_popup:
-                bg_file = "background_popup_dark.png" if current_mode == "dark" else "background_popup.png"
+                bg_file = (
+                    "background_popup_dark.png"
+                    if current_mode == "dark"
+                    else "background_popup.png"
+                )
             else:
-                bg_file = "background_dark.png" if current_mode == "dark" else "background.png"
+                bg_file = (
+                    "background_dark.png" if current_mode == "dark" else "background.png"
+                )
 
             # Try multiple locations for background files
             possible_paths = [
                 os.path.join(base_dir, bg_file),  # Build location (dist/)
                 os.path.join(base_dir, "config", "backgrounds", bg_file),  # Dev location
-                os.path.join(base_dir, "Windows_and_Linux", "config", "backgrounds", bg_file),  # Root project location
-                os.path.join(base_dir, "Windows_and_Linux", "dist", "dev", bg_file),  # Dev build location
+                os.path.join(
+                    base_dir, "Windows_and_Linux", "config", "backgrounds", bg_file
+                ),  # Root project location
+                os.path.join(
+                    base_dir, "Windows_and_Linux", "dist", "dev", bg_file
+                ),  # Dev build location
                 os.path.join("config", "backgrounds", bg_file),  # Relative dev location
             ]
 
@@ -306,7 +318,9 @@ class ThemeBackground(QWidget):
                 background_image = QtGui.QPixmap(self.width(), self.height())
                 current_mode = get_effective_color_mode()
                 background_image.fill(
-                    QtGui.QColor(50, 50, 50) if current_mode == "dark" else QtGui.QColor(240, 240, 240),
+                    QtGui.QColor(50, 50, 50)
+                    if current_mode == "dark"
+                    else QtGui.QColor(240, 240, 240),
                 )
             # Adds a path/border using which the border radius would be drawn
             path = QtGui.QPainterPath()
@@ -326,7 +340,9 @@ class ThemeBackground(QWidget):
             if current_mode == "dark":
                 color = QtGui.QColor(35, 35, 35)  # Dark mode color
             else:
-                color = QtGui.QColor(255, 255, 255)  # Light mode color - pure white for better contrast
+                color = QtGui.QColor(
+                    255, 255, 255
+                )  # Light mode color - pure white for better contrast
             brush = QtGui.QBrush(color)
             painter.setBrush(brush)
             pen = QtGui.QPen(QtGui.QColor(0, 0, 0, 0))

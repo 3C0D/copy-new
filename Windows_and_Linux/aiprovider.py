@@ -101,6 +101,13 @@ class AIProviderSetting(ABC):
 
     Each setting has a name, display name, default value and description.
     Subclasses must implement UI rendering and value management.
+
+    Attributes:
+        name: Internal identifier for the setting
+        display_name: Human-readable name shown in UI
+        default_value: Default value if none is set
+        description: Optional description text
+        auto_save_callback: Optional callback for value changes
     """
 
     def __init__(
@@ -111,10 +118,11 @@ class AIProviderSetting(ABC):
         description: str | None = None,
     ):
         self.name = name
-        self.display_name = display_name if display_name else name
-        self.default_value = default_value if default_value else ""
-        self.description = description if description else ""
-        self.auto_save_callback: Callable | None = None
+        self.display_name = display_name or name
+        self.default_value = default_value or ""
+        self.description = description or ""
+        # Callback function (no args, no return) or None
+        self.auto_save_callback: Callable[[], None] | None = None
 
     @abstractmethod
     def render_to_layout(self, layout: QVBoxLayout):
@@ -125,7 +133,7 @@ class AIProviderSetting(ABC):
         """Set the internal value from configuration."""
 
     @abstractmethod
-    def get_value(self):
+    def get_value(self) -> str:
         """Return the current value from the widget."""
 
     def set_auto_save_callback(self, callback: Callable):
@@ -159,7 +167,9 @@ class TextSetting(AIProviderSetting):
         row_layout = QtWidgets.QHBoxLayout()
         label = QtWidgets.QLabel(self.display_name)
         current_mode = get_effective_color_mode()
-        label.setStyleSheet(f"font-size: 16px; color: {'#ffffff' if current_mode == 'dark' else '#333333'};")
+        label.setStyleSheet(
+            f"font-size: 16px; color: {'#ffffff' if current_mode == 'dark' else '#333333'};"
+        )
         row_layout.addWidget(label)
         self.input = QtWidgets.QLineEdit(self.internal_value)
         self.input.setStyleSheet(
@@ -188,7 +198,7 @@ class TextSetting(AIProviderSetting):
                 # Widget has been deleted, just store the value
                 pass
 
-    def get_value(self):
+    def get_value(self) -> str:
         """Return widget value or empty string if not yet rendered."""
         if self.input is not None:
             try:
@@ -229,7 +239,9 @@ class DropdownSetting(AIProviderSetting):
         row_layout = QtWidgets.QHBoxLayout()
         label = QtWidgets.QLabel(self.display_name)
         current_mode = get_effective_color_mode()
-        label.setStyleSheet(f"font-size: 16px; color: {'#ffffff' if current_mode == 'dark' else '#333333'};")
+        label.setStyleSheet(
+            f"font-size: 16px; color: {'#ffffff' if current_mode == 'dark' else '#333333'};"
+        )
         row_layout.addWidget(label)
         self.dropdown = QtWidgets.QComboBox()
         # Ensure dropdown can receive focus and clicks properly
@@ -244,8 +256,17 @@ class DropdownSetting(AIProviderSetting):
             border: 1px solid {"#666" if current_mode == "dark" else "#ccc"};
         """,
         )
-        for option, value in self.options:
-            self.dropdown.addItem(option, value)
+
+        for option_tuple in self.options:
+            if len(option_tuple) == 2:
+                option, value = option_tuple
+                self.dropdown.addItem(option, value)
+            elif len(option_tuple) == 3:
+                option, value, _ = option_tuple
+                self.dropdown.addItem(option, value)
+                # Store metadata (vision support) if necessary
+            else:
+                logging.warning(f"Unexpected option format: {option_tuple}")
 
         # Set current value
         if self.dropdown is not None:
@@ -259,22 +280,16 @@ class DropdownSetting(AIProviderSetting):
 
         # Connect refresh callback when dropdown is about to be shown
         if self.refresh_callback:
-            # Use a custom event filter to detect when dropdown is about to open
-            def on_dropdown_about_to_show():
-                self.refresh_callback()
+            # Override showPopup to call refresh before showing
+            # QComboBox doesn't have aboutToShow signal, so we override showPopup
+            original_show_popup = self.dropdown.showPopup
 
-            # Connect to the aboutToShow signal if available, or use showPopup override
-            if hasattr(self.dropdown, "aboutToShow"):
-                self.dropdown.aboutToShow.connect(on_dropdown_about_to_show)
-            else:
-                # Override showPopup to call refresh before showing
-                original_show_popup = self.dropdown.showPopup
-
-                def show_popup_with_refresh():
+            def show_popup_with_refresh():
+                if callable(self.refresh_callback):
                     self.refresh_callback()
-                    original_show_popup()
+                original_show_popup()
 
-                self.dropdown.showPopup = show_popup_with_refresh
+            self.dropdown.showPopup = show_popup_with_refresh
 
         row_layout.addWidget(self.dropdown)
         layout.addLayout(row_layout)
@@ -293,7 +308,7 @@ class DropdownSetting(AIProviderSetting):
                 # Widget has been deleted, just store the value
                 pass
 
-    def get_value(self):
+    def get_value(self) -> str:
         """Return selected value from the dropdown."""
         if self.dropdown is None:
             return getattr(self, "internal_value", "")
@@ -318,8 +333,16 @@ class DropdownSetting(AIProviderSetting):
             self.dropdown.clear()
             self.options = new_options
 
-            for option, value in self.options:
-                self.dropdown.addItem(option, value)
+            for option_tuple in self.options:
+                if len(option_tuple) == 2:
+                    option, value = option_tuple
+                    self.dropdown.addItem(option, value)
+                elif len(option_tuple) == 3:
+                    option, value, _ = option_tuple
+                    self.dropdown.addItem(option, value)
+                    # Store metadata (vision support) if necessary
+                else:
+                    logging.warning(f"Unexpected option format: {option_tuple}")
 
             # Restore selection if possible
             if current_value:
@@ -413,7 +436,9 @@ class AIProvider(ABC):
                 break
 
     @abstractmethod
-    def get_response(self, system_instruction: str, prompt: str, return_response: bool = False) -> str:
+    def get_response(
+        self, system_instruction: str, prompt: str, return_response: bool = False
+    ) -> str:
         """
         Send the given system instruction and prompt to the AI provider and return the full response text.
 
@@ -460,7 +485,9 @@ class AIProvider(ABC):
         if "providers" not in self.app.settings_manager.settings.custom_data:
             self.app.settings_manager.providers = {}
 
-        self.app.settings_manager.providers[self.internal_name] = cast("ProviderConfig", config)
+        self.app.settings_manager.providers[self.internal_name] = cast(
+            "ProviderConfig", config
+        )
         self.app.settings_manager.save()
 
     @abstractmethod
@@ -533,7 +560,9 @@ class GeminiProvider(AIProvider):
             "gemini",
         )
 
-    def get_response(self, system_instruction: str, prompt: str, return_response: bool = False) -> str:
+    def get_response(
+        self, system_instruction: str, prompt: str, return_response: bool = False
+    ) -> str:
         """
         Generate content using Gemini.
 
@@ -545,7 +574,9 @@ class GeminiProvider(AIProvider):
 
         # Check if model is configured
         if not self.model:
-            error_msg = "Gemini API key not configured. Please add your API key in settings."
+            error_msg = (
+                "Gemini API key not configured. Please add your API key in settings."
+            )
             logging.error(error_msg)
             if not return_response:
                 # Show a user-friendly message box instead of just emitting to output
@@ -558,7 +589,9 @@ class GeminiProvider(AIProvider):
 
         try:
             # Single-shot call with streaming disabled
-            response = self.model.generate_content(contents=[system_instruction, prompt], stream=False)
+            response = self.model.generate_content(
+                contents=[system_instruction, prompt], stream=False
+            )
 
             # Check if response was blocked by safety filters
             if not response.candidates:
@@ -579,20 +612,20 @@ class GeminiProvider(AIProvider):
             # 3: RECITATION (blocked due to recitation)
             # 4: OTHER (other reason)
             if candidate.finish_reason == 2:  # SAFETY
-                error_msg = (
-                    "Gemini blocked the response due to safety filters. Try rephrasing your request to be more neutral."
+                error_msg = "Gemini blocked the response due to safety filters. Try rephrasing your request to be more neutral."
+                logging.warning(
+                    f"Gemini safety filter triggered. Finish reason: {candidate.finish_reason}"
                 )
-                logging.warning(f"Gemini safety filter triggered. Finish reason: {candidate.finish_reason}")
                 self.app.show_message_signal.emit(
                     "Content Blocked by Safety Filters",
                     error_msg,
                 )
                 return ""
             elif candidate.finish_reason == 3:  # RECITATION
-                error_msg = (
-                    "Gemini blocked the response due to potential copyright concerns. Try a more original request."
+                error_msg = "Gemini blocked the response due to potential copyright concerns. Try a more original request."
+                logging.warning(
+                    f"Gemini recitation filter triggered. Finish reason: {candidate.finish_reason}"
                 )
-                logging.warning(f"Gemini recitation filter triggered. Finish reason: {candidate.finish_reason}")
                 self.app.show_message_signal.emit(
                     "Content Blocked - Copyright Concern",
                     error_msg,
@@ -600,7 +633,9 @@ class GeminiProvider(AIProvider):
                 return ""
             elif candidate.finish_reason not in [1, None]:  # Not STOP or unset
                 error_msg = f"Gemini could not complete the response (reason code: {candidate.finish_reason}). Please try again."
-                logging.warning(f"Gemini unusual finish reason: {candidate.finish_reason}")
+                logging.warning(
+                    f"Gemini unusual finish reason: {candidate.finish_reason}"
+                )
                 self.app.show_message_signal.emit(
                     "Response Incomplete",
                     error_msg,
@@ -630,7 +665,9 @@ class GeminiProvider(AIProvider):
                 if text_parts:
                     response_text = "".join(text_parts).rstrip("\n")
                 else:
-                    error_msg = f"Could not extract text from Gemini response: {str(text_error)}"
+                    error_msg = (
+                        f"Could not extract text from Gemini response: {str(text_error)}"
+                    )
                     logging.error(error_msg)
                     self.app.show_message_signal.emit(
                         "Response Processing Error",
@@ -653,7 +690,10 @@ class GeminiProvider(AIProvider):
                     "Invalid API Key",
                     "Your Gemini API key is invalid. Please check your API key in Settings and make sure it's correct.",
                 )
-            elif "quota exceeded" in error_str.lower() or "resource exhausted" in error_str.lower():
+            elif (
+                "quota exceeded" in error_str.lower()
+                or "resource exhausted" in error_str.lower()
+            ):
                 self.app.show_message_signal.emit(
                     "Quota Exceeded",
                     "You've exceeded your Gemini API quota. Please check your usage limits or try again later.",
@@ -702,15 +742,24 @@ class GeminiProvider(AIProvider):
                 # Updated safety settings for 2025 - BLOCK_NONE is now restricted
                 # Use BLOCK_ONLY_HIGH for maximum permissiveness without special access
                 safety_settings = {
-                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
                 }
 
                 # Check if CIVIC_INTEGRITY category exists (may vary by API version)
-                if hasattr(HarmCategory, "HARM_CATEGORY_CIVIC_INTEGRITY"):
-                    safety_settings[HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY] = HarmBlockThreshold.BLOCK_ONLY_HIGH
+                try:
+                    civic_integrity_category = getattr(
+                        HarmCategory, "HARM_CATEGORY_CIVIC_INTEGRITY", None
+                    )
+                    if civic_integrity_category is not None:
+                        safety_settings[civic_integrity_category] = (
+                            HarmBlockThreshold.BLOCK_NONE
+                        )
+                except (AttributeError, TypeError):
+                    # Handle cases where HarmCategory might be None or attribute doesn't exist
+                    pass
 
                 self.model = genai.GenerativeModel(
                     model_name=self.model_name,
@@ -777,7 +826,9 @@ class OpenAICompatibleProvider(AIProvider):
                 "",
                 "Leave blank if not applicable.",
             ),
-            TextSetting("api_project", "API Project", "", "Leave blank if not applicable."),
+            TextSetting(
+                "api_project", "API Project", "", "Leave blank if not applicable."
+            ),
             DropdownSetting(
                 name="api_model",
                 display_name="API Model",
@@ -798,7 +849,12 @@ class OpenAICompatibleProvider(AIProvider):
             "openai",
         )
 
-    def get_response(self, system_instruction: str, prompt: Union[str, list], return_response: bool = False) -> str:
+    def get_response(
+        self,
+        system_instruction: str,
+        prompt: Union[str, list],
+        return_response: bool = False,
+    ) -> str:
         """
         Send a chat request to the OpenAI-compatible API.
 
@@ -820,7 +876,8 @@ class OpenAICompatibleProvider(AIProvider):
         try:
             if self.client is None:
                 self.app.show_message_signal.emit(
-                    "Error", "OpenAI client not initialized. Please check your API settings."
+                    "Error",
+                    "OpenAI client not initialized. Please check your API settings.",
                 )
                 return ""
 
@@ -841,7 +898,10 @@ class OpenAICompatibleProvider(AIProvider):
             logging.exception(f"Error while generating content: {error_str}")
 
             # Handle specific OpenAI API errors
-            if "invalid api key" in error_str.lower() or "unauthorized" in error_str.lower():
+            if (
+                "invalid api key" in error_str.lower()
+                or "unauthorized" in error_str.lower()
+            ):
                 self.app.show_message_signal.emit(
                     "Invalid API Key",
                     "Your OpenAI API key is invalid. Please check your API key in Settings and make sure it's correct.",
@@ -851,7 +911,9 @@ class OpenAICompatibleProvider(AIProvider):
                     "Rate Limit Hit",
                     "You've hit an API rate/usage limit. Please try again later or check your OpenAI usage limits.",
                 )
-            elif "insufficient_quota" in error_str.lower() or "quota" in error_str.lower():
+            elif (
+                "insufficient_quota" in error_str.lower() or "quota" in error_str.lower()
+            ):
                 self.app.show_message_signal.emit(
                     "Quota Exceeded",
                     "You've exceeded your OpenAI API quota. Please check your billing and usage limits.",
@@ -933,7 +995,13 @@ def is_ollama_installed():
 
     try:
         # 'ollama --version' in less than 5 seconds
-        result = subprocess.run([ollama_path, "--version"], check=False, capture_output=True, text=True, timeout=5)
+        result = subprocess.run(
+            [ollama_path, "--version"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
         return result.returncode == 0
     except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
         return False
@@ -1051,13 +1119,17 @@ def install_ollama_windows(app):
             )
             return True
         else:
-            app.show_message_signal.emit("Installation annulée", "L'installation d'Ollama a été annulée ou a échoué.")
+            app.show_message_signal.emit(
+                "Installation annulée",
+                "L'installation d'Ollama a été annulée ou a échoué.",
+            )
             return False
 
     except ImportError:
         progress_window.close()
         app.show_message_signal.emit(
-            "Erreur", "La bibliothèque 'requests' n'est pas disponible. Installation manuelle requise."
+            "Erreur",
+            "La bibliothèque 'requests' n'est pas disponible. Installation manuelle requise.",
         )
         return False
     except Exception as e:
@@ -1105,7 +1177,9 @@ def install_ollama_linux(app):
         QApplication.processEvents()
 
         # Run the installation command
-        result = subprocess.run(install_command, shell=True, check=False, capture_output=True, text=True)
+        result = subprocess.run(
+            install_command, shell=True, check=False, capture_output=True, text=True
+        )
 
         if cancelled:
             progress_window.close()
@@ -1154,7 +1228,9 @@ def get_ollama_models():
         return [("Ollama not available - Please install it", "")]
 
     try:
-        result = subprocess.run([ollama_path, "list"], check=False, capture_output=True, text=True, timeout=10)
+        result = subprocess.run(
+            [ollama_path, "list"], check=False, capture_output=True, text=True, timeout=10
+        )
 
         if result.returncode == 0:
             lines = result.stdout.strip().split("\n")
@@ -1216,7 +1292,11 @@ def remove_ollama_model(model_name: str) -> tuple[bool, str]:
     try:
         # Run 'ollama rm <model_name>' command
         result = subprocess.run(
-            [ollama_path, "rm", model_name], check=False, capture_output=True, text=True, timeout=30
+            [ollama_path, "rm", model_name],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
 
         if result.returncode == 0:
@@ -1227,7 +1307,10 @@ def remove_ollama_model(model_name: str) -> tuple[bool, str]:
             if "not found" in error_msg.lower():
                 return False, f"Model '{model_name}' not found"
             elif "in use" in error_msg.lower():
-                return False, f"Model '{model_name}' is currently in use and cannot be removed"
+                return (
+                    False,
+                    f"Model '{model_name}' is currently in use and cannot be removed",
+                )
             else:
                 return False, f"Failed to remove model '{model_name}': {error_msg}"
 
@@ -1256,7 +1339,9 @@ class OllamaProvider(AIProvider):
 
         # Set default model to first available model or empty string
         default_ollama_model = ""
-        if ollama_models and ollama_models[0][1]:  # Check if first model has a valid value
+        if (
+            ollama_models and ollama_models[0][1]
+        ):  # Check if first model has a valid value
             default_ollama_model = ollama_models[0][1]
 
         settings = [
@@ -1293,9 +1378,7 @@ class OllamaProvider(AIProvider):
         else:
             button_text = "Install Ollama"
             button_action = install_ollama_action
-            description = (
-                "• Connect to an Ollama server (local LLM).\n• Ollama is not installed. Click the button to install it."
-            )
+            description = "• Connect to an Ollama server (local LLM).\n• Ollama is not installed. Click the button to install it."
 
         super().__init__(
             app,
@@ -1316,7 +1399,7 @@ class OllamaProvider(AIProvider):
         """Refresh the list of available Ollama models."""
         ollama_models = get_ollama_models()
         for setting in self.settings:
-            if setting.name == "api_model" and hasattr(setting, "refresh_options"):
+            if setting.name == "api_model" and isinstance(setting, DropdownSetting):
                 setting.refresh_options(ollama_models)
                 break
 
@@ -1331,9 +1414,7 @@ class OllamaProvider(AIProvider):
         if ollama_installed:
             self.description = "• Connect to an Ollama server (local LLM).\n• Ollama is installed and ready to use."
         else:
-            self.description = (
-                "• Connect to an Ollama server (local LLM).\n• Ollama is not installed. Click the button to install it."
-            )
+            self.description = "• Connect to an Ollama server (local LLM).\n• Ollama is not installed. Click the button to install it."
 
         # Update additional buttons based on installation status
         self.additional_buttons = []
@@ -1343,11 +1424,13 @@ class OllamaProvider(AIProvider):
         # Update model list and settings
         ollama_models = get_ollama_models()
         for setting in self.settings:
-            if setting.name == "api_model" and hasattr(setting, "refresh_options"):
+            if setting.name == "api_model" and isinstance(setting, DropdownSetting):
                 # Refresh the dropdown options
                 setting.refresh_options(ollama_models)
                 # Update default value if models are available and current value is empty
-                current_value = setting.get_value() if hasattr(setting, "get_value") else ""
+                current_value = (
+                    setting.get_value() if hasattr(setting, "get_value") else ""
+                )
                 if ollama_models and ollama_models[0][1] and not current_value:
                     setting.set_value(ollama_models[0][1])
                 break
@@ -1364,7 +1447,14 @@ class OllamaProvider(AIProvider):
 
     def _delete_model(self):
         """Handle Ollama model deletion with confirmation dialog."""
-        from PySide6.QtWidgets import QComboBox, QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
+        from PySide6.QtWidgets import (
+            QComboBox,
+            QDialog,
+            QHBoxLayout,
+            QLabel,
+            QPushButton,
+            QVBoxLayout,
+        )
 
         from ui.ui_utils import get_effective_color_mode
 
@@ -1372,11 +1462,16 @@ class OllamaProvider(AIProvider):
         ollama_models = get_ollama_models()
 
         # Filter out invalid models (messages like "Please install Ollama models first")
-        valid_models = [(display, model) for display, model in ollama_models if model and model.strip()]
+        valid_models = [
+            (display, model)
+            for display, model in ollama_models
+            if model and model.strip()
+        ]
 
         if not valid_models:
             self.app.show_message_signal.emit(
-                "No Models Available", "No Ollama models are available to delete. Please install some models first."
+                "No Models Available",
+                "No Ollama models are available to delete. Please install some models first.",
             )
             return
 
@@ -1421,7 +1516,9 @@ class OllamaProvider(AIProvider):
         layout = QVBoxLayout(dialog)
 
         # Warning label
-        warning_label = QLabel("⚠️ Warning: This will permanently delete the selected model from your system.")
+        warning_label = QLabel(
+            "⚠️ Warning: This will permanently delete the selected model from your system."
+        )
         warning_label.setStyleSheet("color: #ff6b6b; font-weight: bold;")
         layout.addWidget(warning_label)
 
@@ -1494,7 +1591,12 @@ class OllamaProvider(AIProvider):
             else:
                 self.app.show_message_signal.emit("Deletion Failed", message)
 
-    def get_response(self, system_instruction: str, prompt: Union[str, list], return_response: bool = False) -> str:
+    def get_response(
+        self,
+        system_instruction: str,
+        prompt: Union[str, list],
+        return_response: bool = False,
+    ) -> str:
         """
         Send a chat request to the Ollama server.
 
@@ -1522,7 +1624,9 @@ class OllamaProvider(AIProvider):
                 return ""
 
             if self.client is None:
-                self.app.show_message_signal.emit("Error", "Ollama client not initialized. Please check your settings.")
+                self.app.show_message_signal.emit(
+                    "Error", "Ollama client not initialized. Please check your settings."
+                )
                 return ""
 
             logging.debug(f"Ollama using model: '{self.api_model}'")
@@ -1611,8 +1715,8 @@ class AnthropicProvider(AIProvider):
         self,
         system_instruction,
         prompt,
-        conversation_history=None,
         return_response=False,
+        conversation_history=None,
     ):
         """
         Generate response using Anthropic's Claude API.
@@ -1620,7 +1724,9 @@ class AnthropicProvider(AIProvider):
         Supports conversation history for multi-turn interactions.
         Uses Anthropic's OpenAI-compatible endpoint for simplicity.
         """
-        logging.debug(f"AnthropicProvider.get_response called with return_response={return_response}")
+        logging.debug(
+            f"AnthropicProvider.get_response called with return_response={return_response}"
+        )
         logging.debug(
             f"AnthropicProvider current config - api_key: {self.api_key[:10] if self.api_key else 'None'}..., api_model: {self.api_model}"
         )
@@ -1657,6 +1763,25 @@ class AnthropicProvider(AIProvider):
             messages.append({"role": "user", "content": prompt})
 
             # Make API call
+            # Ensure client is initialized before use
+            if self.client is None and OpenAI is not None:
+                self.client = OpenAI(
+                    api_key=self.api_key,
+                    base_url="https://api.anthropic.com/v1",
+                    default_headers={
+                        "anthropic-version": "2023-06-01",
+                    },
+                )
+
+            if self.client is None:
+                error_msg = "Anthropic client could not be initialized. Please check your API settings."
+                logging.error(error_msg)
+                self.app.show_message_signal.emit(
+                    "Initialization Error",
+                    error_msg,
+                )
+                return ""
+
             response = self.client.chat.completions.create(
                 model=self.api_model,
                 messages=messages,  # type: ignore
@@ -1669,13 +1794,13 @@ class AnthropicProvider(AIProvider):
 
             response_text = response.choices[0].message.content
             logging.debug(f"Anthropic API response: {response_text}")
-            logging.debug(f"Anthropic response length: {len(response_text) if response_text else 0}")
+            logging.debug(
+                f"Anthropic response length: {len(response_text) if response_text else 0}"
+            )
 
             # Handle empty or None response
             if not response_text or response_text.strip() == "":
-                error_msg = (
-                    "Anthropic API returned an empty response. This might be due to insufficient credits or API limits."
-                )
+                error_msg = "Anthropic API returned an empty response. This might be due to insufficient credits or API limits."
                 logging.warning(error_msg)
                 self.app.show_message_signal.emit(
                     "Empty Response",
@@ -1684,10 +1809,14 @@ class AnthropicProvider(AIProvider):
                 return ""
 
             if return_response:
-                logging.debug(f"AnthropicProvider: Returning response text (length: {len(response_text)})")
+                logging.debug(
+                    f"AnthropicProvider: Returning response text (length: {len(response_text)})"
+                )
                 return response_text
             # Emit the response via signal for direct replacement
-            logging.debug(f"AnthropicProvider: Emitting output_ready_signal with text (length: {len(response_text)})")
+            logging.debug(
+                f"AnthropicProvider: Emitting output_ready_signal with text (length: {len(response_text)})"
+            )
             self.app.output_ready_signal.emit(response_text)
             logging.debug("AnthropicProvider: Signal emitted successfully")
             return response_text
@@ -1777,8 +1906,8 @@ class MistralProvider(AIProvider):
         self,
         system_instruction,
         prompt,
-        conversation_history=None,
         return_response=False,
+        conversation_history=None,
     ):
         """
         Generate response using Mistral API.
@@ -1786,7 +1915,9 @@ class MistralProvider(AIProvider):
         Uses direct HTTP requests via requests library for maximum control
         over request format and error handling.
         """
-        logging.debug(f"MistralProvider.get_response called with return_response={return_response}")
+        logging.debug(
+            f"MistralProvider.get_response called with return_response={return_response}"
+        )
         logging.debug(
             f"MistralProvider current config - api_key: {self.api_key[:10] if self.api_key else 'None'}..., api_model: {self.api_model}",
         )
@@ -1804,7 +1935,9 @@ class MistralProvider(AIProvider):
 
             # Check if API key and model are configured
             if not self.api_key or self.api_key.strip() == "":
-                error_msg = "Mistral API key not configured. Please add your API key in settings."
+                error_msg = (
+                    "Mistral API key not configured. Please add your API key in settings."
+                )
                 logging.error(error_msg)
                 self.app.show_message_signal.emit(
                     "API Key Missing",
@@ -1813,7 +1946,9 @@ class MistralProvider(AIProvider):
                 return ""
 
             if not self.api_model or self.api_model.strip() == "":
-                error_msg = "Mistral model not selected. Please select a model in settings."
+                error_msg = (
+                    "Mistral model not selected. Please select a model in settings."
+                )
                 logging.error(error_msg)
                 self.app.show_message_signal.emit(
                     "Model Missing",
@@ -1821,7 +1956,9 @@ class MistralProvider(AIProvider):
                 )
                 return ""
 
-            logging.debug(f"Mistral API call - Key: {self.api_key[:10]}..., Model: {self.api_model}")
+            logging.debug(
+                f"Mistral API call - Key: {self.api_key[:10]}..., Model: {self.api_model}"
+            )
 
             # Prepare messages using direct requests (like the working test code)
             url = "https://api.mistral.ai/v1/chat/completions"
@@ -1868,7 +2005,9 @@ class MistralProvider(AIProvider):
                     response_text = result["choices"][0]["message"]["content"]
 
                     logging.debug(f"Mistral API response: {response_text}")
-                    logging.debug(f"Mistral response length: {len(response_text) if response_text else 0}")
+                    logging.debug(
+                        f"Mistral response length: {len(response_text) if response_text else 0}"
+                    )
 
                     # Handle empty or None response
                     if not response_text or response_text.strip() == "":
@@ -1913,7 +2052,9 @@ class MistralProvider(AIProvider):
             return ""
 
         except ImportError as e:
-            error_msg = f"Missing required library: {e}. Please install 'requests' library."
+            error_msg = (
+                f"Missing required library: {e}. Please install 'requests' library."
+            )
             logging.error(error_msg)
             self.app.show_message_signal.emit(
                 "Missing Library",

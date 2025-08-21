@@ -140,7 +140,11 @@ class OllamaInstallProgressWindow(ProgressWindow):
     """
 
     def __init__(self, parent=None):
-        super().__init__(title="Ollama Installation", message="Ollama download in progress", parent=parent)
+        super().__init__(
+            title="Ollama Installation",
+            message="Ollama download in progress",
+            parent=parent,
+        )
 
     def set_downloading(self):
         """Set the window to downloading state."""

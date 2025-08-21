@@ -5,18 +5,22 @@ This directory contains all the essential scripts for developing, building, and 
 ## 🚀 Main Development Scripts
 
 ### **`dev_script.py`** - Direct Source Execution
+
 ```bash
 python scripts/dev_script.py
 ```
+
 **Purpose**: Run Writing Tools directly from source code without building an executable.
 
 **When to use**:
+
 - Quick testing during development
 - Immediate code changes verification
 - Fastest iteration cycle
 - When you don't need to test the executable behavior
 
 **Features**:
+
 - Automatic environment setup
 - Dependency verification
 - Process cleanup (kills existing instances)
@@ -25,19 +29,23 @@ python scripts/dev_script.py
 ---
 
 ### **`build_dev.py`** - Development Build
+
 ```bash
 python scripts/build_dev.py                    # Standard windowed build
 python scripts/build_dev.py --console          # Console mode (for debugging)
 ```
+
 **Purpose**: Create a development executable with fast build times and debug capabilities.
 
 **When to use**:
+
 - Testing executable behavior
 - Debugging systray issues
 - Verifying build process
 - Testing with real executable environment
 
 **Features**:
+
 - Fast build (no cleanup for speed)
 - Console mode support (`--console` flag)
 - Automatic asset copying
@@ -45,6 +53,7 @@ python scripts/build_dev.py --console          # Console mode (for debugging)
 - Process management
 
 **Console Mode Benefits**:
+
 - Real-time log visibility
 - Immediate error feedback
 - Systray debugging
@@ -53,18 +62,22 @@ python scripts/build_dev.py --console          # Console mode (for debugging)
 ---
 
 ### **`build_final.py`** - Production Build
+
 ```bash
 python scripts/build_final.py
 ```
+
 **Purpose**: Create the final production executable with full optimization and cleanup.
 
 **When to use**:
+
 - Preparing for distribution
 - Final testing before release
 - Performance testing
 - Creating clean, optimized builds
 
 **Features**:
+
 - Full PyInstaller cleanup
 - Production configuration
 - Optimized executable size
@@ -75,9 +88,11 @@ python scripts/build_final.py
 ## 🔧 Utility Scripts
 
 ### **`utils.py`** - Shared Utilities
+
 **Purpose**: Common functions used by all build scripts.
 
 **Contains**:
+
 - Environment setup functions
 - Process management utilities
 - Path resolution helpers
@@ -86,12 +101,15 @@ python scripts/build_final.py
 ---
 
 ### **`update_deps.py`** - Dependency Management
+
 ```bash
 python scripts/update_deps.py
 ```
+
 **Purpose**: Update and manage Python dependencies.
 
 **When to use**:
+
 - Updating requirements.txt
 - Installing new dependencies
 - Resolving dependency conflicts
@@ -102,18 +120,22 @@ python scripts/update_deps.py
 ## 🐛 Debug Scripts
 
 ### **`startup_debug.py`** - Startup Diagnostics
+
 ```bash
 python scripts/startup_debug.py
 ```
+
 **Purpose**: Capture detailed startup logs to diagnose systray and boot issues.
 
 **When to use**:
+
 - Application starts but systray icon missing
 - Silent startup failures
 - Boot-time environment issues
 - Need detailed startup diagnostics
 
 **Features**:
+
 - Comprehensive logging
 - Systray monitoring
 - Environment analysis
@@ -123,18 +145,22 @@ python scripts/startup_debug.py
 ---
 
 ### **`install_startup_debug.py`** - Auto-Debug Installer
+
 ```bash
 python scripts/install_startup_debug.py
 ```
+
 **Purpose**: Configure automatic startup debugging at Windows boot.
 
 **When to use**:
+
 - Issues only occur at Windows startup
 - Need to debug boot-time behavior
 - Application works manually but fails at boot
 - Investigating startup environment differences
 
 **Features**:
+
 - Windows registry configuration
 - Automatic debug activation
 - Boot-time log capture
@@ -143,12 +169,15 @@ python scripts/install_startup_debug.py
 ---
 
 ### **`test_console_build.py`** - Console Build Testing
+
 ```bash
 python scripts/test_console_build.py
 ```
+
 **Purpose**: Specialized testing for console mode builds.
 
 **When to use**:
+
 - Verifying console mode functionality
 - Testing log output visibility
 - Console-specific debugging
@@ -159,23 +188,28 @@ python scripts/test_console_build.py
 ## 📋 Quick Reference
 
 ### **Common Development Workflow**
+
 1. **Quick Test**: `python scripts/dev_script.py`
 2. **Build Test**: `python scripts/build_dev.py`
 3. **Debug Issues**: `python scripts/build_dev.py --console`
 4. **Final Build**: `python scripts/build_final.py`
 
 ### **Debugging Workflow**
+
 1. **Startup Issues**: `python scripts/startup_debug.py`
 2. **Boot Problems**: `python scripts/install_startup_debug.py`
 3. **Console Debugging**: `python scripts/build_dev.py --console`
 
 ### **VS Code Code Runner**
+
 All scripts are optimized for Code Runner. Simply:
+
 1. Open the script file
 2. Press `Ctrl+F5` (or your Code Runner shortcut)
 3. The script runs with proper working directory
 
 ### **Script Dependencies**
+
 - All scripts automatically handle environment setup
 - Virtual environment creation and activation
 - Dependency installation and verification
@@ -184,21 +218,25 @@ All scripts are optimized for Code Runner. Simply:
 ## 🎯 Troubleshooting
 
 ### **Script Won't Run**
+
 - Ensure you're in the project root directory
 - Check Python installation and PATH
 - Verify virtual environment setup
 
 ### **Build Fails**
+
 - Run `python scripts/update_deps.py` first
 - Check for missing dependencies
 - Try console mode for detailed error output
 
 ### **Systray Issues**
+
 - Use `python scripts/startup_debug.py`
 - Try console mode: `python scripts/build_dev.py --console`
 - Check Windows system tray settings
 
 ### **Performance Issues**
+
 - Use `python scripts/build_final.py` for optimized builds
 - Check for background processes
 - Verify system resources

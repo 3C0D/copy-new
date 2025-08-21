@@ -1,13 +1,20 @@
+"""
+Writing Tools - NonEditableModal module
+Used on non editable text selections, like a web page or PDF document.
+"""
+
 import logging
 
 import markdown2
 import pyperclip
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt, Slot
 
 # from ui.ui_utils import colorMode
 
-_ = lambda x: x
+
+def _(x):
+    return x
 
 
 class NonEditableModal(QtWidgets.QDialog):
@@ -20,7 +27,9 @@ class NonEditableModal(QtWidgets.QDialog):
 
         # Frameless window, always on top
         self.setWindowFlags(
-            Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint,
+            Qt.WindowType.Dialog
+            | Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.WindowStaysOnTopHint,
         )
         self.setModal(True)
 
@@ -35,7 +44,8 @@ class NonEditableModal(QtWidgets.QDialog):
 
         # Center on screen
         self.move(
-            QtWidgets.QApplication.primaryScreen().geometry().center() - self.rect().center(),
+            QtWidgets.QApplication.primaryScreen().geometry().center()
+            - self.rect().center(),
         )
 
     def setup_ui(self):
@@ -158,7 +168,7 @@ class NonEditableModal(QtWidgets.QDialog):
         """Refresh the modal's theme when color mode changes."""
         self.apply_styles()
 
-    def closeEvent(self, arg__1):
+    def closeEvent(self, arg__1: QtGui.QCloseEvent):
         """Handle window close event and unregister from theme manager."""
         try:
             from ui.ThemeManager import theme_manager
@@ -178,11 +188,14 @@ class NonEditableModal(QtWidgets.QDialog):
         except Exception as e:
             logging.exception(f"Error copying text: {e}")
 
-    def keyPressEvent(self, arg__1):
+    def keyPressEvent(self, arg__1: QtGui.QKeyEvent):
         """Handle key press events"""
         if arg__1.key() == Qt.Key.Key_Escape:
             self.close()
-        elif arg__1.key() == Qt.Key.Key_Return and arg__1.modifiers() == Qt.KeyboardModifier.ControlModifier:
+        elif (
+            arg__1.key() == Qt.Key.Key_Return
+            and arg__1.modifiers() == Qt.KeyboardModifier.ControlModifier
+        ):
             self.copy_text()
         else:
             super().keyPressEvent(arg__1)

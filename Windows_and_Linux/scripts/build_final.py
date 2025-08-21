@@ -243,7 +243,9 @@ def run_build_final(venv_path="myvenv"):
         print(f"Error: Build failed with error: {e}")
         return False
     except FileNotFoundError:
-        print("Error: PyInstaller not found. Please install it with: pip install pyinstaller")
+        print(
+            "Error: PyInstaller not found. Please install it with: pip install pyinstaller"
+        )
         return False
 
 
@@ -282,7 +284,9 @@ def main():
 
         # Stop existing processes (both exe and script)
         print("Terminating existing processes...")
-        terminate_existing_processes(exe_name=get_executable_name(), script_name=DEFAULT_SCRIPT_NAME)
+        terminate_existing_processes(
+            exe_name=get_executable_name(), script_name=DEFAULT_SCRIPT_NAME
+        )
 
         check_data(MODE)
 

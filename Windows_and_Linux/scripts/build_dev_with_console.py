@@ -22,7 +22,11 @@ def main():
     # Test console build
     print("Building with console mode...")
     try:
-        subprocess.run([sys.executable, "scripts/build_dev.py", "--console"], check=True, capture_output=False)
+        subprocess.run(
+            [sys.executable, "scripts/build_dev.py", "--console"],
+            check=True,
+            capture_output=False,
+        )
 
     except subprocess.CalledProcessError as e:
         print(f"❌ Build failed: {e}")
