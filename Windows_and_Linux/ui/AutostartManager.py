@@ -1,6 +1,8 @@
 import logging
 import sys
 
+from Windows_and_Linux.config.settings import SettingsManager
+
 try:
     if sys.platform.startswith("win32"):
         import winreg
@@ -127,7 +129,7 @@ class AutostartManager:
             return False
 
     @staticmethod
-    def sync_with_settings(settings_manager):
+    def sync_with_settings(settings_manager: SettingsManager) -> bool:
         """
         Synchronize autostart state between registry and settings.
         Updates settings to match registry state if they differ.
@@ -154,7 +156,7 @@ class AutostartManager:
             return False
 
     @staticmethod
-    def set_autostart_with_sync(enable: bool, settings_manager):
+    def set_autostart_with_sync(enable: bool, settings_manager: SettingsManager) -> bool:
         """
         Set autostart state and synchronize with settings.
 

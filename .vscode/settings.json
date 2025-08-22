@@ -14,5 +14,8 @@
         "files.trimTrailingWhitespace": true
     },
     "ruff.configuration": "./Windows_and_Linux/pyproject.toml",
-    "ruff.path": ["./Windows_and_Linux/myvenv/Scripts/ruff.exe"]
+    "ruff.path": [
+        "./Windows_and_Linux/myvenv/Scripts/ruff.exe"
+    ],
+    "python.languageServer": "Pylance"
 }

@@ -24,7 +24,7 @@ else:  # Linux/Unix
     )
 
 
-def install_requirements():
+def install_requirements() -> bool:
     """Install requirements using existing utils logic"""
     print("Installing development dependencies...")
 
@@ -45,7 +45,7 @@ def install_requirements():
     return False
 
 
-def clear_console():
+def clear_console() -> None:
     """Clear console screen (cross-platform)"""
     os.system("cls" if os.name == "nt" else "clear")
 

@@ -38,10 +38,10 @@ else:  # Linux/Unix
 
 
 def launch_application(
-    venv_path=DEFAULT_VENV_NAME,
-    script_name=DEFAULT_SCRIPT_NAME,
-    extra_args=None,
-):
+    venv_path: str = DEFAULT_VENV_NAME,
+    script_name: str = DEFAULT_SCRIPT_NAME,
+    extra_args: list[str] | None = None,
+) -> bool:
     """Launch the main application using the virtual environment"""
     python_cmd = get_python_executable(venv_path)
     python_path = Path(python_cmd)

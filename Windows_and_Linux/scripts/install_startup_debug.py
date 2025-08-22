@@ -26,7 +26,7 @@ import sys
 import winreg
 
 
-def setup_logging():
+def setup_logging() -> None:
     """Configure le logging pour l'installation"""
     logging.basicConfig(
         level=logging.INFO,
@@ -35,7 +35,7 @@ def setup_logging():
     )
 
 
-def get_script_directory():
+def get_script_directory() -> str:
     """Obtient le répertoire du script"""
     if getattr(sys, "frozen", False):
         return os.path.dirname(sys.executable)
@@ -43,7 +43,7 @@ def get_script_directory():
         return os.path.dirname(os.path.abspath(__file__))
 
 
-def install_startup_debug():
+def install_startup_debug() -> bool:
     """Installe le script de debug dans le démarrage de Windows"""
     logger = logging.getLogger(__name__)
 
@@ -91,7 +91,7 @@ def install_startup_debug():
         return False
 
 
-def uninstall_startup_debug():
+def uninstall_startup_debug() -> bool:
     """Désinstalle le script de debug du démarrage de Windows"""
     logger = logging.getLogger(__name__)
 
@@ -122,7 +122,7 @@ def uninstall_startup_debug():
         return False
 
 
-def check_startup_debug_status():
+def check_startup_debug_status() -> tuple[bool, str | None]:
     """Vérifie si le debug de démarrage est installé"""
     logger = logging.getLogger(__name__)
 

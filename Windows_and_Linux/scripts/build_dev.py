@@ -54,12 +54,12 @@ else:  # Linux/Unix
     )
 
 
-def copy_required_files_dev():
+def copy_required_files_dev() -> bool:
     """Copy required files for the development build to dist/dev/."""
     return copy_required_files("development", "dev")
 
 
-def run_dev_build(venv_path="myvenv", console_mode=False):
+def run_dev_build(venv_path: str = "myvenv", console_mode: bool = False) -> bool:
     """Run PyInstaller build for development (faster, less cleanup)"""
 
     # Remove existing .spec file if switching console mode to force regeneration
@@ -229,7 +229,7 @@ def run_dev_build(venv_path="myvenv", console_mode=False):
         return False
 
 
-def launch_build(extra_args=None):
+def launch_build(extra_args: list[str] | None = None) -> bool:
     """Launch the built executable, killing any existing instance first."""
     exe_name = get_executable_name()
     exe_path = Path("dist") / "dev" / exe_name

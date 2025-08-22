@@ -10,9 +10,23 @@ L285   No sure about that:      # Add save button (especially important for prov
 import logging
 from typing import TYPE_CHECKING
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui
 from PySide6.QtGui import QImage
-from PySide6.QtWidgets import QHBoxLayout, QRadioButton, QScrollArea, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLayout,
+    QLineEdit,
+    QPushButton,
+    QRadioButton,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
 
 if TYPE_CHECKING:
     from Windows_and_Linux.WritingToolApp import WritingToolApp
@@ -26,10 +40,6 @@ from ui.ui_utils import ThemedWidget, get_icon_path, ui_utils
 
 
 def _(x):
-    """
-    Function for translation placeholder.
-    Returns the input unchanged, used as a placeholder for translation.
-    """
     return x
 
 
@@ -41,7 +51,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
 
     close_signal = QtCore.Signal()
 
-    def __init__(self, app: "WritingToolApp", providers_only=False):
+    def __init__(self, app: WritingToolApp, providers_only: bool = False):
         super().__init__()
         self.app = app
         self.current_provider_layout = None
@@ -68,7 +78,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         self.init_ui()
         self.retranslate_ui()
 
-    def _get_effective_mode(self):
+    def _get_effective_mode(self) -> str:
         """Get the effective color mode based on user settings."""
         user_mode = self.app.settings_manager.color_mode or "auto"
         if user_mode == "auto":
@@ -77,7 +87,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             return "dark" if darkdetect.isDark() else "light"
         return user_mode
 
-    def init_ui(self):
+    def init_ui(self) -> None:
         """
         Initialize the user interface for the settings window.
         Now includes a scroll area for better handling of content on smaller screens.
@@ -99,14 +109,14 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         self.raise_()  # Bring window to the front
         self.activateWindow()  # Give focus to the window to make it active
 
-        main_layout = QtWidgets.QVBoxLayout(
+        main_layout = QVBoxLayout(
             self.background
         )  # Set icon, margin, and spacing in ThemedWidget
 
         # Create scroll area
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         scroll_area.setHorizontalScrollBarPolicy(
             QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded,
         )
@@ -176,13 +186,13 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         # Create scrollable content widget with transparent background
         scroll_content = QWidget()
         scroll_content.setStyleSheet("background: transparent;")
-        content_layout = QtWidgets.QVBoxLayout(scroll_content)
+        content_layout = QVBoxLayout(scroll_content)
         content_layout.setContentsMargins(30, 30, 30, 30)
         content_layout.setSpacing(20)
 
         # Full settings window (not provider-only mode)
         if not self.providers_only:
-            title_label = QtWidgets.QLabel(_("Settings"))
+            title_label = QLabel(_("Settings"))
             title_label.setObjectName("title_label")  # For specific styling in refresh
             title_label.setStyleSheet(
                 f"font-size: 24px; font-weight: bold; {self.get_label_style()}"
@@ -194,7 +204,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
 
             # Autostart functionality only for Windows compiled version
             if AutostartManager.get_startup_path():
-                self.autostart_checkbox = QtWidgets.QCheckBox(_("Start on Boot"))
+                self.autostart_checkbox = QCheckBox(_("Start on Boot"))
                 self.autostart_checkbox.setStyleSheet(self.get_checkbox_style())
 
                 # Synchronize settings with registry state on startup
@@ -208,11 +218,11 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                 content_layout.addWidget(self.autostart_checkbox)
 
             # Global hotkey configuration
-            shortcut_label = QtWidgets.QLabel(_("Shortcut Key:"))
+            shortcut_label = QLabel(_("Shortcut Key:"))
             shortcut_label.setStyleSheet(self.get_label_style())
             content_layout.addWidget(shortcut_label)
 
-            self.shortcut_input = QtWidgets.QLineEdit(
+            self.shortcut_input = QLineEdit(
                 self.app.settings_manager.hotkey or "ctrl+space"
             )
             self.shortcut_input.setStyleSheet(self.get_input_style())
@@ -221,7 +231,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             content_layout.addWidget(self.shortcut_input)
 
             # Background theme selection
-            theme_label = QtWidgets.QLabel(_("Background Theme:"))
+            theme_label = QLabel(_("Background Theme:"))
             theme_label.setStyleSheet(self.get_label_style())
             content_layout.addWidget(theme_label)
 
@@ -241,11 +251,11 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             content_layout.addLayout(theme_layout)
 
             # Color mode selection
-            color_mode_label = QtWidgets.QLabel(_("Color Mode:"))
+            color_mode_label = QLabel(_("Color Mode:"))
             color_mode_label.setStyleSheet(self.get_label_style())
             content_layout.addWidget(color_mode_label)
 
-            self.color_mode_dropdown = QtWidgets.QComboBox()
+            self.color_mode_dropdown = QComboBox()
             self.color_mode_dropdown.addItems([_("Auto"), _("Light"), _("Dark")])
 
             # Set current selection based on saved setting
@@ -264,14 +274,14 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             content_layout.addWidget(self.color_mode_dropdown)
 
         # AI Provider selection section
-        provider_label = QtWidgets.QLabel(_("Choose AI Provider:"))
+        provider_label = QLabel(_("Choose AI Provider:"))
         provider_label.setStyleSheet(self.get_label_style())
         content_layout.addWidget(provider_label)
 
-        self.provider_dropdown = QtWidgets.QComboBox()
+        self.provider_dropdown = QComboBox()
         self.provider_dropdown.setStyleSheet(self.get_dropdown_style())
         self.provider_dropdown.setInsertPolicy(
-            QtWidgets.QComboBox.InsertPolicy.NoInsert,
+            QComboBox.InsertPolicy.NoInsert,
         )
         # Prevent wheel scroll from interfering with main scroll area
         self.provider_dropdown.wheelEvent = lambda e: e.ignore()
@@ -293,13 +303,13 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         content_layout.addWidget(self.provider_dropdown)
 
         # Visual separator between provider selection and configuration
-        line = QtWidgets.QFrame()
-        line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
-        line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
         content_layout.addWidget(line)
 
         # Create container for provider UI
-        self.provider_container = QtWidgets.QVBoxLayout()
+        self.provider_container = QVBoxLayout()
         content_layout.addLayout(self.provider_container)
 
         # Initialize provider UI
@@ -319,9 +329,9 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         self.provider_dropdown.currentIndexChanged.connect(self.auto_save_provider)
 
         # Another visual separator before buttons
-        line = QtWidgets.QFrame()
-        line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
-        line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
         content_layout.addWidget(line)
 
         # Finalize scroll area setup
@@ -332,7 +342,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         self.add_save_button(main_layout)
 
         # Set appropriate window height based on screen size
-        screen = QtWidgets.QApplication.primaryScreen().geometry()
+        screen = QApplication.primaryScreen().geometry()
         max_height = int(screen.height() * 0.85)  # 85% of screen height
         desired_height = min(
             550,
@@ -349,10 +359,10 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.setFocus()
 
-    def retranslate_ui(self):
+    def retranslate_ui(self) -> None:
         self.setWindowTitle(_("Settings"))
 
-    def init_provider_ui(self, provider: "AIProvider", layout):
+    def init_provider_ui(self, provider: "AIProvider", layout) -> None:
         """
         Initialize the user interface for the provider, including logo, name, description and all settings.
         Dynamically builds UI based on provider configuration.
@@ -377,10 +387,10 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         # Also clear the container layout to ensure no old widgets remain
         ui_utils.clear_layout(layout)
 
-        self.current_provider_layout = QtWidgets.QVBoxLayout()
+        self.current_provider_layout = QVBoxLayout()
 
         # Provider header with logo and name
-        provider_header_layout = QtWidgets.QHBoxLayout()
+        provider_header_layout = QHBoxLayout()
         provider_header_layout.setSpacing(10)
         provider_header_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
@@ -394,7 +404,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                     30,
                     15,
                 )
-                logo_label = QtWidgets.QLabel()
+                logo_label = QLabel()
                 logo_label.setPixmap(targetPixmap)
                 logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
                 provider_header_layout.addWidget(logo_label)
@@ -404,7 +414,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                 )
 
         # Provider name display
-        provider_name_label = QtWidgets.QLabel(provider.provider_name)
+        provider_name_label = QLabel(provider.provider_name)
         # Provider title needs high contrast - force pure white/black
         # Use effective mode based on user settings
         current_mode = self._get_effective_mode()
@@ -419,7 +429,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
 
         # Provider description if available
         if provider.description:
-            description_label = QtWidgets.QLabel(provider.description)
+            description_label = QLabel(provider.description)
             description_label.setStyleSheet(
                 f"{self.get_label_style()} text-align: center;"
             )
@@ -430,12 +440,12 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         if provider.button_text or (
             hasattr(provider, "additional_buttons") and provider.additional_buttons
         ):
-            button_container = QtWidgets.QHBoxLayout()
+            button_container = QHBoxLayout()
             button_container.setSpacing(10)
 
             # Main button
             if provider.button_text:
-                main_button = QtWidgets.QPushButton(provider.button_text)
+                main_button = QPushButton(provider.button_text)
                 current_mode = self._get_effective_mode()
                 main_button.setStyleSheet(
                     f"""
@@ -458,7 +468,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             # Additional buttons
             if hasattr(provider, "additional_buttons"):
                 for button_config in provider.additional_buttons:
-                    additional_button = QtWidgets.QPushButton(button_config["text"])
+                    additional_button = QPushButton(button_config["text"])
                     current_mode = self._get_effective_mode()
 
                     # Different style for secondary buttons
@@ -490,7 +500,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                     button_container.addWidget(additional_button)
 
             # Center the button container
-            button_widget = QtWidgets.QWidget()
+            button_widget = QWidget()
             button_widget.setLayout(button_container)
             self.current_provider_layout.addWidget(
                 button_widget,
@@ -521,12 +531,12 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         self.disable_dropdown_scroll(self.current_provider_layout)
 
         # Add italic comment about vision models
-        # row_layout = QtWidgets.QHBoxLayout()
-        vision_comment = QtWidgets.QLabel(_("* Models with vision support"))
+        # row_layout = QHBoxLayout()
+        vision_comment = QLabel(_("* Models with vision support"))
         vision_comment.setStyleSheet(f"{self.get_label_style()} font-style: italic;")
         layout.addWidget(vision_comment)
 
-    def disable_dropdown_scroll(self, layout):
+    def disable_dropdown_scroll(self, layout: QLayout) -> None:
         """
         Recursively disable wheel events on all QComboBox widgets in the layout
         to prevent them from interfering with the main scroll area.
@@ -536,13 +546,13 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             item = layout.itemAt(i)
             if item.widget():
                 widget = item.widget()
-                if isinstance(widget, QtWidgets.QComboBox):
+                if isinstance(widget, QComboBox):
                     widget.wheelEvent = lambda e: e.ignore()
             elif item.layout():
                 # Recursively check nested layouts
                 self.disable_dropdown_scroll(item.layout())
 
-    def showEvent(self, event):
+    def showEvent(self, event: QtGui.QShowEvent) -> None:
         """Handle window show event to ensure focus."""
         super().showEvent(event)
         # Force focus to this window when shown (important for hotkey workflow)
@@ -550,7 +560,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         self.activateWindow()
         self.setFocus()
 
-    def focusOutEvent(self, event):
+    def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
         """
         Handle focus out event - carefully manage focus to allow dropdowns to work properly
         while maintaining window focus for hotkey workflow.
@@ -558,12 +568,12 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         super().focusOutEvent(event)
         # Don't immediately regain focus as it interferes with dropdown interactions
         # Only regain focus if we lose it to something completely outside our window
-        focused_widget = QtWidgets.QApplication.focusWidget()
+        focused_widget = QApplication.focusWidget()
         if focused_widget and not self.isAncestorOf(focused_widget):
             # Delayed focus regain with additional safety checks
             QtCore.QTimer.singleShot(500, self.regain_focus_if_needed)
 
-    def regain_focus_if_needed(self):
+    def regain_focus_if_needed(self) -> None:
         """
         Intelligently regain focus only when appropriate.
         Avoids interfering with dropdown interactions or other legitimate focus changes.
@@ -572,30 +582,30 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             return
 
         # Don't steal focus from active dropdowns
-        focused_widget = QtWidgets.QApplication.focusWidget()
-        if focused_widget and isinstance(focused_widget, QtWidgets.QComboBox):
+        focused_widget = QApplication.focusWidget()
+        if focused_widget and isinstance(focused_widget, QComboBox):
             return
 
         # Check for any open dropdown popups in the entire application
-        for widget in QtWidgets.QApplication.allWidgets():
-            if isinstance(widget, QtWidgets.QComboBox) and widget.view().isVisible():
+        for widget in QApplication.allWidgets():
+            if isinstance(widget, QComboBox) and widget.view().isVisible():
                 return
 
         # Only regain focus if we genuinely lost it to something external
         if not self.hasFocus() and not self.isAncestorOf(
-            QtWidgets.QApplication.focusWidget(),
+            QApplication.focusWidget(),
         ):
             self.raise_()
             self.activateWindow()
 
-    def add_save_button(self, main_layout):
+    def add_save_button(self, main_layout: QVBoxLayout) -> None:
         """
         Add a save/complete setup button at the bottom of the window.
         Button text varies based on context (setup vs normal settings).
         """
 
         button_container = QWidget()
-        button_layout = QtWidgets.QHBoxLayout(button_container)
+        button_layout = QHBoxLayout(button_container)
         button_layout.setContentsMargins(20, 10, 20, 20)
 
         # Right-align the button
@@ -607,7 +617,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         else:
             button_text = _("Close Settings")
 
-        self.save_button = QtWidgets.QPushButton(button_text)
+        self.save_button = QPushButton(button_text)
         self.save_button.setFixedSize(150, 40)
         # Use effective mode based on user settings
         current_mode = self._get_effective_mode()
@@ -636,11 +646,11 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         button_layout.addWidget(self.save_button)
         main_layout.addWidget(button_container)
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
         """Handle window resize events."""
         super().resizeEvent(event)
 
-    def auto_save_shortcut(self):
+    def auto_save_shortcut(self) -> None:
         """
         Auto-save shortcut when it changes to provide immediate feedback.
         Automatically registers the new hotkey with the system.
@@ -649,7 +659,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             self.app.settings_manager.hotkey = self.shortcut_input.text() or "ctrl+space"
             self.app.register_hotkey()
 
-    def auto_save_theme(self):
+    def auto_save_theme(self) -> None:
         """
         Auto-save theme when it changes for immediate visual feedback.
         """
@@ -662,7 +672,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                 self.background.theme = theme
                 self.background.update()
 
-    def auto_save_color_mode(self):
+    def auto_save_color_mode(self) -> None:
         """
         Auto-save color mode when it changes for immediate visual feedback.
         """
@@ -685,7 +695,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             # Refresh UI styles with updated colorMode
             self._refresh_ui_styles()
 
-    def _refresh_ui_styles(self):
+    def _refresh_ui_styles(self) -> None:
         """Refresh all UI element styles to reflect the current color mode."""
         # Update color mode dropdown style
         if self.color_mode_dropdown:
@@ -697,7 +707,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
 
         # Update specific labels with their individual styles
         # Title label
-        title_labels = self.findChildren(QtWidgets.QLabel)
+        title_labels = self.findChildren(QLabel)
         for widget in title_labels:
             if widget.text() == _("Settings"):
                 widget.setStyleSheet(
@@ -774,7 +784,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         if self.background:
             self.background.update()
 
-    def auto_save_provider(self):
+    def auto_save_provider(self) -> None:
         """
         Auto-save provider selection when it changes.
         """
@@ -785,7 +795,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                 # Save provider-specific settings as well
                 self.save_provider_settings()
 
-    def save_provider_settings(self):
+    def save_provider_settings(self) -> None:
         """
         Save current provider-specific settings.
         """
@@ -804,24 +814,24 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                 if selected_provider:
                     selected_provider.save_config()
 
-    def toggle_autostart(self, state):
+    def toggle_autostart(self, state: int) -> None:
         """Toggle the autostart setting based on checkbox state."""
         enable = state == 2  # Qt.Checked
         AutostartManager.set_autostart_with_sync(enable, self.app.settings_manager)
 
-    def save_settings(self):
+    def save_settings(self) -> None:
         """Save the current settings and close window."""
         self.save_settings_without_closing()
         self.close()
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         """Handle key press events for keyboard shortcuts."""
         if event.key() == QtCore.Qt.Key.Key_Escape:
             self.close_to_previous_window()
         else:
             super().keyPressEvent(event)
 
-    def close_to_previous_window(self):
+    def close_to_previous_window(self) -> None:
         """
         Close settings and return to previous window if available.
         Maintains workflow continuity by restoring focus to the originating window.
@@ -841,7 +851,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         # Close this window
         self.close()
 
-    def save_settings_without_closing(self):
+    def save_settings_without_closing(self) -> None:
         """
         Save all current settings to persistent storage without closing the window.
         Handles both general app settings and provider-specific configurations.
@@ -902,7 +912,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         # Exit providers_only mode after first save
         self.providers_only = False
 
-    def _on_provider_changed(self):
+    def _on_provider_changed(self) -> None:
         """
         Handle provider dropdown change by rebuilding the provider-specific UI.
         This ensures the settings interface matches the selected provider's requirements.
@@ -921,7 +931,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         )
         self.init_provider_ui(provider_instance, self.provider_container)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """
         Handle window close event.
         Emits close signal for providers_only mode to notify parent about setup completion.
@@ -930,7 +940,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             self.close_signal.emit()
         super().closeEvent(event)
 
-    def refresh_theme(self):
+    def refresh_theme(self) -> None:
         """Appelé automatiquement quand le thème change via ThemeManager."""
         # Utiliser l'ancienne méthode pour l'instant, sera refactorisée plus tard
         self._refresh_ui_styles()

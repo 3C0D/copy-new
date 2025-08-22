@@ -12,14 +12,15 @@ import signal
 import sys
 import threading
 import time
+import types
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import pyperclip
 from pynput import keyboard as pykeyboard
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui
 from PySide6.QtCore import QLocale, Signal, Slot
-from PySide6.QtGui import QCursor, QGuiApplication
+from PySide6.QtGui import QCursor, QGuiApplication, QImage
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 import ui.AboutWindow
@@ -32,6 +33,8 @@ import ui.SettingsWindow
 if TYPE_CHECKING:
     from aiprovider import AIProvider
     from ui.ResponseWindow import ResponseWindow
+
+from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
 from aiprovider import (
     AnthropicProvider,
@@ -47,7 +50,7 @@ from update_checker import UpdateChecker
 _ = gettext.gettext
 
 
-class WritingToolApp(QtWidgets.QApplication):
+class WritingToolApp(QApplication):
     """
     The main application class for Writing Tools.
     """
@@ -102,27 +105,27 @@ class WritingToolApp(QtWidgets.QApplication):
             self._logger.error(f"Full traceback: {traceback.format_exc()}")
             raise
 
-    def _setup_core_attributes(self):
+    def _setup_core_attributes(self) -> None:
         """Initialize core application attributes."""
         self.current_response_window: ResponseWindow | None = None
         self.current_provider: AIProvider | None = None
         self.output_queue = ""
         self.paused = False
 
-    def _setup_signals(self):
+    def _setup_signals(self) -> None:
         """Connect application signals to their handlers."""
         self.output_ready_signal.connect(self.replace_text)
         self.show_message_signal.connect(self.show_message_box)
         self.hotkey_triggered_signal.connect(self.on_hotkey_pressed)
 
-    def _setup_settings(self):
+    def _setup_settings(self) -> None:
         """Initialize settings manager and load configuration."""
         mode = self._detect_mode()
         self._logger.debug(f"Running mode: {mode}")
         self.settings_manager = SettingsManager(mode=mode)
         self.load_settings()
 
-    def _setup_ui_components(self):
+    def _setup_ui_components(self) -> None:
         """Initialize UI component references."""
         self.onboarding_window = None
         self.popup_window = None
@@ -133,14 +136,14 @@ class WritingToolApp(QtWidgets.QApplication):
         self.non_editable_modal = None
         self.toggle_action = None
 
-    def _setup_hotkey_system(self):
+    def _setup_hotkey_system(self) -> None:
         """Initialize hotkey and keyboard listener system."""
         self.registered_hotkey = None
         self.hotkey_listener = None
         self.ctrl_c_timer = None
         self.setup_ctrl_c_listener()
 
-    def _setup_ai_providers(self):
+    def _setup_ai_providers(self) -> None:
         """Initialize available AI providers."""
         self._ = gettext.gettext
         self.providers = [
@@ -151,20 +154,20 @@ class WritingToolApp(QtWidgets.QApplication):
             MistralProvider(self),
         ]
 
-    def _setup_spam_protection(self):
+    def _setup_spam_protection(self) -> None:
         """Initialize hotkey spam protection system."""
         self.recent_triggers = []
         self.TRIGGER_WINDOW = 1.5  # Time window in seconds
         self.MAX_TRIGGERS = 3  # Max allowed triggers in window
 
-    def _handle_first_launch(self):
+    def _handle_first_launch(self) -> None:
         """Handle first-time application launch."""
         self._logger.debug(
             "First launch detected (no providers configured), showing onboarding"
         )
         self.show_onboarding()
 
-    def _handle_normal_launch(self):
+    def _handle_normal_launch(self) -> None:
         """Handle normal application launch with configured providers."""
         self._logger.debug("Providers configured, setting up hotkey and tray icon")
 
@@ -186,7 +189,7 @@ class WritingToolApp(QtWidgets.QApplication):
         except Exception as e:
             self._handle_initialization_error(e)
 
-    def _initialize_ai_provider(self):
+    def _initialize_ai_provider(self) -> None:
         """Initialize and configure the current AI provider."""
         provider_internal_name = self.settings_manager.provider or "gemini"
         self._logger.debug(f"Selected provider: {provider_internal_name}")
@@ -213,13 +216,13 @@ class WritingToolApp(QtWidgets.QApplication):
             self.current_provider.load_config(provider_config)
             self._logger.debug("Provider config loaded successfully")
 
-    def _setup_user_interface(self):
+    def _setup_user_interface(self) -> None:
         """Setup user interface components."""
         self._sync_autostart_settings()
         self._create_tray_icon_with_startup_delay()
         self.register_hotkey()
 
-    def _create_tray_icon_with_startup_delay(self):
+    def _create_tray_icon_with_startup_delay(self) -> None:
         """
         Create tray icon with a delay if we're likely starting at boot.
         This helps with Windows startup timing issues.
@@ -245,7 +248,7 @@ class WritingToolApp(QtWidgets.QApplication):
         else:
             self.create_tray_icon()
 
-    def _sync_autostart_settings(self):
+    def _sync_autostart_settings(self) -> None:
         """Synchronize autostart settings between registry and configuration."""
         try:
             from ui.AutostartManager import AutostartManager
@@ -254,17 +257,17 @@ class WritingToolApp(QtWidgets.QApplication):
         except Exception as e:
             self._logger.warning(f"Could not sync autostart settings: {e}")
 
-    def _setup_language(self):
+    def _setup_language(self) -> None:
         """Configure application language."""
         lang = self.settings_manager.language or "en"
-        self.change_language(lang if lang != "en" else None)
+        self.change_language(lang if lang != "en" else "en")
 
-    def _initialize_update_checker(self):
+    def _initialize_update_checker(self) -> None:
         """Initialize the update checker system."""
         self.update_checker = UpdateChecker(self)
         self.update_checker.check_updates_async()
 
-    def _handle_initialization_error(self, error):
+    def _handle_initialization_error(self, error: Exception) -> None:
         """Handle errors during application initialization."""
         logging.exception(f"Error during app initialization: {error}")
         logging.exception("Falling back to onboarding")
@@ -300,7 +303,7 @@ class WritingToolApp(QtWidgets.QApplication):
         else:
             return "build-final"
 
-    def setup_translations(self, lang=None):
+    def setup_translations(self, lang=None) -> None:
         """Setup application translations for the specified language."""
         if not lang:
             lang = QLocale.system().name().split("_")[0]
@@ -317,7 +320,9 @@ class WritingToolApp(QtWidgets.QApplication):
         translation.install()
         self._update_translation_functions(translation)
 
-    def _update_translation_functions(self, translation):
+    def _update_translation_functions(
+        self, translation: gettext.NullTranslations
+    ) -> None:
         """Update translation functions for all UI components."""
         self._ = translation.gettext
         ui.AboutWindow._ = self._
@@ -326,36 +331,36 @@ class WritingToolApp(QtWidgets.QApplication):
         ui.OnboardingWindow._ = self._
         ui.CustomPopupWindow._ = self._
 
-    def retranslate_ui(self):
+    def retranslate_ui(self) -> None:
         """Retranslate the user interface elements."""
         self.update_tray_menu()
 
-    def change_language(self, lang):
+    def change_language(self, lang: str) -> None:
         """Change the application language and update all UI elements."""
         self.setup_translations(lang)
         self.retranslate_ui()
         self._update_widget_translations()
 
-    def _update_widget_translations(self):
+    def _update_widget_translations(self) -> None:
         """Update translations for all top-level widgets."""
         for widget in QApplication.topLevelWidgets():
             if widget != self and hasattr(widget, "retranslate_ui"):
                 widget.retranslate_ui()  # type: ignore
 
-    def load_settings(self):
+    def load_settings(self) -> None:
         """Load unified settings using the SettingsManager."""
         self.settings_manager.load_settings()
         self._logger.debug("Unified settings loaded successfully")
 
-    def save_settings(self):
+    def save_settings(self) -> None:
         """Save the current unified settings."""
-        return self.settings_manager.save()
+        self.settings_manager.save()
 
     # ============================================================================
     # HOTKEY AND INPUT HANDLING METHODS
     # ============================================================================
 
-    def check_trigger_spam(self):
+    def check_trigger_spam(self) -> bool:
         """
         Check if hotkey is being triggered too frequently.
         Returns True if spam is detected (3+ times in 1.5 seconds).
@@ -421,7 +426,7 @@ class WritingToolApp(QtWidgets.QApplication):
 
         return config
 
-    def show_onboarding(self):
+    def show_onboarding(self) -> None:
         """
         Show the onboarding window for first-time users.
         """
@@ -441,7 +446,7 @@ class WritingToolApp(QtWidgets.QApplication):
         self.onboarding_window.close_signal.connect(self.on_onboarding_closed)
         self.onboarding_window.show()
 
-    def on_onboarding_closed(self):
+    def on_onboarding_closed(self) -> None:
         """
         Handle onboarding window being closed.
         Instead of exiting, continue with normal app initialization.
@@ -476,7 +481,7 @@ class WritingToolApp(QtWidgets.QApplication):
 
         # Set language from system settings
         lang = self.settings_manager.language or "en"
-        self.change_language(lang if lang != "en" else None)
+        self.change_language(lang if lang != "en" else "en")
 
         # Initialize update checker
         self.update_checker = UpdateChecker(self)
@@ -486,7 +491,7 @@ class WritingToolApp(QtWidgets.QApplication):
     # HOTKEY MANAGEMENT METHODS
     # ============================================================================
 
-    def start_hotkey_listener(self):
+    def start_hotkey_listener(self) -> None:
         """
         Create listener for hotkeys on Linux/Mac.
         """
@@ -535,7 +540,7 @@ class WritingToolApp(QtWidgets.QApplication):
         except Exception as e:
             self._logger.error(f"Failed to register hotkey: {e}")
 
-    def register_hotkey(self):
+    def register_hotkey(self) -> None:
         """
         Register the global hotkey for activating Writing Tools.
         """
@@ -543,7 +548,7 @@ class WritingToolApp(QtWidgets.QApplication):
         self.start_hotkey_listener()
         self._logger.debug("Hotkey registered")
 
-    def on_hotkey_pressed(self):
+    def on_hotkey_pressed(self) -> None:
         """
         Handle the hotkey press event.
         """
@@ -573,7 +578,7 @@ class WritingToolApp(QtWidgets.QApplication):
         )
 
     @Slot()
-    def _show_popup(self):
+    def _show_popup(self) -> None:
         """
         Show the popup window when the hotkey is pressed.
         """
@@ -586,6 +591,7 @@ class WritingToolApp(QtWidgets.QApplication):
             self._logger.debug("No text captured, retrying with longer sleep")
             selected_text = self.get_selected_text(sleep_duration=0.5)
 
+        clipboard_image = self.get_clipboard_image()
         self._logger.debug(f'Selected text: "{selected_text}"')
         try:
             if self.popup_window is not None:
@@ -596,7 +602,7 @@ class WritingToolApp(QtWidgets.QApplication):
                 self.popup_window = None
             self._logger.debug("Creating new popup window")
             self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(
-                self, selected_text
+                self, selected_text, clipboard_image
             )
 
             # Set the window icon
@@ -635,7 +641,26 @@ class WritingToolApp(QtWidgets.QApplication):
         except Exception as e:
             self._logger.error(f"Error showing popup window: {e}", exc_info=True)
 
-    def get_selected_text(self, sleep_duration=0.2):
+    def get_clipboard_image(self) -> Optional[QImage]:
+        """
+        Get the image currently stored in the clipboard using Qt6.
+        Returns the image if found, None otherwise.
+        """
+        clipboard = QApplication.clipboard()
+        mime_data = clipboard.mimeData()
+
+        if mime_data.hasImage():
+            # Get the image from clipboard
+            image = mime_data.imageData()
+            if isinstance(image, QImage):
+                return image
+            else:
+                # Convert to QImage if it's a QPixmap
+                return image.toImage()
+        else:
+            return None
+
+    def get_selected_text(self, sleep_duration: float = 0.2) -> str:
         """
         Get the currently selected text from any application.
         Args:
@@ -678,7 +703,7 @@ class WritingToolApp(QtWidgets.QApplication):
 
         return selected_text
 
-    def clear_clipboard(self):
+    def clear_clipboard(self) -> None:
         """
         Clear the system clipboard.
         """
@@ -687,7 +712,13 @@ class WritingToolApp(QtWidgets.QApplication):
         except Exception as e:
             self._logger.error(f"Error clearing clipboard: {e}")
 
-    def process_option(self, option, selected_text, custom_change=None, force_chat=False):
+    def process_option(
+        self,
+        option: str,
+        selected_text: str,
+        custom_change: Optional[str] = None,
+        force_chat: bool = False,
+    ) -> None:
         """
         Process the selected writing option in a separate thread.
 
@@ -726,7 +757,9 @@ class WritingToolApp(QtWidgets.QApplication):
             daemon=True,
         ).start()
 
-    def _setup_response_window(self, is_empty_custom, option, selected_text):
+    def _setup_response_window(
+        self, is_empty_custom: bool, option: str, selected_text: str
+    ) -> None:
         window_title = "Chat" if is_empty_custom else option
         self.current_response_window = self.show_response_window(
             window_title, selected_text
@@ -748,7 +781,9 @@ class WritingToolApp(QtWidgets.QApplication):
     # AI PROCESSING METHODS
     # ============================================================================
 
-    def process_option_thread(self, option, selected_text, custom_change=None):
+    def process_option_thread(
+        self, option: str, selected_text: str, custom_change: Optional[str] = None
+    ) -> None:
         """
         Thread function to process the selected writing option using the AI model.
 
@@ -779,7 +814,9 @@ class WritingToolApp(QtWidgets.QApplication):
         except Exception as e:
             self._handle_processing_error(e)
 
-    def _prepare_prompt_data(self, option, selected_text, custom_change):
+    def _prepare_prompt_data(
+        self, option: str, selected_text: str, custom_change: Optional[str] = None
+    ) -> Optional[dict]:
         """
         Prepare prompt data for AI processing.
 
@@ -796,7 +833,9 @@ class WritingToolApp(QtWidgets.QApplication):
                 option, selected_text, custom_change, is_custom_option
             )
 
-    def _handle_no_text_selected(self, is_custom_option, custom_change):
+    def _handle_no_text_selected(
+        self, is_custom_option: bool, custom_change: Optional[str]
+    ) -> Optional[dict]:
         """Handle case where no text is selected."""
         if is_custom_option:
             return {
@@ -811,8 +850,12 @@ class WritingToolApp(QtWidgets.QApplication):
             return None
 
     def _handle_text_selected(
-        self, option, selected_text, custom_change, is_custom_option
-    ):
+        self,
+        option: str,
+        selected_text: str,
+        custom_change: Optional[str],
+        is_custom_option: bool,
+    ) -> Optional[dict]:
         """Handle case where text is selected."""
         action_config = self.settings_manager.actions.get(option)
         if not action_config:
@@ -833,7 +876,9 @@ class WritingToolApp(QtWidgets.QApplication):
             "action_config": action_config,
         }
 
-    def _should_display_in_window(self, option, selected_text, action_config):
+    def _should_display_in_window(
+        self, option: str, selected_text: str, action_config: dict
+    ) -> bool:
         """Determine if response should be displayed in a window."""
         has_selected_text = selected_text.strip() != ""
         is_custom_option = option == "Custom"
@@ -843,9 +888,16 @@ class WritingToolApp(QtWidgets.QApplication):
             (is_custom_option and not has_selected_text)
             or (has_selected_text and action_config.get("open_in_window", False))
             or (force_chat and has_selected_text)
+            or (has_image_data)
         )
 
-    def _process_window_response(self, option, selected_text, custom_change, prompt_data):
+    def _process_window_response(
+        self,
+        option: str,
+        selected_text: str,
+        custom_change: Optional[str],
+        prompt_data: dict,
+    ) -> None:
         """Process AI response for window display."""
         if not self.current_provider:
             return
@@ -861,17 +913,19 @@ class WritingToolApp(QtWidgets.QApplication):
         self._update_chat_history_if_needed(option, selected_text, custom_change)
         self._update_response_window(response)
 
-    def _update_chat_history_if_needed(self, option, selected_text, custom_change):
+    def _update_chat_history_if_needed(
+        self, option: str, selected_text: str, custom_change: Optional[str]
+    ) -> None:
         """Update chat history for custom prompts without text."""
         is_custom_option = option == "Custom"
         has_selected_text = selected_text.strip() != ""
 
         if is_custom_option and not has_selected_text and self.current_response_window:
             self.current_response_window.chat_history.append(
-                {"role": "user", "content": custom_change}
+                {"role": "user", "content": custom_change or ""},
             )
 
-    def _update_response_window(self, response):
+    def _update_response_window(self, response: str) -> None:
         """Update response window with AI response (thread-safe)."""
         if self.current_response_window:
             QtCore.QMetaObject.invokeMethod(
@@ -882,7 +936,7 @@ class WritingToolApp(QtWidgets.QApplication):
             )
             self._logger.debug("Invoked set_text on response window")
 
-    def _process_direct_replacement(self, prompt_data):
+    def _process_direct_replacement(self, prompt_data: dict) -> None:
         """Process AI response for direct text replacement."""
         if not self.current_provider:
             return
@@ -892,7 +946,7 @@ class WritingToolApp(QtWidgets.QApplication):
         self.current_provider.get_response(prompt_data["system_instruction"], prompt_str)
         self._logger.debug("Response processed")
 
-    def _handle_processing_error(self, error):
+    def _handle_processing_error(self, error: Exception) -> None:
         """Handle errors during AI processing."""
         self._logger.error(f"An error occurred: {error}", exc_info=True)
 
@@ -909,7 +963,7 @@ class WritingToolApp(QtWidgets.QApplication):
     # ============================================================================
 
     @Slot(str, str)
-    def show_message_box(self, title, message):
+    def show_message_box(self, title: str, message: str) -> None:
         """
         Show a message box with the given title and message.
         For API errors, adds a button to open settings.
@@ -941,7 +995,7 @@ class WritingToolApp(QtWidgets.QApplication):
         if settings_button and msg_box.clickedButton() == settings_button:
             self.show_settings()
 
-    def show_response_window(self, option, text):
+    def show_response_window(self, option: str, text: str) -> ui.ResponseWindow.ResponseWindow:
         """
         Show the response in a new window instead of pasting it.
         """
@@ -951,7 +1005,7 @@ class WritingToolApp(QtWidgets.QApplication):
         return response_window
 
     @Slot(str)
-    def replace_text(self, new_text):
+    def replace_text(self, new_text: str) -> None:
         """
         Replaces the text by pasting in the LLM generated text. With "Key Points" and "Summary", invokes a window with the output instead.
         If pasting fails (non-editable page), shows the text in a modal window.
@@ -1052,7 +1106,7 @@ class WritingToolApp(QtWidgets.QApplication):
             logging.debug("No new text to process")
 
     @QtCore.Slot(str)
-    def _show_non_editable_modal(self, transformed_text):
+    def _show_non_editable_modal(self, transformed_text: str) -> None:
         """
         Show a modal window with the transformed text when pasting fails (non-editable page).
         """
@@ -1078,11 +1132,11 @@ class WritingToolApp(QtWidgets.QApplication):
             logging.error(f"Error showing non-editable modal: {e}", exc_info=True)
 
     @QtCore.Slot()
-    def _on_modal_closed(self):
+    def _on_modal_closed(self) -> None:
         """Clean up modal reference when it's closed"""
         self.non_editable_modal = None
 
-    def create_tray_icon(self):
+    def create_tray_icon(self) -> None:
         """
         Create the system tray icon for the application.
         """
@@ -1103,16 +1157,16 @@ class WritingToolApp(QtWidgets.QApplication):
         if not icon_path.exists():
             logging.warning(f"Tray icon not found at {icon_path}")
             # Use a default icon if not found
-            self.tray_icon = QtWidgets.QSystemTrayIcon(self)
+            self.tray_icon = QSystemTrayIcon(self)
         else:
             logging.debug(f"Loading icon from: {icon_path}")
             icon = QtGui.QIcon(icon_path.as_posix())
             if icon.isNull():
                 logging.warning(f"Failed to load icon from {icon_path}")
-            self.tray_icon = QtWidgets.QSystemTrayIcon(icon, self)
+            self.tray_icon = QSystemTrayIcon(icon, self)
         # Set the tooltip (hover name) for the tray icon
         self.tray_icon.setToolTip("WritingTools")
-        self.tray_menu = QtWidgets.QMenu()
+        self.tray_menu = QMenu()
         self.tray_icon.setContextMenu(self.tray_menu)
 
         # Timer to prevent rapid successive clicks that could accidentally trigger menu items
@@ -1129,7 +1183,9 @@ class WritingToolApp(QtWidgets.QApplication):
 
         logging.debug("Tray icon setup completed")
 
-    def _is_system_tray_available_with_retry(self, max_retries=5, delay_ms=1000):
+    def _is_system_tray_available_with_retry(
+        self, max_retries: int = 5, delay_ms: int = 1000
+    ) -> bool:
         """
         Check if system tray is available with retry mechanism.
         This is especially important during Windows startup when the system tray
@@ -1143,7 +1199,7 @@ class WritingToolApp(QtWidgets.QApplication):
             bool: True if system tray becomes available, False otherwise
         """
         for attempt in range(max_retries):
-            if QtWidgets.QSystemTrayIcon.isSystemTrayAvailable():
+            if QSystemTrayIcon.isSystemTrayAvailable():
                 if attempt > 0:
                     logging.info(
                         f"System tray became available after {attempt + 1} attempts"
@@ -1161,7 +1217,9 @@ class WritingToolApp(QtWidgets.QApplication):
         logging.warning(f"System tray not available after {max_retries} attempts")
         return False
 
-    def _verify_tray_icon_visibility(self, max_retries=2, delay_ms=250):
+    def _verify_tray_icon_visibility(
+        self, max_retries: int = 2, delay_ms: int = 250
+    ) -> None:
         """
         Verify that the tray icon is actually visible with retry mechanism.
 
@@ -1189,7 +1247,7 @@ class WritingToolApp(QtWidgets.QApplication):
         else:
             logging.debug("Tray icon visibility verification completed")
 
-    def update_tray_menu(self):
+    def update_tray_menu(self) -> None:
         """
         Update the tray menu with all menu items, including pause functionality
         and proper translations.
@@ -1220,7 +1278,7 @@ class WritingToolApp(QtWidgets.QApplication):
         exit_action = self.tray_menu.addAction(self._("Exit"))
         exit_action.triggered.connect(self.exit_app)
 
-    def toggle_paused(self):
+    def toggle_paused(self) -> None:
         """Toggle the paused state of the application."""
         logging.debug("Toggle paused state")
         self.paused = not self.paused
@@ -1231,7 +1289,7 @@ class WritingToolApp(QtWidgets.QApplication):
         logging.debug("App is paused" if self.paused else "App is resumed")
 
     @staticmethod
-    def apply_dark_mode_styles(menu):
+    def apply_dark_mode_styles(menu) -> None:
         """
         Apply styles to the tray menu based on current color mode.
         """
@@ -1303,7 +1361,9 @@ class WritingToolApp(QtWidgets.QApplication):
     This implementation is a bit convoluted, but it allows us to manage chat history & model roles across both providers! :3
     """
 
-    def process_followup_question(self, response_window, question):
+    def process_followup_question(
+        self, response_window: ResponseWindow, question: str
+    ) -> None:
         """
         Process a follow-up question in the chat window.
         """
@@ -1422,7 +1482,7 @@ class WritingToolApp(QtWidgets.QApplication):
         # Start the thread
         threading.Thread(target=process_thread, daemon=True).start()
 
-    def show_settings(self, providers_only=False, previous_window=None):
+    def show_settings(self, providers_only: bool = False, previous_window=None) -> None:
         """
         Show the settings window with debounce protection against rapid clicks.
         """
@@ -1456,7 +1516,7 @@ class WritingToolApp(QtWidgets.QApplication):
         self.settings_window.retranslate_ui()
         self.settings_window.show()
 
-    def show_about(self):
+    def show_about(self) -> None:
         """
         Show the about window.
         """
@@ -1469,7 +1529,7 @@ class WritingToolApp(QtWidgets.QApplication):
     # APPLICATION LIFECYCLE METHODS
     # ============================================================================
 
-    def setup_ctrl_c_listener(self):
+    def setup_ctrl_c_listener(self) -> None:
         """
         Listener for Ctrl+C to exit the app.
         """
@@ -1484,7 +1544,7 @@ class WritingToolApp(QtWidgets.QApplication):
         self.ctrl_c_timer.start(100)
         self.ctrl_c_timer.timeout.connect(lambda: None)
 
-    def handle_sigint(self, signum, frame):
+    def handle_sigint(self, signum: int, frame: Optional[types.FrameType]) -> None:
         """
         Handle the SIGINT signal (Ctrl+C) to exit the app gracefully.
 
@@ -1496,7 +1556,7 @@ class WritingToolApp(QtWidgets.QApplication):
         logging.info("Received SIGINT. Exiting...")
         self.exit_app()
 
-    def exit_app(self):
+    def exit_app(self) -> None:
         """
         Exit the application.
         """

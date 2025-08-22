@@ -30,7 +30,7 @@ from datetime import datetime
 
 
 # Configuration du logging très détaillé
-def setup_detailed_logging():
+def setup_detailed_logging() -> tuple[logging.Logger, str]:
     """Configure un logging très détaillé pour le debug de démarrage"""
 
     # Créer le dossier de logs s'il n'existe pas
@@ -87,7 +87,7 @@ def setup_detailed_logging():
     return logger, log_file
 
 
-def log_systray_environment():
+def log_systray_environment() -> bool:
     """Log l'état de l'environnement systray"""
     logger = logging.getLogger("SYSTRAY_ENV")
 
@@ -147,7 +147,7 @@ def log_systray_environment():
         return False
 
 
-def find_project_python():
+def find_project_python() -> str:
     """Trouve le bon exécutable Python pour le projet"""
     logger = logging.getLogger("PYTHON_FINDER")
 

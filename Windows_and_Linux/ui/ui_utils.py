@@ -3,14 +3,14 @@ import sys
 from pathlib import Path
 
 import darkdetect
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui
 from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QLayout, QVBoxLayout, QWidget
 
 colorMode = "dark" if darkdetect.isDark() else "light"
 
 
-def get_effective_color_mode():
+def get_effective_color_mode() -> str:
     """
     Get the effective color mode based on current settings.
     This function provides the same logic as _get_effective_mode() in windows.
@@ -23,7 +23,7 @@ def get_effective_color_mode():
     return colorMode
 
 
-def set_color_mode(theme):
+def set_color_mode(theme: str) -> None:
     """
     Set the color mode globally, overriding auto-detection.
 
@@ -37,7 +37,7 @@ def set_color_mode(theme):
         colorMode = theme
 
 
-def get_icon_path(icon_name, with_theme=True) -> Path:
+def get_icon_path(icon_name: str, with_theme: bool = True) -> Path:
     """
     Get the correct path for an icon, handling both dev and build modes.
     Supports both PNG and SVG formats, with SVG taking precedence.
@@ -101,7 +101,7 @@ def get_icon_path(icon_name, with_theme=True) -> Path:
 
 class ui_utils:
     @classmethod
-    def clear_layout(cls, layout):
+    def clear_layout(cls, layout: QLayout) -> None:
         """
         Clear the layout of all widgets.
         """
@@ -114,7 +114,7 @@ class ui_utils:
                 child.widget().deleteLater()
 
     @classmethod
-    def resize_and_round_image(cls, image, image_size=100, rounding_amount=50):
+    def resize_and_round_image(cls, image: QImage, image_size: int = 100, rounding_amount: int = 50) -> QPixmap:
         image = image.scaledToWidth(image_size)
         clipPath = QtGui.QPainterPath()
         clipPath.addRoundedRect(
@@ -141,25 +141,25 @@ class ThemedWidget(QWidget):
         super().__init__()
         self.setup_window_and_layout()
 
-    def setup_window_and_layout(self):
+    def setup_window_and_layout(self) -> None:
         # Set window icon
         icon_path = get_icon_path("app_icon", with_theme=False)
         if icon_path.exists():
             self.setWindowIcon(QtGui.QIcon(icon_path.as_posix()))
 
-        main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         self.background = ThemeBackground(self, "gradient")
         main_layout.addWidget(self.background)
 
-    def add_minimize_button(self):
+    def add_minimize_button(self) -> None:
         """Add minimize button to the window."""
         self.setWindowFlags(
             self.windowFlags() | QtCore.Qt.WindowType.WindowMinimizeButtonHint
         )
 
-    def get_dropdown_style(self):
+    def get_dropdown_style(self) -> str:
         """Get standardized dropdown styling based on current theme."""
         current_mode = get_effective_color_mode()
         if current_mode == "dark":
@@ -193,7 +193,7 @@ class ThemedWidget(QWidget):
                 }
             """
 
-    def get_input_style(self):
+    def get_input_style(self) -> str:
         """Get standardized input field styling based on current theme."""
         current_mode = get_effective_color_mode()
         return f"""
@@ -204,19 +204,19 @@ class ThemedWidget(QWidget):
             border: 1px solid {"#666" if current_mode == "dark" else "#ccc"};
         """
 
-    def get_radio_style(self):
+    def get_radio_style(self) -> str:
         """Get standardized radio button styling based on current theme."""
         current_mode = get_effective_color_mode()
         return f"color: {'#ffffff' if current_mode == 'dark' else '#333333'}; font-size: 16px;"
 
-    def get_label_style(self):
+    def get_label_style(self) -> str:
         """Get standardized label styling based on current theme."""
         current_mode = get_effective_color_mode()
         color = "#ffffff" if current_mode == "dark" else "#333333"
         style = f"font-size: 16px; color: {color};"
         return style
 
-    def get_checkbox_style(self):
+    def get_checkbox_style(self) -> str:
         """Get standardized checkbox styling based on current theme."""
         current_mode = get_effective_color_mode()
         if current_mode == "dark":
@@ -259,7 +259,7 @@ class ThemeBackground(QWidget):
         self.is_popup = is_popup
         self.border_radius = border_radius
 
-    def paintEvent(self, event):
+    def paintEvent(self, event: QtGui.QPaintEvent) -> None:
         """
         Override the paint event to draw the background based on the selected theme.
         """

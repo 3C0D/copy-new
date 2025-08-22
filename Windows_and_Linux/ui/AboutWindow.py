@@ -1,6 +1,14 @@
 import webbrowser
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui
+from PySide6.QtWidgets import (
+    QApplication,
+    QFrame,
+    QLabel,
+    QPushButton,
+    QScrollArea,
+    QVBoxLayout,
+)
 
 from ui.ui_utils import ThemedWidget
 
@@ -15,19 +23,23 @@ class AboutWindow(ThemedWidget):
     The about window for the application.
     """
 
-    def __init__(self):
+    min_width: int
+    min_height: int
+    content_layout: QVBoxLayout
+
+    def __init__(self) -> None:
         super().__init__()
         self.min_width = 600
         self.min_height = 650
         self.init_ui()
 
-    def init_ui(self):
+    def init_ui(self) -> None:
         """Initialize the user interface for the about window."""
         self._setup_window()
         self._create_layout()
         self._load_content()
 
-    def _setup_window(self):
+    def _setup_window(self) -> None:
         """Configure window properties and positioning."""
         self.setWindowTitle(" ")  # Hidden title for clean look
         self.setMinimumSize(self.min_width, self.min_height)
@@ -46,50 +58,50 @@ class AboutWindow(ThemedWidget):
 
         self._set_transparent_icon()
 
-    def _center_on_screen(self):
+    def _center_on_screen(self) -> None:
         """Center the window on the primary screen."""
-        screen = QtWidgets.QApplication.primaryScreen().geometry()
+        screen = QApplication.primaryScreen().geometry()
         window_rect = self.geometry()
         x = (screen.width() - window_rect.width()) // 2
         y = (screen.height() - window_rect.height()) // 2
         self.move(x, y)
 
-    def _set_transparent_icon(self):
+    def _set_transparent_icon(self) -> None:
         """Set a transparent window icon."""
         pixmap = QtGui.QPixmap(32, 32)
         pixmap.fill(QtCore.Qt.GlobalColor.transparent)
         self.setWindowIcon(QtGui.QIcon(pixmap))
 
-    def _create_layout(self):
+    def _create_layout(self) -> None:
         """Create the main layout structure."""
-        self.content_layout = QtWidgets.QVBoxLayout(self.background)
+        self.content_layout = QVBoxLayout(self.background)
         self.content_layout.setContentsMargins(30, 30, 30, 30)
         self.content_layout.setSpacing(20)
 
-    def _load_content(self):
+    def _load_content(self) -> None:
         """Load and display the about content."""
         # Title
-        title_label = self._create_title_label()
+        title_label: QLabel = self._create_title_label()
         self.content_layout.addWidget(
             title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter
         )
 
         # Scrollable main content
-        about_content = self._get_about_content()
-        content_widget = self._create_scrollable_content(about_content)
+        about_content: str = self._get_about_content()
+        content_widget: QScrollArea = self._create_scrollable_content(about_content)
         self.content_layout.addWidget(content_widget)
 
         # Update button
-        update_button = self._create_update_button()
+        update_button: QPushButton = self._create_update_button()
         self.content_layout.addWidget(update_button)
 
-    def _create_title_label(self):
+    def _create_title_label(self) -> QLabel:
         """Create the main title label."""
-        title_label = QtWidgets.QLabel(_("About Writing Tools"))
+        title_label = QLabel(_("About Writing Tools"))
         title_label.setStyleSheet(self._get_title_style())
         return title_label
 
-    def _get_title_style(self):
+    def _get_title_style(self) -> str:
         """Get the title styling based on current theme."""
         from ui.ui_utils import get_effective_color_mode
 
@@ -97,7 +109,7 @@ class AboutWindow(ThemedWidget):
         color = "#ffffff" if current_mode == "dark" else "#333333"
         return f"font-size: 24px; font-weight: bold; color: {color};"
 
-    def _get_about_content(self):
+    def _get_about_content(self) -> str:
         """Get the formatted about content HTML."""
         return f"""
         <div style='text-align: center; line-height: 1.6;'>
@@ -130,7 +142,7 @@ class AboutWindow(ThemedWidget):
         </div>
         """
 
-    def _get_contributors_html(self):
+    def _get_contributors_html(self) -> str:
         """Get the formatted contributors section."""
         contributors = [
             (
@@ -191,19 +203,18 @@ class AboutWindow(ThemedWidget):
 
         return "".join(html_parts)
 
-    def _create_scrollable_content(self, content):
+    def _create_scrollable_content(self, content: str) -> QScrollArea:
         """Create a scrollable widget for the main content."""
-        about_label = QtWidgets.QLabel(content)
+        about_label = QLabel(content)
         about_label.setStyleSheet(self._get_content_style())
         about_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
         about_label.setWordWrap(True)
         about_label.setOpenExternalLinks(True)
 
-        scroll_area = QtWidgets.QScrollArea()
+        scroll_area = QScrollArea()
         scroll_area.setWidget(about_label)
         scroll_area.setWidgetResizable(True)
-        # Needed ?
-        scroll_area.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
 
         scroll_area.setStyleSheet(
             "QScrollArea { background: transparent; border: none; }"
@@ -211,15 +222,15 @@ class AboutWindow(ThemedWidget):
 
         return scroll_area
 
-    def _create_update_button(self):
+    def _create_update_button(self) -> QPushButton:
         """Create the update check button with modern styling."""
-        update_button = QtWidgets.QPushButton(_("Check for updates"))
+        update_button = QPushButton(_("Check for updates"))
         update_button.setStyleSheet(self._get_button_style())
         update_button.clicked.connect(self.check_for_updates)
         update_button.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         return update_button
 
-    def _get_content_style(self):
+    def _get_content_style(self) -> str:
         """Get the content styling based on current theme."""
         from ui.ui_utils import get_effective_color_mode
 
@@ -227,35 +238,55 @@ class AboutWindow(ThemedWidget):
         color = "#ffffff" if current_mode == "dark" else "#333333"
         return f"font-size: 14px; color: {color}; padding: 10px;"
 
-    def _get_button_style(self):
-        """Get the button styling with theme awareness."""
-        base_style = """
-                QPushButton {
-                background-color: #4CAF50; color: white; padding: 12px 24px;
-                font-size: 16px; font-weight: bold; border: none; border-radius: 8px;
-                }
-            QPushButton:hover { background-color: #45a049; }
-            QPushButton:pressed { background-color: #3d8b40; }
-            """
-
-        # Add theme-specific enhancements
+    def _get_button_style(self) -> str:
+        """Get the button styling with theme awareness (Qt stylesheets only)."""
         from ui.ui_utils import get_effective_color_mode
 
-        current_mode = get_effective_color_mode()
-        if current_mode == "light":
-            base_style += """
-                QPushButton { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-                QPushButton:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
-                QPushButton:pressed { box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        mode = get_effective_color_mode()
+        if mode == "dark":
+            return """
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: #ffffff;
+                    padding: 10px 20px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    border: 1px solid #2e7d32; /* darker green border for contrast */
+                    border-radius: 8px;
+                }
+                QPushButton:hover { background-color: #43a047; }
+                QPushButton:pressed { background-color: #388e3c; }
+                QPushButton:disabled {
+                    background-color: #2e7d32;
+                    color: #bdbdbd;
+                    border-color: #255d27;
+                }
+            """
+        else:
+            return """
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: #ffffff;
+                    padding: 10px 20px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    border: 1px solid #3d8b40;
+                    border-radius: 8px;
+                }
+                QPushButton:hover { background-color: #45a049; }
+                QPushButton:pressed { background-color: #3d8b40; }
+                QPushButton:disabled {
+                    background-color: #a5d6a7;
+                    color: #ffffff;
+                    border-color: #8bc34a;
+                }
             """
 
-        return base_style
-
-    def check_for_updates(self):
+    def check_for_updates(self) -> None:
         """Open the GitHub releases page to check for updates."""
         webbrowser.open("https://github.com/theJayTea/WritingTools/releases")
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
         """Handle window resize events to maintain minimum size."""
         super().resizeEvent(event)
         # Enforce minimum dimensions
@@ -264,6 +295,6 @@ class AboutWindow(ThemedWidget):
                 max(self.width(), self.min_width), max(self.height(), self.min_height)
             )
 
-    def original_app(self):
+    def original_app(self) -> None:
         """Open the original app GitHub page."""
         webbrowser.open("https://github.com/TheJayTea/WritingTools")

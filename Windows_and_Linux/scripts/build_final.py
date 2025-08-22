@@ -39,12 +39,12 @@ else:  # Linux/Unix
     )
 
 
-def copy_required_files_production():
+def copy_required_files_production() -> bool:
     """Copy required files for final release build to dist/production/"""
     return copy_required_files("production", "production")
 
 
-def clean_build_directories():
+def clean_build_directories() -> None:
     """Clean build directories for a fresh build, preserving dist/dev/"""
     print("Cleaning build directories...")
 
@@ -97,7 +97,7 @@ def clean_build_directories():
             print(f"Warning: Could not clean {file}: {e}")
 
 
-def run_build_final(venv_path="myvenv"):
+def run_build_final(venv_path: str = "myvenv") -> bool:
     """Run PyInstaller build for final release (clean, optimized)"""
     # Use the virtual environment's Python to run PyInstaller
     python_cmd = get_activation_script(venv_path)

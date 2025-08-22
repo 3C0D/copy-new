@@ -23,7 +23,9 @@ from ui.ui_utils import ThemedWidget, get_effective_color_mode
 if TYPE_CHECKING:
     from Windows_and_Linux.WritingToolApp import WritingToolApp
 
-_ = lambda x: x
+
+def _(x):
+    return x
 
 
 class MarkdownTextBrowser(QTextBrowser):
@@ -49,7 +51,7 @@ class MarkdownTextBrowser(QTextBrowser):
 
         self._apply_zoom()
 
-    def _apply_zoom(self):
+    def _apply_zoom(self) -> None:
         new_size = int(self.base_font_size * self.zoom_factor)
 
         # Updated stylesheet with table styling
@@ -99,7 +101,7 @@ class MarkdownTextBrowser(QTextBrowser):
         """,
         )
 
-    def _update_size(self):
+    def _update_size(self) -> None:
         # Calculate correct document width
         available_width = self.viewport().width() - 16  # Account for padding
         self.document().setTextWidth(available_width)
@@ -120,9 +122,9 @@ class MarkdownTextBrowser(QTextBrowser):
             if scroll_area:
                 scroll_area.update_content_height()
 
-    def wheelEvent(self, event):
-        if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-            delta = event.angleDelta().y()
+    def wheelEvent(self, e: QtGui.QWheelEvent) -> None:
+        if e.modifiers() == Qt.KeyboardModifier.ControlModifier:
+            delta = e.angleDelta().y()
             # Get the main response window
             parent = self.parent()
             while parent and not isinstance(parent, ResponseWindow):
@@ -133,35 +135,35 @@ class MarkdownTextBrowser(QTextBrowser):
                     parent.zoom_all_messages("in")
                 else:
                     parent.zoom_all_messages("out")
-                event.accept()
+                e.accept()
         # Pass wheel events to parent for scrolling
         else:
             parent = self.parent()
             if parent and isinstance(parent, QWidget) and hasattr(parent, "wheelEvent"):
-                parent.wheelEvent(event)
+                parent.wheelEvent(e)
 
-    def zoom_in(self):
+    def zoom_in(self) -> None:
         old_factor = self.zoom_factor
         self.zoom_factor = min(3.0, self.zoom_factor * 1.1)
         if old_factor != self.zoom_factor:
             self._apply_zoom()
             self._update_size()
 
-    def zoom_out(self):
+    def zoom_out(self) -> None:
         old_factor = self.zoom_factor
         self.zoom_factor = max(0.5, self.zoom_factor / 1.1)
         if old_factor != self.zoom_factor:
             self._apply_zoom()
             self._update_size()
 
-    def reset_zoom(self):
+    def reset_zoom(self) -> None:
         old_factor = self.zoom_factor
         self.zoom_factor = 1.2  # Reset to default zoom
         if old_factor != self.zoom_factor:
             self._apply_zoom()
             self._update_size()
 
-    def get_scroll_area(self):
+    def get_scroll_area(self) -> "ChatContentScrollArea | None":
         """Find the parent ChatContentScrollArea"""
         parent = self.parent()
         while parent:
@@ -170,8 +172,8 @@ class MarkdownTextBrowser(QTextBrowser):
             parent = parent.parent()
         return None
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
+    def resizeEvent(self, e: QtGui.QResizeEvent) -> None:
+        super().resizeEvent(e)
         self._update_size()
 
 
@@ -234,18 +236,18 @@ class MessageContainer(QWidget):
             # Install event filter to handle hover
             self.installEventFilter(self)
 
-    def eventFilter(self, obj, event):
+    def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:
         """Handle mouse enter/leave events to show/hide copy button"""
-        if obj == self and not self.is_user:
+        if watched == self and not self.is_user:
             if event.type() == QtCore.QEvent.Type.Enter:
                 if hasattr(self, "copy_btn"):
                     self.copy_btn.show()
             elif event.type() == QtCore.QEvent.Type.Leave:
                 if hasattr(self, "copy_btn"):
                     self.copy_btn.hide()
-        return super().eventFilter(obj, event)
+        return super().eventFilter(watched, event)
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
         """Position the copy button in the top-right corner"""
         super().resizeEvent(event)
         if hasattr(self, "copy_btn") and not self.is_user:
@@ -256,7 +258,7 @@ class MessageContainer(QWidget):
                 8,  # 8px from top edge
             )
 
-    def copy_content(self):
+    def copy_content(self) -> None:
         """Copy the message content to clipboard with visual feedback"""
         QApplication.clipboard().setText(self.markdown_text)
 
@@ -290,10 +292,10 @@ class ChatContentScrollArea(QScrollArea):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.content_widget: QWidget | None = None
-        self.layout: QVBoxLayout | None = None
+        self.content_layout: QVBoxLayout | None = None
         self.setup_ui()
 
-    def setup_ui(self):
+    def setup_ui(self) -> None:
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -307,10 +309,10 @@ class ChatContentScrollArea(QScrollArea):
         self.setWidget(self.content_widget)
 
         # Main layout with improved spacing
-        self.layout = QVBoxLayout(self.content_widget)
-        self.layout.setSpacing(8)  # Reduced spacing between messages
-        self.layout.setContentsMargins(15, 15, 15, 15)  # Adjusted margins
-        self.layout.addStretch()
+        self.content_layout = QVBoxLayout(self.content_widget)
+        self.content_layout.setSpacing(8)  # Reduced spacing between messages
+        self.content_layout.setContentsMargins(15, 15, 15, 15)  # Adjusted margins
+        self.content_layout.addStretch()
 
         # Enhanced scroll area styling - consistent with SettingsWindow
         self.setStyleSheet(
@@ -349,12 +351,12 @@ class ChatContentScrollArea(QScrollArea):
         """,
         )
 
-    def add_message(self, text, is_user=False):
-        if not self.layout:
+    def add_message(self, text: str, is_user: bool = False) -> MarkdownTextBrowser | None:
+        if not self.content_layout:
             return None
 
         # Remove bottom stretch
-        self.layout.takeAt(self.layout.count() - 1)
+        self.content_layout.takeAt(self.content_layout.count() - 1)
 
         # Create text display first
         text_display = MarkdownTextBrowser(self.content_widget, is_user_message=is_user)
@@ -369,8 +371,8 @@ class ChatContentScrollArea(QScrollArea):
             text_display=text_display,
         )
 
-        self.layout.addWidget(msg_container)
-        self.layout.addStretch()
+        self.content_layout.addWidget(msg_container)
+        self.content_layout.addStretch()
 
         parent = self.parent()
         if hasattr(parent, "current_text_display") and isinstance(parent, ResponseWindow):
@@ -380,33 +382,34 @@ class ChatContentScrollArea(QScrollArea):
 
         return text_display
 
-    def post_message_updates(self):
+    def post_message_updates(self) -> None:
         """Handle updates after adding a message with proper timing"""
         self.scroll_to_bottom()
         parent = self.parent()
         if isinstance(parent, ResponseWindow):
             parent._adjust_window_height()
 
-    def update_content_height(self):
+    def update_content_height(self) -> None:
         """Recalculate total content height with improved spacing calculation"""
-        if not self.layout:
+        if not self.content_layout:
             return
 
         total_height = 0
 
         # Calculate height of all messages
-        for i in range(self.layout.count() - 1):  # Skip stretch item
-            item = self.layout.itemAt(i)
+        for i in range(self.content_layout.count() - 1):  # Skip stretch item
+            item = self.content_layout.itemAt(i)
             if item and item.widget():
                 widget_height = item.widget().sizeHint().height()
                 total_height += widget_height
 
         # Add spacing between messages and margins
-        total_height += self.layout.spacing() * (
-            self.layout.count() - 2
+        total_height += self.content_layout.spacing() * (
+            self.content_layout.count() - 2
         )  # Message spacing
         total_height += (
-            self.layout.contentsMargins().top() + self.layout.contentsMargins().bottom()
+            self.content_layout.contentsMargins().top()
+            + self.content_layout.contentsMargins().bottom()
         )
 
         # Set minimum height with some padding
@@ -418,22 +421,22 @@ class ChatContentScrollArea(QScrollArea):
         if isinstance(parent, ResponseWindow):
             parent._adjust_window_height()
 
-    def scroll_to_bottom(self):
+    def scroll_to_bottom(self) -> None:
         """Smooth scroll to bottom of content"""
         vsb = self.verticalScrollBar()
         vsb.setValue(vsb.maximum())
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, arg__1: QtGui.QResizeEvent) -> None:
         """Handle resize events with improved width calculations"""
-        super().resizeEvent(event)
+        super().resizeEvent(arg__1)
 
-        if not self.layout:
+        if not self.content_layout:
             return
 
         # Update width for all message displays
         available_width = self.width() - 40  # Account for margins
-        for i in range(self.layout.count() - 1):  # Skip stretch item
-            item = self.layout.itemAt(i)
+        for i in range(self.content_layout.count() - 1):  # Skip stretch item
+            item = self.content_layout.itemAt(i)
             if item and item.widget():
                 container = item.widget()
                 if isinstance(container, MessageContainer):
@@ -450,15 +453,21 @@ class ChatContentScrollArea(QScrollArea):
 
 
 class ResponseWindow(ThemedWidget):
-    """Enhanced response window with improved sizing and zoom handling"""
+    """Enhanced response window"""
 
-    def __init__(self, app: "WritingToolApp", title=_("Response"), parent=None):
+    def __init__(
+        self,
+        app: WritingToolApp,
+        title: str = _("Response"),
+        parent: QWidget | None = None,
+    ):
         super().__init__()
         self.app = app
+        self.content_layout: QVBoxLayout | None = None
         self.original_title = title
         self.setWindowTitle(title)
         self.option = title.replace(" Result", "")
-        self.selected_text = None
+        self.selected_text: str | None = None
         self.input_field = None
         self.loading_label = None
         self.loading_container = None
@@ -483,7 +492,7 @@ class ResponseWindow(ThemedWidget):
         initial_height = 250
         self.resize(initial_width, initial_height)
 
-    def init_ui(self):
+    def init_ui(self) -> None:
         # Window setup with enhanced flags
         self.setWindowFlags(
             QtCore.Qt.WindowType.Window
@@ -494,9 +503,9 @@ class ResponseWindow(ThemedWidget):
         self.setMinimumSize(600, 400)
 
         # Main layout setup
-        content_layout = QVBoxLayout(self.background)
-        content_layout.setContentsMargins(20, 20, 20, 20)
-        content_layout.setSpacing(10)
+        self.content_layout = QVBoxLayout(self.background)
+        self.content_layout.setContentsMargins(20, 20, 20, 20)
+        self.content_layout.setSpacing(10)
 
         # Top bar with zoom controls
         top_bar = QHBoxLayout()
@@ -539,7 +548,7 @@ class ResponseWindow(ThemedWidget):
             btn.setFixedSize(30, 30)
             top_bar.addWidget(btn)
 
-        content_layout.addLayout(top_bar)
+        self.content_layout.addLayout(top_bar)
 
         # Copy controls with matching text size
         copy_bar = QHBoxLayout()
@@ -551,7 +560,7 @@ class ResponseWindow(ThemedWidget):
         )
         copy_bar.addWidget(copy_hint)
         copy_bar.addStretch()
-        content_layout.addLayout(copy_bar)
+        self.content_layout.addLayout(copy_bar)
 
         # Loading indicator
         loading_container = QWidget()
@@ -580,7 +589,7 @@ class ResponseWindow(ThemedWidget):
         loading_layout.addWidget(loading_inner_container)
         loading_layout.addStretch()
 
-        content_layout.addWidget(loading_container)
+        self.content_layout.addWidget(loading_container)
         self.loading_container = loading_container
 
         # Start thinking animation
@@ -588,7 +597,7 @@ class ResponseWindow(ThemedWidget):
 
         # Enhanced chat area with full width
         self.chat_area = ChatContentScrollArea()
-        content_layout.addWidget(self.chat_area)
+        self.content_layout.addWidget(self.chat_area)
 
         # Input area with enhanced styling
         bottom_bar = QHBoxLayout()
@@ -636,33 +645,33 @@ class ResponseWindow(ThemedWidget):
         send_button.clicked.connect(self.send_message)
         bottom_bar.addWidget(send_button)
 
-        content_layout.addLayout(bottom_bar)
+        self.content_layout.addLayout(bottom_bar)
 
     # Method to get first response text
-    def get_first_response_text(self):
-        """Get the first model response text from chat history"""
-        try:
-            # Check chat history exists
-            if not self.chat_history:
-                return None
+    # def get_first_response_text(self):
+    #     """Get the first model response text from chat history"""
+    #     try:
+    #         # Check chat history exists
+    #         if not self.chat_history:
+    #             return None
 
-            # Find first assistant message
-            for msg in self.chat_history:
-                if msg["role"] == "assistant":
-                    return msg["content"]
+    #         # Find first assistant message
+    #         for msg in self.chat_history:
+    #             if msg["role"] == "assistant":
+    #                 return msg["content"]
 
-            return None
-        except Exception as e:
-            logging.exception(f"Error getting first response: {e}")
-            return None
+    #         return None
+    #     except Exception as e:
+    #         logging.exception(f"Error getting first response: {e}")
+    #         return None
 
-    def copy_first_response(self):
-        """Copy only the first model response as Markdown"""
-        response_text = self.get_first_response_text()
-        if response_text:
-            QApplication.clipboard().setText(response_text)
+    # def copy_first_response(self):
+    #     """Copy only the first model response as Markdown"""
+    #     response_text = self.get_first_response_text()
+    #     if response_text:
+    #         QApplication.clipboard().setText(response_text)
 
-    def get_button_style(self):
+    def get_button_style(self) -> str:
         current_mode = get_effective_color_mode()
         return f"""
             QPushButton {{
@@ -678,7 +687,7 @@ class ResponseWindow(ThemedWidget):
             }}
         """
 
-    def update_thinking_dots(self):
+    def update_thinking_dots(self) -> None:
         """Update the thinking animation dots with proper cycling"""
         self.thinking_dots_state = (self.thinking_dots_state + 1) % len(
             self.thinking_dots
@@ -690,7 +699,7 @@ class ResponseWindow(ThemedWidget):
         elif self.input_field:
             self.input_field.setPlaceholderText(_("Thinking") + f"{dots}")
 
-    def start_thinking_animation(self, initial=False):
+    def start_thinking_animation(self, initial=False) -> None:
         """Start the thinking animation for either initial load or follow-up questions"""
         self.thinking_dots_state = 0
 
@@ -705,7 +714,7 @@ class ResponseWindow(ThemedWidget):
 
         self.thinking_timer.start()
 
-    def stop_thinking_animation(self):
+    def stop_thinking_animation(self) -> None:
         """Stop the thinking animation"""
         self.thinking_timer.stop()
         if self.loading_container:
@@ -721,13 +730,13 @@ class ResponseWindow(ThemedWidget):
             self.layout().invalidate()
             self.layout().activate()
 
-    def zoom_all_messages(self, action="in"):
+    def zoom_all_messages(self, action="in") -> None:
         """Apply zoom action to all messages in the chat"""
-        if not self.chat_area or not self.chat_area.layout:
+        if not self.chat_area or not self.chat_area.content_layout:
             return
 
-        for i in range(self.chat_area.layout.count() - 1):  # Skip stretch item
-            item = self.chat_area.layout.itemAt(i)
+        for i in range(self.chat_area.content_layout.count() - 1):  # Skip stretch item
+            item = self.chat_area.content_layout.itemAt(i)
             if item and item.widget():
                 container = item.widget()
                 if isinstance(container, MessageContainer):
@@ -744,7 +753,7 @@ class ResponseWindow(ThemedWidget):
         if self.chat_area:
             self.chat_area.update_content_height()
 
-    def _adjust_window_height(self):
+    def _adjust_window_height(self) -> None:
         """Calculate and set the ideal window height"""
         # Skip adjustment if window already has a size
         if hasattr(self, "_size_initialized"):
@@ -806,7 +815,7 @@ class ResponseWindow(ThemedWidget):
             self._size_initialized = True
 
     @Slot(str)
-    def set_text(self, text):
+    def set_text(self, text: str) -> None:
         """Set initial response text with enhanced handling"""
         if not text.strip() or not self.chat_area:
             return
@@ -834,7 +843,7 @@ class ResponseWindow(ThemedWidget):
         QtCore.QTimer.singleShot(100, self._adjust_window_height)
 
     @Slot(str)
-    def handle_followup_response(self, response_text):
+    def handle_followup_response(self, response_text: str) -> None:
         """Handle the follow-up response from the AI with improved layout handling"""
         if response_text and self.chat_area:
             if self.loading_label:
@@ -865,7 +874,7 @@ class ResponseWindow(ThemedWidget):
         # Update window height
         QtCore.QTimer.singleShot(100, self._adjust_window_height)
 
-    def send_message(self):
+    def send_message(self) -> None:
         """Send a new message/question"""
         if not self.input_field or not self.chat_area:
             return
@@ -891,7 +900,7 @@ class ResponseWindow(ThemedWidget):
         self.start_thinking_animation()
         self.app.process_followup_question(self, message)
 
-    def copy_as_markdown(self):
+    def copy_as_markdown(self) -> None:
         """Copy conversation as Markdown"""
         markdown = ""
         for msg in self.chat_history:
@@ -902,7 +911,7 @@ class ResponseWindow(ThemedWidget):
 
         QApplication.clipboard().setText(markdown)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Handle window close event"""
         # Save zoom factor to settings
         if hasattr(self, "current_text_display") and self.current_text_display:

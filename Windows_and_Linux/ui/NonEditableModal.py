@@ -4,23 +4,33 @@ Used on non editable text selections, like a web page or PDF document.
 """
 
 import logging
+from typing import TYPE_CHECKING
 
 import markdown2
 import pyperclip
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui
 from PySide6.QtCore import Qt, Slot
+from PySide6.QtWidgets import (
+    QApplication,
+    QDialog,
+    QHBoxLayout,
+    QPushButton,
+    QTextBrowser,
+    QVBoxLayout,
+)
 
-# from ui.ui_utils import colorMode
+if TYPE_CHECKING:
+    from Windows_and_Linux.WritingToolApp import WritingToolApp
 
 
 def _(x):
     return x
 
 
-class NonEditableModal(QtWidgets.QDialog):
+class NonEditableModal(QDialog):
     """Modal window to display transformed text when pasting fails."""
 
-    def __init__(self, app, transformed_text):
+    def __init__(self, app: WritingToolApp, transformed_text: str | None):
         super().__init__()
         self.app = app
         self.transformed_text = transformed_text
@@ -44,41 +54,40 @@ class NonEditableModal(QtWidgets.QDialog):
 
         # Center on screen
         self.move(
-            QtWidgets.QApplication.primaryScreen().geometry().center()
-            - self.rect().center(),
+            QApplication.primaryScreen().geometry().center() - self.rect().center(),
         )
 
-    def setup_ui(self):
+    def setup_ui(self) -> None:
         """Setup the user interface"""
-        layout = QtWidgets.QVBoxLayout(self)
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
 
         # Text display area
-        self.text_display = QtWidgets.QTextBrowser()
+        self.text_display = QTextBrowser()
         self.text_display.setReadOnly(True)
         self.text_display.setOpenExternalLinks(True)
 
         # Convert markdown to HTML
         html_content = markdown2.markdown(
-            self.transformed_text,
+            self.transformed_text or "",
             extras=["fenced-code-blocks", "tables"],
         )
         self.text_display.setHtml(html_content)
         layout.addWidget(self.text_display)
 
         # Buttons
-        button_layout = QtWidgets.QHBoxLayout()
+        button_layout = QHBoxLayout()
         button_layout.addStretch()
 
         # Copy button
-        self.copy_button = QtWidgets.QPushButton("📋")
+        self.copy_button = QPushButton("📋")
         self.copy_button.setFixedSize(36, 36)
         self.copy_button.clicked.connect(self.copy_text)
         self.copy_button.setToolTip(_("Copy text"))
 
         # Close button
-        self.close_button = QtWidgets.QPushButton("✕")
+        self.close_button = QPushButton("✕")
         self.close_button.setFixedSize(36, 36)
         self.close_button.clicked.connect(self.close)
         self.close_button.setToolTip(_("Close"))
@@ -89,7 +98,7 @@ class NonEditableModal(QtWidgets.QDialog):
 
         self.copy_button.setFocus()
 
-    def apply_styles(self):
+    def apply_styles(self) -> None:
         """Apply theme styles"""
         # Use the standardized color mode detection
         from ui.ui_utils import get_effective_color_mode
@@ -153,7 +162,7 @@ class NonEditableModal(QtWidgets.QDialog):
             """,
             )
 
-    def register_for_theme_changes(self):
+    def register_for_theme_changes(self) -> None:
         """Register this modal for theme change notifications."""
         try:
             from ui.ThemeManager import theme_manager
@@ -164,11 +173,11 @@ class NonEditableModal(QtWidgets.QDialog):
             # ThemeManager not available, skip registration
             pass
 
-    def refresh_theme(self):
+    def refresh_theme(self) -> None:
         """Refresh the modal's theme when color mode changes."""
         self.apply_styles()
 
-    def closeEvent(self, arg__1: QtGui.QCloseEvent):
+    def closeEvent(self, arg__1: QtGui.QCloseEvent) -> None:
         """Handle window close event and unregister from theme manager."""
         try:
             from ui.ThemeManager import theme_manager
@@ -179,16 +188,16 @@ class NonEditableModal(QtWidgets.QDialog):
         super().closeEvent(arg__1)
 
     @Slot()
-    def copy_text(self):
+    def copy_text(self) -> None:
         """Copy the transformed text to clipboard"""
         try:
-            pyperclip.copy(self.transformed_text)
+            pyperclip.copy(self.transformed_text or "")
             self.copy_button.setText("✓")
             QtCore.QTimer.singleShot(1000, lambda: self.copy_button.setText("📋"))
         except Exception as e:
             logging.exception(f"Error copying text: {e}")
 
-    def keyPressEvent(self, arg__1: QtGui.QKeyEvent):
+    def keyPressEvent(self, arg__1: QtGui.QKeyEvent) -> None:
         """Handle key press events"""
         if arg__1.key() == Qt.Key.Key_Escape:
             self.close()
@@ -203,7 +212,10 @@ class NonEditableModal(QtWidgets.QDialog):
 
 # Example usage for testing
 if __name__ == "__main__":
-    app = QtWidgets.QApplication([])
+    from Windows_and_Linux.WritingToolApp import WritingToolApp
+
+    app = QApplication([])
+    writing_app = WritingToolApp(None)
 
     # Test text with markdown
     test_text = """# Test Title
@@ -223,7 +235,7 @@ def hello():
 [Link Google](https://google.com)
 """
 
-    modal = NonEditableModal(app, test_text)
+    modal = NonEditableModal(writing_app, test_text)
     modal.show()
 
     app.exec()

@@ -2,7 +2,8 @@
 Centralized theme manager for the entire application.
 """
 
-from PySide6 import QtCore
+from PySide6 import QtCore, QtGui
+from PySide6.QtWidgets import QWidget
 
 from ui.ui_utils import get_effective_color_mode, set_color_mode
 
@@ -24,20 +25,20 @@ class ThemeManager(QtCore.QObject):
         if hasattr(self, "_initialized"):
             return
         super().__init__()
-        self._initialized = True
+        self._initialized: bool = True
         self._registered_widgets = []
 
-    def register_widget(self, widget):
+    def register_widget(self, widget: QWidget) -> None:
         """Register a widget to receive theme updates."""
         if widget not in self._registered_widgets:
             self._registered_widgets.append(widget)
 
-    def unregister_widget(self, widget):
+    def unregister_widget(self, widget: QWidget) -> None:
         """Unregister a widget."""
         if widget in self._registered_widgets:
             self._registered_widgets.remove(widget)
 
-    def change_theme(self, new_mode):
+    def change_theme(self, new_mode: str) -> None:
         """Change the theme and notify all registered widgets."""
         set_color_mode(new_mode)
         current_mode = get_effective_color_mode()
@@ -55,7 +56,7 @@ class ThemeManager(QtCore.QObject):
                     self._registered_widgets.remove(widget)
 
     @staticmethod
-    def get_styles():
+    def get_styles() -> dict[str, str]:
         """Return all standardized styles based on the current theme."""
         current_mode = get_effective_color_mode()
         is_dark = current_mode == "dark"
@@ -108,7 +109,7 @@ class ThemeManager(QtCore.QObject):
         }
 
 
-class ThemeAwareMixin:
+class ThemeAwareMixin(QWidget):
     """Mixin to make a widget theme change aware."""
 
     def __init__(self, *args, **kwargs):
@@ -117,18 +118,18 @@ class ThemeAwareMixin:
         # Connect the theme change signal
         theme_manager.theme_changed.connect(self._on_theme_changed)
 
-    def _on_theme_changed(self):
+    def _on_theme_changed(self) -> None:
         """Automatically called when the theme changes."""
         # Call refresh_theme if the method exists in the derived class
         refresh_theme_method = getattr(self, "refresh_theme", None)
         if refresh_theme_method and callable(refresh_theme_method):
             refresh_theme_method()
 
-    def get_styles(self):
+    def get_styles(self) -> dict[str, str]:
         """Shortcut to get current styles."""
         return ThemeManager.get_styles()
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Unregister the widget when it closes."""
         theme_manager.unregister_widget(self)
         # Safely call parent's closeEvent if it exists

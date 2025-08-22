@@ -2,9 +2,16 @@
 Progress Window for long-running operations like Ollama installation.
 """
 
-from PySide6 import QtCore
+from PySide6 import QtCore, QtGui
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QDialog, QLabel, QProgressBar, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import (
+    QDialog,
+    QLabel,
+    QProgressBar,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from ui.ui_utils import get_effective_color_mode
 
@@ -17,7 +24,12 @@ class ProgressWindow(QDialog):
     # Signal emitted when user cancels the operation
     cancelled = QtCore.Signal()
 
-    def __init__(self, title="Operation in progress", message="Please wait", parent=None):
+    def __init__(
+        self,
+        title: str = "Operation in progress",
+        message: str = "Please wait",
+        parent: QWidget | None = None,
+    ):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setModal(True)
@@ -32,7 +44,7 @@ class ProgressWindow(QDialog):
         self._setup_ui()
         self._apply_theme()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         """Setup the UI components."""
         layout = QVBoxLayout(self)
         layout.setSpacing(20)
@@ -54,7 +66,7 @@ class ProgressWindow(QDialog):
         self.cancel_button.clicked.connect(self._on_cancel)
         layout.addWidget(self.cancel_button)
 
-    def _apply_theme(self):
+    def _apply_theme(self) -> None:
         """Apply the current theme to the window."""
         current_mode = get_effective_color_mode()
 
@@ -103,35 +115,35 @@ class ProgressWindow(QDialog):
             }}
         """)
 
-    def start_animation(self):
+    def start_animation(self) -> None:
         """Start the dots animation."""
         self.timer.start(500)  # Update every 500ms
 
-    def stop_animation(self):
+    def stop_animation(self) -> None:
         """Stop the dots animation."""
         self.timer.stop()
 
-    def _update_dots(self):
+    def _update_dots(self) -> None:
         """Update the animated dots."""
         self.dots_count = (self.dots_count + 1) % 4
         dots = "." * self.dots_count
         self.message_label.setText(f"{self.base_message}{dots}")
 
-    def update_message(self, message):
+    def update_message(self, message: str) -> None:
         """Update the message text."""
         self.base_message = message
         self.dots_count = 0
         self._update_dots()
 
-    def _on_cancel(self):
+    def _on_cancel(self) -> None:
         """Handle cancel button click."""
         self.cancelled.emit()
         self.close()
 
-    def closeEvent(self, event):
+    def closeEvent(self, arg__1: QtGui.QCloseEvent) -> None:
         """Handle window close event."""
         self.stop_animation()
-        super().closeEvent(event)
+        super().closeEvent(arg__1)
 
 
 class OllamaInstallProgressWindow(ProgressWindow):
@@ -139,21 +151,21 @@ class OllamaInstallProgressWindow(ProgressWindow):
     Specialized progress window for Ollama installation.
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(
             title="Ollama Installation",
             message="Ollama download in progress",
             parent=parent,
         )
 
-    def set_downloading(self):
+    def set_downloading(self) -> None:
         """Set the window to downloading state."""
         self.update_message("Ollama download in progress")
 
-    def set_installing(self):
+    def set_installing(self) -> None:
         """Set the window to installing state."""
         self.update_message("Ollama installation in progress")
 
-    def set_finishing(self):
+    def set_finishing(self) -> None:
         """Set the window to finishing state."""
         self.update_message("Finishing Ollama installation")

@@ -2,11 +2,11 @@
     "python.analysis.autoImportCompletions": true,
     "python.analysis.diagnosticMode": "workspace",
     "python.analysis.include": [
-        "./Windows_and_Linux/**"
+        "./**"
     ],
-    "python.defaultInterpreterPath": "./Windows_and_Linux/myvenv/Scripts/python.exe",
+    "python.defaultInterpreterPath": "./myvenv/Scripts/python.exe",
     "python.analysis.extraPaths": [
-        "./Windows_and_Linux/myvenv/Lib/site-packages",
+        "./myvenv/Lib/site-packages",
         "./Windows_and_Linux"
     ],
     "python.analysis.autoSearchPaths": true,
@@ -24,8 +24,8 @@
         "files.trimTrailingWhitespace": true
     },
     
-    "ruff.configuration": "./Windows_and_Linux/pyproject.toml",
-    "ruff.path": ["./Windows_and_Linux/myvenv/Scripts/ruff.exe"],
+    "ruff.configuration": "./pyproject.toml",
+    "ruff.path": ["./myvenv/Scripts/ruff.exe"],
     "python.formatting.provider": "none",
     "editor.formatOnType": false,
     

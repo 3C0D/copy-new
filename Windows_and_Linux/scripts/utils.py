@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 
-def get_project_root():
+def get_project_root() -> Path:
     """Get the Windows_and_Linux directory (the working directory for the project)"""
     script_dir = Path(__file__).parent  # scripts/
     windows_linux_dir = script_dir.parent  # Windows_and_Linux/
@@ -20,7 +20,7 @@ def get_project_root():
     return windows_linux_dir
 
 
-def check_data(mode: str):
+def check_data(mode: str) -> None:
     """Checks data file path to provide feedback to the user based on build mode"""
 
     if mode == "build-final":
@@ -46,12 +46,12 @@ def check_data(mode: str):
         print(f"Settings will be saved to: {cwd / data_path}")
 
 
-def clear_console():
+def clear_console() -> None:
     """Clear console screen (cross-platform)"""
     os.system("cls" if os.name == "nt" else "clear")
 
 
-def copy_required_files(build_type, target_dir):
+def copy_required_files(build_type: str, target_dir: str) -> bool:
     """
     Copy required files for build to the specified target directory.
 
@@ -111,7 +111,7 @@ def copy_required_files(build_type, target_dir):
     return True
 
 
-def python_exe_version():
+def python_exe_version() -> str:
     """Find the best Python executable available"""
     python_candidates = ["python3", "python", "py"]
 
@@ -133,7 +133,7 @@ def python_exe_version():
     raise RuntimeError("Python 3 not found. Please install Python 3.")
 
 
-def calculate_file_hash(file_path):
+def calculate_file_hash(file_path: Path) -> str | None:
     """Calculate SHA256 hash of a file"""
     if not os.path.exists(file_path):
         return None
@@ -145,7 +145,7 @@ def calculate_file_hash(file_path):
     return sha256_hash.hexdigest()
 
 
-def create_virtual_environment(venv_path, python_cmd):
+def create_virtual_environment(venv_path: str, python_cmd: str) -> bool:
     """Create a virtual environment if it doesn't exist"""
     if os.path.exists(venv_path):
         print("Virtual environment already exists.")
@@ -173,7 +173,7 @@ def create_virtual_environment(venv_path, python_cmd):
             return False
 
 
-def get_python_executable(venv_path):
+def get_python_executable(venv_path: str) -> Path:
     """Get the appropriate activation script path for the platform"""
     venv_dir = Path(venv_path)
     if sys.platform.startswith("win"):
@@ -181,7 +181,7 @@ def get_python_executable(venv_path):
     return venv_dir / "bin" / "python"
 
 
-def get_pip_executable(venv_path):
+def get_pip_executable(venv_path: str) -> Path:
     """Get the pip executable path for the virtual environment"""
     venv = Path(venv_path)
 
@@ -190,7 +190,7 @@ def get_pip_executable(venv_path):
     return (venv / "bin" / "pip").resolve()
 
 
-def install_dependencies(venv_path, requirements_path):
+def install_dependencies(venv_path: str, requirements_path: str) -> bool:
     """Install or update dependencies and remove unused ones using hash comparison"""
     venv = Path(venv_path)
     requirements = Path(requirements_path)
@@ -301,7 +301,7 @@ def install_dependencies(venv_path, requirements_path):
         return True
 
 
-def kill_existing_exe_process(process_name):
+def kill_existing_exe_process(process_name: str) -> None:
     """Terminate an existing process by its name."""
     try:
         if sys.platform.startswith("win"):
@@ -337,7 +337,7 @@ def kill_existing_exe_process(process_name):
         print(f"Warning: Error while trying to kill process {process_name}: {e}")
 
 
-def kill_python_script_process(script_name):
+def kill_python_script_process(script_name: str) -> None:
     """Terminate a Python script process by its command line."""
     try:
         if sys.platform.startswith("win"):
@@ -369,14 +369,14 @@ def kill_python_script_process(script_name):
         )
 
 
-def get_executable_name(base_name="Writing Tools"):
+def get_executable_name(base_name: str = "Writing Tools") -> str:
     """Get the correct executable name for the current platform"""
     if sys.platform.startswith("win"):
         return f"{base_name}.exe"
     return base_name
 
 
-def terminate_existing_processes(exe_name=None, script_name=None):
+def terminate_existing_processes(exe_name: str | None = None, script_name: str | None = None) -> None:
     """Terminate any existing Writing Tools processes (both exe and script)"""
     print("Checking for and terminating any existing Writing Tools processes...")
 
@@ -387,7 +387,7 @@ def terminate_existing_processes(exe_name=None, script_name=None):
         kill_python_script_process(script_name)
 
 
-def verify_requirements(required_files):
+def verify_requirements(required_files: list[Path]) -> bool:
     """Verify that required files exist before building"""
     missing_files = []
     for file_path in required_files:
@@ -406,7 +406,9 @@ def verify_requirements(required_files):
 # Removed copy_newer_file - no longer needed with new config structure
 
 
-def setup_environment(venv_path="myvenv", requirements_path="requirements.txt"):
+def setup_environment(
+    venv_path: str = "myvenv", requirements_path: str = "requirements.txt"
+) -> tuple[bool, str | None]:
     """Setup virtual environment and install dependencies
 
     Returns a tuple of two values:
@@ -435,7 +437,7 @@ def setup_environment(venv_path="myvenv", requirements_path="requirements.txt"):
         return False, None
 
 
-def get_activation_script(venv_path):
+def get_activation_script(venv_path: str) -> Path:
     """Get the appropriate activation script path for the platform"""
     venv = Path(venv_path)
 

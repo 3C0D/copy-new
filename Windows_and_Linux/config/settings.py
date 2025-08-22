@@ -8,7 +8,7 @@ import logging
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from .data_operations import (
     create_default_settings,
@@ -55,12 +55,12 @@ class SettingsManager:
     def __init__(self, mode: str = "dev"):
         """Initialize the settings manager with intelligent mode detection and fallback logic."""
         self._logger = logging.getLogger(__name__)
-        self.mode = mode
+        self.mode: str = mode
         self._logger.debug(f"Set mode in settings: {self.mode}")
-        self.base_dir = self._get_base_directory()
+        self.base_dir: Path = self._get_base_directory()
         self._logger.debug(f"Base directory in settings: {self.base_dir.absolute().name}")
         self.settings: UnifiedSettings = create_default_settings()  # Always initialized!
-        self.data_file = self._resolve_data_file_path()
+        self.data_file: Path = self._resolve_data_file_path()
 
         # Setup logging (with build context detection inside _setup_logging)
         self._setup_logging()
@@ -90,7 +90,7 @@ class SettingsManager:
         """Set provider configurations."""
         self.settings.custom_data["providers"] = value
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         """
         Smart attribute access for system settings only.
         Special cases (actions, providers) are handled by explicit properties.
@@ -107,7 +107,7 @@ class SettingsManager:
             f"'{self.__class__.__name__}' object has no attribute '{name}'"
         )
 
-    def __setattr__(self, name: str, value):
+    def __setattr__(self, name: str, value: Any) -> None:
         """
         Smart attribute assignment for settings.
 
@@ -246,7 +246,7 @@ class SettingsManager:
         else:
             return self.base_dir / self.DIST_DEV_PATH / self.DATA_DEV_FILE
 
-    def _ensure_directories_exist(self):
+    def _ensure_directories_exist(self) -> None:
         """Ensure necessary directories exist for dev and build-dev modes."""
         if self._is_build_final():
             return
@@ -256,7 +256,7 @@ class SettingsManager:
             dist_dev_dir = self.base_dir / self.DIST_DEV_PATH
             dist_dev_dir.mkdir(parents=True, exist_ok=True)
 
-    def _load_user_data(self) -> Optional[dict[str, Any]]:
+    def _load_user_data(self) -> dict[str, Any] | None:
         """Load user data from the data file."""
         try:
             with open(self.data_file, encoding="utf-8") as f:
@@ -316,7 +316,7 @@ class SettingsManager:
     # LOGGING SETUP
     #
 
-    def _setup_logging(self):
+    def _setup_logging(self) -> None:
         """Setup file logging for dev and build-dev modes."""
         if not self._is_development_mode():
             return
@@ -340,7 +340,7 @@ class SettingsManager:
         except Exception as e:
             self._logger.error(f"Failed to setup file logging: {e}")
 
-    def _configure_file_handler(self):
+    def _configure_file_handler(self) -> None:
         """Configure the rotating file handler for logging."""
         log_file = self._get_log_file_path()
         log_file.parent.mkdir(parents=True, exist_ok=True)
@@ -377,7 +377,7 @@ class SettingsManager:
             )
             return self.base_dir / self.DIST_DEV_PATH / "dev_debug.log"
 
-    def _log_initialization_info(self):
+    def _log_initialization_info(self) -> None:
         """Log debug information about initialization."""
         self._logger.debug("SettingsManager initialized:")
         self._logger.debug(f"  base_dir: {self.base_dir.absolute().name}")

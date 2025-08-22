@@ -31,12 +31,9 @@ Response Flow:
    • For direct text replacement, the provider emits the full text via the output_ready_signal.
    • Conversation history (for follow-up questions) is maintained by the main app.
 
-Note: Streaming has been fully removed throughout the code.
 """
 
 # Disable Pylance reportPrivateImportUsage for google.generativeai
-# The library doesn't properly define __all__, causing false positives
-# but all imports (configure, types.HarmCategory, etc.) work correctly at runtime
 # pyright: reportPrivateImportUsage=false
 
 # Standard library imports
@@ -48,7 +45,7 @@ import subprocess
 import tempfile
 import webbrowser
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Callable, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, Union, cast
 
 # Third-party imports (with fallbacks for optional dependencies)
 try:
@@ -67,8 +64,18 @@ except ImportError:
     OpenAI = None
 
 # PySide6 imports
-from PySide6 import QtCore, QtWidgets
-from PySide6.QtWidgets import QVBoxLayout
+from PySide6 import QtCore
+from PySide6.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QVBoxLayout,
+)
 
 # Google Generative AI imports (with fallbacks)
 try:
@@ -117,26 +124,26 @@ class AIProviderSetting(ABC):
         default_value: str | None = None,
         description: str | None = None,
     ):
-        self.name = name
-        self.display_name = display_name or name
-        self.default_value = default_value or ""
-        self.description = description or ""
+        self.name: str = name
+        self.display_name: str = display_name or name
+        self.default_value: str = default_value or ""
+        self.description: str = description or ""
         # Callback function (no args, no return) or None
         self.auto_save_callback: Callable[[], None] | None = None
 
     @abstractmethod
-    def render_to_layout(self, layout: QVBoxLayout):
+    def render_to_layout(self, layout: QVBoxLayout) -> None:
         """Render the setting widget(s) into the provided layout."""
 
     @abstractmethod
-    def set_value(self, value):
+    def set_value(self, value: str) -> None:
         """Set the internal value from configuration."""
 
     @abstractmethod
     def get_value(self) -> str:
         """Return the current value from the widget."""
 
-    def set_auto_save_callback(self, callback: Callable):
+    def set_auto_save_callback(self, callback: Callable) -> None:
         """Set callback function for auto-saving when value changes."""
         self.auto_save_callback = callback
 
@@ -157,21 +164,21 @@ class TextSetting(AIProviderSetting):
         description: str | None = None,
     ):
         super().__init__(name, display_name, default_value, description)
-        self.internal_value = default_value
-        self.input: QtWidgets.QLineEdit | None = None
+        self.internal_value: str | None = default_value
+        self.input: QLineEdit | None = None
 
-    def render_to_layout(self, layout: QVBoxLayout):
+    def render_to_layout(self, layout: QVBoxLayout) -> None:
         """Create and add the QLineEdit with its label to the layout."""
         from ui.ui_utils import get_effective_color_mode
 
-        row_layout = QtWidgets.QHBoxLayout()
-        label = QtWidgets.QLabel(self.display_name)
+        row_layout = QHBoxLayout()
+        label = QLabel(self.display_name)
         current_mode = get_effective_color_mode()
         label.setStyleSheet(
             f"font-size: 16px; color: {'#ffffff' if current_mode == 'dark' else '#333333'};"
         )
         row_layout.addWidget(label)
-        self.input = QtWidgets.QLineEdit(self.internal_value)
+        self.input = QLineEdit(self.internal_value)
         self.input.setStyleSheet(
             f"""
             font-size: 16px;
@@ -188,7 +195,7 @@ class TextSetting(AIProviderSetting):
         row_layout.addWidget(self.input)
         layout.addLayout(row_layout)
 
-    def set_value(self, value):
+    def set_value(self, value: str) -> None:
         """Store value internally and update widget if it exists."""
         self.internal_value = value
         if self.input is not None:
@@ -229,21 +236,21 @@ class DropdownSetting(AIProviderSetting):
         super().__init__(name, display_name, default_value, description)
         self.options = options or []
         self.internal_value = default_value
-        self.dropdown: QtWidgets.QComboBox | None = None
+        self.dropdown: QComboBox | None = None
         self.refresh_callback = refresh_callback
 
-    def render_to_layout(self, layout: QVBoxLayout):
+    def render_to_layout(self, layout: QVBoxLayout) -> None:
         """Create and configure the QComboBox with available options."""
         from ui.ui_utils import get_effective_color_mode
 
-        row_layout = QtWidgets.QHBoxLayout()
-        label = QtWidgets.QLabel(self.display_name)
+        row_layout = QHBoxLayout()
+        label = QLabel(self.display_name)
         current_mode = get_effective_color_mode()
         label.setStyleSheet(
             f"font-size: 16px; color: {'#ffffff' if current_mode == 'dark' else '#333333'};"
         )
         row_layout.addWidget(label)
-        self.dropdown = QtWidgets.QComboBox()
+        self.dropdown = QComboBox()
         # Ensure dropdown can receive focus and clicks properly
         self.dropdown.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.dropdown.setStyleSheet(
@@ -294,7 +301,7 @@ class DropdownSetting(AIProviderSetting):
         row_layout.addWidget(self.dropdown)
         layout.addLayout(row_layout)
 
-    def set_value(self, value):
+    def set_value(self, value: str) -> None:
         """Store value for selection during rendering and update widget if it exists."""
         self.internal_value = value
         if self.dropdown is not None:
@@ -319,7 +326,7 @@ class DropdownSetting(AIProviderSetting):
             # Widget has been deleted, return stored value or empty string
             return getattr(self, "internal_value", "")
 
-    def refresh_options(self, new_options: list):
+    def refresh_options(self, new_options: list) -> None:
         """Refresh the dropdown options dynamically."""
         if self.dropdown is None:
             self.options = new_options
@@ -379,7 +386,7 @@ class AIProvider(ABC):
 
     def __init__(
         self,
-        app: "WritingToolApp",
+        app: WritingToolApp,
         provider_name: str,
         settings: list[AIProviderSetting],
         description: str = "An unfinished AI provider!",
@@ -404,11 +411,11 @@ class AIProvider(ABC):
         # These attributes will be updated during configuration loading
         # self._initialize_dynamic_attributes()
 
-    def add_button(self, text: str, action: Callable, style: str = "secondary"):
+    def add_button(self, text: str, action: Callable, style: str = "secondary") -> None:
         """Add an additional button to the provider UI."""
         self.additional_buttons.append({"text": text, "action": action, "style": style})
 
-    def refresh_configuration(self):
+    def refresh_configuration(self) -> None:
         """
         Refresh the provider configuration dynamically.
         This method should be overridden by providers that need dynamic reconfiguration.
@@ -426,7 +433,7 @@ class AIProvider(ABC):
         return getattr(self, "_api_model", "")
 
     @api_model.setter
-    def api_model(self, value: str):
+    def api_model(self, value: str) -> None:
         """Generic setter for the api_model attribute."""
         self._api_model = value
         # Also update the corresponding setting if it exists
@@ -449,7 +456,7 @@ class AIProvider(ABC):
         - Emitting the output_ready_signal for direct text replacement
         """
 
-    def load_config(self, config: dict):
+    def load_config(self, config: dict) -> None:
         """
         Load configuration settings into the provider.
 
@@ -464,7 +471,7 @@ class AIProvider(ABC):
                 setattr(self, setting.name, setting.default_value)
         self.after_load()
 
-    def save_config(self):
+    def save_config(self) -> None:
         """
         Save provider configuration settings into the main config file.
 
@@ -491,7 +498,7 @@ class AIProvider(ABC):
         self.app.settings_manager.save()
 
     @abstractmethod
-    def after_load(self):
+    def after_load(self) -> None:
         """
         Called after configuration is loaded; create your API client here.
 
@@ -500,7 +507,7 @@ class AIProvider(ABC):
         """
 
     @abstractmethod
-    def before_load(self):
+    def before_load(self) -> None:
         """
         Called before reloading configuration; cleanup your API client here.
 
@@ -509,7 +516,7 @@ class AIProvider(ABC):
         """
 
     @abstractmethod
-    def cancel(self):
+    def cancel(self) -> None:
         """
         Cancel any ongoing API request.
 
@@ -527,9 +534,9 @@ class GeminiProvider(AIProvider):
     Handles safety settings to allow less restricted content.
     """
 
-    def __init__(self, app: "WritingToolApp"):
-        self.close_requested = False
-        self.model = None
+    def __init__(self, app: WritingToolApp):
+        self.close_requested: bool = False
+        self.model: Any = None
 
         settings = [
             TextSetting(
@@ -719,7 +726,7 @@ class GeminiProvider(AIProvider):
 
         return ""
 
-    def after_load(self):
+    def after_load(self) -> None:
         """
         Configure the google.generativeai client and create the generative model.
 
@@ -786,11 +793,11 @@ class GeminiProvider(AIProvider):
         else:
             self.model = None
 
-    def before_load(self):
+    def before_load(self) -> None:
         """Clean up model instance before reloading."""
         self.model = None
 
-    def cancel(self):
+    def cancel(self) -> None:
         """Set cancellation flag to interrupt operations."""
         self.close_requested = True
 
@@ -804,9 +811,9 @@ class OpenAICompatibleProvider(AIProvider):
     and project authentication.
     """
 
-    def __init__(self, app: "WritingToolApp"):
-        self.close_requested = None
-        self.client = None
+    def __init__(self, app: WritingToolApp):
+        self.close_requested: bool = False
+        self.client: Any = None
 
         settings = [
             TextSetting(
@@ -925,7 +932,7 @@ class OpenAICompatibleProvider(AIProvider):
                 )
             return ""
 
-    def after_load(self):
+    def after_load(self) -> None:
         """Initialize OpenAI client with configured settings."""
         if OpenAI is not None:
             self.client = OpenAI(
@@ -935,16 +942,16 @@ class OpenAICompatibleProvider(AIProvider):
                 project=self.api_project,
             )
 
-    def before_load(self):
+    def before_load(self) -> None:
         """Clean up client before reloading."""
         self.client = None
 
-    def cancel(self):
+    def cancel(self) -> None:
         """Set cancellation flag."""
         self.close_requested = True
 
 
-def find_ollama_executable():
+def find_ollama_executable() -> str | None:
     """
     Find the Ollama executable in standard installation locations.
     Returns the path to ollama executable or None if not found.
@@ -984,7 +991,7 @@ def find_ollama_executable():
     return None
 
 
-def is_ollama_installed():
+def is_ollama_installed() -> bool:
     """
     Check if Ollama is installed and available on the system.
     Returns True if Ollama is installed, False otherwise.
@@ -1007,7 +1014,7 @@ def is_ollama_installed():
         return False
 
 
-def install_ollama_auto(app):
+def install_ollama_auto(app) -> bool:
     """
     Automatically detect platform and install Ollama.
     """
@@ -1025,12 +1032,11 @@ def install_ollama_auto(app):
         return False
 
 
-def install_ollama_windows(app):
+def install_ollama_windows(app) -> bool:
     """
     Download and install Ollama on Windows automatically.
     Shows a progress window with animated loading dots during the process.
     """
-    from PySide6.QtWidgets import QApplication
 
     from ui.ProgressWindow import OllamaInstallProgressWindow
 
@@ -1142,11 +1148,10 @@ def install_ollama_windows(app):
         return False
 
 
-def install_ollama_linux(app):
+def install_ollama_linux(app) -> bool:
     """
     Install Ollama on Linux using the official installation script.
     """
-    from PySide6.QtWidgets import QApplication
 
     from ui.ProgressWindow import OllamaInstallProgressWindow
 
@@ -1214,7 +1219,7 @@ def install_ollama_linux(app):
         return False
 
 
-def get_ollama_models():
+def get_ollama_models() -> list[tuple[str, str]]:
     """
     Get list of installed Ollama models by running 'ollama list' command.
     Returns a list of tuples (display_name, model_name) for installed models.
@@ -1329,16 +1334,16 @@ class OllamaProvider(AIProvider):
     and custom models.
     """
 
-    def __init__(self, app: "WritingToolApp"):
-        self.close_requested = None
-        self.client = None
-        self.app = app
+    def __init__(self, app: WritingToolApp):
+        self.close_requested: bool = False
+        self.client: Any = None
+        self.app: WritingToolApp = app
 
         # Get available Ollama models
-        ollama_models = get_ollama_models()
+        ollama_models: list[tuple[str, str]] = get_ollama_models()
 
         # Set default model to first available model or empty string
-        default_ollama_model = ""
+        default_ollama_model: str = ""
         if (
             ollama_models and ollama_models[0][1]
         ):  # Check if first model has a valid value
@@ -1368,7 +1373,7 @@ class OllamaProvider(AIProvider):
         ]
 
         # Determine button text and action based on Ollama installation status
-        def install_ollama_action():
+        def install_ollama_action() -> None:
             return self._install_ollama()
 
         if is_ollama_installed():
@@ -1395,7 +1400,7 @@ class OllamaProvider(AIProvider):
         if is_ollama_installed():
             self.add_button("🗑️ Delete Model", self._delete_model, "secondary")
 
-    def _refresh_models(self):
+    def _refresh_models(self) -> None:
         """Refresh the list of available Ollama models."""
         ollama_models = get_ollama_models()
         for setting in self.settings:
@@ -1403,7 +1408,7 @@ class OllamaProvider(AIProvider):
                 setting.refresh_options(ollama_models)
                 break
 
-    def refresh_configuration(self):
+    def refresh_configuration(self) -> None:
         """Refresh the Ollama provider configuration based on current installation status."""
         # Re-detect Ollama installation status and update configuration
         ollama_installed = is_ollama_installed()
@@ -1435,7 +1440,7 @@ class OllamaProvider(AIProvider):
                     setting.set_value(ollama_models[0][1])
                 break
 
-    def _install_ollama(self):
+    def _install_ollama(self) -> None:
         """Handle Ollama installation and UI refresh."""
         success = install_ollama_auto(self.app)
         if success:
@@ -1445,14 +1450,12 @@ class OllamaProvider(AIProvider):
             if hasattr(self.app, "settings_window") and self.app.settings_window:
                 self.app.settings_window._on_provider_changed()
 
-    def _delete_model(self):
+    def _delete_model(self) -> None:
         """Handle Ollama model deletion with confirmation dialog."""
         from PySide6.QtWidgets import (
             QComboBox,
-            QDialog,
             QHBoxLayout,
             QLabel,
-            QPushButton,
             QVBoxLayout,
         )
 
@@ -1563,9 +1566,8 @@ class OllamaProvider(AIProvider):
             if selected_model:
                 self._confirm_and_delete_model(selected_model)
 
-    def _confirm_and_delete_model(self, model_name: str):
+    def _confirm_and_delete_model(self, model_name: str) -> None:
         """Show final confirmation and delete the model."""
-        from PySide6.QtWidgets import QMessageBox
 
         # Final confirmation
         reply = QMessageBox.question(
@@ -1657,16 +1659,16 @@ class OllamaProvider(AIProvider):
                 )
             return ""
 
-    def after_load(self):
+    def after_load(self) -> None:
         """Initialize Ollama client with configured base URL."""
         if OllamaClient is not None:
             self.client = OllamaClient(host=self.api_base)
 
-    def before_load(self):
+    def before_load(self) -> None:
         """Clean up client before reloading."""
         self.client = None
 
-    def cancel(self):
+    def cancel(self) -> None:
         """Set cancellation flag."""
         self.close_requested = True
 
@@ -1679,10 +1681,10 @@ class AnthropicProvider(AIProvider):
     Implements authentication via API key and supports different Claude models.
     """
 
-    def __init__(self, app: "WritingToolApp"):
-        self.close_requested = None
-        self.client = None
-        self.app = app
+    def __init__(self, app: WritingToolApp):
+        self.close_requested: bool = False
+        self.client: Any = None
+        self.app: WritingToolApp = app
         settings = [
             TextSetting(
                 "api_key",
@@ -1713,11 +1715,11 @@ class AnthropicProvider(AIProvider):
 
     def get_response(
         self,
-        system_instruction,
-        prompt,
-        return_response=False,
-        conversation_history=None,
-    ):
+        system_instruction: str,
+        prompt: str,
+        return_response: bool = False,
+        conversation_history: list[dict[str, str]] | None = None,
+    ) -> str:
         """
         Generate response using Anthropic's Claude API.
 
@@ -1842,7 +1844,7 @@ class AnthropicProvider(AIProvider):
                 )
             return ""
 
-    def after_load(self):
+    def after_load(self) -> None:
         """Initialize Anthropic client with proper authentication."""
         if OpenAI is not None:
             self.client = OpenAI(
@@ -1853,11 +1855,11 @@ class AnthropicProvider(AIProvider):
                 },
             )
 
-    def before_load(self):
+    def before_load(self) -> None:
         """Clean up client before reloading."""
         self.client = None
 
-    def cancel(self):
+    def cancel(self) -> None:
         """Set cancellation flag."""
         self.close_requested = True
 
@@ -1870,10 +1872,10 @@ class MistralProvider(AIProvider):
     Uses direct HTTP requests for better control and reliability.
     """
 
-    def __init__(self, app: "WritingToolApp"):
-        self.close_requested = None
-        self.client = None
-        self.app = app
+    def __init__(self, app: WritingToolApp):
+        self.close_requested: bool = False
+        self.client: Any = None
+        self.app: WritingToolApp = app
         settings = [
             TextSetting(
                 "api_key",
@@ -1906,9 +1908,9 @@ class MistralProvider(AIProvider):
         self,
         system_instruction,
         prompt,
-        return_response=False,
-        conversation_history=None,
-    ):
+        return_response: bool = False,
+        conversation_history: list[dict[str, str]] | None = None,
+    ) -> str:
         """
         Generate response using Mistral API.
 
@@ -2070,14 +2072,14 @@ class MistralProvider(AIProvider):
             )
             return ""
 
-    def after_load(self):
+    def after_load(self) -> None:
         """No client initialization needed - using requests directly."""
         pass
 
-    def before_load(self):
+    def before_load(self) -> None:
         """No client cleanup needed."""
         pass
 
-    def cancel(self):
+    def cancel(self) -> None:
         """Set cancellation flag."""
         self.close_requested = True
