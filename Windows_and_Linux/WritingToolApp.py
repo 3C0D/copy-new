@@ -584,7 +584,28 @@ class WritingToolApp(QApplication):
         Show the popup window when the hotkey is pressed.
         """
         self._logger.debug("Showing popup window")
-        # First attempt with default sleep
+        
+        # Check for clipboard image FIRST (before any text capture)
+        clipboard_image = self.get_clipboard_image()
+        
+        # If there's an image, bypass text selection and open chat directly
+        if clipboard_image is not None:
+            self._logger.debug("Image detected in clipboard, opening chat directly")
+            # Create response window for image analysis
+            self.current_response_window = self.show_response_window(
+                "Image Analysis", ""
+            )
+            # Initialize chat history with image
+            self.current_response_window.chat_history = [
+                {
+                    "role": "user",
+                    "content": "[Image from clipboard]",
+                    "image": clipboard_image
+                }
+            ]
+            return
+        
+        # Only capture text if no image is present
         selected_text = self.get_selected_text()
 
         # Retry with longer sleep if no text captured
@@ -592,9 +613,15 @@ class WritingToolApp(QApplication):
             self._logger.debug("No text captured, retrying with longer sleep")
             selected_text = self.get_selected_text(sleep_duration=0.5)
 
-        clipboard_image = self.get_clipboard_image()
         self._logger.debug(f'Selected text: "{selected_text}"')
         self._logger.debug(f'Clipboard image: {clipboard_image is not None}')
+        
+        # If no text captured and no image, open chat directly
+        if not selected_text:
+            self._logger.debug("No text and no image, opening chat directly")
+            self.current_response_window = self.show_response_window("Chat", "")
+            return
+            
         try:
             if self.popup_window is not None:
                 self._logger.debug("Existing popup window found")
@@ -1068,10 +1095,16 @@ class WritingToolApp(QApplication):
         Args:
             sleep_duration (float): Time to wait for clipboard update
         """
+        # Check if clipboard has image BEFORE clearing it
+        clipboard_image = self.get_clipboard_image()
+        if clipboard_image is not None:
+            self._logger.debug("Image detected in clipboard, skipping text capture to preserve image")
+            return ""
+        
         # Backup the clipboard
-        clipboard_backup = pyperclip.paste()
+        self.clipboard_backup = pyperclip.paste()
         self._logger.debug(
-            f'Clipboard backup: "{clipboard_backup}" (sleep: {sleep_duration}s)'
+            f'Clipboard backup: "{self.clipboard_backup}" (sleep: {sleep_duration}s)'
         )
 
         # Clear the clipboard
@@ -1101,7 +1134,7 @@ class WritingToolApp(QApplication):
             selected_text = selected_text.strip()
 
         # Restore the clipboard
-        pyperclip.copy(clipboard_backup)
+        pyperclip.copy(self.clipboard_backup)
 
         return selected_text
 
