@@ -598,38 +598,44 @@ class WritingToolApp(QApplication):
         Show the popup window when the hotkey is pressed.
         """
         self._logger.debug("Showing popup window")
-        
-        # PRIORITY 1: Check for text selection (fast, no clipboard clearing)
-        if platform.system() == "Windows":
-            selected_text = self._detect_text_selection_windows()
-        else:
-            selected_text = self._detect_text_selection_linux()
-        
-        self._logger.debug(f'Text selection detected: "{selected_text}"')
-        
-        # PRIORITY 2: If text selection exists, use it (ignore photo)
-        if selected_text:
-            self._logger.debug("Text selection found, showing popup with text")
-            self._show_popup_with_text(selected_text)
-            return
-        
-        # PRIORITY 3: No text selection, check for photo
-        self._logger.debug("No text selection, checking for clipboard image")
-        clipboard_image = self.get_clipboard_image()
-        
-        if clipboard_image is not None:
-            self._logger.debug("Image found in clipboard, opening chat with image")
-            self._open_chat_with_image(clipboard_image)
-            return
-        
-        # PRIORITY 4: Nothing found, show normal popup
-        self._logger.debug("Nothing found, showing normal popup")
-        self._show_normal_popup()
 
-    def _show_popup_with_text(self, selected_text: str) -> None:
-        """
-        Show popup window with detected text selection.
-        """
+        # Check for clipboard image FIRST (before any text capture)
+        clipboard_image = self.get_clipboard_image()
+
+        # If there's an image, bypass text selection and open chat directly
+        if clipboard_image is not None:
+            self._logger.debug("Image detected in clipboard, opening chat directly")
+            # Create response window for image analysis
+            self.current_response_window = self.show_response_window(
+                "Image Analysis", ""
+            )
+            # Initialize chat history with image
+            self.current_response_window.chat_history = [
+                {
+                    "role": "user",
+                    "content": "[Image from clipboard]",
+                    "image": clipboard_image
+                }
+            ]
+            return
+
+        # Only capture text if no image is present
+        selected_text = self.get_selected_text()
+
+        # Retry with longer sleep if no text captured
+        if not selected_text:
+            self._logger.debug("No text captured, retrying with longer sleep")
+            selected_text = self.get_selected_text(sleep_duration=0.5)
+
+        self._logger.debug(f'Selected text: "{selected_text}"')
+        self._logger.debug(f'Clipboard image: {clipboard_image is not None}')
+
+        # If no text captured and no image, open chat directly
+        if not selected_text:
+            self._logger.debug("No text and no image, opening chat directly")
+            self.current_response_window = self.show_response_window("Chat", "")
+            return
+
         try:
             if self.popup_window is not None:
                 self._logger.debug("Existing popup window found")
@@ -637,15 +643,15 @@ class WritingToolApp(QApplication):
                     self._logger.debug("Closing existing visible popup window")
                     self.popup_window.close()
                 self.popup_window = None
-            
+
             self._logger.debug("Creating popup window with text")
             self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(
                 self, selected_text, None  # No image
             )
-            
+
             # Position and show popup
             self._position_and_show_popup()
-            
+
         except Exception as e:
             self._logger.error(f"Error showing popup with text: {e}", exc_info=True)
 
@@ -660,15 +666,15 @@ class WritingToolApp(QApplication):
                     self._logger.debug("Closing existing visible popup window")
                     self.popup_window.close()
                 self.popup_window = None
-            
+
             self._logger.debug("Creating normal popup window")
             self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(
                 self, "", None  # No text, no image
             )
-            
+
             # Position and show popup
             self._position_and_show_popup()
-            
+
         except Exception as e:
             self._logger.error(f"Error showing normal popup: {e}", exc_info=True)
 
@@ -681,7 +687,7 @@ class WritingToolApp(QApplication):
             icon_path = get_icon_path("app_icon", with_theme=False)
             if icon_path.exists():
                 self.setWindowIcon(QtGui.QIcon(icon_path.as_posix()))
-            
+
             # Get the screen containing the cursor
             cursor_pos = QCursor.pos()
             screen = QGuiApplication.screenAt(cursor_pos)
@@ -690,32 +696,32 @@ class WritingToolApp(QApplication):
             screen_geometry = screen.geometry()
             self._logger.debug(f"Cursor is on screen: {screen.name()}")
             self._logger.debug(f"Screen geometry: {screen_geometry}")
-            
+
             # Show the popup to get its size
             self.popup_window.show()
             self.popup_window.adjustSize()
             self.popup_window.activateWindow()
-            
+
             if self.popup_window.custom_input:
                 QtCore.QTimer.singleShot(100, self.popup_window.custom_input.setFocus)
 
             popup_width = self.popup_window.width()
             popup_height = self.popup_window.height()
-            
+
             # Calculate position
             x = cursor_pos.x()
             y = cursor_pos.y() + 20  # 20 pixels below cursor
-            
+
             # Adjust if the popup would go off the right edge of the screen
             if x + popup_width > screen_geometry.right():
                 x = screen_geometry.right() - popup_width
             # Adjust if the popup would go off the bottom edge of the screen
             if y + popup_height > screen_geometry.bottom():
                 y = cursor_pos.y() - popup_height - 10  # 10 pixels above cursor
-                
+
             self.popup_window.move(x, y)
             self._logger.debug(f"Popup window moved to position: ({x}, {y})")
-            
+
         except Exception as e:
             self._logger.error(f"Error positioning popup: {e}", exc_info=True)
 
@@ -726,12 +732,12 @@ class WritingToolApp(QApplication):
         """
         try:
             self._logger.debug("Opening chat window with clipboard image")
-            
+
             # Create response window for image analysis
             self.current_response_window = self.show_response_window(
                 "Image Analysis", ""
             )
-            
+
             # Initialize chat history with image
             self.current_response_window.chat_history = [
                 {
@@ -740,13 +746,13 @@ class WritingToolApp(QApplication):
                     "image": image
                 }
             ]
-            
+
             # Enable force chat mode for image analysis
             if hasattr(self.current_response_window, 'force_chat_mode'):
                 self.current_response_window.force_chat_mode = True
-            
+
             self._logger.debug("Chat window opened successfully with image")
-            
+
         except Exception as e:
             self._logger.error(f"Error opening chat with image: {e}", exc_info=True)
 
@@ -757,40 +763,40 @@ class WritingToolApp(QApplication):
         """
         if not WINDOWS_CLIPBOARD_AVAILABLE:
             return ""
-            
+
         try:
             # Try to get selected text via Windows API without clearing clipboard
             import win32clipboard
             import win32con
-            
+
             # Check if there's text in the clipboard first
             if win32clipboard.IsClipboardFormatAvailable(win32con.CF_TEXT) or \
                win32clipboard.IsClipboardFormatAvailable(win32con.CF_UNICODETEXT):
                 return ""
-            
+
             # Try to get selected text via simulated Ctrl+C (but backup first)
             clipboard_backup = pyperclip.paste()
-            
+
             # Simulate Ctrl+C
             kbrd = pykeyboard.Controller()
             kbrd.press(pykeyboard.Key.ctrl.value)
             kbrd.press("c")
             kbrd.release("c")
             kbrd.release(pykeyboard.Key.ctrl.value)
-            
+
             # Quick check for text
             time.sleep(0.1)  # Very short wait
             selected_text = pyperclip.paste()
-            
+
             # Restore clipboard immediately
             pyperclip.copy(clipboard_backup)
-            
+
             if selected_text and selected_text.strip():
                 return selected_text.strip()
-            
+
         except Exception as e:
             self._logger.debug(f"Windows text selection detection failed: {e}")
-        
+
         return ""
 
     def _detect_text_selection_linux(self) -> str:
@@ -802,29 +808,29 @@ class WritingToolApp(QApplication):
             # Check if there's already text in clipboard
             clipboard = QApplication.clipboard()
             mime_data = clipboard.mimeData()
-            
+
             if mime_data.hasText():
                 return ""
-            
+
             # Try quick Ctrl+C simulation
             clipboard_backup = pyperclip.paste()
-            
+
             kbrd = pykeyboard.Controller()
             kbrd.press(pykeyboard.Key.ctrl.value)
             kbrd.press("c")
             kbrd.release("c")
             kbrd.release(pykeyboard.Key.ctrl.value)
-            
+
             time.sleep(0.1)
             selected_text = pyperclip.paste()
             pyperclip.copy(clipboard_backup)
-            
+
             if selected_text and selected_text.strip():
                 return selected_text.strip()
-                
+
         except Exception as e:
             self._logger.debug(f"Linux text selection detection failed: {e}")
-        
+
         return ""
 
     def debug_clipboard_contents(self) -> None:
@@ -870,7 +876,7 @@ class WritingToolApp(QApplication):
                     "image/x-portable-pixmap", "image/x-portable-bitmap",
                     "image/x-portable-graymap", "image/x-portable-anymap"
                 ]
-                
+
                 for fmt in linux_formats:
                     has_format = mime_data.hasFormat(fmt)
                     if has_format:
@@ -878,7 +884,7 @@ class WritingToolApp(QApplication):
                         self._logger.debug(f"Linux format '{fmt}': YES ({data_size} bytes)")
                     else:
                         self._logger.debug(f"Linux format '{fmt}': NO")
-                
+
                 # Check for any format containing image-related keywords
                 self._logger.debug("--- Checking for image-related formats ---")
                 for fmt in formats:
@@ -906,6 +912,8 @@ class WritingToolApp(QApplication):
         3. Raw data analysis for Windows clipboard formats
         4. Linux-specific clipboard formats and methods
         5. Direct image data access
+        4. Linux-specific clipboard formats and methods
+        5. Linux system tools fallback (xclip, xsel)
         """
         try:
             clipboard = QApplication.clipboard()
@@ -1003,7 +1011,7 @@ class WritingToolApp(QApplication):
             # Method 4: Linux-specific clipboard formats and methods
             if platform.system() == "Linux":
                 self._logger.debug("Method 4: Checking Linux-specific clipboard formats")
-                
+
                 # Linux clipboard formats commonly used for images
                 linux_formats = [
                     "image/x-qt-image", "image/x-qt-pixmap", "image/x-qt-pixmap",
@@ -1011,7 +1019,7 @@ class WritingToolApp(QApplication):
                     "image/x-portable-pixmap", "image/x-portable-bitmap",
                     "image/x-portable-graymap", "image/x-portable-anymap"
                 ]
-                
+
                 for fmt in linux_formats:
                     if mime_data.hasFormat(fmt):
                         self._logger.debug(f"Method 4: Found Linux format '{fmt}'")
@@ -1030,7 +1038,7 @@ class WritingToolApp(QApplication):
                                     self._logger.debug(f"Failed to load image from Linux format '{fmt}' data")
                         except Exception as e:
                             self._logger.debug(f"Error processing Linux format '{fmt}': {e}")
-                
+
                 # Try to get image data directly from clipboard (Linux-specific approach)
                 try:
                     # Sometimes on Linux, the image data is available but not detected by hasImage()
@@ -1073,11 +1081,11 @@ class WritingToolApp(QApplication):
                 try:
                     # Try to access clipboard data in different ways
                     clipboard_data = clipboard.mimeData()
-                    
+
                     # Check if there are any data formats that might contain image data
                     all_formats = clipboard_data.formats()
                     self._logger.debug(f"All available formats on Linux: {all_formats}")
-                    
+
                     # Look for any format that might contain image data
                     for fmt in all_formats:
                         if any(img_type in fmt.lower() for img_type in ['image', 'pixmap', 'bitmap', 'png', 'jpeg', 'jpg']):
@@ -1093,31 +1101,20 @@ class WritingToolApp(QApplication):
                                             return image
                             except Exception as e:
                                 self._logger.debug(f"Error processing potential format '{fmt}': {e}")
-                                
+
                 except Exception as e:
                     self._logger.debug(f"Alternative Linux clipboard access failed: {e}")
 
-            # Method 7: Linux system tools fallback (xclip, xsel) - DISABLED
-            # if platform.system() == "Linux":
-            #     self._logger.debug("Method 7: Trying Linux system tools fallback")
-            #     try:
-            #         image = self._get_image_from_linux_system_tools()
-            #         if image is not None:
-            #         self._logger.debug(f"Image found via Linux system tools: {image.width()}x{image.height()}")
-            #         return image
-            #     except Exception as e:
-            #         self._logger.debug(f"Linux system tools fallback failed: {e}")
-
-            # Method 8: Windows native clipboard API (like Claude does)
-            if platform.system() == "Windows" and WINDOWS_CLIPBOARD_AVAILABLE:
-                self._logger.debug("Method 8: Trying Windows native clipboard API")
+            # Method 7: Linux system tools fallback (xclip, xsel)
+            if platform.system() == "Linux":
+                self._logger.debug("Method 7: Trying Linux system tools fallback")
                 try:
-                    image = self._get_image_from_windows_native()
+                    image = self._get_image_from_linux_system_tools()
                     if image is not None:
-                        self._logger.debug(f"Image found via Windows native API: {image.width()}x{image.height()}")
+                        self._logger.debug(f"Image found via Linux system tools: {image.width()}x{image.height()}")
                         return image
                 except Exception as e:
-                    self._logger.debug(f"Windows native API failed: {e}")
+                    self._logger.debug(f"Linux system tools fallback failed: {e}")
 
             self._logger.debug("No image found in clipboard using any method")
 
@@ -1139,20 +1136,20 @@ class WritingToolApp(QApplication):
             # Try xclip first (more common)
             try:
                 # Check if xclip is available
-                result = subprocess.run(['xclip', '-selection', 'clipboard', '-t', 'TARGETS'], 
+                result = subprocess.run(['xclip', '-selection', 'clipboard', '-t', 'TARGETS'],
                                       capture_output=True, text=True, timeout=5)
                 if result.returncode == 0:
                     self._logger.debug("xclip is available, trying to get image")
-                    
+
                     # Try to get image data from clipboard
-                    img_result = subprocess.run(['xclip', '-selection', 'clipboard', '-t', 'image/png', '-o'], 
+                    img_result = subprocess.run(['xclip', '-selection', 'clipboard', '-t', 'image/png', '-o'],
                                              capture_output=True, timeout=5)
                     if img_result.returncode == 0 and img_result.stdout:
                         # Create temporary file to save image data
                         with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
                             temp_file.write(img_result.stdout)
                             temp_file_path = temp_file.name
-                        
+
                         try:
                             # Load image from temporary file
                             image = QImage(temp_file_path)
@@ -1165,17 +1162,17 @@ class WritingToolApp(QApplication):
                                 os.unlink(temp_file_path)
                             except:
                                 pass
-                    
+
                     # Try other image formats
                     for img_type in ['image/jpeg', 'image/bmp', 'image/gif']:
                         try:
-                            img_result = subprocess.run(['xclip', '-selection', 'clipboard', '-t', img_type, '-o'], 
+                            img_result = subprocess.run(['xclip', '-selection', 'clipboard', '-t', img_type, '-o'],
                                                      capture_output=True, timeout=5)
                             if img_result.returncode == 0 and img_result.stdout:
                                 with tempfile.NamedTemporaryFile(suffix=f'.{img_type.split("/")[1]}', delete=False) as temp_file:
                                     temp_file.write(img_result.stdout)
                                     temp_file_path = temp_file.name
-                                
+
                                 try:
                                     image = QImage(temp_file_path)
                                     if not image.isNull():
@@ -1188,7 +1185,7 @@ class WritingToolApp(QApplication):
                                         pass
                         except Exception as e:
                             self._logger.debug(f"xclip failed for {img_type}: {e}")
-                            
+
             except FileNotFoundError:
                 self._logger.debug("xclip not found, trying xsel")
             except Exception as e:
@@ -1197,20 +1194,20 @@ class WritingToolApp(QApplication):
             # Try xsel as fallback
             try:
                 # Check if xsel is available
-                result = subprocess.run(['xsel', '--clipboard', '--type', 'TARGETS'], 
+                result = subprocess.run(['xsel', '--clipboard', '--type', 'TARGETS'],
                                       capture_output=True, text=True, timeout=5)
                 if result.returncode == 0:
                     self._logger.debug("xsel is available, trying to get image")
-                    
+
                     # Try to get image data from clipboard
-                    img_result = subprocess.run(['xsel', '--clipboard', '--type', 'image/png', '--output'], 
+                    img_result = subprocess.run(['xsel', '--clipboard', '--type', 'image/png', '--output'],
                                              capture_output=True, timeout=5)
                     if img_result.returncode == 0 and img_result.stdout:
                         # Create temporary file to save image data
                         with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
                             temp_file.write(img_result.stdout)
                             temp_file_path = temp_file.name
-                        
+
                         try:
                             # Load image from temporary file
                             image = QImage(temp_file_path)
@@ -1223,17 +1220,17 @@ class WritingToolApp(QApplication):
                                 os.unlink(temp_file_path)
                             except:
                                 pass
-                    
+
                     # Try other image formats
                     for img_type in ['image/jpeg', 'image/bmp', 'image/gif']:
                         try:
-                            img_result = subprocess.run(['xsel', '--clipboard', '--type', img_type, '--output'], 
+                            img_result = subprocess.run(['xsel', '--clipboard', '--type', img_type, '--output'],
                                                      capture_output=True, timeout=5)
                             if img_result.returncode == 0 and img_result.stdout:
                                 with tempfile.NamedTemporaryFile(suffix=f'.{img_type.split("/")[1]}', delete=False) as temp_file:
                                     temp_file.write(img_result.stdout)
                                     temp_file_path = temp_file.name
-                                
+
                                 try:
                                     image = QImage(temp_file_path)
                                     if not image.isNull():
@@ -1246,7 +1243,7 @@ class WritingToolApp(QApplication):
                                         pass
                         except Exception as e:
                             self._logger.debug(f"xsel failed for {img_type}: {e}")
-                            
+
             except FileNotFoundError:
                 self._logger.debug("Neither xclip nor xsel found")
             except Exception as e:
@@ -1265,10 +1262,10 @@ class WritingToolApp(QApplication):
         if not WINDOWS_CLIPBOARD_AVAILABLE:
             self._logger.debug("Windows clipboard API not available")
             return None
-            
+
         try:
             win32clipboard.OpenClipboard()
-            
+
             # Check for CF_BITMAP format (Windows native bitmap)
             if win32clipboard.IsClipboardFormatAvailable(win32con.CF_BITMAP):
                 self._logger.debug("Windows native: CF_BITMAP format found")
@@ -1279,7 +1276,7 @@ class WritingToolApp(QApplication):
                         # Convert Windows bitmap to QImage
                         from PySide6.QtGui import QPixmap
                         from PySide6.QtWinExtras import QtWin
-                        
+
                         try:
                             # Try to convert Windows bitmap to QPixmap
                             pixmap = QtWin.fromHBITMAP(bitmap_handle)
@@ -1292,10 +1289,10 @@ class WritingToolApp(QApplication):
                             self._logger.debug("QtWin not available, trying alternative method")
                         except Exception as e:
                             self._logger.debug(f"QtWin conversion failed: {e}")
-                            
+
                 except Exception as e:
                     self._logger.debug(f"Windows native CF_BITMAP processing failed: {e}")
-            
+
             # Check for CF_DIB format (Device Independent Bitmap)
             if win32clipboard.IsClipboardFormatAvailable(win32con.CF_DIB):
                 self._logger.debug("Windows native: CF_DIB format found")
@@ -1310,7 +1307,7 @@ class WritingToolApp(QApplication):
                                 return image
                 except Exception as e:
                     self._logger.debug(f"Windows native CF_DIB processing failed: {e}")
-            
+
             # Check for CF_DIBV5 format (Device Independent Bitmap v5)
             dibv5_format = win32clipboard.RegisterClipboardFormat("CF_DIBV5")
             if win32clipboard.IsClipboardFormatAvailable(dibv5_format):
@@ -1325,7 +1322,7 @@ class WritingToolApp(QApplication):
                                 return image
                 except Exception as e:
                     self._logger.debug(f"Windows native CF_DIBV5 processing failed: {e}")
-            
+
             # Check for PNG format (if available)
             if win32clipboard.IsClipboardFormatAvailable(win32clipboard.RegisterClipboardFormat("PNG")):
                 self._logger.debug("Windows native: PNG format found")
@@ -1339,16 +1336,372 @@ class WritingToolApp(QApplication):
                                 return image
                 except Exception as e:
                     self._logger.debug(f"Windows native PNG processing failed: {e}")
-            
+
             win32clipboard.CloseClipboard()
-            
+
         except Exception as e:
             self._logger.debug(f"Windows native clipboard access failed: {e}")
             try:
                 win32clipboard.CloseClipboard()
             except:
                 pass
-        
+
+        return None
+
+    def _get_image_from_linux_system_tools(self) -> Optional[QImage]:
+        """
+        Try to get image from clipboard using Linux system tools (xclip, xsel).
+        This is a fallback method when Qt clipboard methods fail.
+        """
+        try:
+            import subprocess
+            import tempfile
+            import os
+
+            # Try xclip first (more common)
+            try:
+                # Check if xclip is available
+                result = subprocess.run(['xclip', '-selection', 'clipboard', '-t', 'TARGETS'],
+                                      capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    self._logger.debug("xclip is available, trying to get image")
+
+                    # Try to get image data from clipboard
+                    img_result = subprocess.run(['xclip', '-selection', 'clipboard', '-t', 'image/png', '-o'],
+                                             capture_output=True, timeout=5)
+                    if img_result.returncode == 0 and img_result.stdout:
+                        # Create temporary file to save image data
+                        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                            temp_file.write(img_result.stdout)
+                            temp_file_path = temp_file.name
+
+                        try:
+                            # Load image from temporary file
+                            image = QImage(temp_file_path)
+                            if not image.isNull():
+                                self._logger.debug(f"Image loaded via xclip: {image.width()}x{image.height()}")
+                                return image
+                        finally:
+                            # Clean up temporary file
+                            try:
+                                os.unlink(temp_file_path)
+                            except:
+                                pass
+
+                    # Try other image formats
+                    for img_type in ['image/jpeg', 'image/bmp', 'image/gif']:
+                        try:
+                            img_result = subprocess.run(['xclip', '-selection', 'clipboard', '-t', img_type, '-o'],
+                                                     capture_output=True, timeout=5)
+                            if img_result.returncode == 0 and img_result.stdout:
+                                with tempfile.NamedTemporaryFile(suffix=f'.{img_type.split("/")[1]}', delete=False) as temp_file:
+                                    temp_file.write(img_result.stdout)
+                                    temp_file_path = temp_file.name
+
+                                try:
+                                    image = QImage(temp_file_path)
+                                    if not image.isNull():
+                                        self._logger.debug(f"Image loaded via xclip ({img_type}): {image.width()}x{image.height()}")
+                                        return image
+                                finally:
+                                    try:
+                                        os.unlink(temp_file_path)
+                                    except:
+                                        pass
+                        except Exception as e:
+                            self._logger.debug(f"xclip failed for {img_type}: {e}")
+
+            except FileNotFoundError:
+                self._logger.debug("xclip not found, trying xsel")
+            except Exception as e:
+                self._logger.debug(f"xclip failed: {e}")
+
+            # Try xsel as fallback
+            try:
+                # Check if xsel is available
+                result = subprocess.run(['xsel', '--clipboard', '--type', 'TARGETS'],
+                                      capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    self._logger.debug("xsel is available, trying to get image")
+
+                    # Try to get image data from clipboard
+                    img_result = subprocess.run(['xsel', '--clipboard', '--type', 'image/png', '--output'],
+                                             capture_output=True, timeout=5)
+                    if img_result.returncode == 0 and img_result.stdout:
+                        # Create temporary file to save image data
+                        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                            temp_file.write(img_result.stdout)
+                            temp_file_path = temp_file.name
+
+                        try:
+                            # Load image from temporary file
+                            image = QImage(temp_file_path)
+                            if not image.isNull():
+                                self._logger.debug(f"Image loaded via xsel: {image.width()}x{image.height()}")
+                                return image
+                        finally:
+                            # Clean up temporary file
+                            try:
+                                os.unlink(temp_file_path)
+                            except:
+                                pass
+
+                    # Try other image formats
+                    for img_type in ['image/jpeg', 'image/bmp', 'image/gif']:
+                        try:
+                            img_result = subprocess.run(['xsel', '--clipboard', '--type', img_type, '--output'],
+                                                     capture_output=True, timeout=5)
+                            if img_result.returncode == 0 and img_result.stdout:
+                                with tempfile.NamedTemporaryFile(suffix=f'.{img_type.split("/")[1]}', delete=False) as temp_file:
+                                    temp_file.write(img_result.stdout)
+                                    temp_file_path = temp_file.name
+
+                                try:
+                                    image = QImage(temp_file_path)
+                                    if not image.isNull():
+                                        self._logger.debug(f"Image loaded via xsel ({img_type}): {image.width()}x{image.height()}")
+                                        return image
+                                finally:
+                                    try:
+                                        os.unlink(temp_file_path)
+                                    except:
+                                        pass
+                        except Exception as e:
+                            self._logger.debug(f"xsel failed for {img_type}: {e}")
+
+            except FileNotFoundError:
+                self._logger.debug("Neither xclip nor xsel found")
+            except Exception as e:
+                self._logger.debug(f"xsel failed: {e}")
+
+        except Exception as e:
+            self._logger.debug(f"Linux system tools fallback failed: {e}")
+
+        return None
+
+    def _get_image_from_windows_native(self) -> Optional[QImage]:
+        """
+        Get image from clipboard using Windows native API (like Claude does).
+        This bypasses Qt clipboard limitations on Windows.
+        """
+        if not WINDOWS_CLIPBOARD_AVAILABLE:
+            self._logger.debug("Windows clipboard API not available")
+            return None
+
+        try:
+            win32clipboard.OpenClipboard()
+
+            # Check for CF_BITMAP format (Windows native bitmap)
+            if win32clipboard.IsClipboardFormatAvailable(win32con.CF_BITMAP):
+                self._logger.debug("Windows native: CF_BITMAP format found")
+                try:
+                    # Get the bitmap handle
+                    bitmap_handle = win32clipboard.GetClipboardData(win32con.CF_BITMAP)
+                    if bitmap_handle:
+                        # Convert Windows bitmap to QImage
+                        from PySide6.QtGui import QPixmap
+                        from PySide6.QtWinExtras import QtWin
+
+                        try:
+                            # Try to convert Windows bitmap to QPixmap
+                            pixmap = QtWin.fromHBITMAP(bitmap_handle)
+                            if pixmap and not pixmap.isNull():
+                                image = pixmap.toImage()
+                                if not image.isNull():
+                                    self._logger.debug(f"Windows native: Image converted from CF_BITMAP: {image.width()}x{image.height()}")
+                                    return image
+                        except ImportError:
+                            self._logger.debug("QtWin not available, trying alternative method")
+                        except Exception as e:
+                            self._logger.debug(f"QtWin conversion failed: {e}")
+
+                except Exception as e:
+                    self._logger.debug(f"Windows native CF_BITMAP processing failed: {e}")
+
+            # Check for CF_DIB format (Device Independent Bitmap)
+            if win32clipboard.IsClipboardFormatAvailable(win32con.CF_DIB):
+                self._logger.debug("Windows native: CF_DIB format found")
+                try:
+                    dib_data = win32clipboard.GetClipboardData(win32con.CF_DIB)
+                    if dib_data:
+                        # Convert DIB data to QImage
+                        image = QImage()
+                        if image.loadFromData(dib_data):
+                            if not image.isNull():
+                                self._logger.debug(f"Windows native: Image loaded from CF_DIB: {image.width()}x{image.height()}")
+                                return image
+                except Exception as e:
+                    self._logger.debug(f"Windows native CF_DIB processing failed: {e}")
+
+            # Check for CF_DIBV5 format (Device Independent Bitmap v5)
+            dibv5_format = win32clipboard.RegisterClipboardFormat("CF_DIBV5")
+            if win32clipboard.IsClipboardFormatAvailable(dibv5_format):
+                self._logger.debug("Windows native: CF_DIBV5 format found")
+                try:
+                    dibv5_data = win32clipboard.GetClipboardData(dibv5_format)
+                    if dibv5_data:
+                        image = QImage()
+                        if image.loadFromData(dibv5_data):
+                            if not image.isNull():
+                                self._logger.debug(f"Windows native: Image loaded from CF_DIBV5: {image.width()}x{image.height()}")
+                                return image
+                except Exception as e:
+                    self._logger.debug(f"Windows native CF_DIBV5 processing failed: {e}")
+
+            # Check for PNG format (if available)
+            if win32clipboard.IsClipboardFormatAvailable(win32clipboard.RegisterClipboardFormat("PNG")):
+                self._logger.debug("Windows native: PNG format found")
+                try:
+                    png_data = win32clipboard.GetClipboardData(win32clipboard.RegisterClipboardFormat("PNG"))
+                    if png_data:
+                        image = QImage()
+                        if image.loadFromData(png_data):
+                            if not image.isNull():
+                                self._logger.debug(f"Windows native: Image loaded from PNG: {image.width()}x{image.height()}")
+                                return image
+                except Exception as e:
+                    self._logger.debug(f"Windows native PNG processing failed: {e}")
+
+            win32clipboard.CloseClipboard()
+
+        except Exception as e:
+            self._logger.debug(f"Windows native clipboard access failed: {e}")
+            try:
+                win32clipboard.CloseClipboard()
+            except:
+                pass
+
+        return None
+
+    def _get_image_from_linux_system_tools(self) -> Optional[QImage]:
+        """
+        Try to get image from clipboard using Linux system tools (xclip, xsel).
+        This is a fallback method when Qt clipboard methods fail.
+        """
+        try:
+            import subprocess
+            import tempfile
+            import os
+
+            # Try xclip first (more common)
+            try:
+                # Check if xclip is available
+                result = subprocess.run(['xclip', '-selection', 'clipboard', '-t', 'TARGETS'],
+                                      capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    self._logger.debug("xclip is available, trying to get image")
+
+                    # Try to get image data from clipboard
+                    img_result = subprocess.run(['xclip', '-selection', 'clipboard', '-t', 'image/png', '-o'],
+                                             capture_output=True, timeout=5)
+                    if img_result.returncode == 0 and img_result.stdout:
+                        # Create temporary file to save image data
+                        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                            temp_file.write(img_result.stdout)
+                            temp_file_path = temp_file.name
+
+                        try:
+                            # Load image from temporary file
+                            image = QImage(temp_file_path)
+                            if not image.isNull():
+                                self._logger.debug(f"Image loaded via xclip: {image.width()}x{image.height()}")
+                                return image
+                        finally:
+                            # Clean up temporary file
+                            try:
+                                os.unlink(temp_file_path)
+                            except:
+                                pass
+
+                    # Try other image formats
+                    for img_type in ['image/jpeg', 'image/bmp', 'image/gif']:
+                        try:
+                            img_result = subprocess.run(['xclip', '-selection', 'clipboard', '-t', img_type, '-o'],
+                                                     capture_output=True, timeout=5)
+                            if img_result.returncode == 0 and img_result.stdout:
+                                with tempfile.NamedTemporaryFile(suffix=f'.{img_type.split("/")[1]}', delete=False) as temp_file:
+                                    temp_file.write(img_result.stdout)
+                                    temp_file_path = temp_file.name
+
+                                try:
+                                    image = QImage(temp_file_path)
+                                    if not image.isNull():
+                                        self._logger.debug(f"Image loaded via xclip ({img_type}): {image.width()}x{image.height()}")
+                                        return image
+                                finally:
+                                    try:
+                                        os.unlink(temp_file_path)
+                                    except:
+                                        pass
+                        except Exception as e:
+                            self._logger.debug(f"xclip failed for {img_type}: {e}")
+
+            except FileNotFoundError:
+                self._logger.debug("xclip not found, trying xsel")
+            except Exception as e:
+                self._logger.debug(f"xclip failed: {e}")
+
+            # Try xsel as fallback
+            try:
+                # Check if xsel is available
+                result = subprocess.run(['xsel', '--clipboard', '--type', 'TARGETS'],
+                                      capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    self._logger.debug("xsel is available, trying to get image")
+
+                    # Try to get image data from clipboard
+                    img_result = subprocess.run(['xsel', '--clipboard', '--type', 'image/png', '--output'],
+                                             capture_output=True, timeout=5)
+                    if img_result.returncode == 0 and img_result.stdout:
+                        # Create temporary file to save image data
+                        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                            temp_file.write(img_result.stdout)
+                            temp_file_path = temp_file.name
+
+                        try:
+                            # Load image from temporary file
+                            image = QImage(temp_file_path)
+                            if not image.isNull():
+                                self._logger.debug(f"Image loaded via xsel: {image.width()}x{image.height()}")
+                                return image
+                        finally:
+                            # Clean up temporary file
+                            try:
+                                os.unlink(temp_file_path)
+                            except:
+                                pass
+
+                    # Try other image formats
+                    for img_type in ['image/jpeg', 'image/bmp', 'image/gif']:
+                        try:
+                            img_result = subprocess.run(['xsel', '--clipboard', '--type', img_type, '--output'],
+                                                     capture_output=True, timeout=5)
+                            if img_result.returncode == 0 and img_result.stdout:
+                                with tempfile.NamedTemporaryFile(suffix=f'.{img_type.split("/")[1]}', delete=False) as temp_file:
+                                    temp_file.write(img_result.stdout)
+                                    temp_file_path = temp_file.name
+
+                                try:
+                                    image = QImage(temp_file_path)
+                                    if not image.isNull():
+                                        self._logger.debug(f"Image loaded via xsel ({img_type}): {image.width()}x{image.height()}")
+                                        return image
+                                finally:
+                                    try:
+                                        os.unlink(temp_file_path)
+                                    except:
+                                        pass
+                        except Exception as e:
+                            self._logger.debug(f"xsel failed for {img_type}: {e}")
+
+            except FileNotFoundError:
+                self._logger.debug("Neither xclip nor xsel found")
+            except Exception as e:
+                self._logger.debug(f"xsel failed: {e}")
+
+        except Exception as e:
+            self._logger.debug(f"Linux system tools fallback failed: {e}")
+
         return None
 
     def get_selected_text(self, sleep_duration: float = 0.2) -> str:
@@ -1357,19 +1710,16 @@ class WritingToolApp(QApplication):
         Args:
             sleep_duration (float): Time to wait for clipboard update
         """
-        # Check if clipboard already has an image (don't clear if it does)
-        clipboard = QApplication.clipboard()
-        mime_data = clipboard.mimeData()
-        has_image = mime_data.hasImage()
-        
-        if has_image:
-            self._logger.debug("Clipboard contains image, skipping text capture to preserve image")
+        # Check if clipboard has image BEFORE clearing it
+        clipboard_image = self.get_clipboard_image()
+        if clipboard_image is not None:
+            self._logger.debug("Image detected in clipboard, skipping text capture to preserve image")
             return ""
-        
+
         # Backup the clipboard
-        clipboard_backup = pyperclip.paste()
+        self.clipboard_backup = pyperclip.paste()
         self._logger.debug(
-            f'Clipboard backup: "{clipboard_backup}" (sleep: {sleep_duration}s)'
+            f'Clipboard backup: "{self.clipboard_backup}" (sleep: {sleep_duration}s)'
         )
 
         # Clear the clipboard
@@ -1399,7 +1749,7 @@ class WritingToolApp(QApplication):
             selected_text = selected_text.strip()
 
         # Restore the clipboard
-        pyperclip.copy(clipboard_backup)
+        pyperclip.copy(self.clipboard_backup)
 
         return selected_text
 
