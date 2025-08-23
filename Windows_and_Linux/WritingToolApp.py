@@ -599,36 +599,39 @@ class WritingToolApp(QApplication):
         """
         self._logger.debug("Showing popup window")
         
-        # Check for clipboard image FIRST (before any text capture)
+        # INTELLIGENT DETECTION: Check both image and text selection without clearing clipboard
         clipboard_image = self.get_clipboard_image()
         
-        # If there's an image, bypass text selection and open chat directly
-        if clipboard_image is not None:
-            self._logger.debug("Image detected in clipboard, opening chat directly")
+        # Detect text selection (platform-specific, fast, no clipboard clearing)
+        if platform.system() == "Windows":
+            selected_text = self._detect_text_selection_windows()
+        else:
+            selected_text = self._detect_text_selection_linux()
+        
+        self._logger.debug(f'Detected text: "{selected_text}"')
+        self._logger.debug(f'Detected image: {clipboard_image is not None}')
+        
+        # SMART LOGIC: Handle different combinations
+        if clipboard_image is not None and selected_text:
+            # BOTH: Image + Text selection
+            self._logger.debug("Both image and text detected, opening chat with both")
+            self._open_chat_with_image_and_text(clipboard_image, selected_text)
+            return
+        elif clipboard_image is not None:
+            # IMAGE ONLY: No text selection
+            self._logger.debug("Image only detected, opening chat with image")
             self._open_chat_with_image(clipboard_image)
             return
-        
-        # Only capture text if no image is present
-        selected_text = self.get_selected_text()
-
-        # Retry with longer sleep if no text captured
-        if not selected_text:
-            self._logger.debug("No text captured, retrying with longer sleep")
-            selected_text = self.get_selected_text(sleep_duration=0.5)
-
-        self._logger.debug(f'Selected text: "{selected_text}"')
-        self._logger.debug(f'Clipboard image: {clipboard_image is not None}')
-        try:
-            if self.popup_window is not None:
-                self._logger.debug("Existing popup window found")
-                if self.popup_window.isVisible():
-                    self._logger.debug("Closing existing visible popup window")
-                    self.popup_window.close()
-                self.popup_window = None
-            self._logger.debug("Creating new popup window")
-            self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(
-                self, selected_text, clipboard_image
-            )
+        elif selected_text:
+            # TEXT ONLY: No image
+            self._logger.debug("Text only detected, showing popup with text")
+            self._show_popup_with_text(selected_text)
+            return
+        else:
+            # NOTHING: Show normal popup
+            self._logger.debug("Nothing detected, showing normal popup")
+            self._show_normal_popup()
+            return
 
             # Set the window icon
             icon_path = get_icon_path("app_icon", with_theme=False)
@@ -696,6 +699,83 @@ class WritingToolApp(QApplication):
             
         except Exception as e:
             self._logger.error(f"Error opening chat with image: {e}", exc_info=True)
+
+    def _detect_text_selection_windows(self) -> str:
+        """
+        Detect text selection on Windows without clearing clipboard.
+        Uses Windows API to check if text is selected.
+        """
+        if not WINDOWS_CLIPBOARD_AVAILABLE:
+            return ""
+            
+        try:
+            # Try to get selected text via Windows API without clearing clipboard
+            import win32clipboard
+            import win32con
+            
+            # Check if there's text in the clipboard first
+            if win32clipboard.IsClipboardFormatAvailable(win32con.CF_TEXT) or \
+               win32clipboard.IsClipboardFormatAvailable(win32con.CF_UNICODETEXT):
+                return ""
+            
+            # Try to get selected text via simulated Ctrl+C (but backup first)
+            clipboard_backup = pyperclip.paste()
+            
+            # Simulate Ctrl+C
+            kbrd = pykeyboard.Controller()
+            kbrd.press(pykeyboard.Key.ctrl.value)
+            kbrd.press("c")
+            kbrd.release("c")
+            kbrd.release(pykeyboard.Key.ctrl.value)
+            
+            # Quick check for text
+            time.sleep(0.1)  # Very short wait
+            selected_text = pyperclip.paste()
+            
+            # Restore clipboard immediately
+            pyperclip.copy(clipboard_backup)
+            
+            if selected_text and selected_text.strip():
+                return selected_text.strip()
+            
+        except Exception as e:
+            self._logger.debug(f"Windows text selection detection failed: {e}")
+        
+        return ""
+
+    def _detect_text_selection_linux(self) -> str:
+        """
+        Detect text selection on Linux without clearing clipboard.
+        """
+        try:
+            # On Linux, we can try a different approach
+            # Check if there's already text in clipboard
+            clipboard = QApplication.clipboard()
+            mime_data = clipboard.mimeData()
+            
+            if mime_data.hasText():
+                return ""
+            
+            # Try quick Ctrl+C simulation
+            clipboard_backup = pyperclip.paste()
+            
+            kbrd = pykeyboard.Controller()
+            kbrd.press(pykeyboard.Key.ctrl.value)
+            kbrd.press("c")
+            kbrd.release("c")
+            kbrd.release(pykeyboard.Key.ctrl.value)
+            
+            time.sleep(0.1)
+            selected_text = pyperclip.paste()
+            pyperclip.copy(clipboard_backup)
+            
+            if selected_text and selected_text.strip():
+                return selected_text.strip()
+                
+        except Exception as e:
+            self._logger.debug(f"Linux text selection detection failed: {e}")
+        
+        return ""
 
     def debug_clipboard_contents(self) -> None:
         """
