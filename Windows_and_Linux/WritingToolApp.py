@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 import pyperclip
-from pynput import keyboard as pykeyboard
+from pynput import keyboard as keyboard
 from PySide6 import QtCore, QtGui
 from PySide6.QtCore import QLocale, Signal, Slot
 from PySide6.QtGui import QCursor, QGuiApplication, QImage
@@ -111,6 +111,7 @@ class WritingToolApp(QApplication):
         self.current_provider: AIProvider | None = None
         self.output_queue = ""
         self.paused = False
+        self.clipboard_image: QImage | None = None
 
     def _setup_signals(self) -> None:
         """Connect application signals to their handlers."""
@@ -518,7 +519,7 @@ class WritingToolApp(QApplication):
                 self.hotkey_triggered_signal.emit()  # Emit the signal when hotkey is pressed
 
             # Define the hotkey combination
-            hotkey = pykeyboard.HotKey(pykeyboard.HotKey.parse(shortcut), on_activate)
+            hotkey = keyboard.HotKey(keyboard.HotKey.parse(shortcut), on_activate)
             self.registered_hotkey = orig_shortcut
 
             # Helper function to standardize key event
@@ -530,7 +531,7 @@ class WritingToolApp(QApplication):
                 )
 
             # Create a listener and store it as an attribute to stop it later
-            self.hotkey_listener = pykeyboard.Listener(
+            self.hotkey_listener = keyboard.Listener(
                 on_press=for_canonical(hotkey.press),
                 on_release=for_canonical(hotkey.release),
             )
@@ -566,6 +567,11 @@ class WritingToolApp(QApplication):
             self.non_editable_modal.close()
             self.non_editable_modal = None
 
+        if self.popup_window is not None:
+            self._logger.debug("Closing existing popup window")
+            self.popup_window.close()
+            self.popup_window = None
+
         # Original hotkey handling continues...
         if self.current_provider:
             self._logger.debug("Cancelling current provider's request")
@@ -583,26 +589,30 @@ class WritingToolApp(QApplication):
         Show the popup window when the hotkey is pressed.
         """
         self._logger.debug("Showing popup window")
-        # First attempt with default sleep
+
+        # Check for clipboard image
+        self.clipboard_image = image = self.get_clipboard_image()
+        if image is not None:
+            # Create response window for image analysis
+            self.current_response_window = self.show_response_window("Image Analysis", "")
+            # Initialize chat history with image
+            self.current_response_window.chat_history = [
+                {
+                    "role": "user",
+                    "content": "[Image from clipboard]",
+                    "image": image,
+                }
+            ]
+            return
+
+        # Only capture text if no image is present
         selected_text = self.get_selected_text()
-
-        # Retry with longer sleep if no text captured
-        if not selected_text:
-            self._logger.debug("No text captured, retrying with longer sleep")
-            selected_text = self.get_selected_text(sleep_duration=0.5)
-
-        clipboard_image = self.get_clipboard_image()
         self._logger.debug(f'Selected text: "{selected_text}"')
+
         try:
-            if self.popup_window is not None:
-                self._logger.debug("Existing popup window found")
-                if self.popup_window.isVisible():
-                    self._logger.debug("Closing existing visible popup window")
-                    self.popup_window.close()
-                self.popup_window = None
             self._logger.debug("Creating new popup window")
             self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(
-                self, selected_text, clipboard_image
+                self, selected_text
             )
 
             # Set the window icon
@@ -641,76 +651,104 @@ class WritingToolApp(QApplication):
         except Exception as e:
             self._logger.error(f"Error showing popup window: {e}", exc_info=True)
 
-    def get_clipboard_image(self) -> Optional[QImage]:
+    def get_clipboard_image(self) -> QImage | None:
         """
-        Get the image currently stored in the clipboard using Qt6.
-        Returns the image if found, None otherwise.
+        Get the image data currently stored in the clipboard from screenshots or image copy operations.
+
+        Handles both QImage and QPixmap formats, converts QPixmap to QImage automatically.
+        Common sources: Print Screen, Shift+Win+S, browser "Copy image", app screenshots, etc.
+
+        Returns:
+            QImage | None: The clipboard image as QImage, or None if no image found
         """
         clipboard = QApplication.clipboard()
         mime_data = clipboard.mimeData()
 
-        if mime_data.hasImage():
-            # Get the image from clipboard
-            image = mime_data.imageData()
-            if isinstance(image, QImage):
-                return image
+        if not mime_data.hasImage():
+            self._logger.debug("No image found in clipboard")
+            return None
+
+        try:
+            image_data = mime_data.imageData()
+
+            if isinstance(image_data, QImage):
+                self._logger.debug("QImage found in clipboard")
+                return image_data
+
+            elif hasattr(image_data, "toImage"):  # QPixmap
+                self._logger.debug("Converting QPixmap to QImage")
+                qimage = image_data.toImage()
+                return qimage
+
             else:
-                # Convert to QImage if it's a QPixmap
-                return image.toImage()
-        else:
+                self._logger.warning(f"Unknown image type: {type(image_data)}")
+                return None
+
+        except Exception as e:
+            self._logger.error(f"Error getting clipboard image: {e}")
             return None
 
     def get_selected_text(self, sleep_duration: float = 0.2) -> str:
         """
-        Get the currently selected text from any application.
+        Get the currently selected text from any application by simulating Ctrl+C.
+
+        Backs up clipboard, clears it, simulates Ctrl+C, waits for new content,
+        then restores original clipboard content.
+
         Args:
-            sleep_duration (float): Time to wait for clipboard update
+            sleep_duration (float): Total time to wait for clipboard update,
+                                distributed across multiple retry attempts (default: 0.2s)
+
+        Returns:
+            str: The selected text, stripped of whitespace, or empty string if none found
         """
-        # Backup the clipboard
-        clipboard_backup = pyperclip.paste()
+        # Get the clipboard instance
+        clipboard = QApplication.clipboard()
+
+        # Backup the current clipboard content
+        clipboard_backup = clipboard.text()
         self._logger.debug(
-            f'Clipboard backup: "{clipboard_backup}" (sleep: {sleep_duration}s)'
+            f"Clipboard backed up: {clipboard_backup[:30] if clipboard_backup else 'Empty'} ..."
         )
 
         # Clear the clipboard
-        self.clear_clipboard()
+        clipboard.clear()
 
-        # Simulate Ctrl+C
+        # Simulate Ctrl+C to copy selected text
         self._logger.debug("Simulating Ctrl+C")
-        kbrd = pykeyboard.Controller()
+        kbrd = keyboard.Controller()
 
         def press_ctrl_c():
-            kbrd.press(pykeyboard.Key.ctrl.value)
-            kbrd.press("c")
-            kbrd.release("c")
-            kbrd.release(pykeyboard.Key.ctrl.value)
+            with kbrd.pressed(keyboard.Key.ctrl):
+                kbrd.press("c")
+                kbrd.release("c")
 
         press_ctrl_c()
 
-        # Wait for the clipboard to update
-        time.sleep(sleep_duration)
-        self._logger.debug(f"Waited {sleep_duration}s for clipboard")
+        # Wait for the clipboard to update and verify it changed
+        max_attempts = 10
+        selected_text = ""
+        sleep_per_attempt = sleep_duration / max_attempts
 
-        # Get the selected text
-        selected_text = pyperclip.paste()
+        for attempt in range(max_attempts):
+            time.sleep(sleep_per_attempt)
+            current_text = clipboard.text()
+            if current_text:  # Clipboard has new content
+                selected_text = current_text
+                self._logger.debug(f"Text retrieved after {attempt + 1} attempts")
+                break
+        else:
+            self._logger.warning("No text retrieved after all attempts")
 
         # Clean the selected text (remove leading/trailing whitespace and newlines)
         if selected_text:
             selected_text = selected_text.strip()
 
         # Restore the clipboard
-        pyperclip.copy(clipboard_backup)
+        clipboard.setText(clipboard_backup if clipboard_backup else "")
+        self._logger.debug("Clipboard restored")
 
         return selected_text
-
-    def clear_clipboard(self) -> None:
-        """
-        Clear the system clipboard.
-        """
-        try:
-            pyperclip.copy("")
-        except Exception as e:
-            self._logger.error(f"Error clearing clipboard: {e}")
 
     def process_option(
         self,
@@ -994,7 +1032,9 @@ class WritingToolApp(QApplication):
         if settings_button and msg_box.clickedButton() == settings_button:
             self.show_settings()
 
-    def show_response_window(self, option: str, text: str) -> ui.ResponseWindow.ResponseWindow:
+    def show_response_window(
+        self, option: str, text: str
+    ) -> ui.ResponseWindow.ResponseWindow:
         """
         Show the response in a new window instead of pasting it.
         """
@@ -1067,13 +1107,13 @@ class WritingToolApp(QApplication):
 
                     pyperclip.copy(cleaned_text)
 
-                    kbrd = pykeyboard.Controller()
+                    kbrd = keyboard.Controller()
 
                     def press_ctrl_v():
-                        kbrd.press(pykeyboard.Key.ctrl.value)
+                        kbrd.press(keyboard.Key.ctrl.value)
                         kbrd.press("v")
                         kbrd.release("v")
-                        kbrd.release(pykeyboard.Key.ctrl.value)
+                        kbrd.release(keyboard.Key.ctrl.value)
 
                     press_ctrl_v()
                     time.sleep(0.2)
