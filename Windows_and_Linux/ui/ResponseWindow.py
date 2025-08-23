@@ -457,7 +457,7 @@ class ResponseWindow(ThemedWidget):
 
     def __init__(
         self,
-        app: WritingToolApp,
+        app: "WritingToolApp",
         title: str = _("Response"),
         parent: QWidget | None = None,
     ):

@@ -35,7 +35,7 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
     # Signal emitted when window is closed (not when proceeding to next step)
     close_signal = QtCore.Signal()
 
-    def __init__(self, app: WritingToolApp):
+    def __init__(self, app: "WritingToolApp"):
         super().__init__()
         self.app = app
 

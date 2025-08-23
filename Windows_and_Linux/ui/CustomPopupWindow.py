@@ -418,7 +418,7 @@ class DraggableButton(QPushButton):
 
 
 class CustomPopupWindow(QWidget):
-    def __init__(self, app: WritingToolApp, selected_text: str | None):
+    def __init__(self, app: "WritingToolApp", selected_text: str | None):
         super().__init__()
         self.app = app
         self.selected_text: str | None = selected_text

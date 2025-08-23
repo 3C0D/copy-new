@@ -386,7 +386,7 @@ class AIProvider(ABC):
 
     def __init__(
         self,
-        app: WritingToolApp,
+        app: "WritingToolApp",
         provider_name: str,
         settings: list[AIProviderSetting],
         description: str = "An unfinished AI provider!",
@@ -534,7 +534,7 @@ class GeminiProvider(AIProvider):
     Handles safety settings to allow less restricted content.
     """
 
-    def __init__(self, app: WritingToolApp):
+    def __init__(self, app: "WritingToolApp"):
         self.close_requested: bool = False
         self.model: Any = None
 
@@ -811,7 +811,7 @@ class OpenAICompatibleProvider(AIProvider):
     and project authentication.
     """
 
-    def __init__(self, app: WritingToolApp):
+    def __init__(self, app: "WritingToolApp"):
         self.close_requested: bool = False
         self.client: Any = None
 
@@ -1334,7 +1334,7 @@ class OllamaProvider(AIProvider):
     and custom models.
     """
 
-    def __init__(self, app: WritingToolApp):
+    def __init__(self, app: "WritingToolApp"):
         self.close_requested: bool = False
         self.client: Any = None
         self.app: WritingToolApp = app
@@ -1681,7 +1681,7 @@ class AnthropicProvider(AIProvider):
     Implements authentication via API key and supports different Claude models.
     """
 
-    def __init__(self, app: WritingToolApp):
+    def __init__(self, app: "WritingToolApp"):
         self.close_requested: bool = False
         self.client: Any = None
         self.app: WritingToolApp = app
@@ -1872,7 +1872,7 @@ class MistralProvider(AIProvider):
     Uses direct HTTP requests for better control and reliability.
     """
 
-    def __init__(self, app: WritingToolApp):
+    def __init__(self, app: "WritingToolApp"):
         self.close_requested: bool = False
         self.client: Any = None
         self.app: WritingToolApp = app

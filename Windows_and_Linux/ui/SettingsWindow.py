@@ -50,7 +50,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
 
     close_signal = QtCore.Signal()
 
-    def __init__(self, app: WritingToolApp, providers_only: bool = False):
+    def __init__(self, app: "WritingToolApp", providers_only: bool = False):
         super().__init__()
         self.app = app
         self.current_provider_layout = None

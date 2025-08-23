@@ -30,7 +30,7 @@ def _(x):
 class NonEditableModal(QDialog):
     """Modal window to display transformed text when pasting fails."""
 
-    def __init__(self, app: WritingToolApp, transformed_text: str | None):
+    def __init__(self, app: "WritingToolApp", transformed_text: str | None):
         super().__init__()
         self.app = app
         self.transformed_text = transformed_text
