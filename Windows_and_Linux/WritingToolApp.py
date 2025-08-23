@@ -599,44 +599,89 @@ class WritingToolApp(QApplication):
         """
         self._logger.debug("Showing popup window")
         
-        # INTELLIGENT DETECTION: Check both image and text selection without clearing clipboard
-        clipboard_image = self.get_clipboard_image()
-        
-        # Detect text selection (platform-specific, fast, no clipboard clearing)
+        # PRIORITY 1: Check for text selection (fast, no clipboard clearing)
         if platform.system() == "Windows":
             selected_text = self._detect_text_selection_windows()
         else:
             selected_text = self._detect_text_selection_linux()
         
-        self._logger.debug(f'Detected text: "{selected_text}"')
-        self._logger.debug(f'Detected image: {clipboard_image is not None}')
+        self._logger.debug(f'Text selection detected: "{selected_text}"')
         
-        # SMART LOGIC: Handle different combinations
-        if clipboard_image is not None and selected_text:
-            # BOTH: Image + Text selection
-            self._logger.debug("Both image and text detected, opening chat with both")
-            self._open_chat_with_image_and_text(clipboard_image, selected_text)
-            return
-        elif clipboard_image is not None:
-            # IMAGE ONLY: No text selection
-            self._logger.debug("Image only detected, opening chat with image")
-            self._open_chat_with_image(clipboard_image)
-            return
-        elif selected_text:
-            # TEXT ONLY: No image
-            self._logger.debug("Text only detected, showing popup with text")
+        # PRIORITY 2: If text selection exists, use it (ignore photo)
+        if selected_text:
+            self._logger.debug("Text selection found, showing popup with text")
             self._show_popup_with_text(selected_text)
             return
-        else:
-            # NOTHING: Show normal popup
-            self._logger.debug("Nothing detected, showing normal popup")
-            self._show_normal_popup()
+        
+        # PRIORITY 3: No text selection, check for photo
+        self._logger.debug("No text selection, checking for clipboard image")
+        clipboard_image = self.get_clipboard_image()
+        
+        if clipboard_image is not None:
+            self._logger.debug("Image found in clipboard, opening chat with image")
+            self._open_chat_with_image(clipboard_image)
             return
+        
+        # PRIORITY 4: Nothing found, show normal popup
+        self._logger.debug("Nothing found, showing normal popup")
+        self._show_normal_popup()
 
+    def _show_popup_with_text(self, selected_text: str) -> None:
+        """
+        Show popup window with detected text selection.
+        """
+        try:
+            if self.popup_window is not None:
+                self._logger.debug("Existing popup window found")
+                if self.popup_window.isVisible():
+                    self._logger.debug("Closing existing visible popup window")
+                    self.popup_window.close()
+                self.popup_window = None
+            
+            self._logger.debug("Creating popup window with text")
+            self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(
+                self, selected_text, None  # No image
+            )
+            
+            # Position and show popup
+            self._position_and_show_popup()
+            
+        except Exception as e:
+            self._logger.error(f"Error showing popup with text: {e}", exc_info=True)
+
+    def _show_normal_popup(self) -> None:
+        """
+        Show normal popup window (no text, no image).
+        """
+        try:
+            if self.popup_window is not None:
+                self._logger.debug("Existing popup window found")
+                if self.popup_window.isVisible():
+                    self._logger.debug("Closing existing visible popup window")
+                    self.popup_window.close()
+                self.popup_window = None
+            
+            self._logger.debug("Creating normal popup window")
+            self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(
+                self, "", None  # No text, no image
+            )
+            
+            # Position and show popup
+            self._position_and_show_popup()
+            
+        except Exception as e:
+            self._logger.error(f"Error showing normal popup: {e}", exc_info=True)
+
+    def _position_and_show_popup(self) -> None:
+        """
+        Position and show the popup window.
+        """
+        try:
             # Set the window icon
             icon_path = get_icon_path("app_icon", with_theme=False)
             if icon_path.exists():
                 self.setWindowIcon(QtGui.QIcon(icon_path.as_posix()))
+            
             # Get the screen containing the cursor
             cursor_pos = QCursor.pos()
             screen = QGuiApplication.screenAt(cursor_pos)
@@ -645,29 +690,34 @@ class WritingToolApp(QApplication):
             screen_geometry = screen.geometry()
             self._logger.debug(f"Cursor is on screen: {screen.name()}")
             self._logger.debug(f"Screen geometry: {screen_geometry}")
+            
             # Show the popup to get its size
             self.popup_window.show()
             self.popup_window.adjustSize()
-            # Ensure the popup it's focused, even on lower-end machines
             self.popup_window.activateWindow()
+            
             if self.popup_window.custom_input:
                 QtCore.QTimer.singleShot(100, self.popup_window.custom_input.setFocus)
 
             popup_width = self.popup_window.width()
             popup_height = self.popup_window.height()
+            
             # Calculate position
             x = cursor_pos.x()
             y = cursor_pos.y() + 20  # 20 pixels below cursor
+            
             # Adjust if the popup would go off the right edge of the screen
             if x + popup_width > screen_geometry.right():
                 x = screen_geometry.right() - popup_width
             # Adjust if the popup would go off the bottom edge of the screen
             if y + popup_height > screen_geometry.bottom():
                 y = cursor_pos.y() - popup_height - 10  # 10 pixels above cursor
+                
             self.popup_window.move(x, y)
             self._logger.debug(f"Popup window moved to position: ({x}, {y})")
+            
         except Exception as e:
-            self._logger.error(f"Error showing popup window: {e}", exc_info=True)
+            self._logger.error(f"Error positioning popup: {e}", exc_info=True)
 
     def _open_chat_with_image(self, image: QImage) -> None:
         """
