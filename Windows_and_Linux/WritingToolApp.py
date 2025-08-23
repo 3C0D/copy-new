@@ -194,7 +194,7 @@ class WritingToolApp(QApplication):
         try:
             # Show onboarding window
             onboarding = ui.OnboardingWindow.OnboardingWindow(self)
-            onboarding.exec()
+            onboarding.show()
             
             # Check if providers were configured during onboarding
             if self.settings_manager.has_providers_configured():
