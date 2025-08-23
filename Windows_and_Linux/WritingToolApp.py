@@ -888,7 +888,6 @@ class WritingToolApp(QApplication):
             (is_custom_option and not has_selected_text)
             or (has_selected_text and action_config.get("open_in_window", False))
             or (force_chat and has_selected_text)
-            or (has_image_data)
         )
 
     def _process_window_response(
