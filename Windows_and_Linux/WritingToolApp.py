@@ -653,6 +653,7 @@ class WritingToolApp(QApplication):
             mime_data = clipboard.mimeData()
 
             self._logger.debug("=== CLIPBOARD DEBUG INFO ===")
+            self._logger.debug(f"Platform: {platform.system()}")
             self._logger.debug(f"hasImage(): {mime_data.hasImage()}")
             self._logger.debug(f"hasText(): {mime_data.hasText()}")
             self._logger.debug(f"hasUrls(): {mime_data.hasUrls()}")
@@ -676,6 +677,35 @@ class WritingToolApp(QApplication):
                 else:
                     self._logger.debug(f"Format '{fmt}': NO")
 
+            # Linux-specific format checks
+            if platform.system() == "Linux":
+                self._logger.debug("--- Linux-specific format checks ---")
+                linux_formats = [
+                    "image/x-qt-image", "image/x-qt-pixmap", "image/x-qt-pixmap",
+                    "application/x-qt-image", "application/x-qt-pixmap",
+                    "image/x-portable-pixmap", "image/x-portable-bitmap",
+                    "image/x-portable-graymap", "image/x-portable-anymap"
+                ]
+                
+                for fmt in linux_formats:
+                    has_format = mime_data.hasFormat(fmt)
+                    if has_format:
+                        data_size = len(mime_data.data(fmt))
+                        self._logger.debug(f"Linux format '{fmt}': YES ({data_size} bytes)")
+                    else:
+                        self._logger.debug(f"Linux format '{fmt}': NO")
+                
+                # Check for any format containing image-related keywords
+                self._logger.debug("--- Checking for image-related formats ---")
+                for fmt in formats:
+                    if any(img_type in fmt.lower() for img_type in ['image', 'pixmap', 'bitmap', 'png', 'jpeg', 'jpg', 'gif', 'bmp', 'tiff']):
+                        has_format = mime_data.hasFormat(fmt)
+                        if has_format:
+                            data_size = len(mime_data.data(fmt))
+                            self._logger.debug(f"Image-related format '{fmt}': YES ({data_size} bytes)")
+                        else:
+                            self._logger.debug(f"Image-related format '{fmt}': NO")
+
             self._logger.debug("=== END CLIPBOARD DEBUG ===")
 
         except Exception as e:
@@ -690,6 +720,8 @@ class WritingToolApp(QApplication):
         1. Standard hasImage() method
         2. Format-specific detection for various image types
         3. Raw data analysis for Windows clipboard formats
+        4. Linux-specific clipboard formats and methods
+        5. Linux system tools fallback (xclip, xsel)
         """
         try:
             clipboard = QApplication.clipboard()
@@ -784,12 +816,61 @@ class WritingToolApp(QApplication):
                         except Exception as e:
                             self._logger.debug(f"Error processing Windows format '{fmt}': {e}")
 
-            # Method 4: Try to get image data directly from clipboard (last resort)
+            # Method 4: Linux-specific clipboard formats and methods
+            if platform.system() == "Linux":
+                self._logger.debug("Method 4: Checking Linux-specific clipboard formats")
+                
+                # Linux clipboard formats commonly used for images
+                linux_formats = [
+                    "image/x-qt-image", "image/x-qt-pixmap", "image/x-qt-pixmap",
+                    "application/x-qt-image", "application/x-qt-pixmap",
+                    "image/x-portable-pixmap", "image/x-portable-bitmap",
+                    "image/x-portable-graymap", "image/x-portable-anymap"
+                ]
+                
+                for fmt in linux_formats:
+                    if mime_data.hasFormat(fmt):
+                        self._logger.debug(f"Method 4: Found Linux format '{fmt}'")
+                        try:
+                            data = mime_data.data(fmt)
+                            if data and not data.isEmpty():
+                                # Try to load image from raw data
+                                image = QImage()
+                                if image.loadFromData(data):
+                                    if not image.isNull():
+                                        self._logger.debug(f"Image loaded from Linux format '{fmt}': {image.width()}x{image.height()}")
+                                        return image
+                                    else:
+                                        self._logger.debug(f"Linux format '{fmt}' data loaded but resulted in null image")
+                                else:
+                                    self._logger.debug(f"Failed to load image from Linux format '{fmt}' data")
+                        except Exception as e:
+                            self._logger.debug(f"Error processing Linux format '{fmt}': {e}")
+                
+                # Try to get image data directly from clipboard (Linux-specific approach)
+                try:
+                    # Sometimes on Linux, the image data is available but not detected by hasImage()
+                    image_data = mime_data.imageData()
+                    if image_data is not None:
+                        self._logger.debug("Method 4: Found imageData() directly on Linux")
+                        if isinstance(image_data, QImage) and not image_data.isNull():
+                            self._logger.debug(f"Direct imageData() successful on Linux: {image_data.width()}x{image_data.height()}")
+                            return image_data
+                        elif hasattr(image_data, 'toImage'):
+                            # Try converting if it's a QPixmap
+                            converted = image_data.toImage()
+                            if not converted.isNull():
+                                self._logger.debug(f"Direct imageData() converted on Linux: {converted.width()}x{converted.height()}")
+                                return converted
+                except Exception as e:
+                    self._logger.debug(f"Linux-specific imageData() method failed: {e}")
+
+            # Method 5: Try to get image data directly from clipboard (last resort)
             try:
                 # Sometimes the image data is available but not detected by hasImage()
                 image_data = mime_data.imageData()
                 if image_data is not None:
-                    self._logger.debug("Method 4: Found imageData() directly")
+                    self._logger.debug("Method 5: Found imageData() directly")
                     if isinstance(image_data, QImage) and not image_data.isNull():
                         self._logger.debug(f"Direct imageData() successful: {image_data.width()}x{image_data.height()}")
                         return image_data
@@ -800,12 +881,184 @@ class WritingToolApp(QApplication):
                             self._logger.debug(f"Direct imageData() converted: {converted.width()}x{converted.height()}")
                             return converted
             except Exception as e:
-                self._logger.debug(f"Method 4 failed: {e}")
+                self._logger.debug(f"Method 5 failed: {e}")
+
+            # Method 6: Try alternative clipboard access methods for Linux
+            if platform.system() == "Linux":
+                self._logger.debug("Method 6: Trying alternative Linux clipboard access")
+                try:
+                    # Try to access clipboard data in different ways
+                    clipboard_data = clipboard.mimeData()
+                    
+                    # Check if there are any data formats that might contain image data
+                    all_formats = clipboard_data.formats()
+                    self._logger.debug(f"All available formats on Linux: {all_formats}")
+                    
+                    # Look for any format that might contain image data
+                    for fmt in all_formats:
+                        if any(img_type in fmt.lower() for img_type in ['image', 'pixmap', 'bitmap', 'png', 'jpeg', 'jpg']):
+                            self._logger.debug(f"Method 6: Found potential image format '{fmt}'")
+                            try:
+                                data = clipboard_data.data(fmt)
+                                if data and not data.isEmpty():
+                                    # Try to load image from raw data
+                                    image = QImage()
+                                    if image.loadFromData(data):
+                                        if not image.isNull():
+                                            self._logger.debug(f"Image loaded from potential format '{fmt}': {image.width()}x{image.height()}")
+                                            return image
+                            except Exception as e:
+                                self._logger.debug(f"Error processing potential format '{fmt}': {e}")
+                                
+                except Exception as e:
+                    self._logger.debug(f"Alternative Linux clipboard access failed: {e}")
+
+            # Method 7: Linux system tools fallback (xclip, xsel)
+            if platform.system() == "Linux":
+                self._logger.debug("Method 7: Trying Linux system tools fallback")
+                try:
+                    image = self._get_image_from_linux_system_tools()
+                    if image is not None:
+                        self._logger.debug(f"Image found via Linux system tools: {image.width()}x{image.height()}")
+                        return image
+                except Exception as e:
+                    self._logger.debug(f"Linux system tools fallback failed: {e}")
 
             self._logger.debug("No image found in clipboard using any method")
 
         except Exception as e:
             self._logger.error(f"Error getting clipboard image: {e}")
+
+        return None
+
+    def _get_image_from_linux_system_tools(self) -> Optional[QImage]:
+        """
+        Try to get image from clipboard using Linux system tools (xclip, xsel).
+        This is a fallback method when Qt clipboard methods fail.
+        """
+        try:
+            import subprocess
+            import tempfile
+            import os
+
+            # Try xclip first (more common)
+            try:
+                # Check if xclip is available
+                result = subprocess.run(['xclip', '-selection', 'clipboard', '-t', 'TARGETS'], 
+                                      capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    self._logger.debug("xclip is available, trying to get image")
+                    
+                    # Try to get image data from clipboard
+                    img_result = subprocess.run(['xclip', '-selection', 'clipboard', '-t', 'image/png', '-o'], 
+                                             capture_output=True, timeout=5)
+                    if img_result.returncode == 0 and img_result.stdout:
+                        # Create temporary file to save image data
+                        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                            temp_file.write(img_result.stdout)
+                            temp_file_path = temp_file.name
+                        
+                        try:
+                            # Load image from temporary file
+                            image = QImage(temp_file_path)
+                            if not image.isNull():
+                                self._logger.debug(f"Image loaded via xclip: {image.width()}x{image.height()}")
+                                return image
+                        finally:
+                            # Clean up temporary file
+                            try:
+                                os.unlink(temp_file_path)
+                            except:
+                                pass
+                    
+                    # Try other image formats
+                    for img_type in ['image/jpeg', 'image/bmp', 'image/gif']:
+                        try:
+                            img_result = subprocess.run(['xclip', '-selection', 'clipboard', '-t', img_type, '-o'], 
+                                                     capture_output=True, timeout=5)
+                            if img_result.returncode == 0 and img_result.stdout:
+                                with tempfile.NamedTemporaryFile(suffix=f'.{img_type.split("/")[1]}', delete=False) as temp_file:
+                                    temp_file.write(img_result.stdout)
+                                    temp_file_path = temp_file.name
+                                
+                                try:
+                                    image = QImage(temp_file_path)
+                                    if not image.isNull():
+                                        self._logger.debug(f"Image loaded via xclip ({img_type}): {image.width()}x{image.height()}")
+                                        return image
+                                finally:
+                                    try:
+                                        os.unlink(temp_file_path)
+                                    except:
+                                        pass
+                        except Exception as e:
+                            self._logger.debug(f"xclip failed for {img_type}: {e}")
+                            
+            except FileNotFoundError:
+                self._logger.debug("xclip not found, trying xsel")
+            except Exception as e:
+                self._logger.debug(f"xclip failed: {e}")
+
+            # Try xsel as fallback
+            try:
+                # Check if xsel is available
+                result = subprocess.run(['xsel', '--clipboard', '--type', 'TARGETS'], 
+                                      capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    self._logger.debug("xsel is available, trying to get image")
+                    
+                    # Try to get image data from clipboard
+                    img_result = subprocess.run(['xsel', '--clipboard', '--type', 'image/png', '--output'], 
+                                             capture_output=True, timeout=5)
+                    if img_result.returncode == 0 and img_result.stdout:
+                        # Create temporary file to save image data
+                        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                            temp_file.write(img_result.stdout)
+                            temp_file_path = temp_file.name
+                        
+                        try:
+                            # Load image from temporary file
+                            image = QImage(temp_file_path)
+                            if not image.isNull():
+                                self._logger.debug(f"Image loaded via xsel: {image.width()}x{image.height()}")
+                                return image
+                        finally:
+                            # Clean up temporary file
+                            try:
+                                os.unlink(temp_file_path)
+                            except:
+                                pass
+                    
+                    # Try other image formats
+                    for img_type in ['image/jpeg', 'image/bmp', 'image/gif']:
+                        try:
+                            img_result = subprocess.run(['xsel', '--clipboard', '--type', img_type, '--output'], 
+                                                     capture_output=True, timeout=5)
+                            if img_result.returncode == 0 and img_result.stdout:
+                                with tempfile.NamedTemporaryFile(suffix=f'.{img_type.split("/")[1]}', delete=False) as temp_file:
+                                    temp_file.write(img_result.stdout)
+                                    temp_file_path = temp_file.name
+                                
+                                try:
+                                    image = QImage(temp_file_path)
+                                    if not image.isNull():
+                                        self._logger.debug(f"Image loaded via xsel ({img_type}): {image.width()}x{image.height()}")
+                                        return image
+                                finally:
+                                    try:
+                                        os.unlink(temp_file_path)
+                                    except:
+                                        pass
+                        except Exception as e:
+                            self._logger.debug(f"xsel failed for {img_type}: {e}")
+                            
+            except FileNotFoundError:
+                self._logger.debug("Neither xclip nor xsel found")
+            except Exception as e:
+                self._logger.debug(f"xsel failed: {e}")
+
+        except Exception as e:
+            self._logger.debug(f"Linux system tools fallback failed: {e}")
 
         return None
 
