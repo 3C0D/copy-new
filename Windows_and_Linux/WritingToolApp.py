@@ -24,6 +24,20 @@ from PySide6.QtCore import QLocale, Signal, Slot
 from PySide6.QtGui import QCursor, QGuiApplication, QImage
 from PySide6.QtWidgets import QApplication, QMessageBox
 
+# Windows native clipboard support
+WINDOWS_CLIPBOARD_AVAILABLE = False
+if platform.system() == "Windows":
+    try:
+        import win32clipboard
+        import win32con
+        WINDOWS_CLIPBOARD_AVAILABLE = True
+        print("✅ Windows clipboard API loaded successfully")
+    except ImportError:
+        print("⚠️ pywin32 not available - Windows native clipboard disabled")
+        WINDOWS_CLIPBOARD_AVAILABLE = False
+else:
+    print(f"ℹ️ Running on {platform.system()} - Windows clipboard API not needed")
+
 import ui.AboutWindow
 import ui.CustomPopupWindow
 import ui.NonEditableModal
@@ -924,6 +938,17 @@ class WritingToolApp(QApplication):
             #     except Exception as e:
             #         self._logger.debug(f"Linux system tools fallback failed: {e}")
 
+            # Method 8: Windows native clipboard API (like Claude does)
+            if platform.system() == "Windows" and WINDOWS_CLIPBOARD_AVAILABLE:
+                self._logger.debug("Method 8: Trying Windows native clipboard API")
+                try:
+                    image = self._get_image_from_windows_native()
+                    if image is not None:
+                        self._logger.debug(f"Image found via Windows native API: {image.width()}x{image.height()}")
+                        return image
+                except Exception as e:
+                    self._logger.debug(f"Windows native API failed: {e}")
+
             self._logger.debug("No image found in clipboard using any method")
 
         except Exception as e:
@@ -1060,6 +1085,100 @@ class WritingToolApp(QApplication):
         except Exception as e:
             self._logger.debug(f"Linux system tools fallback failed: {e}")
 
+        return None
+
+    def _get_image_from_windows_native(self) -> Optional[QImage]:
+        """
+        Get image from clipboard using Windows native API (like Claude does).
+        This bypasses Qt clipboard limitations on Windows.
+        """
+        if not WINDOWS_CLIPBOARD_AVAILABLE:
+            self._logger.debug("Windows clipboard API not available")
+            return None
+            
+        try:
+            win32clipboard.OpenClipboard()
+            
+            # Check for CF_BITMAP format (Windows native bitmap)
+            if win32clipboard.IsClipboardFormatAvailable(win32con.CF_BITMAP):
+                self._logger.debug("Windows native: CF_BITMAP format found")
+                try:
+                    # Get the bitmap handle
+                    bitmap_handle = win32clipboard.GetClipboardData(win32con.CF_BITMAP)
+                    if bitmap_handle:
+                        # Convert Windows bitmap to QImage
+                        from PySide6.QtGui import QPixmap
+                        from PySide6.QtWinExtras import QtWin
+                        
+                        try:
+                            # Try to convert Windows bitmap to QPixmap
+                            pixmap = QtWin.fromHBITMAP(bitmap_handle)
+                            if pixmap and not pixmap.isNull():
+                                image = pixmap.toImage()
+                                if not image.isNull():
+                                    self._logger.debug(f"Windows native: Image converted from CF_BITMAP: {image.width()}x{image.height()}")
+                                    return image
+                        except ImportError:
+                            self._logger.debug("QtWin not available, trying alternative method")
+                        except Exception as e:
+                            self._logger.debug(f"QtWin conversion failed: {e}")
+                            
+                except Exception as e:
+                    self._logger.debug(f"Windows native CF_BITMAP processing failed: {e}")
+            
+            # Check for CF_DIB format (Device Independent Bitmap)
+            if win32clipboard.IsClipboardFormatAvailable(win32con.CF_DIB):
+                self._logger.debug("Windows native: CF_DIB format found")
+                try:
+                    dib_data = win32clipboard.GetClipboardData(win32con.CF_DIB)
+                    if dib_data:
+                        # Convert DIB data to QImage
+                        image = QImage()
+                        if image.loadFromData(dib_data):
+                            if not image.isNull():
+                                self._logger.debug(f"Windows native: Image loaded from CF_DIB: {image.width()}x{image.height()}")
+                                return image
+                except Exception as e:
+                    self._logger.debug(f"Windows native CF_DIB processing failed: {e}")
+            
+            # Check for CF_DIBV5 format (Device Independent Bitmap v5)
+            dibv5_format = win32clipboard.RegisterClipboardFormat("CF_DIBV5")
+            if win32clipboard.IsClipboardFormatAvailable(dibv5_format):
+                self._logger.debug("Windows native: CF_DIBV5 format found")
+                try:
+                    dibv5_data = win32clipboard.GetClipboardData(dibv5_format)
+                    if dibv5_data:
+                        image = QImage()
+                        if image.loadFromData(dibv5_data):
+                            if not image.isNull():
+                                self._logger.debug(f"Windows native: Image loaded from CF_DIBV5: {image.width()}x{image.height()}")
+                                return image
+                except Exception as e:
+                    self._logger.debug(f"Windows native CF_DIBV5 processing failed: {e}")
+            
+            # Check for PNG format (if available)
+            if win32clipboard.IsClipboardFormatAvailable(win32clipboard.RegisterClipboardFormat("PNG")):
+                self._logger.debug("Windows native: PNG format found")
+                try:
+                    png_data = win32clipboard.GetClipboardData(win32clipboard.RegisterClipboardFormat("PNG"))
+                    if png_data:
+                        image = QImage()
+                        if image.loadFromData(png_data):
+                            if not image.isNull():
+                                self._logger.debug(f"Windows native: Image loaded from PNG: {image.width()}x{image.height()}")
+                                return image
+                except Exception as e:
+                    self._logger.debug(f"Windows native PNG processing failed: {e}")
+            
+            win32clipboard.CloseClipboard()
+            
+        except Exception as e:
+            self._logger.debug(f"Windows native clipboard access failed: {e}")
+            try:
+                win32clipboard.CloseClipboard()
+            except:
+                pass
+        
         return None
 
     def get_selected_text(self, sleep_duration: float = 0.2) -> str:
