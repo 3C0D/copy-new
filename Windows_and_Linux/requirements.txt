@@ -13,11 +13,3 @@ requests
 # Qt complement
 PySide6-stubs
 
-# Linux clipboard tools for better image detection
-# These are system packages that need to be installed via package manager
-# Ubuntu/Debian: sudo apt-get install xclip xsel
-# Fedora/RHEL: sudo dnf install xclip xsel
-# Arch Linux: sudo pacman -S xclip xsel
-xclip
-xsel
-
