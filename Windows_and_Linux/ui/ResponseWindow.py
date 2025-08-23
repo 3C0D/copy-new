@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 from ui.ui_utils import ThemedWidget, get_effective_color_mode
 
 if TYPE_CHECKING:
-    from Windows_and_Linux.WritingToolApp import WritingToolApp
+    from WritingToolApp import WritingToolApp
 
 
 def _(x):

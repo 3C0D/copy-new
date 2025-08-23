@@ -32,7 +32,7 @@ from config.interfaces import ActionConfig
 from ui.ui_utils import ThemeBackground, get_effective_color_mode
 
 if TYPE_CHECKING:
-    from Windows_and_Linux.WritingToolApp import WritingToolApp
+    from WritingToolApp import WritingToolApp
 
 
 def _(x):
@@ -921,7 +921,9 @@ class CustomPopupWindow(QWidget):
             if name == "Custom":
                 continue
             b = DraggableButton(self, name, name)
-            icon_path = get_icon_path(action_config.get("icon", "Not Found"), with_theme=True)
+            icon_path = get_icon_path(
+                action_config.get("icon", "Not Found"), with_theme=True
+            )
             if icon_path.exists():
                 b.setIcon(QtGui.QIcon(icon_path.as_posix()))
 

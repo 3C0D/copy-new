@@ -19,7 +19,7 @@ from ui.ThemeManager import ThemeAwareMixin
 from ui.ui_utils import ThemedWidget, ui_utils
 
 if TYPE_CHECKING:
-    from Windows_and_Linux.WritingToolApp import WritingToolApp
+    from WritingToolApp import WritingToolApp
 
 
 def _(x):

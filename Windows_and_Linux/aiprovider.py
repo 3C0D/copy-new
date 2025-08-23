@@ -98,8 +98,8 @@ from config.data_operations import get_default_model_for_provider
 
 # Type checking imports
 if TYPE_CHECKING:
-    from Windows_and_Linux.config.interfaces import ProviderConfig
-    from Windows_and_Linux.WritingToolApp import WritingToolApp
+    from config.interfaces import ProviderConfig
+    from WritingToolApp import WritingToolApp
 
 
 class AIProviderSetting(ABC):
