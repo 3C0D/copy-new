@@ -11,7 +11,7 @@ psutil
 requests
 
 # Windows clipboard support (only on Windows)
-# pywin32; sys_platform == "win32"
+pywin32; sys_platform == "win32"
 
 # Qt complement
 PySide6-stubs
