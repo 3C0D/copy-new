@@ -1,0 +1,168 @@
+[1mdiff --git a/.vscode/settings.json b/.vscode/settings.json[m
+[1mindex c9970f8..f14d523 100644[m
+[1m--- a/.vscode/settings.json[m
+[1m+++ b/.vscode/settings.json[m
+[36m@@ -17,5 +17,5 @@[m
+     "ruff.path": [[m
+         "./Windows_and_Linux/myvenv/Scripts/ruff.exe"[m
+     ],[m
+[31m-    "python.languageServer": "Pylance"[m
+[32m+[m[32m    "python.languageServer": "None"[m
+ }[m
+\ No newline at end of file[m
+[1mdiff --git a/Windows_and_Linux/WritingToolApp.py b/Windows_and_Linux/WritingToolApp.py[m
+[1mindex 35fcf4f..6e65386 100644[m
+[1m--- a/Windows_and_Linux/WritingToolApp.py[m
+[1m+++ b/Windows_and_Linux/WritingToolApp.py[m
+[36m@@ -718,6 +718,7 @@[m [mclass WritingToolApp(QApplication):[m
+         selected_text: str,[m
+         custom_change: Optional[str] = None,[m
+         force_chat: bool = False,[m
+[32m+[m[32m        image: QtGui.QImage | None = None,[m
+     ) -> None:[m
+         """[m
+         Process the selected writing option in a separate thread.[m
+[36m@@ -729,36 +730,39 @@[m [mclass WritingToolApp(QApplication):[m
+             force_chat: If True, force response to open in ResponseWindow (chat mode)[m
+         """[m
+         self._logger.debug(f"Processing option: {option}")[m
+[32m+[m[32m        self._logger.debug(f"Selected text: {selected_text}")[m
+[32m+[m[32m        self._logger.debug(f"Custom change: {custom_change}")[m
+[32m+[m[32m        self._logger.debug(f"Force chat: {force_chat}")[m
+[32m+[m[32m        self._logger.debug(f"Image: {image is not None}")[m
+ [m
+         action_config = self.settings_manager.actions.get(option)[m
+         if not action_config:[m
+             self._logger.error(f"Action not found: {option}")[m
+             return[m
+ [m
+[31m-        # Check if we need to setup response window[m
+[31m-        should_setup_window = ([m
+[31m-            (is_empty_custom := option == "Custom" and not selected_text.strip())[m
+[31m-            or action_config.get("open_in_window", False)[m
+[31m-            or (force_chat and selected_text.strip())  # Force Chat with text[m
+[32m+[m[32m        should_setup_window = self._should_display_in_window([m
+[32m+[m[32m            option, selected_text, action_config, force_chat, image[m
+         )[m
+ [m
+         if should_setup_window:[m
+[31m-            self._setup_response_window(is_empty_custom, option, selected_text)[m
+[32m+[m[32m            is_empty_custom = option == "Custom" and not selected_text.strip()[m
+[32m+[m[32m            self._setup_response_window(is_empty_custom, option, selected_text, image)[m
+         elif hasattr(self, "current_response_window"):[m
+             delattr(self, "current_response_window")[m
+ [m
+[31m-        # Store force_chat state for the thread[m
+[31m-        self._current_force_chat = force_chat[m
+[31m-[m
+         # Start processing thread[m
+         threading.Thread([m
+             target=self.process_option_thread,[m
+[31m-            args=(option, selected_text, custom_change),[m
+[32m+[m[32m            args=(option, selected_text, custom_change, image),[m
+             daemon=True,[m
+         ).start()[m
+ [m
+     def _setup_response_window([m
+[31m-        self, is_empty_custom: bool, option: str, selected_text: str[m
+[32m+[m[32m        self,[m
+[32m+[m[32m        is_empty_custom: bool,[m
+[32m+[m[32m        option: str,[m
+[32m+[m[32m        selected_text: str,[m
+[32m+[m[32m        image: QtGui.QImage | None,[m
+     ) -> None:[m
+         window_title = "Chat" if is_empty_custom else option[m
+         self.current_response_window = self.show_response_window([m
+[36m@@ -782,7 +786,12 @@[m [mclass WritingToolApp(QApplication):[m
+     # ============================================================================[m
+ [m
+     def process_option_thread([m
+[31m-        self, option: str, selected_text: str, custom_change: Optional[str] = None[m
+[32m+[m[32m        self,[m
+[32m+[m[32m        option: str,[m
+[32m+[m[32m        selected_text: str,[m
+[32m+[m[32m        custom_change: Optional[str] = None,[m
+[32m+[m[32m        force_chat: bool = False,[m
+[32m+[m[32m        image: QtGui.QImage | None = None,[m
+     ) -> None:[m
+         """[m
+         Thread function to process the selected writing option using the AI model.[m
+[36m@@ -801,12 +810,12 @@[m [mclass WritingToolApp(QApplication):[m
+ [m
+             self.output_queue = ""[m
+             should_open_window = self._should_display_in_window([m
+[31m-                option, selected_text, prompt_data["action_config"][m
+[32m+[m[32m                option, selected_text, prompt_data["action_config"], force_chat, image[m
+             )[m
+ [m
+             if should_open_window:[m
+                 self._process_window_response([m
+[31m-                    option, selected_text, custom_change, prompt_data[m
+[32m+[m[32m                    option, selected_text, custom_change, prompt_data, image[m
+                 )[m
+             else:[m
+                 self._process_direct_replacement(prompt_data)[m
+[36m@@ -877,18 +886,22 @@[m [mclass WritingToolApp(QApplication):[m
+         }[m
+ [m
+     def _should_display_in_window([m
+[31m-        self, option: str, selected_text: str, action_config: dict[m
+[32m+[m[32m        self,[m
+[32m+[m[32m        option: str,[m
+[32m+[m[32m        selected_text: str,[m
+[32m+[m[32m        action_config: dict,[m
+[32m+[m[32m        force_chat: bool,[m
+[32m+[m[32m        image: QtGui.QImage | None = None,[m
+     ) -> bool:[m
+         """Determine if response should be displayed in a window."""[m
+         has_selected_text = selected_text.strip() != ""[m
+         is_custom_option = option == "Custom"[m
+[31m-        force_chat = getattr(self, "_current_force_chat", False)[m
+ [m
+         return ([m
+             (is_custom_option and not has_selected_text)[m
+             or (has_selected_text and action_config.get("open_in_window", False))[m
+             or (force_chat and has_selected_text)[m
+[31m-            or (has_image_data)[m
+[32m+[m[32m            or (image is not None)  # Image input always opens window[m
+         )[m
+ [m
+     def _process_window_response([m
+[36m@@ -897,6 +910,7 @@[m [mclass WritingToolApp(QApplication):[m
+         selected_text: str,[m
+         custom_change: Optional[str],[m
+         prompt_data: dict,[m
+[32m+[m[32m        image: QtGui.QImage | None = None,[m
+     ) -> None:[m
+         """Process AI response for window display."""[m
+         if not self.current_provider:[m
+[36m@@ -995,7 +1009,9 @@[m [mclass WritingToolApp(QApplication):[m
+         if settings_button and msg_box.clickedButton() == settings_button:[m
+             self.show_settings()[m
+ [m
+[31m-    def show_response_window(self, option: str, text: str) -> ui.ResponseWindow.ResponseWindow:[m
+[32m+[m[32m    def show_response_window([m
+[32m+[m[32m        self, option: str, text: str[m
+[32m+[m[32m    ) -> ui.ResponseWindow.ResponseWindow:[m
+         """[m
+         Show the response in a new window instead of pasting it.[m
+         """[m
+[1mdiff --git a/Windows_and_Linux/ui/CustomPopupWindow.py b/Windows_and_Linux/ui/CustomPopupWindow.py[m
+[1mindex c89ae54..f4dcf4a 100644[m
+[1m--- a/Windows_and_Linux/ui/CustomPopupWindow.py[m
+[1m+++ b/Windows_and_Linux/ui/CustomPopupWindow.py[m
+[36m@@ -418,10 +418,11 @@[m [mclass DraggableButton(QPushButton):[m
+ [m
+ [m
+ class CustomPopupWindow(QWidget):[m
+[31m-    def __init__(self, app: WritingToolApp, selected_text: str | None):[m
+[32m+[m[32m    def __init__(self, app: WritingToolApp, selected_text: str | None, image: QtGui.QImage | None):[m
+         super().__init__()[m
+         self.app = app[m
+         self.selected_text: str | None = selected_text[m
+[32m+[m[32m        self.image: QtGui.QImage | None = image[m
+         self.edit_mode = False[m
+         self.has_text = bool(selected_text.strip() if selected_text else False)[m
+ [m
+[36m@@ -1343,14 +1344,15 @@[m [mclass CustomPopupWindow(QWidget):[m
+         This recreates the popup window with t

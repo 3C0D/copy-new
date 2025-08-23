@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 from ui.ui_utils import ThemedWidget, get_effective_color_mode
 
 if TYPE_CHECKING:
-    from Windows_and_Linux.WritingToolApp import WritingToolApp
+    from WritingToolApp import WritingToolApp
 
 
 def _(x):
@@ -351,7 +351,9 @@ class ChatContentScrollArea(QScrollArea):
         """,
         )
 
-    def add_message(self, text: str, is_user: bool = False) -> MarkdownTextBrowser | None:
+    def add_message(
+        self, text: str, is_user: bool = False, image: QtGui.QImage | None = None
+    ) -> MarkdownTextBrowser | None:
         if not self.content_layout:
             return None
 
@@ -360,7 +362,23 @@ class ChatContentScrollArea(QScrollArea):
 
         # Create text display first
         text_display = MarkdownTextBrowser(self.content_widget, is_user_message=is_user)
-        html = markdown2.markdown(text, extras=["tables"])
+
+        # If there's an image, add it to the text
+        if image:
+            # Convert image to base64 for display
+            import base64
+            import io
+
+            buffer = io.BytesIO()
+            image.save(buffer, "PNG")
+            image_base64 = base64.b64encode(buffer.getvalue()).decode()
+
+            # Add image to text
+            text_with_image = f"{text}\n\n![Image](data:image/png;base64,{image_base64})"
+            html = markdown2.markdown(text_with_image, extras=["tables"])
+        else:
+            html = markdown2.markdown(text, extras=["tables"])
+
         text_display.setHtml(html)
 
         # Wrap in MessageContainer for copy functionality
@@ -457,7 +475,7 @@ class ResponseWindow(ThemedWidget):
 
     def __init__(
         self,
-        app: WritingToolApp,
+        app: "WritingToolApp",
         title: str = _("Response"),
         parent: QWidget | None = None,
     ):

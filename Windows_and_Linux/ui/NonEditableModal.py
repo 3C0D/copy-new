@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 if TYPE_CHECKING:
-    from Windows_and_Linux.WritingToolApp import WritingToolApp
+    from WritingToolApp import WritingToolApp
 
 
 def _(x):
@@ -30,7 +30,7 @@ def _(x):
 class NonEditableModal(QDialog):
     """Modal window to display transformed text when pasting fails."""
 
-    def __init__(self, app: WritingToolApp, transformed_text: str | None):
+    def __init__(self, app: "WritingToolApp", transformed_text: str | None):
         super().__init__()
         self.app = app
         self.transformed_text = transformed_text
@@ -212,7 +212,7 @@ class NonEditableModal(QDialog):
 
 # Example usage for testing
 if __name__ == "__main__":
-    from Windows_and_Linux.WritingToolApp import WritingToolApp
+    from WritingToolApp import WritingToolApp
 
     app = QApplication([])
     writing_app = WritingToolApp(None)

@@ -98,8 +98,8 @@ from config.data_operations import get_default_model_for_provider
 
 # Type checking imports
 if TYPE_CHECKING:
-    from Windows_and_Linux.config.interfaces import ProviderConfig
-    from Windows_and_Linux.WritingToolApp import WritingToolApp
+    from config.interfaces import ProviderConfig
+    from WritingToolApp import WritingToolApp
 
 
 class AIProviderSetting(ABC):
@@ -386,7 +386,7 @@ class AIProvider(ABC):
 
     def __init__(
         self,
-        app: WritingToolApp,
+        app: "WritingToolApp",
         provider_name: str,
         settings: list[AIProviderSetting],
         description: str = "An unfinished AI provider!",
@@ -444,7 +444,11 @@ class AIProvider(ABC):
 
     @abstractmethod
     def get_response(
-        self, system_instruction: str, prompt: str, return_response: bool = False
+        self,
+        system_instruction: str,
+        prompt: str,
+        return_response: bool = False,
+        image_data: str | None = None,
     ) -> str:
         """
         Send the given system instruction and prompt to the AI provider and return the full response text.
@@ -454,6 +458,7 @@ class AIProvider(ABC):
         - Sending the request and waiting for the response
         - Error handling and displaying appropriate user messages
         - Emitting the output_ready_signal for direct text replacement
+        - Processing images if image_data is provided
         """
 
     def load_config(self, config: dict) -> None:
@@ -534,7 +539,7 @@ class GeminiProvider(AIProvider):
     Handles safety settings to allow less restricted content.
     """
 
-    def __init__(self, app: WritingToolApp):
+    def __init__(self, app: "WritingToolApp"):
         self.close_requested: bool = False
         self.model: Any = None
 
@@ -568,7 +573,11 @@ class GeminiProvider(AIProvider):
         )
 
     def get_response(
-        self, system_instruction: str, prompt: str, return_response: bool = False
+        self,
+        system_instruction: str,
+        prompt: str,
+        return_response: bool = False,
+        image_data: str | None = None,
     ) -> str:
         """
         Generate content using Gemini.
@@ -576,6 +585,7 @@ class GeminiProvider(AIProvider):
         Always performs a single-shot request with streaming disabled.
         Returns the full response text if return_response is True,
         otherwise emits the text via the output_ready_signal.
+        Supports image analysis if image_data is provided.
         """
         self.close_requested = False
 
@@ -595,10 +605,20 @@ class GeminiProvider(AIProvider):
             return error_msg
 
         try:
+            # Prepare content for Gemini
+            if image_data:
+                # For image analysis, create content with image and text
+                contents = [
+                    system_instruction,
+                    {"inline_data": {"mime_type": "image/png", "data": image_data}},
+                    prompt,
+                ]
+            else:
+                # For text-only requests
+                contents = [system_instruction, prompt]
+
             # Single-shot call with streaming disabled
-            response = self.model.generate_content(
-                contents=[system_instruction, prompt], stream=False
-            )
+            response = self.model.generate_content(contents=contents, stream=False)
 
             # Check if response was blocked by safety filters
             if not response.candidates:
@@ -811,7 +831,7 @@ class OpenAICompatibleProvider(AIProvider):
     and project authentication.
     """
 
-    def __init__(self, app: WritingToolApp):
+    def __init__(self, app: "WritingToolApp"):
         self.close_requested: bool = False
         self.client: Any = None
 
@@ -1334,7 +1354,7 @@ class OllamaProvider(AIProvider):
     and custom models.
     """
 
-    def __init__(self, app: WritingToolApp):
+    def __init__(self, app: "WritingToolApp"):
         self.close_requested: bool = False
         self.client: Any = None
         self.app: WritingToolApp = app
@@ -1681,7 +1701,7 @@ class AnthropicProvider(AIProvider):
     Implements authentication via API key and supports different Claude models.
     """
 
-    def __init__(self, app: WritingToolApp):
+    def __init__(self, app: "WritingToolApp"):
         self.close_requested: bool = False
         self.client: Any = None
         self.app: WritingToolApp = app
@@ -1872,7 +1892,7 @@ class MistralProvider(AIProvider):
     Uses direct HTTP requests for better control and reliability.
     """
 
-    def __init__(self, app: WritingToolApp):
+    def __init__(self, app: "WritingToolApp"):
         self.close_requested: bool = False
         self.client: Any = None
         self.app: WritingToolApp = app

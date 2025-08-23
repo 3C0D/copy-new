@@ -6,7 +6,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 if TYPE_CHECKING:
-    from Windows_and_Linux.WritingToolApp import WritingToolApp
+    from WritingToolApp import WritingToolApp
 
 CURRENT_VERSION = 7
 UPDATE_CHECK_URL = "https://raw.githubusercontent.com/theJayTea/WritingTools/main/Windows_and_Linux/Latest_Version_for_Update_Check.txt"

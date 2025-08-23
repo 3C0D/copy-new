@@ -8,6 +8,7 @@ including AI provider management, hotkey handling, and user interface coordinati
 import gettext
 import logging
 import os
+import platform
 import signal
 import sys
 import threading
@@ -27,7 +28,6 @@ import ui.AboutWindow
 import ui.CustomPopupWindow
 import ui.NonEditableModal
 import ui.OnboardingWindow
-import ui.ResponseWindow
 import ui.SettingsWindow
 
 if TYPE_CHECKING:
@@ -44,6 +44,7 @@ from aiprovider import (
     OpenAICompatibleProvider,
 )
 from config.settings import SettingsManager
+from ui.ResponseWindow import ResponseWindow
 from ui.ui_utils import get_icon_path
 from update_checker import UpdateChecker
 
@@ -593,6 +594,7 @@ class WritingToolApp(QApplication):
 
         clipboard_image = self.get_clipboard_image()
         self._logger.debug(f'Selected text: "{selected_text}"')
+        self._logger.debug(f'Clipboard image: {clipboard_image is not None}')
         try:
             if self.popup_window is not None:
                 self._logger.debug("Existing popup window found")
@@ -641,24 +643,171 @@ class WritingToolApp(QApplication):
         except Exception as e:
             self._logger.error(f"Error showing popup window: {e}", exc_info=True)
 
+    def debug_clipboard_contents(self) -> None:
+        """
+        Debug method to analyze clipboard contents and available formats.
+        Helps diagnose clipboard detection issues.
+        """
+        try:
+            clipboard = QApplication.clipboard()
+            mime_data = clipboard.mimeData()
+
+            self._logger.debug("=== CLIPBOARD DEBUG INFO ===")
+            self._logger.debug(f"hasImage(): {mime_data.hasImage()}")
+            self._logger.debug(f"hasText(): {mime_data.hasText()}")
+            self._logger.debug(f"hasUrls(): {mime_data.hasUrls()}")
+
+            # List all available formats
+            formats = mime_data.formats()
+            self._logger.debug(f"Available formats ({len(formats)}): {formats}")
+
+            # Check specific image formats
+            image_formats = [
+                "image/png", "image/jpeg", "image/jpg", "image/bmp",
+                "image/gif", "image/tiff", "image/dib", "CF_DIB",
+                "CF_BITMAP", "application/x-qt-image"
+            ]
+
+            for fmt in image_formats:
+                has_format = mime_data.hasFormat(fmt)
+                if has_format:
+                    data_size = len(mime_data.data(fmt))
+                    self._logger.debug(f"Format '{fmt}': YES ({data_size} bytes)")
+                else:
+                    self._logger.debug(f"Format '{fmt}': NO")
+
+            self._logger.debug("=== END CLIPBOARD DEBUG ===")
+
+        except Exception as e:
+            self._logger.error(f"Error debugging clipboard: {e}")
+
     def get_clipboard_image(self) -> Optional[QImage]:
         """
-        Get the image currently stored in the clipboard using Qt6.
+        Get the image currently stored in the clipboard using Qt6 with multiple detection methods.
         Returns the image if found, None otherwise.
-        """
-        clipboard = QApplication.clipboard()
-        mime_data = clipboard.mimeData()
 
-        if mime_data.hasImage():
-            # Get the image from clipboard
-            image = mime_data.imageData()
-            if isinstance(image, QImage):
-                return image
-            else:
-                # Convert to QImage if it's a QPixmap
-                return image.toImage()
-        else:
-            return None
+        Uses multiple approaches to detect images:
+        1. Standard hasImage() method
+        2. Format-specific detection for various image types
+        3. Raw data analysis for Windows clipboard formats
+        """
+        try:
+            clipboard = QApplication.clipboard()
+            mime_data = clipboard.mimeData()
+
+            # Debug clipboard contents if in debug mode
+            if self._logger.isEnabledFor(logging.DEBUG):
+                self.debug_clipboard_contents()
+
+            # Method 1: Standard Qt image detection
+            if mime_data.hasImage():
+                self._logger.debug("Method 1: hasImage() returned True")
+                image = mime_data.imageData()
+                if isinstance(image, QImage):
+                    if not image.isNull():
+                        self._logger.debug(f"Image found via hasImage(): {image.width()}x{image.height()}")
+                        return image
+                    else:
+                        self._logger.debug("hasImage() returned null QImage")
+                else:
+                    # Convert QPixmap to QImage
+                    try:
+                        from PySide6.QtGui import QPixmap
+                        if isinstance(image, QPixmap):
+                            qimage = image.toImage()
+                            if not qimage.isNull():
+                                self._logger.debug(f"Image converted from QPixmap: {qimage.width()}x{qimage.height()}")
+                                return qimage
+                            else:
+                                self._logger.debug("QPixmap conversion resulted in null QImage")
+                    except Exception as e:
+                        self._logger.debug(f"Error converting QPixmap: {e}")
+
+            # Method 2: Format-specific detection
+            image_formats = [
+                "image/png", "image/jpeg", "image/jpg", "image/bmp",
+                "image/gif", "image/tiff", "image/dib", "CF_DIB", "CF_BITMAP"
+            ]
+
+            for fmt in image_formats:
+                if mime_data.hasFormat(fmt):
+                    self._logger.debug(f"Method 2: Found format '{fmt}'")
+                    try:
+                        data = mime_data.data(fmt)
+                        if data and not data.isEmpty():
+                            # Try to load image from raw data
+                            image = QImage()
+                            if image.loadFromData(data):
+                                if not image.isNull():
+                                    self._logger.debug(f"Image loaded from format '{fmt}': {image.width()}x{image.height()}")
+                                    return image
+                                else:
+                                    self._logger.debug(f"Format '{fmt}' data loaded but resulted in null image")
+                            else:
+                                self._logger.debug(f"Failed to load image from format '{fmt}' data")
+                        else:
+                            self._logger.debug(f"Format '{fmt}' has no data or empty data")
+                    except Exception as e:
+                        self._logger.debug(f"Error processing format '{fmt}': {e}")
+
+            # Method 3: Windows-specific clipboard formats (for Print Screen)
+            if platform.system() == "Windows":
+                windows_formats = ["CF_DIB", "CF_BITMAP", "CF_DIBV5"]
+                for fmt in windows_formats:
+                    if mime_data.hasFormat(fmt):
+                        self._logger.debug(f"Method 3: Found Windows format '{fmt}'")
+                        try:
+                            data = mime_data.data(fmt)
+                            if data and not data.isEmpty():
+                                # Try to create QImage from Windows DIB/Bitmap data
+                                image = QImage()
+                                if image.loadFromData(data):
+                                    if not image.isNull():
+                                        self._logger.debug(f"Image loaded from Windows format '{fmt}': {image.width()}x{image.height()}")
+                                        return image
+                                else:
+                                    # Try alternative loading methods for Windows formats
+                                    try:
+                                        # Convert bytes to QByteArray and try different formats
+                                        from PySide6.QtCore import QByteArray
+                                        byte_array = QByteArray(data)
+
+                                        # Try loading as different image formats
+                                        for img_format in ["BMP", "PNG", "JPEG"]:
+                                            image = QImage()
+                                            if image.loadFromData(byte_array, img_format.encode()):
+                                                if not image.isNull():
+                                                    self._logger.debug(f"Image loaded from Windows format '{fmt}' as {img_format}: {image.width()}x{image.height()}")
+                                                    return image
+                                    except Exception as e:
+                                        self._logger.debug(f"Alternative loading failed for '{fmt}': {e}")
+                        except Exception as e:
+                            self._logger.debug(f"Error processing Windows format '{fmt}': {e}")
+
+            # Method 4: Try to get image data directly from clipboard (last resort)
+            try:
+                # Sometimes the image data is available but not detected by hasImage()
+                image_data = mime_data.imageData()
+                if image_data is not None:
+                    self._logger.debug("Method 4: Found imageData() directly")
+                    if isinstance(image_data, QImage) and not image_data.isNull():
+                        self._logger.debug(f"Direct imageData() successful: {image_data.width()}x{image_data.height()}")
+                        return image_data
+                    elif hasattr(image_data, 'toImage'):
+                        # Try converting if it's a QPixmap
+                        converted = image_data.toImage()
+                        if not converted.isNull():
+                            self._logger.debug(f"Direct imageData() converted: {converted.width()}x{converted.height()}")
+                            return converted
+            except Exception as e:
+                self._logger.debug(f"Method 4 failed: {e}")
+
+            self._logger.debug("No image found in clipboard using any method")
+
+        except Exception as e:
+            self._logger.error(f"Error getting clipboard image: {e}")
+
+        return None
 
     def get_selected_text(self, sleep_duration: float = 0.2) -> str:
         """
@@ -703,6 +852,8 @@ class WritingToolApp(QApplication):
 
         return selected_text
 
+
+
     def clear_clipboard(self) -> None:
         """
         Clear the system clipboard.
@@ -718,6 +869,7 @@ class WritingToolApp(QApplication):
         selected_text: str,
         custom_change: Optional[str] = None,
         force_chat: bool = False,
+        image: QtGui.QImage | None = None,
     ) -> None:
         """
         Process the selected writing option in a separate thread.
@@ -729,38 +881,47 @@ class WritingToolApp(QApplication):
             force_chat: If True, force response to open in ResponseWindow (chat mode)
         """
         self._logger.debug(f"Processing option: {option}")
+        self._logger.debug(f"Selected text: {selected_text}")
+        self._logger.debug(f"Custom change: {custom_change}")
+        self._logger.debug(f"Force chat: {force_chat}")
+        self._logger.debug(f"Image: {image is not None}")
 
         action_config = self.settings_manager.actions.get(option)
         if not action_config:
             self._logger.error(f"Action not found: {option}")
             return
 
-        # Check if we need to setup response window
-        should_setup_window = (
-            (is_empty_custom := option == "Custom" and not selected_text.strip())
-            or action_config.get("open_in_window", False)
-            or (force_chat and selected_text.strip())  # Force Chat with text
+        should_setup_window = self._should_display_in_window(
+            option, selected_text, action_config, force_chat, image
         )
 
         if should_setup_window:
-            self._setup_response_window(is_empty_custom, option, selected_text)
+            is_empty_custom = option == "Custom" and not selected_text.strip()
+            self._setup_response_window(is_empty_custom, option, selected_text, image)
         elif hasattr(self, "current_response_window"):
             delattr(self, "current_response_window")
-
-        # Store force_chat state for the thread
-        self._current_force_chat = force_chat
 
         # Start processing thread
         threading.Thread(
             target=self.process_option_thread,
-            args=(option, selected_text, custom_change),
+            args=(option, selected_text, custom_change, image),
             daemon=True,
         ).start()
 
     def _setup_response_window(
-        self, is_empty_custom: bool, option: str, selected_text: str
+        self,
+        is_empty_custom: bool,
+        option: str,
+        selected_text: str,
+        image: QtGui.QImage | None,
     ) -> None:
-        window_title = "Chat" if is_empty_custom else option
+        # For images, always use "Chat" as title and force chat mode
+        if image is not None:
+            window_title = "Image Analysis"
+            self._logger.debug("Setting up response window for image analysis")
+        else:
+            window_title = "Chat" if is_empty_custom else option
+
         self.current_response_window = self.show_response_window(
             window_title, selected_text
         )
@@ -777,12 +938,42 @@ class WritingToolApp(QApplication):
             ]
         )
 
+        # If there's an image, add it to chat history and enable force chat
+        if image is not None:
+            # Add image to chat history
+            if self.current_response_window.chat_history:
+                # Add image after the text
+                self.current_response_window.chat_history.append({
+                    "role": "user",
+                    "content": "[Image from clipboard]",
+                    "image": image
+                })
+            else:
+                # Only image, no text
+                self.current_response_window.chat_history.append({
+                    "role": "user",
+                    "content": "[Image from clipboard]",
+                    "image": image
+                })
+
+            # Automatically enable force chat for images
+            if hasattr(self.current_response_window, 'force_chat_toggle'):
+                self.current_response_window.force_chat_toggle.setChecked(True)
+                # Also lock it to prevent accidental disabling
+                if hasattr(self.current_response_window, 'force_chat_lock'):
+                    self.current_response_window.force_chat_lock.setChecked(True)
+
     # ============================================================================
     # AI PROCESSING METHODS
     # ============================================================================
 
     def process_option_thread(
-        self, option: str, selected_text: str, custom_change: Optional[str] = None
+        self,
+        option: str,
+        selected_text: str,
+        custom_change: Optional[str] = None,
+        force_chat: bool = False,
+        image: QtGui.QImage | None = None,
     ) -> None:
         """
         Thread function to process the selected writing option using the AI model.
@@ -795,18 +986,20 @@ class WritingToolApp(QApplication):
         self._logger.debug(f"Starting processing thread for option: {option}")
 
         try:
-            prompt_data = self._prepare_prompt_data(option, selected_text, custom_change)
+            prompt_data = self._prepare_prompt_data(
+                option, selected_text, custom_change, image
+            )
             if not prompt_data:
                 return
 
             self.output_queue = ""
             should_open_window = self._should_display_in_window(
-                option, selected_text, prompt_data["action_config"]
+                option, selected_text, prompt_data["action_config"], force_chat, image
             )
 
             if should_open_window:
                 self._process_window_response(
-                    option, selected_text, custom_change, prompt_data
+                    option, selected_text, custom_change, prompt_data, image
                 )
             else:
                 self._process_direct_replacement(prompt_data)
@@ -815,7 +1008,11 @@ class WritingToolApp(QApplication):
             self._handle_processing_error(e)
 
     def _prepare_prompt_data(
-        self, option: str, selected_text: str, custom_change: Optional[str] = None
+        self,
+        option: str,
+        selected_text: str,
+        custom_change: Optional[str] = None,
+        image: QtGui.QImage | None = None,
     ) -> Optional[dict]:
         """
         Prepare prompt data for AI processing.
@@ -826,15 +1023,18 @@ class WritingToolApp(QApplication):
         has_selected_text = selected_text.strip() != ""
         is_custom_option = option == "Custom"
 
-        if not has_selected_text:
-            return self._handle_no_text_selected(is_custom_option, custom_change)
+        if not has_selected_text and image is None:
+            return self._handle_no_text_selected(is_custom_option, custom_change, image)
         else:
             return self._handle_text_selected(
-                option, selected_text, custom_change, is_custom_option
+                option, selected_text, custom_change, is_custom_option, image
             )
 
     def _handle_no_text_selected(
-        self, is_custom_option: bool, custom_change: Optional[str]
+        self,
+        is_custom_option: bool,
+        custom_change: Optional[str],
+        image: QtGui.QImage | None = None,
     ) -> Optional[dict]:
         """Handle case where no text is selected."""
         if is_custom_option:
@@ -842,6 +1042,7 @@ class WritingToolApp(QApplication):
                 "prompt": custom_change,
                 "system_instruction": "You are a friendly, helpful, compassionate, and endearing AI conversational assistant. Avoid making assumptions or generating harmful, biased, or inappropriate content. When in doubt, do not make up information. Ask the user for clarification if needed. Try not be unnecessarily repetitive in your response. You can, and should as appropriate, use Markdown formatting to make your response nicely readable.",
                 "action_config": {},
+                "image": image,
             }
         else:
             self.show_message_signal.emit(
@@ -855,6 +1056,7 @@ class WritingToolApp(QApplication):
         selected_text: str,
         custom_change: Optional[str],
         is_custom_option: bool,
+        image: QtGui.QImage | None = None,
     ) -> Optional[dict]:
         """Handle case where text is selected."""
         action_config = self.settings_manager.actions.get(option)
@@ -874,21 +1076,31 @@ class WritingToolApp(QApplication):
             "prompt": prompt,
             "system_instruction": system_instruction,
             "action_config": action_config,
+            "image": image,
         }
 
     def _should_display_in_window(
-        self, option: str, selected_text: str, action_config: dict
+        self,
+        option: str,
+        selected_text: str,
+        action_config: dict,
+        force_chat: bool,
+        image: QtGui.QImage | None = None,
     ) -> bool:
         """Determine if response should be displayed in a window."""
         has_selected_text = selected_text.strip() != ""
         is_custom_option = option == "Custom"
-        force_chat = getattr(self, "_current_force_chat", False)
 
+        # If there's an image, always open in window (force chat mode)
+        if image is not None:
+            self._logger.debug("Image detected - forcing window display")
+            return True
+
+        # Normal logic for text-based operations
         return (
             (is_custom_option and not has_selected_text)
             or (has_selected_text and action_config.get("open_in_window", False))
             or (force_chat and has_selected_text)
-            or (has_image_data)
         )
 
     def _process_window_response(
@@ -897,24 +1109,50 @@ class WritingToolApp(QApplication):
         selected_text: str,
         custom_change: Optional[str],
         prompt_data: dict,
+        image: QtGui.QImage | None = None,
     ) -> None:
         """Process AI response for window display."""
         if not self.current_provider:
             return
 
         self._logger.debug("Getting response for window display")
-        response = self.current_provider.get_response(
-            prompt_data["system_instruction"],
-            str(prompt_data["prompt"]),
-            return_response=True,
-        )
+
+        # Check if we have an image to process
+        image = prompt_data.get("image")
+        if image:
+            # For images, we need to use a special prompt format
+            prompt = f"Analyze this image and respond to the following request: {prompt_data['prompt']}"
+            # Convert image to base64 for the provider
+            import base64
+            import io
+
+            buffer = io.BytesIO()
+            image.save(buffer, "PNG")
+            image_base64 = base64.b64encode(buffer.getvalue()).decode()
+
+            response = self.current_provider.get_response(
+                prompt_data["system_instruction"],
+                prompt,
+                return_response=True,
+                image_data=image_base64,
+            )
+        else:
+            response = self.current_provider.get_response(
+                prompt_data["system_instruction"],
+                str(prompt_data["prompt"]),
+                return_response=True,
+            )
         self._logger.debug(f"Got response of length: {len(response) if response else 0}")
 
-        self._update_chat_history_if_needed(option, selected_text, custom_change)
+        self._update_chat_history_if_needed(option, selected_text, custom_change, image)
         self._update_response_window(response)
 
     def _update_chat_history_if_needed(
-        self, option: str, selected_text: str, custom_change: Optional[str]
+        self,
+        option: str,
+        selected_text: str,
+        custom_change: Optional[str],
+        image: QtGui.QImage | None = None,
     ) -> None:
         """Update chat history for custom prompts without text."""
         is_custom_option = option == "Custom"
@@ -922,7 +1160,7 @@ class WritingToolApp(QApplication):
 
         if is_custom_option and not has_selected_text and self.current_response_window:
             self.current_response_window.chat_history.append(
-                {"role": "user", "content": custom_change or ""},
+                {"role": "user", "content": custom_change or "", "image": image},
             )
 
     def _update_response_window(self, response: str) -> None:
@@ -995,7 +1233,9 @@ class WritingToolApp(QApplication):
         if settings_button and msg_box.clickedButton() == settings_button:
             self.show_settings()
 
-    def show_response_window(self, option: str, text: str) -> ui.ResponseWindow.ResponseWindow:
+    def show_response_window(
+        self, option: str, text: str
+    ) -> ui.ResponseWindow.ResponseWindow:
         """
         Show the response in a new window instead of pasting it.
         """
@@ -1413,7 +1653,10 @@ class WritingToolApp(QApplication):
 
                         # Get response using the chat
                         response = chat.send_message(question)
-                        response_text = response.text
+                        if response and hasattr(response, 'parts') and response.parts:
+                            response_text = response.text
+                        else:
+                            response_text = "Error: No valid response generated"
                     else:
                         response_text = "Error: Provider model not available"
 

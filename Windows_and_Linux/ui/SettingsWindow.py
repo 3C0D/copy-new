@@ -29,9 +29,8 @@ from PySide6.QtWidgets import (
 )
 
 if TYPE_CHECKING:
-    from Windows_and_Linux.WritingToolApp import WritingToolApp
-
     from aiprovider import AIProvider
+    from WritingToolApp import WritingToolApp
 from config.constants import PROVIDER_DISPLAY_NAMES
 from config.data_operations import get_provider_display_name
 from ui.AutostartManager import AutostartManager
@@ -51,7 +50,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
 
     close_signal = QtCore.Signal()
 
-    def __init__(self, app: WritingToolApp, providers_only: bool = False):
+    def __init__(self, app: "WritingToolApp", providers_only: bool = False):
         super().__init__()
         self.app = app
         self.current_provider_layout = None

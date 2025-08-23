@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from Windows_and_Linux.config.settings import SettingsManager
+from config.settings import SettingsManager
 
 try:
     if sys.platform.startswith("win32"):

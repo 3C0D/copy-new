@@ -32,7 +32,7 @@ from config.interfaces import ActionConfig
 from ui.ui_utils import ThemeBackground, get_effective_color_mode
 
 if TYPE_CHECKING:
-    from Windows_and_Linux.WritingToolApp import WritingToolApp
+    from WritingToolApp import WritingToolApp
 
 
 def _(x):
@@ -418,10 +418,13 @@ class DraggableButton(QPushButton):
 
 
 class CustomPopupWindow(QWidget):
-    def __init__(self, app: WritingToolApp, selected_text: str | None):
+    def __init__(
+        self, app: "WritingToolApp", selected_text: str | None, image: QtGui.QImage | None
+    ):
         super().__init__()
         self.app = app
         self.selected_text: str | None = selected_text
+        self.image: QtGui.QImage | None = image
         self.edit_mode = False
         self.has_text = bool(selected_text.strip() if selected_text else False)
 
@@ -650,6 +653,24 @@ class CustomPopupWindow(QWidget):
 
         content_layout.addWidget(self.input_area)
 
+        # Image notification area (shown when image is detected)
+        if self.image is not None:
+            image_notification = QLabel("🖼️ Image found in clipboard. Write your action on it.")
+            image_notification.setStyleSheet(
+                f"""
+                color: {"#4CAF50" if get_effective_color_mode() == "dark" else "#2e7d32"};
+                font-size: 12px;
+                font-weight: bold;
+                text-align: center;
+                padding: 8px;
+                background-color: {"#1b5e20" if get_effective_color_mode() == "dark" else "#e8f5e8"};
+                border-radius: 6px;
+                margin: 5px 0px;
+                """
+            )
+            image_notification.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            content_layout.addWidget(image_notification)
+
         # Force Chat toggle area (only shown when text is selected)
         if self.has_text:
             self.create_force_chat_toggle(content_layout)
@@ -821,6 +842,31 @@ class CustomPopupWindow(QWidget):
         self.force_chat_toggle.toggled.connect(self.on_force_chat_toggled)
         self.force_chat_lock.toggled.connect(self.on_force_chat_lock_toggled)
 
+        # Add image icon if there's an image
+        if self.image is not None:
+            from ui.ui_utils import get_icon_path
+
+            image_icon = QLabel()
+            image_icon_path = get_icon_path("magnifying-glass", with_theme=True)
+            if image_icon_path.exists():
+                image_icon.setPixmap(
+                    QtGui.QPixmap(image_icon_path.as_posix()).scaled(
+                        16,
+                        16,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
+                )
+            image_icon.setToolTip(
+                "Image detected in clipboard - Force Chat automatically enabled"
+            )
+            image_icon.setStyleSheet("margin-left: 5px;")
+            force_chat_layout.addWidget(image_icon)
+
+            # Automatically enable force chat for images
+            self.force_chat_toggle.setChecked(True)
+            self.force_chat_lock.setChecked(True)
+
         # Add to layout
         force_chat_layout.addWidget(label)
         force_chat_layout.addWidget(self.force_chat_toggle)
@@ -921,7 +967,9 @@ class CustomPopupWindow(QWidget):
             if name == "Custom":
                 continue
             b = DraggableButton(self, name, name)
-            icon_path = get_icon_path(action_config.get("icon", "Not Found"), with_theme=True)
+            icon_path = get_icon_path(
+                action_config.get("icon", "Not Found"), with_theme=True
+            )
             if icon_path.exists():
                 b.setIcon(QtGui.QIcon(icon_path.as_posix()))
 
@@ -1343,14 +1391,15 @@ class CustomPopupWindow(QWidget):
         This recreates the popup window with the same selected text.
         """
         # Store current position and selected text
-        current_pos = self.pos()
-        selected_text = self.selected_text
+        current_pos: QtCore.QPoint = self.pos()
+        selected_text: str | None = self.selected_text
+        image: QtGui.QImage | None = self.image
 
         # Close current window
         self.close()
 
         # Create and show new popup window
-        new_popup = CustomPopupWindow(self.app, selected_text)
+        new_popup = CustomPopupWindow(self.app, selected_text, image)
         new_popup.move(current_pos)
         new_popup.show()
         new_popup.raise_()
@@ -1360,14 +1409,21 @@ class CustomPopupWindow(QWidget):
         txt = self.custom_input.text().strip() if self.custom_input else ""
         if txt and self.selected_text is not None:
             self.app.process_option(
-                "Custom", self.selected_text, txt, force_chat=self.is_force_chat_enabled()
+                "Custom",
+                self.selected_text,
+                txt,
+                force_chat=self.is_force_chat_enabled(),
+                image=self.image,
             )
             self.close()
 
     def on_generic_instruction(self, instruction: str) -> None:
         if not self.edit_mode and self.selected_text is not None:
             self.app.process_option(
-                instruction, self.selected_text, force_chat=self.is_force_chat_enabled()
+                instruction,
+                self.selected_text,
+                force_chat=self.is_force_chat_enabled(),
+                image=self.image,
             )
             self.close()
 
