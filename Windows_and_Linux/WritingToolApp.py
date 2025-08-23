@@ -1187,6 +1187,15 @@ class WritingToolApp(QApplication):
         Args:
             sleep_duration (float): Time to wait for clipboard update
         """
+        # Check if clipboard already has an image (don't clear if it does)
+        clipboard = QApplication.clipboard()
+        mime_data = clipboard.mimeData()
+        has_image = mime_data.hasImage()
+        
+        if has_image:
+            self._logger.debug("Clipboard contains image, skipping text capture to preserve image")
+            return ""
+        
         # Backup the clipboard
         clipboard_backup = pyperclip.paste()
         self._logger.debug(
