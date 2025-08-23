@@ -598,7 +598,17 @@ class WritingToolApp(QApplication):
         Show the popup window when the hotkey is pressed.
         """
         self._logger.debug("Showing popup window")
-        # First attempt with default sleep
+        
+        # Check for clipboard image FIRST (before any text capture)
+        clipboard_image = self.get_clipboard_image()
+        
+        # If there's an image, bypass text selection and open chat directly
+        if clipboard_image is not None:
+            self._logger.debug("Image detected in clipboard, opening chat directly")
+            self._open_chat_with_image(clipboard_image)
+            return
+        
+        # Only capture text if no image is present
         selected_text = self.get_selected_text()
 
         # Retry with longer sleep if no text captured
@@ -606,7 +616,6 @@ class WritingToolApp(QApplication):
             self._logger.debug("No text captured, retrying with longer sleep")
             selected_text = self.get_selected_text(sleep_duration=0.5)
 
-        clipboard_image = self.get_clipboard_image()
         self._logger.debug(f'Selected text: "{selected_text}"')
         self._logger.debug(f'Clipboard image: {clipboard_image is not None}')
         try:
@@ -656,6 +665,37 @@ class WritingToolApp(QApplication):
             self._logger.debug(f"Popup window moved to position: ({x}, {y})")
         except Exception as e:
             self._logger.error(f"Error showing popup window: {e}", exc_info=True)
+
+    def _open_chat_with_image(self, image: QImage) -> None:
+        """
+        Open chat window directly with clipboard image.
+        Bypasses popup selection when image is detected.
+        """
+        try:
+            self._logger.debug("Opening chat window with clipboard image")
+            
+            # Create response window for image analysis
+            self.current_response_window = self.show_response_window(
+                "Image Analysis", ""
+            )
+            
+            # Initialize chat history with image
+            self.current_response_window.chat_history = [
+                {
+                    "role": "user",
+                    "content": "[Image from clipboard]",
+                    "image": image
+                }
+            ]
+            
+            # Enable force chat mode for image analysis
+            if hasattr(self.current_response_window, 'force_chat_mode'):
+                self.current_response_window.force_chat_mode = True
+            
+            self._logger.debug("Chat window opened successfully with image")
+            
+        except Exception as e:
+            self._logger.error(f"Error opening chat with image: {e}", exc_info=True)
 
     def debug_clipboard_contents(self) -> None:
         """
