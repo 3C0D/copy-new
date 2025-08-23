@@ -591,7 +591,18 @@ class WritingToolApp(QApplication):
         # If there's an image, bypass text selection and open chat directly
         if clipboard_image is not None:
             self._logger.debug("Image detected in clipboard, opening chat directly")
-            self._open_chat_with_image(clipboard_image)
+            # Create response window for image analysis
+            self.current_response_window = self.show_response_window(
+                "Image Analysis", ""
+            )
+            # Initialize chat history with image
+            self.current_response_window.chat_history = [
+                {
+                    "role": "user",
+                    "content": "[Image from clipboard]",
+                    "image": clipboard_image
+                }
+            ]
             return
         
         # Only capture text if no image is present
@@ -608,7 +619,7 @@ class WritingToolApp(QApplication):
         # If no text captured and no image, open chat directly
         if not selected_text:
             self._logger.debug("No text and no image, opening chat directly")
-            self._open_chat_with_image(None)
+            self.current_response_window = self.show_response_window("Chat", "")
             return
             
         try:
@@ -659,43 +670,7 @@ class WritingToolApp(QApplication):
         except Exception as e:
             self._logger.error(f"Error showing popup window: {e}", exc_info=True)
 
-    def _open_chat_with_image(self, image: QImage | None) -> None:
-        """
-        Open chat window directly with clipboard image or empty chat.
-        """
-        try:
-            if image is not None:
-                self._logger.debug("Opening chat window with clipboard image")
-                window_title = "Image Analysis"
-            else:
-                self._logger.debug("Opening empty chat window")
-                window_title = "Chat"
-            
-            # Create response window
-            self.current_response_window = self.show_response_window(
-                window_title, ""
-            )
-            
-            # Initialize chat history
-            if image is not None:
-                self.current_response_window.chat_history = [
-                    {
-                        "role": "user",
-                        "content": "[Image from clipboard]",
-                        "image": image
-                    }
-                ]
-            else:
-                self.current_response_window.chat_history = []
-            
-            # Enable force chat mode for images
-            if image is not None and hasattr(self.current_response_window, 'force_chat_toggle'):
-                self.current_response_window.force_chat_toggle.setChecked(True)
-            
-            self._logger.debug("Chat window opened successfully")
-            
-        except Exception as e:
-            self._logger.error(f"Error opening chat with image: {e}", exc_info=True)
+
 
     def debug_clipboard_contents(self) -> None:
         """
