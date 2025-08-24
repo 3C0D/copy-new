@@ -152,7 +152,7 @@ class TextSetting(AIProviderSetting):
     """
     A text-based setting (for API keys, URLs, etc.).
 
-    Uses a QLineEdit to allow free text input.
+    Uses a QLineEdit to allow free text input, and its label shown before.
     Value is stored internally until widget rendering.
     """
 
@@ -407,10 +407,6 @@ class AIProvider(ABC):
         # Support for multiple buttons (for providers that need refresh functionality)
         self.additional_buttons = []
 
-        # Initialize dynamic attributes based on provider settings
-        # These attributes will be updated during configuration loading
-        # self._initialize_dynamic_attributes()
-
     def add_button(self, text: str, action: Callable, style: str = "secondary") -> None:
         """Add an additional button to the provider UI."""
         self.additional_buttons.append({"text": text, "action": action, "style": style})
@@ -421,11 +417,6 @@ class AIProvider(ABC):
         This method should be overridden by providers that need dynamic reconfiguration.
         """
         pass
-
-    # def _initialize_dynamic_attributes(self):
-    #     """Initialize all dynamic attributes based on provider settings."""
-    #     for setting in self.settings:
-    #         setattr(self, setting.name, setting.default_value or "")
 
     @property
     def api_model(self) -> str:
@@ -444,7 +435,11 @@ class AIProvider(ABC):
 
     @abstractmethod
     def get_response(
-        self, system_instruction: str, prompt: str, return_response: bool = False
+        self,
+        system_instruction: str,
+        prompt: str,
+        return_response: bool = False,
+        image_data: str | None = None,
     ) -> str:
         """
         Send the given system instruction and prompt to the AI provider and return the full response text.
@@ -454,6 +449,7 @@ class AIProvider(ABC):
         - Sending the request and waiting for the response
         - Error handling and displaying appropriate user messages
         - Emitting the output_ready_signal for direct text replacement
+        - Processing images if image_data is provided
         """
 
     def load_config(self, config: dict) -> None:
@@ -568,7 +564,11 @@ class GeminiProvider(AIProvider):
         )
 
     def get_response(
-        self, system_instruction: str, prompt: str, return_response: bool = False
+        self,
+        system_instruction: str,
+        prompt: str,
+        return_response: bool = False,
+        image_data: str | None = None,
     ) -> str:
         """
         Generate content using Gemini.
@@ -576,6 +576,7 @@ class GeminiProvider(AIProvider):
         Always performs a single-shot request with streaming disabled.
         Returns the full response text if return_response is True,
         otherwise emits the text via the output_ready_signal.
+        Supports image analysis if image_data is provided.
         """
         self.close_requested = False
 
@@ -595,10 +596,20 @@ class GeminiProvider(AIProvider):
             return error_msg
 
         try:
+            # Prepare content for Gemini
+            if image_data:
+                # For image analysis, create content with image and text
+                contents = [
+                    system_instruction,
+                    {"inline_data": {"mime_type": "image/png", "data": image_data}},
+                    prompt,
+                ]
+            else:
+                # For text-only requests
+                contents = [system_instruction, prompt]
+
             # Single-shot call with streaming disabled
-            response = self.model.generate_content(
-                contents=[system_instruction, prompt], stream=False
-            )
+            response = self.model.generate_content(contents=contents, stream=False)
 
             # Check if response was blocked by safety filters
             if not response.candidates:
@@ -861,6 +872,7 @@ class OpenAICompatibleProvider(AIProvider):
         system_instruction: str,
         prompt: Union[str, list],
         return_response: bool = False,
+        image_data: str | None = None,
     ) -> str:
         """
         Send a chat request to the OpenAI-compatible API.
@@ -1598,6 +1610,7 @@ class OllamaProvider(AIProvider):
         system_instruction: str,
         prompt: Union[str, list],
         return_response: bool = False,
+        image_data: str | None = None,
     ) -> str:
         """
         Send a chat request to the Ollama server.
@@ -1718,6 +1731,7 @@ class AnthropicProvider(AIProvider):
         system_instruction: str,
         prompt: str,
         return_response: bool = False,
+        image_data: str | None = None,
         conversation_history: list[dict[str, str]] | None = None,
     ) -> str:
         """
@@ -1909,7 +1923,9 @@ class MistralProvider(AIProvider):
         system_instruction,
         prompt,
         return_response: bool = False,
+        image_data: str | None = None,
         conversation_history: list[dict[str, str]] | None = None,
+
     ) -> str:
         """
         Generate response using Mistral API.

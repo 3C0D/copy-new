@@ -51,7 +51,6 @@ class ToggleSwitch(QCheckBox):
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        super().__init__(parent)
         self.setFixedSize(50, 24)
         self.setCheckable(True)
         self._circle_position: int = 2
@@ -428,7 +427,7 @@ class CustomPopupWindow(QWidget):
         super().__init__()
         self.app = app
         self.selected_text: str | None = selected_text
-        self.image : QtGui.QImage | None = image
+        self.image: QtGui.QImage | None = image
         self.edit_mode = False
         self.has_text = bool(selected_text.strip() if selected_text else False)
         self.has_image = bool(image is not None)
@@ -1377,7 +1376,7 @@ class CustomPopupWindow(QWidget):
         txt = widget.text().strip() if widget else ""
         if txt and self.selected_text or self.has_image:
             self.process_option(
-                "Custom", self.selected_text, txt, force_chat=self.is_force_chat_enabled()
+                "Custom", self.selected_text, self.is_force_chat_enabled(), txt
             )
             self.close()
 
@@ -1387,36 +1386,28 @@ class CustomPopupWindow(QWidget):
         """
         if not self.edit_mode and self.selected_text is not None:
             self.process_option(
-                instruction, self.selected_text, force_chat=self.is_force_chat_enabled()
+                instruction, self.selected_text.strip(), self.is_force_chat_enabled()
             )
             self.close()
 
     def process_option(
         self,
         option: str,
-        selected_text: str,
-        custom_change: str | None = None,
+        selected_text: str | None,
         force_chat: bool = False,
+        custom_change: str | None = None,
     ) -> None:
         """
         Process the selected writing option in a separate thread.
         """
         logging.debug(f"Processing option: {option}")
 
-        action_config = self.app.settings_manager.actions.get(option)
-        if not action_config:
-            logging.error(f"Action not found: {option}")
-            return
-
-        # Check if we need to setup response window
-        should_setup_window = (
-            (is_empty_custom := option == "Custom" and not selected_text.strip())
-            or action_config.get("open_in_window", False)
-            or (force_chat and selected_text.strip())  # Force Chat with text
+        should_setup_response_window = self._should_display_in_response_window(
+            option, selected_text, self.app.settings_manager.actions
         )
 
-        if should_setup_window:
-            self._setup_response_window(is_empty_custom, option, selected_text)
+        if should_setup_response_window:
+            self._setup_response_window(option, selected_text)
         elif hasattr(self.app, "current_response_window"):
             delattr(self.app, "current_response_window")
 
@@ -1430,10 +1421,12 @@ class CustomPopupWindow(QWidget):
             daemon=True,
         ).start()
 
-    def _setup_response_window(
-        self, is_empty_custom: bool, option: str, selected_text: str
-    ) -> None:
-        window_title = "Chat" if is_empty_custom else option
+    def _setup_response_window(self, option: str, selected_text: str | None) -> None:
+        """
+        Set up the response window for the selected writing option.
+        """
+        is_custom = option == "Custom"
+        window_title = "Chat" if not is_custom else option
         self.app.current_response_window = self.app.show_response_window(
             window_title, selected_text
         )
@@ -1441,7 +1434,7 @@ class CustomPopupWindow(QWidget):
         # Initialize chat history inline
         self.app.current_response_window.chat_history = (
             []
-            if is_empty_custom
+            if not is_custom
             else [
                 {
                     "role": "user",
@@ -1464,7 +1457,7 @@ class CustomPopupWindow(QWidget):
                 return
 
             self.app.output_queue = ""
-            should_open_window = self._should_display_in_window(
+            should_open_window = self._should_display_in_response_window(
                 option, selected_text, prompt_data["action_config"]
             )
 
@@ -1537,11 +1530,18 @@ class CustomPopupWindow(QWidget):
             "action_config": action_config,
         }
 
-    def _should_display_in_window(
-        self, option: str, selected_text: str, action_config: dict
+    def _should_display_in_response_window(
+        self, option: str, selected_text: str | None, action_config: dict
     ) -> bool:
-        """Determine if response should be displayed in a window."""
-        has_selected_text = selected_text.strip() != ""
+        """
+        Determine if response should be displayed in a window.
+        Conditions:
+        - Custom option with no selected text
+        - Selected text and "open_in_window" is True in action config
+        - Force Chat is enabled and there is selected text
+        - There is an image to process
+        """
+        has_selected_text = bool(selected_text and selected_text.strip() != "")
         is_custom_option = option == "Custom"
         force_chat = getattr(self, "_current_force_chat", False)
 
@@ -1549,6 +1549,7 @@ class CustomPopupWindow(QWidget):
             (is_custom_option and not has_selected_text)
             or (has_selected_text and action_config.get("open_in_window", False))
             or (force_chat and has_selected_text)
+            or self.has_image
         )
 
     def _process_window_response(

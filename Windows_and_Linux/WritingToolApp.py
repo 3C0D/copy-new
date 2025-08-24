@@ -16,7 +16,6 @@ import types
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
-import pyperclip
 from pynput import keyboard as keyboard
 
 os.environ["QT_LOGGING_RULES"] = (
@@ -608,6 +607,12 @@ class WritingToolApp(QApplication):
             self._logger.debug("Image found in clipboard, skipping text capture")
 
         try:
+            if self.popup_window is not None:
+                logging.debug("Existing popup window found")
+                if self.popup_window.isVisible():
+                    logging.debug("Closing existing visible popup window")
+                    self.popup_window.close()
+                self.popup_window = None
             self._logger.debug("Creating new popup window")
             self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(
                 self, selected_text, self.image
@@ -649,7 +654,13 @@ class WritingToolApp(QApplication):
         except Exception as e:
             self._logger.error(f"Error showing popup window: {e}", exc_info=True)
 
-    def _clipboard_retry_operation(self, operation_name: str, operation_func, max_attempts: int = 3, sleep_duration: float = 0.2):
+    def _clipboard_retry_operation(
+        self,
+        operation_name: str,
+        operation_func,
+        max_attempts: int = 3,
+        sleep_duration: float = 0.2,
+    ):
         """
         Generic retry mechanism for clipboard operations that may fail intermittently.
 
@@ -670,18 +681,21 @@ class WritingToolApp(QApplication):
             try:
                 result = operation_func()
                 if result:  # Success - got meaningful result
-                    self._logger.debug(f"{operation_name} succeeded after {attempt + 1} attempts")
+                    self._logger.debug(
+                        f"{operation_name} succeeded after {attempt + 1} attempts"
+                    )
                     return result
 
             except Exception as e:
-                self._logger.warning(f"{operation_name} attempt {attempt + 1} failed: {e}")
+                self._logger.warning(
+                    f"{operation_name} attempt {attempt + 1} failed: {e}"
+                )
 
             if attempt < max_attempts - 1:  # Don't sleep after last attempt
                 time.sleep(sleep_per_attempt)
 
         self._logger.warning(f"{operation_name} failed after {max_attempts} attempts")
         return None
-
 
     def get_clipboard_image(self) -> QImage | None:
         """
@@ -728,8 +742,8 @@ class WritingToolApp(QApplication):
         result = self._clipboard_retry_operation(
             "Clipboard image retrieval",
             _get_image_operation,
-            max_attempts=3,
-            sleep_duration=0.2
+            max_attempts=4,
+            sleep_duration=0.2,
         )
 
         # Clear clipboard after successful read (or after all attempts failed)
@@ -738,7 +752,6 @@ class WritingToolApp(QApplication):
             self._logger.debug("Clipboard cleared after image retrieval")
 
         return result
-
 
     def get_selected_text(self, sleep_duration: float = 0.2) -> str:
         """
@@ -781,14 +794,16 @@ class WritingToolApp(QApplication):
         selected_text = self._clipboard_retry_operation(
             "Selected text retrieval",
             _get_text_operation,
-            max_attempts=3,
-            sleep_duration=sleep_duration
+            max_attempts=4,
+            sleep_duration=sleep_duration,
         )
 
         # Clean the selected text (remove leading/trailing whitespace and newlines)
         if selected_text:
             selected_text = selected_text.strip()
-            self._logger.debug(f"Text retrieved and cleaned: {len(selected_text)} characters")
+            self._logger.debug(
+                f"Text retrieved and cleaned: {len(selected_text)} characters"
+            )
         else:
             selected_text = ""
 
@@ -835,14 +850,13 @@ class WritingToolApp(QApplication):
         if settings_button and msg_box.clickedButton() == settings_button:
             self.show_settings()
 
-    def show_response_window(
-        self, option: str, text: str
-    ) -> ui.ResponseWindow.ResponseWindow:
+    def show_response_window(self, option: str, text: str | None) -> ResponseWindow:
         """
         Show the response in a new window instead of pasting it.
         """
-        response_window = ui.ResponseWindow.ResponseWindow(self, f"{option} Result")
-        response_window.selected_text = text  # Store the text for regeneration
+        response_window = ResponseWindow(self, f"{option} Result")
+        if text:
+            response_window.selected_text = text  # Store the text for regeneration
         response_window.show()
         return response_window
 
@@ -883,7 +897,7 @@ class WritingToolApp(QApplication):
 
         try:
             # Handle Summary and Key Points - show in response window
-            if (hasattr(self, "current_response_window") and self.current_response_window):
+            if hasattr(self, "current_response_window") and self.current_response_window:
                 self._handle_response_window_output(new_text)
             else:
                 # Handle other options - try clipboard-based replacement with fallback
@@ -895,7 +909,6 @@ class WritingToolApp(QApplication):
 
         except Exception as e:
             self._logger.exception(f"Error processing output: {e}")
-
 
     def _handle_response_window_output(self, new_text: str) -> None:
         """Handle output for response window (Summary/Key Points)"""
@@ -915,11 +928,12 @@ class WritingToolApp(QApplication):
 
         # If this is the initial response, add it to chat history
         if len(current_window.chat_history) == 1:  # Only original text exists
-            current_window.chat_history.append({
-                "role": "assistant",
+            current_window.chat_history.append(
+                {
+                    "role": "assistant",
                     "content": self.output_queue.rstrip("\n"),
-                })
-
+                }
+            )
 
     def _handle_clipboard_paste(self) -> None:
         """Handle clipboard-based text replacement with fallback to modal"""
@@ -951,7 +965,9 @@ class WritingToolApp(QApplication):
 
         # If selection is the same, paste failed (non-editable page)
         if original_selection == new_selection and original_selection.strip():
-            self._logger.debug("Paste failed - showing modal window for non-editable page")
+            self._logger.debug(
+                "Paste failed - showing modal window for non-editable page"
+            )
             QtCore.QMetaObject.invokeMethod(
                 self,
                 "_show_non_editable_modal",

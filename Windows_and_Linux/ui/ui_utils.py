@@ -85,8 +85,8 @@ def get_icon_path(icon_name: str, with_theme: bool = True) -> Path:
         base_paths = [
             base_dir / "icons",  # Build location (dist/dev/icons/)
             base_dir / "config" / "icons",  # Dev location
-            # base_dir / "Windows_and_Linux" / "config" / "icons",  # Root project location
-            # base_dir / "Windows_and_Linux" / "dist" / "dev" / "icons",  # Dev build location
+            base_dir / "Windows_and_Linux" / "config" / "icons",  # Root project location
+            base_dir / "Windows_and_Linux" / "dist" / "dev" / "icons",  # Dev build location
         ]
 
     # Check all combinations of paths and filenames
