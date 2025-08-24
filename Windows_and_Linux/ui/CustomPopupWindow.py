@@ -6,6 +6,7 @@ Used for displaying a custom popup window with various input fields and options.
 """
 
 import logging
+import threading
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
@@ -418,12 +419,19 @@ class DraggableButton(QPushButton):
 
 
 class CustomPopupWindow(QWidget):
-    def __init__(self, app: "WritingToolApp", selected_text: str | None):
+    def __init__(
+        self,
+        app: "WritingToolApp",
+        selected_text: str,
+        image: QtGui.QImage | None = None,
+    ):
         super().__init__()
         self.app = app
-        self.selected_text: str | None = selected_text
+        self.selected_text: str = selected_text
+        self.image = image
         self.edit_mode = False
         self.has_text = bool(selected_text.strip() if selected_text else False)
+        self.has_image = bool(image is not None)
 
         self.drag_label: QLabel | None = None
         self.edit_button: QPushButton | None = None
@@ -609,7 +617,9 @@ class CustomPopupWindow(QWidget):
 
         self.custom_input = QLineEdit()
         self.custom_input.setPlaceholderText(
-            _("Describe your change...") if self.has_text else _("Ask your AI...")
+            _("Describe your change...")
+            if self.has_text and not self.has_image
+            else _("Ask your AI...")
         )
         self.custom_input.setStyleSheet(
             f"""
@@ -651,10 +661,10 @@ class CustomPopupWindow(QWidget):
         content_layout.addWidget(self.input_area)
 
         # Force Chat toggle area (only shown when text is selected)
-        if self.has_text:
+        if self.has_text and not self.has_image:
             self.create_force_chat_toggle(content_layout)
 
-        if self.has_text:
+        if self.has_text and not self.has_image:
             self.build_buttons_list()
             self.rebuild_grid_layout(content_layout)
         else:
@@ -998,7 +1008,7 @@ class CustomPopupWindow(QWidget):
             parent_layout.addLayout(grid)
 
         # Add New button (only in edit mode & only if we have text)
-        if edit_mode_to_use and self.has_text:
+        if edit_mode_to_use and self.has_text and not self.has_image:
             add_btn = QPushButton("+ Add New")
             add_btn.setStyleSheet(
                 f"""
@@ -1126,6 +1136,7 @@ class CustomPopupWindow(QWidget):
             self.drag_label.hide()
         if (
             self.has_text
+            and not self.has_image
             and hasattr(self, "edit_button")
             and self.edit_button is not None
         ):
@@ -1359,19 +1370,259 @@ class CustomPopupWindow(QWidget):
         new_popup.activateWindow()
 
     def on_custom_change(self) -> None:
-        txt = self.custom_input.text().strip() if self.custom_input else ""
-        if txt and self.selected_text is not None:
-            self.app.process_option(
+        """
+        Prompt entered by user in the input field.
+        """
+        widget = getattr(self, "custom_input", None)
+        txt = widget.text().strip() if widget else ""
+        if txt and self.selected_text or self.has_image:
+            self.process_option(
                 "Custom", self.selected_text, txt, force_chat=self.is_force_chat_enabled()
             )
             self.close()
 
     def on_generic_instruction(self, instruction: str) -> None:
+        """
+        User clicked a generic instruction button.
+        """
         if not self.edit_mode and self.selected_text is not None:
-            self.app.process_option(
+            self.process_option(
                 instruction, self.selected_text, force_chat=self.is_force_chat_enabled()
             )
             self.close()
+
+    def process_option(
+        self,
+        option: str,
+        selected_text: str,
+        custom_change: str | None = None,
+        force_chat: bool = False,
+    ) -> None:
+        """
+        Process the selected writing option in a separate thread.
+        """
+        logging.debug(f"Processing option: {option}")
+
+        action_config = self.app.settings_manager.actions.get(option)
+        if not action_config:
+            logging.error(f"Action not found: {option}")
+            return
+
+        # Check if we need to setup response window
+        should_setup_window = (
+            (is_empty_custom := option == "Custom" and not selected_text.strip())
+            or action_config.get("open_in_window", False)
+            or (force_chat and selected_text.strip())  # Force Chat with text
+        )
+
+        if should_setup_window:
+            self._setup_response_window(is_empty_custom, option, selected_text)
+        elif hasattr(self.app, "current_response_window"):
+            delattr(self.app, "current_response_window")
+
+        # Store force_chat state for the thread
+        self._current_force_chat = force_chat
+
+        # Start processing thread
+        threading.Thread(
+            target=self.process_option_thread,
+            args=(option, selected_text, custom_change),
+            daemon=True,
+        ).start()
+
+    def _setup_response_window(
+        self, is_empty_custom: bool, option: str, selected_text: str
+    ) -> None:
+        window_title = "Chat" if is_empty_custom else option
+        self.app.current_response_window = self.app.show_response_window(
+            window_title, selected_text
+        )
+
+        # Initialize chat history inline
+        self.app.current_response_window.chat_history = (
+            []
+            if is_empty_custom
+            else [
+                {
+                    "role": "user",
+                    "content": f"Original text to {option.lower()}:\n\n{selected_text}",
+                },
+            ]
+        )
+
+    def process_option_thread(
+        self, option: str, selected_text: str, custom_change: str | None = None
+    ) -> None:
+        """
+        Thread function to process the selected writing option using the AI model.
+        """
+        logging.debug(f"Starting processing thread for option: {option}")
+
+        try:
+            prompt_data = self._prepare_prompt_data(option, selected_text, custom_change)
+            if not prompt_data:
+                return
+
+            self.app.output_queue = ""
+            should_open_window = self._should_display_in_window(
+                option, selected_text, prompt_data["action_config"]
+            )
+
+            if should_open_window:
+                self._process_window_response(
+                    option, selected_text, custom_change, prompt_data
+                )
+            else:
+                self._process_direct_replacement(prompt_data)
+
+        except Exception as e:
+            self._handle_processing_error(e)
+
+    def _prepare_prompt_data(
+        self, option: str, selected_text: str, custom_change: str | None = None
+    ) -> dict | None:
+        """
+        Prepare prompt data for AI processing.
+        """
+        has_selected_text = selected_text.strip() != ""
+        is_custom_option = option == "Custom"
+
+        if not has_selected_text:
+            return self._handle_no_text_selected(is_custom_option, custom_change)
+        else:
+            return self._handle_text_selected(
+                option, selected_text, custom_change, is_custom_option
+            )
+
+    def _handle_no_text_selected(
+        self, is_custom_option: bool, custom_change: str | None
+    ) -> dict | None:
+        """Handle case where no text is selected."""
+        if is_custom_option:
+            return {
+                "prompt": custom_change,
+                "system_instruction": "You are a friendly, helpful, compassionate, and endearing AI conversational assistant. Avoid making assumptions or generating harmful, biased, or inappropriate content. When in doubt, do not make up information. Ask the user for clarification if needed. Try not be unnecessarily repetitive in your response. You can, and should as appropriate, use Markdown formatting to make your response nicely readable.",
+                "action_config": {},
+            }
+        else:
+            self.app.show_message_signal.emit(
+                "Error", "Please select text to use this option."
+            )
+            return None
+
+    def _handle_text_selected(
+        self,
+        option: str,
+        selected_text: str,
+        custom_change: str | None,
+        is_custom_option: bool,
+    ) -> dict | None:
+        """Handle case where text is selected."""
+        action_config = self.app.settings_manager.actions.get(option)
+        if not action_config:
+            logging.error(f"Action not found: {option}")
+            return None
+
+        prompt_prefix = action_config.get("prefix", "")
+        system_instruction = action_config.get("instruction", "")
+
+        if is_custom_option:
+            prompt = f"{prompt_prefix}Described change: {custom_change}\n\nText: {selected_text}"
+        else:
+            prompt = f"{prompt_prefix}{selected_text}"
+
+        return {
+            "prompt": prompt,
+            "system_instruction": system_instruction,
+            "action_config": action_config,
+        }
+
+    def _should_display_in_window(
+        self, option: str, selected_text: str, action_config: dict
+    ) -> bool:
+        """Determine if response should be displayed in a window."""
+        has_selected_text = selected_text.strip() != ""
+        is_custom_option = option == "Custom"
+        force_chat = getattr(self, "_current_force_chat", False)
+
+        return (
+            (is_custom_option and not has_selected_text)
+            or (has_selected_text and action_config.get("open_in_window", False))
+            or (force_chat and has_selected_text)
+        )
+
+    def _process_window_response(
+        self,
+        option: str,
+        selected_text: str,
+        custom_change: str | None,
+        prompt_data: dict,
+    ) -> None:
+        """Process AI response for window display."""
+        if not self.app.current_provider:
+            return
+
+        logging.debug("Getting response for window display")
+        response = self.app.current_provider.get_response(
+            prompt_data["system_instruction"],
+            str(prompt_data["prompt"]),
+            return_response=True,
+        )
+        logging.debug(f"Got response of length: {len(response) if response else 0}")
+
+        self._update_chat_history_if_needed(option, selected_text, custom_change)
+        self._update_response_window(response)
+
+    def _update_chat_history_if_needed(
+        self, option: str, selected_text: str, custom_change: str | None
+    ) -> None:
+        """Update chat history for custom prompts without text."""
+        is_custom_option = option == "Custom"
+        has_selected_text = selected_text.strip() != ""
+
+        if (
+            is_custom_option
+            and not has_selected_text
+            and self.app.current_response_window
+        ):
+            self.app.current_response_window.chat_history.append(
+                {"role": "user", "content": custom_change or ""},
+            )
+
+    def _update_response_window(self, response: str) -> None:
+        """Update response window with AI response (thread-safe)."""
+        if self.app.current_response_window:
+            QtCore.QMetaObject.invokeMethod(
+                self.app.current_response_window,
+                "set_text",
+                QtCore.Qt.ConnectionType.QueuedConnection,
+                QtCore.Q_ARG(str, response),
+            )
+            logging.debug("Invoked set_text on response window")
+
+    def _process_direct_replacement(self, prompt_data: dict) -> None:
+        """Process AI response for direct text replacement."""
+        if not self.app.current_provider:
+            return
+
+        logging.debug("Getting response for direct replacement")
+        prompt_str = str(prompt_data["prompt"])
+        self.app.current_provider.get_response(
+            prompt_data["system_instruction"], prompt_str
+        )
+        logging.debug("Response processed")
+
+    def _handle_processing_error(self, error: Exception) -> None:
+        """Handle errors during AI processing."""
+        logging.error(f"An error occurred: {error}", exc_info=True)
+
+        if "Resource has been exhausted" in str(error):
+            self.app.show_message_signal.emit(
+                "Error - Rate Limit Hit",
+                "Whoops! You've hit the per-minute rate limit of the Gemini API. Please try again in a few moments.\n\nIf this happens often, simply switch to a Gemini model with a higher usage limit in Settings.",
+            )
+        else:
+            self.app.show_message_signal.emit("Error", f"An error occurred: {error}")
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key.Key_Escape:
