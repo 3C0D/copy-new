@@ -18,6 +18,11 @@ from typing import TYPE_CHECKING, Optional
 
 import pyperclip
 from pynput import keyboard as keyboard
+
+os.environ["QT_LOGGING_RULES"] = (
+    "qt.qpa.mime.warning=false;qt.qpa.mime.debug=false;qt.qpa.mime.info=false"  # Suppress QMimeDatabase warnings
+)
+# os.environ['QT_FORCE_STDERR_LOGGING'] = '0'  # If previous line doesn't work, try this
 from PySide6 import QtCore, QtGui
 from PySide6.QtCore import QLocale, Signal, Slot
 from PySide6.QtGui import QCursor, QGuiApplication, QImage
@@ -591,13 +596,19 @@ class WritingToolApp(QApplication):
         self._logger.debug("Showing popup window")
 
         # Only capture text if no image is present
-        selected_text = self.get_selected_text()
-        self._logger.debug(f'Selected text: "{selected_text}"')
+        image = self.get_clipboard_image()
+        if image is None:
+            selected_text = self.get_selected_text()
+            self._logger.debug(f'Selected text: "{selected_text}"')
+        else:
+            selected_text = None
+            self._logger.debug("Image found in clipboard, skipping text capture")
 
         try:
+            return
             self._logger.debug("Creating new popup window")
             self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(
-                self, selected_text, self.get_clipboard_image()
+                self, selected_text, image
             )
 
             # Set the window icon
@@ -710,8 +721,9 @@ class WritingToolApp(QApplication):
 
         press_ctrl_c()
 
-        # Wait for the clipboard to update and verify it changed
-        max_attempts = 10
+        # Wait for the clipboard to update with optimized retry logic
+        # Qt has known intermittent clipboard failures, 3 retries is the recommended approach
+        max_attempts = 3  # Optimal balance: handles Qt failures without excessive delay
         selected_text = ""
         sleep_per_attempt = sleep_duration / max_attempts
 
