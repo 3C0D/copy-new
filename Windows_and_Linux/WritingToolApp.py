@@ -117,6 +117,7 @@ class WritingToolApp(QApplication):
         self.current_provider: AIProvider | None = None
         self.output_queue = ""
         self.paused = False
+        self.image: QImage | None = None
 
     def _setup_signals(self) -> None:
         """Connect application signals to their handlers."""
@@ -596,8 +597,10 @@ class WritingToolApp(QApplication):
         self._logger.debug("Showing popup window")
 
         # Only capture text if no image is present
-        image = self.get_clipboard_image()
-        if image is None:
+        if self.image is not None:
+            self.image = self.get_clipboard_image()
+
+        if self.image is None:
             selected_text = self.get_selected_text()
             self._logger.debug(f'Selected text: "{selected_text}"')
         else:
@@ -605,10 +608,9 @@ class WritingToolApp(QApplication):
             self._logger.debug("Image found in clipboard, skipping text capture")
 
         try:
-            return
             self._logger.debug("Creating new popup window")
             self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(
-                self, selected_text, image
+                self, selected_text, self.image
             )
 
             # Set the window icon
@@ -647,61 +649,110 @@ class WritingToolApp(QApplication):
         except Exception as e:
             self._logger.error(f"Error showing popup window: {e}", exc_info=True)
 
+    def _clipboard_retry_operation(self, operation_name: str, operation_func, max_attempts: int = 3, sleep_duration: float = 0.2):
+        """
+        Generic retry mechanism for clipboard operations that may fail intermittently.
+
+        Args:
+            operation_name: Name for logging purposes
+            operation_func: Function to retry (should return the result or None/empty)
+            max_attempts: Maximum number of retry attempts
+            sleep_duration: Total time to wait, distributed across attempts
+
+        Returns:
+            Result of operation_func or None if all attempts failed
+        """
+        import time
+
+        sleep_per_attempt = sleep_duration / max_attempts
+
+        for attempt in range(max_attempts):
+            try:
+                result = operation_func()
+                if result:  # Success - got meaningful result
+                    self._logger.debug(f"{operation_name} succeeded after {attempt + 1} attempts")
+                    return result
+
+            except Exception as e:
+                self._logger.warning(f"{operation_name} attempt {attempt + 1} failed: {e}")
+
+            if attempt < max_attempts - 1:  # Don't sleep after last attempt
+                time.sleep(sleep_per_attempt)
+
+        self._logger.warning(f"{operation_name} failed after {max_attempts} attempts")
+        return None
+
+
     def get_clipboard_image(self) -> QImage | None:
         """
         Get the image data currently stored in the clipboard from screenshots or image copy operations.
 
         Handles both QImage and QPixmap formats, converts QPixmap to QImage automatically.
         Common sources: Print Screen, Shift+Win+S, browser "Copy image", app screenshots, etc.
+        Uses retry mechanism for Qt clipboard reliability.
 
         Returns:
             QImage | None: The clipboard image as QImage, or None if no image found
         """
         clipboard = QApplication.clipboard()
-        mime_data = clipboard.mimeData()
 
-        if not mime_data.hasImage():
-            self._logger.debug("No image found in clipboard")
-            return None
+        def _get_image_operation():
+            """Internal operation for retry mechanism"""
+            mime_data = clipboard.mimeData()
 
-        try:
-            image_data = mime_data.imageData()
-
-            if isinstance(image_data, QImage):
-                self._logger.debug("QImage found in clipboard")
-                return image_data
-
-            elif hasattr(image_data, "toImage"):  # QPixmap
-                self._logger.debug("Converting QPixmap to QImage")
-                qimage = image_data.toImage()
-                return qimage
-
-            else:
-                self._logger.warning(f"Unknown image type: {type(image_data)}")
+            if not mime_data.hasImage():
+                self._logger.debug("No image found in clipboard")
                 return None
 
-        except Exception as e:
-            self._logger.error(f"Error getting clipboard image: {e}")
-            return None
+            try:
+                image_data = mime_data.imageData()
+
+                if isinstance(image_data, QImage):
+                    self._logger.debug("QImage found in clipboard")
+                    return image_data
+
+                elif hasattr(image_data, "toImage"):  # QPixmap
+                    self._logger.debug("Converting QPixmap to QImage")
+                    qimage = image_data.toImage()
+                    return qimage
+
+                else:
+                    self._logger.warning(f"Unknown image type: {type(image_data)}")
+                    return None
+
+            except Exception as e:
+                self._logger.error(f"Error processing clipboard image data: {e}")
+                return None
+
+        # Use retry mechanism for clipboard reliability
+        result = self._clipboard_retry_operation(
+            "Clipboard image retrieval",
+            _get_image_operation,
+            max_attempts=3,
+            sleep_duration=0.2
+        )
+
+        # Clear clipboard after successful read (or after all attempts failed)
+        if result or not result:  # Always clear, whether we got an image or not
+            clipboard.clear()
+            self._logger.debug("Clipboard cleared after image retrieval")
+
+        return result
+
 
     def get_selected_text(self, sleep_duration: float = 0.2) -> str:
         """
         Get the currently selected text from any application by simulating Ctrl+C.
-
         Backs up clipboard, clears it, simulates Ctrl+C, waits for new content,
         then restores original clipboard content.
 
         Args:
             sleep_duration (float): Total time to wait for clipboard update,
                                 distributed across multiple retry attempts (default: 0.2s)
-
         Returns:
             str: The selected text, stripped of whitespace, or empty string if none found
         """
-        # Get the clipboard instance
         clipboard = QApplication.clipboard()
-
-        # Backup the current clipboard content
         clipboard_backup = clipboard.text()
         self._logger.debug(
             f"Clipboard backed up: {clipboard_backup[:30] if clipboard_backup else 'Empty'} ..."
@@ -721,25 +772,25 @@ class WritingToolApp(QApplication):
 
         press_ctrl_c()
 
-        # Wait for the clipboard to update with optimized retry logic
-        # Qt has known intermittent clipboard failures, 3 retries is the recommended approach
-        max_attempts = 3  # Optimal balance: handles Qt failures without excessive delay
-        selected_text = ""
-        sleep_per_attempt = sleep_duration / max_attempts
-
-        for attempt in range(max_attempts):
-            time.sleep(sleep_per_attempt)
+        def _get_text_operation():
+            """Internal operation for retry mechanism"""
             current_text = clipboard.text()
-            if current_text:  # Clipboard has new content
-                selected_text = current_text
-                self._logger.debug(f"Text retrieved after {attempt + 1} attempts")
-                break
-        else:
-            self._logger.warning("No text retrieved after all attempts")
+            return current_text if current_text else None
+
+        # Use retry mechanism for clipboard reliability
+        selected_text = self._clipboard_retry_operation(
+            "Selected text retrieval",
+            _get_text_operation,
+            max_attempts=3,
+            sleep_duration=sleep_duration
+        )
 
         # Clean the selected text (remove leading/trailing whitespace and newlines)
         if selected_text:
             selected_text = selected_text.strip()
+            self._logger.debug(f"Text retrieved and cleaned: {len(selected_text)} characters")
+        else:
+            selected_text = ""
 
         # Restore the clipboard
         clipboard.setText(clipboard_backup if clipboard_backup else "")
@@ -804,97 +855,113 @@ class WritingToolApp(QApplication):
         self._logger.debug(
             f"replace_text called with text length: {len(new_text) if new_text else 0}"
         )
+
+        # Early return if no valid text
+        if not new_text or not isinstance(new_text, str):
+            self._logger.debug("No new text to process")
+            return
+
         error_message = "ERROR_TEXT_INCOMPATIBLE_WITH_REQUEST"
+        self.output_queue += new_text
+        current_output = self.output_queue.strip()  # Strip whitespace for comparison
 
-        # Confirm new_text exists and is a string
-        if new_text and isinstance(new_text, str):
-            self.output_queue += new_text
-            current_output = self.output_queue.strip()  # Strip whitespace for comparison
+        # Handle error message
+        if current_output == error_message:
+            self.show_message_signal.emit(
+                "Error", "The text is incompatible with the requested change."
+            )
+            return
 
-            # If the new text is the error message, show a message box
-            if current_output == error_message:
-                self.show_message_signal.emit(
-                    "Error", "The text is incompatible with the requested change."
-                )
+        # Check if we're building up to the error message (to prevent partial pasting)
+        if len(current_output) <= len(error_message):
+            clean_current = "".join(current_output.split())
+            clean_error = "".join(error_message.split())
+            if clean_current == clean_error[: len(clean_current)]:
                 return
 
-            # Check if we're building up to the error message (to prevent partial pasting)
-            if len(current_output) <= len(error_message):
-                clean_current = "".join(current_output.split())
-                clean_error = "".join(error_message.split())
-                if clean_current == clean_error[: len(clean_current)]:
-                    return
+        self._logger.debug("Processing output text")
 
-            logging.debug("Processing output text")
-            try:
-                # For Summary and Key Points, show in response window
-                if (
-                    hasattr(self, "current_response_window")
-                    and self.current_response_window
-                ):
-                    # Use chat_area.add_message instead of append_text
-                    if (
-                        hasattr(self.current_response_window, "chat_area")
-                        and self.current_response_window.chat_area
-                    ):
-                        self.current_response_window.chat_area.add_message(new_text)
+        try:
+            # Handle Summary and Key Points - show in response window
+            if (hasattr(self, "current_response_window") and self.current_response_window):
+                self._handle_response_window_output(new_text)
+            else:
+                # Handle other options - try clipboard-based replacement with fallback
+                self._handle_clipboard_paste()
 
-                    # If this is the initial response, add it to chat history
-                    if (
-                        len(self.current_response_window.chat_history) == 1
-                    ):  # Only original text exists
-                        self.current_response_window.chat_history.append(
-                            {
-                                "role": "assistant",
-                                "content": self.output_queue.rstrip("\n"),
-                            },
-                        )
-                else:
-                    # For other options, try clipboard-based replacement with fallback
-                    clipboard_backup = pyperclip.paste()
-                    cleaned_text = self.output_queue.rstrip("\n")
+            # Clear output queue if not using response window
+            if not hasattr(self, "current_response_window"):
+                self.output_queue = ""
 
-                    # Get current selection before attempting paste
-                    original_selection = self.get_selected_text(sleep_duration=0.1)
+        except Exception as e:
+            self._logger.exception(f"Error processing output: {e}")
 
-                    pyperclip.copy(cleaned_text)
 
-                    kbrd = keyboard.Controller()
+    def _handle_response_window_output(self, new_text: str) -> None:
+        """Handle output for response window (Summary/Key Points)"""
+        # Check if current_response_window exists and is not None
+        current_window = getattr(self, "current_response_window", None)
+        if not current_window:
+            self._logger.warning("No current_response_window to handle output")
+            return
 
-                    def press_ctrl_v():
-                        kbrd.press(keyboard.Key.ctrl.value)
-                        kbrd.press("v")
-                        kbrd.release("v")
-                        kbrd.release(keyboard.Key.ctrl.value)
-
-                    press_ctrl_v()
-                    time.sleep(0.2)
-
-                    # Check if selection changed (indicating successful paste)
-                    new_selection = self.get_selected_text(sleep_duration=0.1)
-
-                    # If selection is the same, paste failed (non-editable page)
-                    if original_selection == new_selection and original_selection.strip():
-                        logging.debug(
-                            "Paste failed - showing modal window for non-editable page"
-                        )
-                        # noinspection PyTypeChecker
-                        QtCore.QMetaObject.invokeMethod(
-                            self,
-                            "_show_non_editable_modal",
-                            QtCore.Qt.ConnectionType.QueuedConnection,
-                            QtCore.Q_ARG(str, cleaned_text),
-                        )
-
-                    pyperclip.copy(clipboard_backup)
-
-                if not hasattr(self, "current_response_window"):
-                    self.output_queue = ""
-
-            except Exception as e:
-                logging.exception(f"Error processing output: {e}")
+        # Check if chat_area exists and is not None
+        chat_area = getattr(current_window, "chat_area", None)
+        if chat_area:
+            chat_area.add_message(new_text)
         else:
-            logging.debug("No new text to process")
+            self._logger.warning("No chat_area found in current_response_window")
+            return
+
+        # If this is the initial response, add it to chat history
+        if len(current_window.chat_history) == 1:  # Only original text exists
+            current_window.chat_history.append({
+                "role": "assistant",
+                    "content": self.output_queue.rstrip("\n"),
+                })
+
+
+    def _handle_clipboard_paste(self) -> None:
+        """Handle clipboard-based text replacement with fallback to modal"""
+        # Get the clipboard instance
+        clipboard = QApplication.clipboard()
+        clipboard_backup = clipboard.text()
+        cleaned_text = self.output_queue.rstrip("\n")
+
+        # Get current selection before attempting paste
+        original_selection = self.get_selected_text(sleep_duration=0.1)
+
+        # Set clipboard content
+        clipboard.setText(cleaned_text)
+        self._logger.debug("Text copied to clipboard for pasting")
+
+        # Perform paste operation
+        kbrd = keyboard.Controller()
+
+        def press_ctrl_v():
+            with kbrd.pressed(keyboard.Key.ctrl):
+                kbrd.press("v")
+                kbrd.release("v")
+
+        press_ctrl_v()
+        time.sleep(0.2)
+
+        # Check if selection changed (indicating successful paste)
+        new_selection = self.get_selected_text(sleep_duration=0.1)
+
+        # If selection is the same, paste failed (non-editable page)
+        if original_selection == new_selection and original_selection.strip():
+            self._logger.debug("Paste failed - showing modal window for non-editable page")
+            QtCore.QMetaObject.invokeMethod(
+                self,
+                "_show_non_editable_modal",
+                QtCore.Qt.ConnectionType.QueuedConnection,
+                QtCore.Q_ARG(str, cleaned_text),
+            )
+
+        # Restore original clipboard content
+        clipboard.setText(clipboard_backup if clipboard_backup else "")
+        self._logger.debug("Clipboard restored")
 
     @QtCore.Slot(str)
     def _show_non_editable_modal(self, transformed_text: str) -> None:

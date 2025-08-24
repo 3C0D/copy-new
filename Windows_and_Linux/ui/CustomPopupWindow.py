@@ -422,13 +422,13 @@ class CustomPopupWindow(QWidget):
     def __init__(
         self,
         app: "WritingToolApp",
-        selected_text: str,
+        selected_text: str | None = None,
         image: QtGui.QImage | None = None,
     ):
         super().__init__()
         self.app = app
-        self.selected_text: str = selected_text
-        self.image = image
+        self.selected_text: str | None = selected_text
+        self.image : QtGui.QImage | None = image
         self.edit_mode = False
         self.has_text = bool(selected_text.strip() if selected_text else False)
         self.has_image = bool(image is not None)
@@ -450,7 +450,7 @@ class CustomPopupWindow(QWidget):
         self.button_widgets: list[Any] = []
 
         # Variables for dragging functionality
-        self.is_dragging: bool = False
+        self.is_dragging = False
         self.drag_start_position: QtCore.QPoint | None = None
         self.top_bar_widget: QWidget | None = None
 
