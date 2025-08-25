@@ -574,11 +574,19 @@ class GeminiProvider(AIProvider):
         Generate content using Gemini.
 
         Always performs a single-shot request with streaming disabled.
-        Returns the full response text if return_response is True,
-        otherwise emits the text via the output_ready_signal.
+        Returns the full response text if return_response is True to show in a popup window,
+        otherwise emits the text via the output_ready_signal for direct text replacement.
         Supports image analysis if image_data is provided.
         """
         self.close_requested = False
+
+        # DEBUG: Log the incoming request
+        logging.info(f"🔥 GeminiProvider.get_response called")
+        logging.info(f"🔥 system_instruction length: {len(system_instruction)}")
+        logging.info(f"🔥 prompt length: {len(prompt)}")
+        logging.info(f"🔥 prompt preview: {prompt[:200]}...")
+        logging.info(f"🔥 return_response: {return_response}")
+        logging.info(f"🔥 image_data present: {image_data is not None}")
 
         # Check if model is configured
         if not self.model:
@@ -673,8 +681,11 @@ class GeminiProvider(AIProvider):
             # Safely extract text from response
             try:
                 response_text = response.text.rstrip("\n")
+                logging.info(f"🔥 Gemini raw response.text: '{response_text}'")
+                logging.info(f"🔥 Gemini response_text length: {len(response_text)}")
             except ValueError as text_error:
                 # Fallback: manually extract text from parts
+                logging.warning(f"🔥 Gemini ValueError in response.text: {text_error}")
                 text_parts = []
                 for part in candidate.content.parts:
                     if hasattr(part, "text") and part.text:
@@ -682,6 +693,7 @@ class GeminiProvider(AIProvider):
 
                 if text_parts:
                     response_text = "".join(text_parts).rstrip("\n")
+                    logging.info(f"🔥 Gemini fallback response_text: '{response_text}'")
                 else:
                     error_msg = (
                         f"Could not extract text from Gemini response: {str(text_error)}"
@@ -693,9 +705,14 @@ class GeminiProvider(AIProvider):
                     )
                     return ""
 
+            # Direct replacement
             if not return_response and not hasattr(self.app, "current_response_window"):
+                logging.info(f"🔥 Gemini emitting signal with response_text length: {len(response_text)}")
+                logging.info(f"🔥 Gemini response_text preview: '{response_text[:200]}...'")
                 self.app.output_ready_signal.emit(response_text)
+                logging.info("🔥 Gemini signal emitted, returning empty string")
                 return ""
+            # Response window
             return response_text
 
         except Exception as e:
@@ -879,6 +896,7 @@ class OpenAICompatibleProvider(AIProvider):
 
         Always performs a non-streaming request.
         If prompt is not a list, builds a simple two-message conversation.
+        Supports image analysis if image_data is provided.
         Returns the response text if return_response is True,
         otherwise emits it via output_ready_signal.
         """
@@ -887,9 +905,21 @@ class OpenAICompatibleProvider(AIProvider):
         if isinstance(prompt, list):
             messages = prompt
         else:
+            # Handle image data if provided
+            if image_data:
+                user_content = [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{image_data}"}
+                    }
+                ]
+            else:
+                user_content = prompt
+
             messages = [
                 {"role": "system", "content": system_instruction},
-                {"role": "user", "content": prompt},
+                {"role": "user", "content": user_content},
             ]
 
         try:
@@ -1624,9 +1654,21 @@ class OllamaProvider(AIProvider):
         if isinstance(prompt, list):
             messages = prompt
         else:
+            # Handle image data if provided for Ollama
+            if image_data:
+                user_content = [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{image_data}"}
+                    }
+                ]
+            else:
+                user_content = prompt
+
             messages = [
                 {"role": "system", "content": system_instruction},
-                {"role": "user", "content": prompt},
+                {"role": "user", "content": user_content},
             ]
 
         try:
@@ -1925,7 +1967,6 @@ class MistralProvider(AIProvider):
         return_response: bool = False,
         image_data: str | None = None,
         conversation_history: list[dict[str, str]] | None = None,
-
     ) -> str:
         """
         Generate response using Mistral API.
@@ -1996,8 +2037,23 @@ class MistralProvider(AIProvider):
             if conversation_history:
                 messages.extend(conversation_history)
 
+            # Handle image data if provided for Mistral
+            if image_data:
+                user_content = [
+                    {
+                        "type": "text",
+                        "text": prompt
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": f"data:image/png;base64,{image_data}"
+                    }
+                ]
+            else:
+                user_content = prompt
+
             # Add current user message
-            messages.append({"role": "user", "content": prompt})
+            messages.append({"role": "user", "content": user_content})
 
             data = {
                 "model": self.api_model,

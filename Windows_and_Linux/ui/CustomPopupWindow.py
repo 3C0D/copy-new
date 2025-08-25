@@ -30,9 +30,11 @@ from PySide6.QtWidgets import (
 
 from config.data_operations import create_default_actions_config
 from config.interfaces import ActionConfig
+from ui.ResponseWindow import ResponseWindow
 from ui.ui_utils import ThemeBackground, get_effective_color_mode
 
 if TYPE_CHECKING:
+    from ui.ResponseWindow import ResponseWindow
     from WritingToolApp import WritingToolApp
 
 
@@ -425,6 +427,7 @@ class CustomPopupWindow(QWidget):
         image: QtGui.QImage | None = None,
     ):
         super().__init__()
+        self._logger = logging.getLogger(__name__)
         self.app = app
         self.selected_text: str | None = selected_text
         self.image: QtGui.QImage | None = image
@@ -891,7 +894,7 @@ class CustomPopupWindow(QWidget):
             not hasattr(self.app, "settings_manager")
             or not self.app.settings_manager.settings
         ):
-            logging.warning("Settings manager not available, using default actions")
+            self._logger.warning("Settings manager not available, using default actions")
             return create_default_actions_config()
 
         return self.app.settings_manager.settings.actions
@@ -1085,7 +1088,7 @@ class CustomPopupWindow(QWidget):
     def enter_edit_mode(self) -> None:
         """Enter edit mode - called when user clicks the pencil icon."""
         self.edit_mode = True
-        logging.debug("Entering edit mode")
+        self._logger.debug("Entering edit mode")
 
         # Show edit mode UI elements
         if self.edit_button is not None:
@@ -1111,7 +1114,7 @@ class CustomPopupWindow(QWidget):
     def exit_edit_mode(self) -> None:
         """Exit edit mode - called when user clicks the close button in edit mode."""
         self.edit_mode = False
-        logging.debug("Exiting edit mode")
+        self._logger.debug("Exiting edit mode")
 
         # Reload the window to ensure clean state and proper layout
         self.reload_window()
@@ -1166,7 +1169,7 @@ class CustomPopupWindow(QWidget):
 
         if confirm_box.exec_() == QMessageBox.StandardButton.Yes:
             try:
-                logging.debug("Resetting to default actions")
+                self._logger.debug("Resetting to default actions")
                 # Reset actions to defaults in unified settings
                 if (
                     hasattr(self.app, "settings_manager")
@@ -1178,7 +1181,7 @@ class CustomPopupWindow(QWidget):
                     )
                     self.app.settings_manager.save()
                 else:
-                    logging.error("Settings manager not available for reset")
+                    self._logger.error("Settings manager not available for reset")
 
                 # Reload the interface immediately
                 self.build_buttons_list()
@@ -1196,7 +1199,7 @@ class CustomPopupWindow(QWidget):
                 success_msg.exec_()
 
             except Exception as e:
-                logging.exception(f"Error resetting options: {e}")
+                self._logger.exception(f"Error resetting options: {e}")
                 self.app.show_message_signal.emit(
                     "Error", f"An error occurred while resetting: {e!s}"
                 )
@@ -1233,11 +1236,11 @@ class CustomPopupWindow(QWidget):
         """User clicked the small pencil icon over a button."""
         key = getattr(btn, "key", None)
         if key is None:
-            logging.error("Button does not have a 'key' attribute.")
+            self._logger.error("Button does not have a 'key' attribute.")
             return
         actions = self.get_actions()
         if key not in actions:
-            logging.error(f"Action not found: {key}")
+            self._logger.error(f"Action not found: {key}")
             return
 
         action_config = actions[key]
@@ -1281,7 +1284,7 @@ class CustomPopupWindow(QWidget):
         """Handle deletion of a button."""
         key = getattr(btn, "key", None)
         if key is None:
-            logging.error("Button does not have a 'key' attribute.")
+            self._logger.error("Button does not have a 'key' attribute.")
             return
         confirm = QMessageBox()
         confirm.setWindowFlags(
@@ -1312,7 +1315,7 @@ class CustomPopupWindow(QWidget):
                 self.reload_window()
 
             except Exception as e:
-                logging.exception(f"Error deleting button: {e}")
+                self._logger.exception(f"Error deleting button: {e}")
                 self.app.show_message_signal.emit(
                     "Error", f"An error occurred while deleting the button: {e!s}"
                 )
@@ -1326,7 +1329,7 @@ class CustomPopupWindow(QWidget):
             not hasattr(self.app, "settings_manager")
             or not self.app.settings_manager.settings
         ):
-            logging.error("Settings manager not available, cannot update order")
+            self._logger.error("Settings manager not available, cannot update order")
             return
 
         # Get current actions
@@ -1347,7 +1350,7 @@ class CustomPopupWindow(QWidget):
         # Update settings and save
         self.app.settings_manager.settings.actions = new_actions
         self.app.settings_manager.save()
-        logging.debug("Button order updated in unified settings")
+        self._logger.debug("Button order updated in unified settings")
 
     def reload_window(self) -> None:
         """
@@ -1400,15 +1403,17 @@ class CustomPopupWindow(QWidget):
         """
         Process the selected writing option in a separate thread.
         """
-        logging.debug(f"Processing option: {option}")
+        self._logger.debug(f"Processing option: {option}")
 
         should_setup_response_window = self._should_display_in_response_window(
             option, selected_text, self.app.settings_manager.actions
         )
 
         if should_setup_response_window:
+            self._logger.debug("Setting up response window for output")
             self._setup_response_window(option, selected_text)
         elif hasattr(self.app, "current_response_window"):
+            self._logger.debug("Original selection will be replaced directly")
             delattr(self.app, "current_response_window")
 
         # Store force_chat state for the thread
@@ -1427,7 +1432,7 @@ class CustomPopupWindow(QWidget):
         """
         is_custom = option == "Custom"
         window_title = "Chat" if not is_custom else option
-        self.app.current_response_window = self.app.show_response_window(
+        self.app.current_response_window = self.show_response_window(
             window_title, selected_text
         )
 
@@ -1443,13 +1448,24 @@ class CustomPopupWindow(QWidget):
             ]
         )
 
+    def show_response_window(self, option: str, text: str | None) -> ResponseWindow:
+        """
+        Show the response in a new window instead of pasting it.
+        @see: ui.ResponseWindow.ResponseWindow
+        """
+        response_window = ResponseWindow(self.app, f"{option} Result")
+        if text:
+            response_window.selected_text = text  # Store the text for regeneration
+        response_window.show()
+        return response_window
+
     def process_option_thread(
         self, option: str, selected_text: str, custom_change: str | None = None
     ) -> None:
         """
         Thread function to process the selected writing option using the AI model.
         """
-        logging.debug(f"Starting processing thread for option: {option}")
+        self._logger.debug(f"Starting processing thread for option: {option}")
 
         try:
             prompt_data = self._prepare_prompt_data(option, selected_text, custom_change)
@@ -1513,7 +1529,7 @@ class CustomPopupWindow(QWidget):
         """Handle case where text is selected."""
         action_config = self.app.settings_manager.actions.get(option)
         if not action_config:
-            logging.error(f"Action not found: {option}")
+            self._logger.error(f"Action not found: {option}")
             return None
 
         prompt_prefix = action_config.get("prefix", "")
@@ -1563,13 +1579,13 @@ class CustomPopupWindow(QWidget):
         if not self.app.current_provider:
             return
 
-        logging.debug("Getting response for window display")
+        self._logger.debug("Getting response for window display")
         response = self.app.current_provider.get_response(
             prompt_data["system_instruction"],
             str(prompt_data["prompt"]),
             return_response=True,
         )
-        logging.debug(f"Got response of length: {len(response) if response else 0}")
+        self._logger.debug(f"Got response of length: {len(response) if response else 0}")
 
         self._update_chat_history_if_needed(option, selected_text, custom_change)
         self._update_response_window(response)
@@ -1599,23 +1615,23 @@ class CustomPopupWindow(QWidget):
                 QtCore.Qt.ConnectionType.QueuedConnection,
                 QtCore.Q_ARG(str, response),
             )
-            logging.debug("Invoked set_text on response window")
+            self._logger.debug("Invoked set_text on response window")
 
     def _process_direct_replacement(self, prompt_data: dict) -> None:
         """Process AI response for direct text replacement."""
         if not self.app.current_provider:
             return
 
-        logging.debug("Getting response for direct replacement")
+        self._logger.debug("Getting response for direct replacement")
         prompt_str = str(prompt_data["prompt"])
         self.app.current_provider.get_response(
             prompt_data["system_instruction"], prompt_str
         )
-        logging.debug("Response processed")
+        self._logger.debug("Response processed")
 
     def _handle_processing_error(self, error: Exception) -> None:
         """Handle errors during AI processing."""
-        logging.error(f"An error occurred: {error}", exc_info=True)
+        self._logger.error(f"An error occurred: {error}", exc_info=True)
 
         if "Resource has been exhausted" in str(error):
             self.app.show_message_signal.emit(
