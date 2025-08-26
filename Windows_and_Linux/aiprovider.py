@@ -488,9 +488,7 @@ class AIProvider(ABC):
         if "providers" not in self.app.settings_manager.settings.custom_data:
             self.app.settings_manager.providers = {}
 
-        self.app.settings_manager.providers[self.internal_name] = cast(
-            "ProviderConfig", config
-        )
+        self.app.settings_manager.providers[self.internal_name] = cast("ProviderConfig", config)
         self.app.settings_manager.save()
 
     @abstractmethod
@@ -581,7 +579,7 @@ class GeminiProvider(AIProvider):
         self.close_requested = False
 
         # DEBUG: Log the incoming request
-        logging.info(f"🔥 GeminiProvider.get_response called")
+        logging.info("🔥 GeminiProvider.get_response called")
         logging.info(f"🔥 system_instruction length: {len(system_instruction)}")
         logging.info(f"🔥 prompt length: {len(prompt)}")
         logging.info(f"🔥 prompt preview: {prompt[:200]}...")
@@ -590,9 +588,7 @@ class GeminiProvider(AIProvider):
 
         # Check if model is configured
         if not self.model:
-            error_msg = (
-                "Gemini API key not configured. Please add your API key in settings."
-            )
+            error_msg = "Gemini API key not configured. Please add your API key in settings."
             logging.error(error_msg)
             if not return_response:
                 # Show a user-friendly message box instead of just emitting to output
@@ -659,9 +655,7 @@ class GeminiProvider(AIProvider):
                 return ""
             elif candidate.finish_reason not in [1, None]:  # Not STOP or unset
                 error_msg = f"Gemini could not complete the response (reason code: {candidate.finish_reason}). Please try again."
-                logging.warning(
-                    f"Gemini unusual finish reason: {candidate.finish_reason}"
-                )
+                logging.warning(f"Gemini unusual finish reason: {candidate.finish_reason}")
                 self.app.show_message_signal.emit(
                     "Response Incomplete",
                     error_msg,
@@ -695,9 +689,7 @@ class GeminiProvider(AIProvider):
                     response_text = "".join(text_parts).rstrip("\n")
                     logging.info(f"🔥 Gemini fallback response_text: '{response_text}'")
                 else:
-                    error_msg = (
-                        f"Could not extract text from Gemini response: {str(text_error)}"
-                    )
+                    error_msg = f"Could not extract text from Gemini response: {str(text_error)}"
                     logging.error(error_msg)
                     self.app.show_message_signal.emit(
                         "Response Processing Error",
@@ -707,7 +699,9 @@ class GeminiProvider(AIProvider):
 
             # Direct replacement
             if not return_response and not hasattr(self.app, "current_response_window"):
-                logging.info(f"🔥 Gemini emitting signal with response_text length: {len(response_text)}")
+                logging.info(
+                    f"🔥 Gemini emitting signal with response_text length: {len(response_text)}"
+                )
                 logging.info(f"🔥 Gemini response_text preview: '{response_text[:200]}...'")
                 self.app.output_ready_signal.emit(response_text)
                 logging.info("🔥 Gemini signal emitted, returning empty string")
@@ -725,10 +719,7 @@ class GeminiProvider(AIProvider):
                     "Invalid API Key",
                     "Your Gemini API key is invalid. Please check your API key in Settings and make sure it's correct.",
                 )
-            elif (
-                "quota exceeded" in error_str.lower()
-                or "resource exhausted" in error_str.lower()
-            ):
+            elif "quota exceeded" in error_str.lower() or "resource exhausted" in error_str.lower():
                 self.app.show_message_signal.emit(
                     "Quota Exceeded",
                     "You've exceeded your Gemini API quota. Please check your usage limits or try again later.",
@@ -789,9 +780,7 @@ class GeminiProvider(AIProvider):
                         HarmCategory, "HARM_CATEGORY_CIVIC_INTEGRITY", None
                     )
                     if civic_integrity_category is not None:
-                        safety_settings[civic_integrity_category] = (
-                            HarmBlockThreshold.BLOCK_NONE
-                        )
+                        safety_settings[civic_integrity_category] = HarmBlockThreshold.BLOCK_NONE
                 except (AttributeError, TypeError):
                     # Handle cases where HarmCategory might be None or attribute doesn't exist
                     pass
@@ -861,9 +850,7 @@ class OpenAICompatibleProvider(AIProvider):
                 "",
                 "Leave blank if not applicable.",
             ),
-            TextSetting(
-                "api_project", "API Project", "", "Leave blank if not applicable."
-            ),
+            TextSetting("api_project", "API Project", "", "Leave blank if not applicable."),
             DropdownSetting(
                 name="api_model",
                 display_name="API Model",
@@ -911,8 +898,8 @@ class OpenAICompatibleProvider(AIProvider):
                     {"type": "text", "text": prompt},
                     {
                         "type": "image_url",
-                        "image_url": {"url": f"data:image/png;base64,{image_data}"}
-                    }
+                        "image_url": {"url": f"data:image/png;base64,{image_data}"},
+                    },
                 ]
             else:
                 user_content = prompt
@@ -947,10 +934,7 @@ class OpenAICompatibleProvider(AIProvider):
             logging.exception(f"Error while generating content: {error_str}")
 
             # Handle specific OpenAI API errors
-            if (
-                "invalid api key" in error_str.lower()
-                or "unauthorized" in error_str.lower()
-            ):
+            if "invalid api key" in error_str.lower() or "unauthorized" in error_str.lower():
                 self.app.show_message_signal.emit(
                     "Invalid API Key",
                     "Your OpenAI API key is invalid. Please check your API key in Settings and make sure it's correct.",
@@ -960,9 +944,7 @@ class OpenAICompatibleProvider(AIProvider):
                     "Rate Limit Hit",
                     "You've hit an API rate/usage limit. Please try again later or check your OpenAI usage limits.",
                 )
-            elif (
-                "insufficient_quota" in error_str.lower() or "quota" in error_str.lower()
-            ):
+            elif "insufficient_quota" in error_str.lower() or "quota" in error_str.lower():
                 self.app.show_message_signal.emit(
                     "Quota Exceeded",
                     "You've exceeded your OpenAI API quota. Please check your billing and usage limits.",
@@ -1386,9 +1368,7 @@ class OllamaProvider(AIProvider):
 
         # Set default model to first available model or empty string
         default_ollama_model: str = ""
-        if (
-            ollama_models and ollama_models[0][1]
-        ):  # Check if first model has a valid value
+        if ollama_models and ollama_models[0][1]:  # Check if first model has a valid value
             default_ollama_model = ollama_models[0][1]
 
         settings = [
@@ -1475,9 +1455,7 @@ class OllamaProvider(AIProvider):
                 # Refresh the dropdown options
                 setting.refresh_options(ollama_models)
                 # Update default value if models are available and current value is empty
-                current_value = (
-                    setting.get_value() if hasattr(setting, "get_value") else ""
-                )
+                current_value = setting.get_value() if hasattr(setting, "get_value") else ""
                 if ollama_models and ollama_models[0][1] and not current_value:
                     setting.set_value(ollama_models[0][1])
                 break
@@ -1508,9 +1486,7 @@ class OllamaProvider(AIProvider):
 
         # Filter out invalid models (messages like "Please install Ollama models first")
         valid_models = [
-            (display, model)
-            for display, model in ollama_models
-            if model and model.strip()
+            (display, model) for display, model in ollama_models if model and model.strip()
         ]
 
         if not valid_models:
@@ -1660,8 +1636,8 @@ class OllamaProvider(AIProvider):
                     {"type": "text", "text": prompt},
                     {
                         "type": "image_url",
-                        "image_url": {"url": f"data:image/png;base64,{image_data}"}
-                    }
+                        "image_url": {"url": f"data:image/png;base64,{image_data}"},
+                    },
                 ]
             else:
                 user_content = prompt
@@ -1832,7 +1808,9 @@ class AnthropicProvider(AIProvider):
                 )
 
             if self.client is None:
-                error_msg = "Anthropic client could not be initialized. Please check your API settings."
+                error_msg = (
+                    "Anthropic client could not be initialized. Please check your API settings."
+                )
                 logging.error(error_msg)
                 self.app.show_message_signal.emit(
                     "Initialization Error",
@@ -1974,9 +1952,7 @@ class MistralProvider(AIProvider):
         Uses direct HTTP requests via requests library for maximum control
         over request format and error handling.
         """
-        logging.debug(
-            f"MistralProvider.get_response called with return_response={return_response}"
-        )
+        logging.debug(f"MistralProvider.get_response called with return_response={return_response}")
         logging.debug(
             f"MistralProvider current config - api_key: {self.api_key[:10] if self.api_key else 'None'}..., api_model: {self.api_model}",
         )
@@ -1994,9 +1970,7 @@ class MistralProvider(AIProvider):
 
             # Check if API key and model are configured
             if not self.api_key or self.api_key.strip() == "":
-                error_msg = (
-                    "Mistral API key not configured. Please add your API key in settings."
-                )
+                error_msg = "Mistral API key not configured. Please add your API key in settings."
                 logging.error(error_msg)
                 self.app.show_message_signal.emit(
                     "API Key Missing",
@@ -2005,9 +1979,7 @@ class MistralProvider(AIProvider):
                 return ""
 
             if not self.api_model or self.api_model.strip() == "":
-                error_msg = (
-                    "Mistral model not selected. Please select a model in settings."
-                )
+                error_msg = "Mistral model not selected. Please select a model in settings."
                 logging.error(error_msg)
                 self.app.show_message_signal.emit(
                     "Model Missing",
@@ -2040,14 +2012,8 @@ class MistralProvider(AIProvider):
             # Handle image data if provided for Mistral
             if image_data:
                 user_content = [
-                    {
-                        "type": "text",
-                        "text": prompt
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": f"data:image/png;base64,{image_data}"
-                    }
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": f"data:image/png;base64,{image_data}"},
                 ]
             else:
                 user_content = prompt
@@ -2126,9 +2092,7 @@ class MistralProvider(AIProvider):
             return ""
 
         except ImportError as e:
-            error_msg = (
-                f"Missing required library: {e}. Please install 'requests' library."
-            )
+            error_msg = f"Missing required library: {e}. Please install 'requests' library."
             logging.error(error_msg)
             self.app.show_message_signal.emit(
                 "Missing Library",

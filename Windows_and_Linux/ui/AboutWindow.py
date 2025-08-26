@@ -82,9 +82,7 @@ class AboutWindow(ThemedWidget):
         """Load and display the about content."""
         # Title
         title_label: QLabel = self._create_title_label()
-        self.content_layout.addWidget(
-            title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter
-        )
+        self.content_layout.addWidget(title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
 
         # Scrollable main content
         about_content: str = self._get_about_content()
@@ -162,9 +160,7 @@ class AboutWindow(ThemedWidget):
             (
                 "Soszust40",
                 "https://github.com/Soszust40",
-                _(
-                    "Helped add dark mode, the plain theme, tray menu fixes, and UI improvements."
-                ),
+                _("Helped add dark mode, the plain theme, tray menu fixes, and UI improvements."),
             ),
             (
                 "Alok Saboo",
@@ -216,9 +212,7 @@ class AboutWindow(ThemedWidget):
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
 
-        scroll_area.setStyleSheet(
-            "QScrollArea { background: transparent; border: none; }"
-        )
+        scroll_area.setStyleSheet("QScrollArea { background: transparent; border: none; }")
 
         return scroll_area
 
@@ -291,9 +285,7 @@ class AboutWindow(ThemedWidget):
         super().resizeEvent(event)
         # Enforce minimum dimensions
         if self.width() < self.min_width or self.height() < self.min_height:
-            self.resize(
-                max(self.width(), self.min_width), max(self.height(), self.min_height)
-            )
+            self.resize(max(self.width(), self.min_width), max(self.height(), self.min_height))
 
     def original_app(self) -> None:
         """Open the original app GitHub page."""

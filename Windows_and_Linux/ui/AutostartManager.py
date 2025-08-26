@@ -65,15 +65,11 @@ class AutostartManager:
             try:
                 if enable:
                     # Open/create key and set value
-                    key = winreg.OpenKey(
-                        winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_WRITE
-                    )
+                    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_WRITE)
                     winreg.SetValueEx(key, "WritingTools", 0, winreg.REG_SZ, startup_path)
                 else:
                     # Open key and delete value if it exists
-                    key = winreg.OpenKey(
-                        winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_WRITE
-                    )
+                    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_WRITE)
                     try:
                         winreg.DeleteValue(key, "WritingTools")
                     except OSError:

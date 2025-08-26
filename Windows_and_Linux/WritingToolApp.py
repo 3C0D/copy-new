@@ -102,9 +102,7 @@ class WritingToolApp(QApplication):
                 self._handle_normal_launch()
 
         except Exception as e:
-            self._logger.error(
-                f"Critical error during WritingToolApp initialization: {e}"
-            )
+            self._logger.error(f"Critical error during WritingToolApp initialization: {e}")
             import traceback
 
             self._logger.error(f"Full traceback: {traceback.format_exc()}")
@@ -168,9 +166,7 @@ class WritingToolApp(QApplication):
 
     def _handle_first_launch(self) -> None:
         """Handle first-time application launch."""
-        self._logger.debug(
-            "First launch detected (no providers configured), showing onboarding"
-        )
+        self._logger.debug("First launch detected (no providers configured), showing onboarding")
         self.show_onboarding()
 
     def _handle_normal_launch(self) -> None:
@@ -183,9 +179,7 @@ class WritingToolApp(QApplication):
         from ui.ui_utils import set_color_mode
 
         set_color_mode(saved_color_mode)
-        self._logger.debug(
-            f"Synchronized colorMode with saved setting: {saved_color_mode}"
-        )
+        self._logger.debug(f"Synchronized colorMode with saved setting: {saved_color_mode}")
 
         try:
             self._initialize_ai_provider()
@@ -326,9 +320,7 @@ class WritingToolApp(QApplication):
         translation.install()
         self._update_translation_functions(translation)
 
-    def _update_translation_functions(
-        self, translation: gettext.NullTranslations
-    ) -> None:
+    def _update_translation_functions(self, translation: gettext.NullTranslations) -> None:
         """Update translation functions for all UI components."""
         self._ = translation.gettext
         ui.AboutWindow._ = self._
@@ -399,22 +391,19 @@ class WritingToolApp(QApplication):
                 "model": self.settings_manager.model or "",
             },
             ("Ollama", "Ollama (Local)", "Ollama (For Experts)"): {
-                "base_url": self.settings_manager.ollama_base_url
-                or "http://localhost:11434",
+                "base_url": self.settings_manager.ollama_base_url or "http://localhost:11434",
                 "model": "",
                 "keep_alive": self.settings_manager.ollama_keep_alive or "5",
             },
             ("Mistral", "Mistral AI"): {
                 "api_key": "",
                 "api_model": "",
-                "base_url": self.settings_manager.mistral_base_url
-                or "https://api.mistral.ai/v1",
+                "base_url": self.settings_manager.mistral_base_url or "https://api.mistral.ai/v1",
             },
             ("Anthropic", "Anthropic (Claude)"): {"api_key": "", "model": ""},
             ("OpenAI", "OpenAI-Compatible"): {
                 "api_key": "",
-                "base_url": self.settings_manager.openai_base_url
-                or "https://api.openai.com/v1",
+                "base_url": self.settings_manager.openai_base_url or "https://api.openai.com/v1",
                 "model": "",
             },
         }
@@ -444,9 +433,7 @@ class WritingToolApp(QApplication):
         from ui.ui_utils import set_color_mode
 
         set_color_mode(saved_color_mode)
-        self._logger.debug(
-            f"Synchronized colorMode with saved setting: {saved_color_mode}"
-        )
+        self._logger.debug(f"Synchronized colorMode with saved setting: {saved_color_mode}")
 
         self.onboarding_window = ui.OnboardingWindow.OnboardingWindow(self)
         self.onboarding_window.close_signal.connect(self.on_onboarding_closed)
@@ -468,11 +455,7 @@ class WritingToolApp(QApplication):
             self.settings_manager.provider = provider_name
 
         self.current_provider = next(
-            (
-                provider
-                for provider in self.providers
-                if provider.internal_name == provider_name
-            ),
+            (provider for provider in self.providers if provider.internal_name == provider_name),
             self.providers[0],  # Default to first provider
         )
 
@@ -749,7 +732,9 @@ class WritingToolApp(QApplication):
             if current_clipboard:  # Success - clipboard has content
                 # Check if it's a file path (from QuickLook/file selection)
                 if self._is_file_path(current_clipboard):
-                    self._logger.debug(f"Detected file path, treating as no selection: {current_clipboard}")
+                    self._logger.debug(
+                        f"Detected file path, treating as no selection: {current_clipboard}"
+                    )
                     selected_text = ""
                     break
                 else:
@@ -766,14 +751,14 @@ class WritingToolApp(QApplication):
                     )
                     time.sleep(retry_delay)
                 else:
-                    self._logger.warning(f"Ctrl+C failed after {max_retries} attempts - no text selected or clipboard access failed")
+                    self._logger.warning(
+                        f"Ctrl+C failed after {max_retries} attempts - no text selected or clipboard access failed"
+                    )
 
         # Clean the selected text
         if selected_text:
             selected_text = selected_text.strip()
-            self._logger.debug(
-                f"Text retrieved and cleaned: {len(selected_text)} characters"
-            )
+            self._logger.debug(f"Text retrieved and cleaned: {len(selected_text)} characters")
         else:
             selected_text = ""
             self._logger.debug("No text was retrieved")
@@ -800,22 +785,23 @@ class WritingToolApp(QApplication):
         text = text.strip()
 
         # Check for file:// URLs (what we saw in the logs)
-        if text.startswith('file:///'):
+        if text.startswith("file:///"):
             return True
 
         # Check for Windows file paths (C:\, D:\, etc.)
-        if len(text) > 2 and text[1:3] == ':\\':
+        if len(text) > 2 and text[1:3] == ":\\":
             return True
 
         # Check for UNC paths (\\server\share)
-        if text.startswith('\\\\'):
+        if text.startswith("\\\\"):
             return True
 
         # Check for Unix-style absolute paths
-        if text.startswith('/') and '/' in text[1:]:
+        if text.startswith("/") and "/" in text[1:]:
             return True
 
         return False
+
     # ============================================================================
     # USER INTERFACE METHODS
     # ============================================================================
@@ -827,9 +813,7 @@ class WritingToolApp(QApplication):
         For API errors, adds a button to open settings.
         """
         msg_box = QMessageBox(None)
-        msg_box.setWindowFlags(
-            msg_box.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
-        )
+        msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
 
@@ -842,9 +826,7 @@ class WritingToolApp(QApplication):
             keyword in title.lower()
             for keyword in ["api", "key", "quota", "rate limit", "connection"]
         ):
-            settings_button = msg_box.addButton(
-                "Open Settings", QMessageBox.ButtonRole.ActionRole
-            )
+            settings_button = msg_box.addButton("Open Settings", QMessageBox.ButtonRole.ActionRole)
 
         # Show the message box
         msg_box.exec()
@@ -946,14 +928,15 @@ class WritingToolApp(QApplication):
 
             # Use the simple, working approach from the old branch
             clipboard_backup = pyperclip.paste()
-            cleaned_text = self.output_queue.rstrip('\n')
+            cleaned_text = self.output_queue.rstrip("\n")
             pyperclip.copy(cleaned_text)
 
             kbrd = keyboard.Controller()
+
             def press_ctrl_v():
                 with kbrd.pressed(keyboard.Key.ctrl):
-                    kbrd.press('v')
-                    kbrd.release('v')
+                    kbrd.press("v")
+                    kbrd.release("v")
 
             press_ctrl_v()
             time.sleep(0.2)
@@ -962,7 +945,7 @@ class WritingToolApp(QApplication):
         except Exception as e:
             self._logger.error(f"Error in clipboard paste: {e}")
             # Fallback to modal window for non-editable pages
-            cleaned_text = self.output_queue.rstrip('\n')
+            cleaned_text = self.output_queue.rstrip("\n")
             QtCore.QMetaObject.invokeMethod(
                 self,
                 "_show_non_editable_modal",
@@ -983,9 +966,7 @@ class WritingToolApp(QApplication):
                 self.non_editable_modal = None
 
             # Create and show the modal window
-            self.non_editable_modal = ui.NonEditableModal.NonEditableModal(
-                self, transformed_text
-            )
+            self.non_editable_modal = ui.NonEditableModal.NonEditableModal(self, transformed_text)
 
             # Connect close event to clean up reference
             self.non_editable_modal.finished.connect(self._on_non_editable_modal_closed)
@@ -1066,9 +1047,7 @@ class WritingToolApp(QApplication):
         for attempt in range(max_retries):
             if QSystemTrayIcon.isSystemTrayAvailable():
                 if attempt > 0:
-                    logging.info(
-                        f"System tray became available after {attempt + 1} attempts"
-                    )
+                    logging.info(f"System tray became available after {attempt + 1} attempts")
                 return True
 
             if attempt < max_retries - 1:  # Don't wait after the last attempt
@@ -1082,9 +1061,7 @@ class WritingToolApp(QApplication):
         logging.warning(f"System tray not available after {max_retries} attempts")
         return False
 
-    def _verify_tray_icon_visibility(
-        self, max_retries: int = 2, delay_ms: int = 250
-    ) -> None:
+    def _verify_tray_icon_visibility(self, max_retries: int = 2, delay_ms: int = 250) -> None:
         """
         Verify that the tray icon is actually visible with retry mechanism.
 
@@ -1148,9 +1125,7 @@ class WritingToolApp(QApplication):
         logging.debug("Toggle paused state")
         self.paused = not self.paused
         if self.toggle_action is not None:
-            self.toggle_action.setText(
-                self._("Resume") if self.paused else self._("Pause")
-            )
+            self.toggle_action.setText(self._("Resume") if self.paused else self._("Pause"))
         logging.debug("App is paused" if self.paused else "App is resumed")
 
     @staticmethod
@@ -1226,9 +1201,7 @@ class WritingToolApp(QApplication):
     This implementation is a bit convoluted, but it allows us to manage chat history & model roles across both providers! :3
     """
 
-    def process_followup_question(
-        self, response_window: ResponseWindow, question: str
-    ) -> None:
+    def process_followup_question(self, response_window: ResponseWindow, question: str) -> None:
         """
         Process a follow-up question in the chat window.
         """
@@ -1254,27 +1227,18 @@ class WritingToolApp(QApplication):
                 logging.debug("Sending request to AI provider")
 
                 # Format conversation differently based on provider
-                if self.current_provider and isinstance(
-                    self.current_provider, GeminiProvider
-                ):
+                if self.current_provider and isinstance(self.current_provider, GeminiProvider):
                     # For Gemini, use the proper history format with roles
                     chat_messages = []
 
                     # Convert our roles to Gemini's expected roles
                     for msg in history:
                         gemini_role = "model" if msg["role"] == "assistant" else "user"
-                        chat_messages.append(
-                            {"role": gemini_role, "parts": msg["content"]}
-                        )
+                        chat_messages.append({"role": gemini_role, "parts": msg["content"]})
 
                     # Start chat with history
-                    if (
-                        hasattr(self.current_provider, "model")
-                        and self.current_provider.model
-                    ):
-                        chat = self.current_provider.model.start_chat(
-                            history=chat_messages
-                        )
+                    if hasattr(self.current_provider, "model") and self.current_provider.model:
+                        chat = self.current_provider.model.start_chat(history=chat_messages)
 
                         # Get response using the chat
                         response = chat.send_message(question)
@@ -1282,9 +1246,7 @@ class WritingToolApp(QApplication):
                     else:
                         response_text = "Error: Provider model not available"
 
-                elif self.current_provider and isinstance(
-                    self.current_provider, OllamaProvider
-                ):
+                elif self.current_provider and isinstance(self.current_provider, OllamaProvider):
                     # For Ollama, prepare messages with system instruction and history
                     messages = [{"role": "system", "content": system_instruction}]
 
@@ -1320,9 +1282,7 @@ class WritingToolApp(QApplication):
                 logging.debug(f"Got response of length: {len(response_text)}")
 
                 # Add response to chat history
-                response_window.chat_history.append(
-                    {"role": "assistant", "content": response_text}
-                )
+                response_window.chat_history.append({"role": "assistant", "content": response_text})
 
                 # Emit response via signal
                 self.followup_response_signal.emit(response_text)
@@ -1368,9 +1328,7 @@ class WritingToolApp(QApplication):
 
         logging.debug("Showing settings window")
         # Always create a new settings window to handle providers_only correctly
-        self.settings_window = ui.SettingsWindow.SettingsWindow(
-            self, providers_only=providers_only
-        )
+        self.settings_window = ui.SettingsWindow.SettingsWindow(self, providers_only=providers_only)
 
         # Set reference to previous window for navigation
         if previous_window:
@@ -1398,9 +1356,7 @@ class WritingToolApp(QApplication):
         """
         Listener for Ctrl+C to exit the app.
         """
-        signal.signal(
-            signal.SIGINT, lambda signum, frame: self.handle_sigint(signum, frame)
-        )
+        signal.signal(signal.SIGINT, lambda signum, frame: self.handle_sigint(signum, frame))
         # This empty timer is needed to make sure that the sigint handler gets checked inside the main loop:
         # without it, the sigint handle would trigger only when an event is triggered, either by a hotkey combination
         # or by another GUI event like spawning a new window. With this we trigger it every 100ms with an empy lambda

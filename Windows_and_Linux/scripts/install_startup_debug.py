@@ -104,9 +104,7 @@ def uninstall_startup_debug() -> bool:
 
             try:
                 winreg.DeleteValue(key, debug_entry_name)
-                logger.info(
-                    f"Successfully removed startup debug entry: {debug_entry_name}"
-                )
+                logger.info(f"Successfully removed startup debug entry: {debug_entry_name}")
             except OSError:
                 logger.info("Startup debug entry was not found (already removed)")
 

@@ -45,9 +45,7 @@ class ThemeManager(QtCore.QObject):
         self.theme_changed.emit(current_mode)
 
         # Refresh all registered widgets
-        for widget in self._registered_widgets[
-            :
-        ]:  # Copy to avoid modifications during iteration
+        for widget in self._registered_widgets[:]:  # Copy to avoid modifications during iteration
             if hasattr(widget, "refresh_theme"):
                 try:
                     widget.refresh_theme()

@@ -193,9 +193,7 @@ def main():
             import subprocess
 
             script_path = os.path.abspath(__file__)
-            result = subprocess.run(
-                [project_python, script_path], capture_output=True, text=True
-            )
+            result = subprocess.run([project_python, script_path], capture_output=True, text=True)
 
             logger.info(f"Subprocess exit code: {result.returncode}")
             if result.stdout:

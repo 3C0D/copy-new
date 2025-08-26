@@ -103,9 +103,7 @@ class SettingsManager:
             return self.settings.system[name]
 
         # Not found - raise standard AttributeError
-        raise AttributeError(
-            f"'{self.__class__.__name__}' object has no attribute '{name}'"
-        )
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
     def __setattr__(self, name: str, value: Any) -> None:
         """
@@ -141,9 +139,7 @@ class SettingsManager:
             if user_data is not None:
                 self.settings = create_unified_settings_from_data(user_data)
         else:
-            self._logger.debug(
-                f"No settings file found at {self.data_file}, using defaults"
-            )
+            self._logger.debug(f"No settings file found at {self.data_file}, using defaults")
 
         # Update run_mode to match current execution mode
         self.settings.system["run_mode"] = self.mode
@@ -305,9 +301,7 @@ class SettingsManager:
                 name: dict(action) for name, action in self.settings.actions.items()
             },  # Convert ActionConfig TypedDict to dict
             "custom_data": {
-                "update_available": self.settings.custom_data.get(
-                    "update_available", False
-                ),
+                "update_available": self.settings.custom_data.get("update_available", False),
                 "providers": self.providers,
             },
         }
@@ -366,9 +360,7 @@ class SettingsManager:
         base_dir_name = Path(self.base_dir.absolute().name)
         if self.mode == "build-dev":
             # For build-dev, log file goes in the same directory as the executable
-            self._logger.debug(
-                f"build-dev logging path: {base_dir_name / 'build_dev_debug.log'}"
-            )
+            self._logger.debug(f"build-dev logging path: {base_dir_name / 'build_dev_debug.log'}")
             return self.base_dir / "build_dev_debug.log"
         else:
             # For dev mode, log file goes in dist/dev/

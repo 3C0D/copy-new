@@ -114,7 +114,9 @@ class ui_utils:
                 child.widget().deleteLater()
 
     @classmethod
-    def resize_and_round_image(cls, image: QImage, image_size: int = 100, rounding_amount: int = 50) -> QPixmap:
+    def resize_and_round_image(
+        cls, image: QImage, image_size: int = 100, rounding_amount: int = 50
+    ) -> QPixmap:
         image = image.scaledToWidth(image_size)
         clipPath = QtGui.QPainterPath()
         clipPath.addRoundedRect(
@@ -155,9 +157,7 @@ class ThemedWidget(QWidget):
 
     def add_minimize_button(self) -> None:
         """Add minimize button to the window."""
-        self.setWindowFlags(
-            self.windowFlags() | QtCore.Qt.WindowType.WindowMinimizeButtonHint
-        )
+        self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowType.WindowMinimizeButtonHint)
 
     def get_dropdown_style(self) -> str:
         """Get standardized dropdown styling based on current theme."""
@@ -290,9 +290,7 @@ class ThemeBackground(QWidget):
                     else "background_popup.png"
                 )
             else:
-                bg_file = (
-                    "background_dark.png" if current_mode == "dark" else "background.png"
-                )
+                bg_file = "background_dark.png" if current_mode == "dark" else "background.png"
 
             # Try multiple locations for background files
             possible_paths = [

@@ -108,9 +108,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         self.raise_()  # Bring window to the front
         self.activateWindow()  # Give focus to the window to make it active
 
-        main_layout = QVBoxLayout(
-            self.background
-        )  # Set icon, margin, and spacing in ThemedWidget
+        main_layout = QVBoxLayout(self.background)  # Set icon, margin, and spacing in ThemedWidget
 
         # Create scroll area
         scroll_area = QScrollArea()
@@ -221,9 +219,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             shortcut_label.setStyleSheet(self.get_label_style())
             content_layout.addWidget(shortcut_label)
 
-            self.shortcut_input = QLineEdit(
-                self.app.settings_manager.hotkey or "ctrl+space"
-            )
+            self.shortcut_input = QLineEdit(self.app.settings_manager.hotkey or "ctrl+space")
             self.shortcut_input.setStyleSheet(self.get_input_style())
             # Auto-save when shortcut changes
             self.shortcut_input.textChanged.connect(self.auto_save_shortcut)
@@ -408,9 +404,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                 logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
                 provider_header_layout.addWidget(logo_label)
             else:
-                logging.debug(
-                    f"Provider logo not found: {logo_path} for provider {provider.logo}"
-                )
+                logging.debug(f"Provider logo not found: {logo_path} for provider {provider.logo}")
 
         # Provider name display
         provider_name_label = QLabel(provider.provider_name)
@@ -429,9 +423,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         # Provider description if available
         if provider.description:
             description_label = QLabel(provider.description)
-            description_label.setStyleSheet(
-                f"{self.get_label_style()} text-align: center;"
-            )
+            description_label.setStyleSheet(f"{self.get_label_style()} text-align: center;")
             description_label.setWordWrap(True)
             self.current_provider_layout.addWidget(description_label)
 
@@ -858,9 +850,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
         # Save general app settings (not in providers_only mode)
         if not self.providers_only:
             if self.shortcut_input is not None:
-                self.app.settings_manager.hotkey = (
-                    self.shortcut_input.text() or "ctrl+space"
-                )
+                self.app.settings_manager.hotkey = self.shortcut_input.text() or "ctrl+space"
             if self.gradient_radio is not None:
                 theme = "gradient" if self.gradient_radio.isChecked() else "plain"
                 self.app.settings_manager.theme = theme or "gradient"

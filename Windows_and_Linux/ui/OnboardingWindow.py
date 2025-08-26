@@ -140,9 +140,7 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
 
         # Main title at the top
         title_label = self._create_title_label()
-        self.content_layout.addWidget(
-            title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter
-        )
+        self.content_layout.addWidget(title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
 
         # Features description section
         features_widget = self._create_features_section()
@@ -469,10 +467,7 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
 
         # Update all content labels
         for widget in self.findChildren(QLabel):
-            if (
-                widget != self.color_mode_dropdown
-                and not widget.objectName() == "title_label"
-            ):
+            if widget != self.color_mode_dropdown and not widget.objectName() == "title_label":
                 widget.setStyleSheet(self._get_content_style())
 
         # Update specific labels with their appropriate styles

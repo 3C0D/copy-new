@@ -280,6 +280,5 @@ EXAMPLE_ACTION_VALUES_RAW = {
 DEFAULT_SYSTEM_VALUES: SystemConfig = cast("SystemConfig", _DEFAULT_SYSTEM_VALUES_RAW)
 
 DEFAULT_ACTIONS_VALUES: dict[str, ActionConfig] = {
-    name: cast("ActionConfig", values)
-    for name, values in _DEFAULT_ACTIONS_VALUES_RAW.items()
+    name: cast("ActionConfig", values) for name, values in _DEFAULT_ACTIONS_VALUES_RAW.items()
 }

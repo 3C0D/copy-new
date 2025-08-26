@@ -6,10 +6,7 @@ from WritingToolApp import WritingToolApp
 
 # Check if we're running in console mode (when console=True in PyInstaller)
 CONSOLE_MODE = (
-    getattr(sys, "frozen", False)
-    and os.name == "nt"
-    and sys.stdout
-    and sys.stdout.isatty()
+    getattr(sys, "frozen", False) and os.name == "nt" and sys.stdout and sys.stdout.isatty()
 )
 
 # Set up logging to console with debug level (auto-enabled)
@@ -26,9 +23,7 @@ if CONSOLE_MODE:
     print("=====================================")
 else:
     # Standard logging for windowed mode
-    logging.basicConfig(
-        level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 def main():

@@ -211,9 +211,7 @@ class ButtonEditDialog(QDialog):
         self.replace_radio = QRadioButton("Replace the selected text")
         self.window_radio = QRadioButton("In a pop-up window (with follow-up support)")
         for r in (self.replace_radio, self.window_radio):
-            r.setStyleSheet(
-                f"color: {'#fff' if get_effective_color_mode() == 'dark' else '#333'};"
-            )
+            r.setStyleSheet(f"color: {'#fff' if get_effective_color_mode() == 'dark' else '#333'};")
 
         self.replace_radio.setChecked(not self.button_data.get("open_in_window", False))
         self.window_radio.setChecked(self.button_data.get("open_in_window", False))
@@ -348,10 +346,7 @@ class DraggableButton(QPushButton):
         super().mousePressEvent(e)
 
     def mouseMoveEvent(self, arg__1: QtGui.QMouseEvent) -> None:
-        if (
-            not (arg__1.buttons() & Qt.MouseButton.LeftButton)
-            or not self.drag_start_position
-        ):
+        if not (arg__1.buttons() & Qt.MouseButton.LeftButton) or not self.drag_start_position:
             return
 
         distance = (arg__1.pos() - self.drag_start_position).manhattanLength()
@@ -373,9 +368,7 @@ class DraggableButton(QPushButton):
             _ = drag.exec_(Qt.DropAction.MoveAction)
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
-        if self.popup.edit_mode and event.mimeData().hasFormat(
-            "application/x-button-index"
-        ):
+        if self.popup.edit_mode and event.mimeData().hasFormat("application/x-button-index"):
             event.acceptProposedAction()
             self.setStyleSheet(
                 self.base_style
@@ -393,9 +386,7 @@ class DraggableButton(QPushButton):
         event.accept()
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
-        if not self.popup.edit_mode or not event.mimeData().hasFormat(
-            "application/x-button-index"
-        ):
+        if not self.popup.edit_mode or not event.mimeData().hasFormat("application/x-button-index"):
             event.ignore()
             return
 
@@ -459,9 +450,7 @@ class CustomPopupWindow(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        self.setWindowFlags(
-            Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint
-        )
+        self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowTitle("Writing Tools")
 
@@ -733,9 +722,7 @@ class CustomPopupWindow(QWidget):
             if event.type() == QtCore.QEvent.Type.MouseButtonPress:
                 if event.button() == Qt.MouseButton.LeftButton:
                     self.is_dragging = True
-                    self.drag_start_position = (
-                        event.globalPosition().toPoint() - self.pos()
-                    )
+                    self.drag_start_position = event.globalPosition().toPoint() - self.pos()
                     if self.top_bar_widget:
                         self.top_bar_widget.setCursor(Qt.CursorShape.ClosedHandCursor)
                     return True
@@ -743,9 +730,7 @@ class CustomPopupWindow(QWidget):
             elif event.type() == QtCore.QEvent.Type.MouseMove:
                 if self.is_dragging and event.buttons() == Qt.MouseButton.LeftButton:
                     if self.drag_start_position is not None:
-                        new_position = (
-                            event.globalPosition().toPoint() - self.drag_start_position
-                        )
+                        new_position = event.globalPosition().toPoint() - self.drag_start_position
                         self.move(new_position)
                     return True
 
@@ -789,9 +774,7 @@ class CustomPopupWindow(QWidget):
 
         # Check if we should restore the locked state
         force_chat_locked = getattr(self.app.settings_manager, "force_chat_locked", False)
-        force_chat_enabled = getattr(
-            self.app.settings_manager, "force_chat_enabled", False
-        )
+        force_chat_enabled = getattr(self.app.settings_manager, "force_chat_enabled", False)
 
         # Force Chat toggle switch (custom widget with sliding animation)
         self.force_chat_toggle = ToggleSwitch()
@@ -871,9 +854,7 @@ class CustomPopupWindow(QWidget):
 
         if checked:
             # When locking, save current toggle state
-            self.app.settings_manager.force_chat_enabled = (
-                self.force_chat_toggle.isChecked()
-            )
+            self.app.settings_manager.force_chat_enabled = self.force_chat_toggle.isChecked()
         else:
             # When unlocking, reset toggle to default (off)
             self.force_chat_toggle.setChecked(False)
@@ -890,10 +871,7 @@ class CustomPopupWindow(QWidget):
         Get actions directly from the unified settings system.
         Returns ActionConfig objects, no conversion needed.
         """
-        if (
-            not hasattr(self.app, "settings_manager")
-            or not self.app.settings_manager.settings
-        ):
+        if not hasattr(self.app, "settings_manager") or not self.app.settings_manager.settings:
             self._logger.warning("Settings manager not available, using default actions")
             return create_default_actions_config()
 
@@ -933,9 +911,7 @@ class CustomPopupWindow(QWidget):
             if name == "Custom":
                 continue
             b = DraggableButton(self, name, name)
-            icon_path = get_icon_path(
-                action_config.get("icon", "Not Found"), with_theme=True
-            )
+            icon_path = get_icon_path(action_config.get("icon", "Not Found"), with_theme=True)
             if icon_path.exists():
                 b.setIcon(QtGui.QIcon(icon_path.as_posix()))
 
@@ -946,9 +922,7 @@ class CustomPopupWindow(QWidget):
                 instruction = action_config.get("instruction", "")
                 if instruction:
                     instruction = (
-                        instruction[:100] + "..."
-                        if len(instruction) > 100
-                        else instruction
+                        instruction[:100] + "..." if len(instruction) > 100 else instruction
                     )
                 tooltip_text = f"{name}\n{instruction}"
             b.setToolTip(tooltip_text)
@@ -963,9 +937,7 @@ class CustomPopupWindow(QWidget):
             parent_layout = self.background.layout()
 
         # Use force_edit_mode if provided, otherwise use current edit_mode
-        edit_mode_to_use = (
-            force_edit_mode if force_edit_mode is not None else self.edit_mode
-        )
+        edit_mode_to_use = force_edit_mode if force_edit_mode is not None else self.edit_mode
 
         # Remove existing grid and Add New button - PROPERLY DELETE WIDGETS
         for i in reversed(range(parent_layout.count())):
@@ -1172,14 +1144,9 @@ class CustomPopupWindow(QWidget):
             try:
                 self._logger.debug("Resetting to default actions")
                 # Reset actions to defaults in unified settings
-                if (
-                    hasattr(self.app, "settings_manager")
-                    and self.app.settings_manager.settings
-                ):
+                if hasattr(self.app, "settings_manager") and self.app.settings_manager.settings:
                     # Reset actions to defaults
-                    self.app.settings_manager.settings.actions = (
-                        create_default_actions_config()
-                    )
+                    self.app.settings_manager.settings.actions = create_default_actions_config()
                     self.app.settings_manager.save()
                 else:
                     self._logger.error("Settings manager not available for reset")
@@ -1194,9 +1161,7 @@ class CustomPopupWindow(QWidget):
                     success_msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
                 )
                 success_msg.setWindowTitle("Reset Complete")
-                success_msg.setText(
-                    "Buttons have been reset to their default configuration."
-                )
+                success_msg.setText("Buttons have been reset to their default configuration.")
                 success_msg.exec_()
 
             except Exception as e:
@@ -1220,13 +1185,9 @@ class CustomPopupWindow(QWidget):
 
             # Show success message
             msg = QMessageBox()
-            msg.setWindowFlags(
-                msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
-            )
+            msg.setWindowFlags(msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
             msg.setWindowTitle("Button Added")
-            msg.setText(
-                "Your new button has been saved and is now available in the tools list."
-            )
+            msg.setText("Your new button has been saved and is now available in the tools list.")
             msg.setStandardButtons(QMessageBox.StandardButton.Ok)
             msg.exec_()
 
@@ -1264,15 +1225,11 @@ class CustomPopupWindow(QWidget):
                 icon=new_data.get("icon", ""),
                 open_in_window=new_data.get("open_in_window", False),
             )
-            self.app.settings_manager.update_action(
-                new_data.get("name", ""), action_config
-            )
+            self.app.settings_manager.update_action(new_data.get("name", ""), action_config)
 
             # Show success message
             msg = QMessageBox()
-            msg.setWindowFlags(
-                msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
-            )
+            msg.setWindowFlags(msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
             msg.setWindowTitle("Button Updated")
             msg.setText("Your button changes have been saved and are now active.")
             msg.setStandardButtons(QMessageBox.StandardButton.Ok)
@@ -1288,14 +1245,10 @@ class CustomPopupWindow(QWidget):
             self._logger.error("Button does not have a 'key' attribute.")
             return
         confirm = QMessageBox()
-        confirm.setWindowFlags(
-            confirm.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
-        )
+        confirm.setWindowFlags(confirm.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
         confirm.setWindowTitle("Confirm Delete?")
         confirm.setText("Are you sure you want to continue?")
-        confirm.setStandardButtons(
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
+        confirm.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         confirm.setDefaultButton(QMessageBox.StandardButton.No)
 
         if confirm.exec_() == QMessageBox.StandardButton.Yes:
@@ -1326,10 +1279,7 @@ class CustomPopupWindow(QWidget):
         Called after a drop reorder. Reflect the new order in unified settings,
         so that user's custom arrangement persists.
         """
-        if (
-            not hasattr(self.app, "settings_manager")
-            or not self.app.settings_manager.settings
-        ):
+        if not hasattr(self.app, "settings_manager") or not self.app.settings_manager.settings:
             self._logger.error("Settings manager not available, cannot update order")
             return
 
@@ -1379,9 +1329,7 @@ class CustomPopupWindow(QWidget):
         widget = getattr(self, "custom_input", None)
         txt = widget.text().strip() if widget else ""
         if txt or self.has_image:
-            self.process_option(
-                "Custom", self.selected_text, self.is_force_chat_enabled(), txt
-            )
+            self.process_option("Custom", self.selected_text, self.is_force_chat_enabled(), txt)
             self.close()
 
     def on_generic_instruction(self, instruction: str) -> None:
@@ -1433,9 +1381,7 @@ class CustomPopupWindow(QWidget):
         """
         is_custom = option == "Custom"
         window_title = "Chat" if not is_custom else option
-        self.app.current_response_window = self.show_response_window(
-            window_title, selected_text
-        )
+        self.app.current_response_window = self.show_response_window(window_title, selected_text)
 
         # Initialize chat history inline
         self.app.current_response_window.chat_history = (
@@ -1479,9 +1425,7 @@ class CustomPopupWindow(QWidget):
             )
 
             if should_open_window:
-                self._process_window_response(
-                    option, selected_text, custom_change, prompt_data
-                )
+                self._process_window_response(option, selected_text, custom_change, prompt_data)
             else:
                 self._process_direct_replacement(prompt_data)
 
@@ -1515,9 +1459,7 @@ class CustomPopupWindow(QWidget):
                 "action_config": {},
             }
         else:
-            self.app.show_message_signal.emit(
-                "Error", "Please select text to use this option."
-            )
+            self.app.show_message_signal.emit("Error", "Please select text to use this option.")
             return None
 
     def _handle_text_selected(
@@ -1598,21 +1540,14 @@ class CustomPopupWindow(QWidget):
         is_custom_option = option == "Custom"
         has_selected_text = selected_text.strip() != ""
 
-        if (
-            is_custom_option
-            and not has_selected_text
-            and self.app.current_response_window
-        ):
+        if is_custom_option and not has_selected_text and self.app.current_response_window:
             self.app.current_response_window.chat_history.append(
                 {"role": "user", "content": custom_change or ""},
             )
 
     def _update_response_window(self, response: str) -> None:
         """Update response window with AI response (thread-safe)."""
-        if (
-            hasattr(self.app, "current_response_window")
-            and self.app.current_response_window
-        ):
+        if hasattr(self.app, "current_response_window") and self.app.current_response_window:
             QtCore.QMetaObject.invokeMethod(
                 self.app.current_response_window,
                 "set_text",
@@ -1630,9 +1565,7 @@ class CustomPopupWindow(QWidget):
 
         self._logger.debug("Getting response for direct replacement")
         prompt_str = str(prompt_data["prompt"])
-        self.app.current_provider.get_response(
-            prompt_data["system_instruction"], prompt_str
-        )
+        self.app.current_provider.get_response(prompt_data["system_instruction"], prompt_str)
         self._logger.debug("Response processed")
 
     def _handle_processing_error(self, error: Exception) -> None:
