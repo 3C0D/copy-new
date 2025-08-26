@@ -1,8 +1,6 @@
 """
 Writing Tools - CustomPopupWindow module
 Used for displaying a custom popup window with various input fields and options.
-
-
 """
 
 import logging
@@ -31,7 +29,7 @@ from PySide6.QtWidgets import (
 from config.data_operations import create_default_actions_config
 from config.interfaces import ActionConfig
 from ui.ResponseWindow import ResponseWindow
-from ui.ui_utils import ThemeBackground, get_effective_color_mode
+from ui.ui_utils import ThemeBackground, get_effective_color_mode, get_icon_path
 
 if TYPE_CHECKING:
     from ui.ResponseWindow import ResponseWindow
@@ -426,6 +424,18 @@ class CustomPopupWindow(QWidget):
         self.has_sel_text = bool(selected_text.strip() if selected_text else False)
         self.has_image = bool(image is not None)
 
+        # UI Components - initialized to None
+        self._init_ui_components()
+
+        # Variables for dragging functionality
+        self.is_dragging = False
+        self.drag_start_position: QtCore.QPoint | None = None
+
+        self.button_widgets: list[Any] = []
+        self.init_ui()
+
+    def _init_ui_components(self) -> None:
+        """Initialize all UI component references to None."""
         self.drag_label: QLabel | None = None
         self.edit_button: QPushButton | None = None
         self.reset_button: QPushButton | None = None
@@ -434,29 +444,39 @@ class CustomPopupWindow(QWidget):
         self.custom_input: QLineEdit | None = None
         self.input_area: QWidget | None = None
         self.update_label: QLabel | None = None
-
-        # Force Chat toggle and lock state
         self.force_chat_toggle: QCheckBox | None = None
-        self.force_chat_lock: QPushButton | None | None = None
+        self.force_chat_lock: QPushButton | None = None
         self.force_chat_area: QWidget | None = None
-
-        self.button_widgets: list[Any] = []
-
-        # Variables for dragging functionality
-        self.is_dragging = False
-        self.drag_start_position: QtCore.QPoint | None = None
         self.top_bar_widget: QWidget | None = None
 
-        self.init_ui()
-
     def init_ui(self):
+        """Initialize the main UI structure."""
+        self._setup_window_properties()
+        main_layout = self._create_main_layout()
+        content_layout = self._create_background_and_content_layout(main_layout)
+
+        self._create_top_bar(content_layout)
+        self._create_input_area(content_layout)
+        self._create_force_chat_toggle_if_needed(content_layout)
+        self._setup_buttons_and_content(content_layout)
+        self._show_update_notice_if_available(content_layout)
+
+        self._finalize_ui_setup()
+
+    def _setup_window_properties(self) -> None:
+        """Configure window flags and properties."""
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowTitle("Writing Tools")
 
+    def _create_main_layout(self) -> QVBoxLayout:
+        """Create and configure the main layout."""
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
+        return main_layout
 
+    def _create_background_and_content_layout(self, main_layout: QVBoxLayout) -> QVBoxLayout:
+        """Create background widget and content layout."""
         self.background = ThemeBackground(
             self,
             self.app.settings_manager.theme or "gradient",
@@ -466,73 +486,113 @@ class CustomPopupWindow(QWidget):
         main_layout.addWidget(self.background)
 
         content_layout = QVBoxLayout(self.background)
-        # Margin Control
         content_layout.setContentsMargins(10, 4, 10, 10)
         content_layout.setSpacing(10)
+        return content_layout
 
-        # TOP BAR LAYOUT & STYLE
+    def _create_top_bar(self, content_layout: QVBoxLayout) -> None:
+        """Create the top bar with all its components."""
         self.top_bar_widget = QWidget()
-        self.top_bar_widget.setFixedHeight(30)  # Fixed height for drag area
-        top_bar = QHBoxLayout(self.top_bar_widget)
-        top_bar.setContentsMargins(0, 0, 0, 0)
-        top_bar.setSpacing(0)
+        self.top_bar_widget.setFixedHeight(30)
+        top_bar_layout = QHBoxLayout(self.top_bar_widget)
+        top_bar_layout.setContentsMargins(0, 0, 0, 0)
+        top_bar_layout.setSpacing(0)
 
-        # The "Reset" button (left side in edit mode)
-        from ui.ui_utils import get_icon_path
+        self._create_reset_button(top_bar_layout)
+        self._create_drag_label(top_bar_layout)
+        self._create_edit_buttons(top_bar_layout)
+        self._create_close_button(top_bar_layout)
 
+        content_layout.addWidget(self.top_bar_widget)
+
+    def _create_reset_button(self, layout: QHBoxLayout) -> None:
+        """Create the reset button for edit mode."""
         self.reset_button = QPushButton()
         reset_icon_path = get_icon_path("restore", with_theme=True)
         if reset_icon_path.exists():
             self.reset_button.setIcon(QtGui.QIcon(reset_icon_path.as_posix()))
+
         self.reset_button.setText("")
         self.reset_button.setFixedSize(24, 24)
-        self.reset_button.setStyleSheet(
+        self.reset_button.setStyleSheet(self._get_icon_button_style())
+        self.reset_button.clicked.connect(self.on_reset_clicked)
+        self.reset_button.setToolTip(_("Reset to Default Buttons"))
+        self.reset_button.installEventFilter(self)
+
+        layout.addWidget(self.reset_button, 0, Qt.AlignmentFlag.AlignLeft)
+
+    def _create_drag_label(self, layout: QHBoxLayout) -> None:
+        """Create the drag instruction label for edit mode."""
+        self.drag_label = QLabel("Drag to rearrange")
+        self.drag_label.setStyleSheet(
             f"""
+            color: {"#fff" if get_effective_color_mode() == "dark" else "#333"};
+            font-size: 14px;
+            font-weight: bold;
+        """,
+        )
+        self.drag_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.drag_label.hide()
+
+        layout.addWidget(
+            self.drag_label,
+            1,
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignHCenter,
+        )
+
+    def _create_edit_buttons(self, layout: QHBoxLayout) -> None:
+        """Create edit and edit close buttons."""
+        # Edit close button (shown in edit mode)
+        self.edit_close_button = QPushButton("×")
+        self.edit_close_button.setFixedSize(24, 24)
+        self.edit_close_button.setStyleSheet(self._get_close_button_style())
+        self.edit_close_button.clicked.connect(self.exit_edit_mode)
+        self.edit_close_button.setToolTip(_("Exit Edit Mode"))
+        self.edit_close_button.hide()
+        self.edit_close_button.installEventFilter(self)
+        layout.addWidget(self.edit_close_button, 0, Qt.AlignmentFlag.AlignRight)
+
+        # Edit button (shown in normal mode)
+        self.edit_button = QPushButton()
+        pencil_icon = get_icon_path("pencil", with_theme=True)
+        if pencil_icon.exists():
+            self.edit_button.setIcon(QtGui.QIcon(pencil_icon.as_posix()))
+
+        self.edit_button.setFixedSize(24, 24)
+        self.edit_button.setStyleSheet(self._get_icon_button_style())
+        self.edit_button.clicked.connect(self.enter_edit_mode)
+        self.edit_button.setToolTip(_("Edit Tools Layout"))
+        self.edit_button.installEventFilter(self)
+        layout.addWidget(self.edit_button, 0, Qt.AlignmentFlag.AlignLeft)
+
+    def _create_close_button(self, layout: QHBoxLayout) -> None:
+        """Create the main close button."""
+        self.close_button = QPushButton("×")
+        self.close_button.setFixedSize(24, 24)
+        self.close_button.setStyleSheet(self._get_close_button_style())
+        self.close_button.clicked.connect(self.close)
+        self.close_button.installEventFilter(self)
+        layout.addWidget(self.close_button, 0, Qt.AlignmentFlag.AlignRight)
+
+    def _get_icon_button_style(self) -> str:
+        """Get stylesheet for icon buttons."""
+        return f"""
             QPushButton {{
                 background-color: transparent;
                 border: none;
                 border-radius: 6px;
                 padding: 0px;
                 margin-top: 3px;
+                color: {"#fff" if get_effective_color_mode() == "dark" else "#333"};
             }}
             QPushButton:hover {{
                 background-color: {"#333" if get_effective_color_mode() == "dark" else "#ebebeb"};
             }}
-        """,
-        )
-        self.reset_button.clicked.connect(self.on_reset_clicked)
-        self.reset_button.setToolTip(_("Reset to Default Buttons"))
-        self.reset_button.installEventFilter(self)
-        top_bar.addWidget(self.reset_button, 0, Qt.AlignmentFlag.AlignLeft)
+        """
 
-        # Configure mouse events for draggable top bar
-        self.setup_draggable_top_bar()
-
-        # Add top bar to main layout
-        content_layout.addWidget(self.top_bar_widget)
-
-        # The label "Drag to rearrange" (BOLD as requested)
-        self.drag_label = QLabel("Drag to rearrange")
-        self.drag_label.setStyleSheet(
-            f"""
-            color: {"#fff" if get_effective_color_mode() == "dark" else "#333"};
-            font-size: 14px;
-            font-weight: bold; /* <--- BOLD TEXT */
-        """,
-        )
-        self.drag_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.drag_label.hide()
-        top_bar.addWidget(
-            self.drag_label,
-            1,
-            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignHCenter,
-        )
-
-        # Close button for edit mode (right side)
-        self.edit_close_button = QPushButton("×")
-        self.edit_close_button.setFixedSize(24, 24)
-        self.edit_close_button.setStyleSheet(
-            f"""
+    def _get_close_button_style(self) -> str:
+        """Get stylesheet for close buttons."""
+        return f"""
             QPushButton {{
                 background-color: transparent;
                 color: {"#fff" if get_effective_color_mode() == "dark" else "#333"};
@@ -545,75 +605,49 @@ class CustomPopupWindow(QWidget):
             QPushButton:hover {{
                 background-color: {"#333" if get_effective_color_mode() == "dark" else "#ebebeb"};
             }}
-        """,
-        )
-        self.edit_close_button.clicked.connect(self.exit_edit_mode)
-        self.edit_close_button.setToolTip(_("Exit Edit Mode"))
-        self.edit_close_button.hide()
-        self.edit_close_button.installEventFilter(self)
-        top_bar.addWidget(self.edit_close_button, 0, Qt.AlignmentFlag.AlignRight)
+        """
 
-        # Edit button (pencil icon) - only shown when not in edit mode
-        self.edit_button = QPushButton()
-        pencil_icon = get_icon_path("pencil", with_theme=True)
-        if pencil_icon.exists():
-            self.edit_button.setIcon(QtGui.QIcon(pencil_icon.as_posix()))
-        self.edit_button.setFixedSize(24, 24)
-        self.edit_button.setStyleSheet(
-            f"""
-            QPushButton {{
-                background-color: transparent;
-                border: none;
-                border-radius: 6px;
-                color: {"#fff" if get_effective_color_mode() == "dark" else "#333"};
-            }}
-            QPushButton:hover {{
-                background-color: {"#333" if get_effective_color_mode() == "dark" else "#ebebeb"};
-            }}
-        """,
-        )
-        self.edit_button.clicked.connect(self.enter_edit_mode)
-        self.edit_button.setToolTip(_("Edit Tools Layout"))
-        self.edit_button.installEventFilter(self)
-        top_bar.addWidget(self.edit_button, 0, Qt.AlignmentFlag.AlignLeft)
-
-        # Close button block:
-        self.close_button = QPushButton("×")
-        self.close_button.setFixedSize(24, 24)
-        self.close_button.setStyleSheet(
-            f"""
-            QPushButton {{
-                background-color: transparent;
-                color: {"#fff" if get_effective_color_mode() == "dark" else "#333"};
-                font-size: 20px;   /* bigger text */
-                font-weight: bold; /* bold text */
-                border: none;
-                border-radius: 6px;
-                padding: 0px;
-            }}
-            QPushButton:hover {{
-                background-color: {"#333" if get_effective_color_mode() == "dark" else "#ebebeb"};
-            }}
-        """,
-        )
-        self.close_button.clicked.connect(self.close)
-        self.close_button.installEventFilter(self)
-        top_bar.addWidget(self.close_button, 0, Qt.AlignmentFlag.AlignRight)
-        content_layout.addLayout(top_bar)
-
-        # Input area (hidden in edit mode)
+    def _create_input_area(self, content_layout: QVBoxLayout) -> None:
+        """Create the input area with text field and send button."""
         self.input_area = QWidget()
         input_layout = QHBoxLayout(self.input_area)
         input_layout.setContentsMargins(0, 0, 0, 0)
 
+        self._create_custom_input(input_layout)
+        self._create_send_button(input_layout)
+
+        content_layout.addWidget(self.input_area)
+
+    def _create_custom_input(self, layout: QHBoxLayout) -> None:
+        """Create the custom input text field."""
         self.custom_input = QLineEdit()
-        self.custom_input.setPlaceholderText(
+        placeholder = (
             _("Describe your change...")
             if self.has_sel_text and not self.has_image
             else _("Ask your AI...")
         )
-        self.custom_input.setStyleSheet(
-            f"""
+        self.custom_input.setPlaceholderText(placeholder)
+        self.custom_input.setStyleSheet(self._get_input_style())
+        self.custom_input.returnPressed.connect(self.on_custom_change)
+        layout.addWidget(self.custom_input)
+
+    def _create_send_button(self, layout: QHBoxLayout) -> None:
+        """Create the send button for the input area."""
+        send_btn = QPushButton()
+        send_icon = get_icon_path("send", with_theme=True)
+        if send_icon.exists():
+            send_btn.setIcon(QtGui.QIcon(send_icon.as_posix()))
+
+        send_btn.setStyleSheet(self._get_send_button_style())
+        send_btn.setFixedSize(
+            self.custom_input.sizeHint().height(), self.custom_input.sizeHint().height()
+        )
+        send_btn.clicked.connect(self.on_custom_change)
+        layout.addWidget(send_btn)
+
+    def _get_input_style(self) -> str:
+        """Get stylesheet for input field."""
+        return f"""
             QLineEdit {{
                 padding: 8px;
                 border: 1px solid {"#777" if get_effective_color_mode() == "dark" else "#ccc"};
@@ -621,17 +655,11 @@ class CustomPopupWindow(QWidget):
                 background-color: {"#333" if get_effective_color_mode() == "dark" else "white"};
                 color: {"#fff" if get_effective_color_mode() == "dark" else "#000"};
             }}
-        """,
-        )
-        self.custom_input.returnPressed.connect(self.on_custom_change)
-        input_layout.addWidget(self.custom_input)
+        """
 
-        send_btn = QPushButton()
-        send_icon = get_icon_path("send", with_theme=True)
-        if send_icon.exists():
-            send_btn.setIcon(QtGui.QIcon(send_icon.as_posix()))
-        send_btn.setStyleSheet(
-            f"""
+    def _get_send_button_style(self) -> str:
+        """Get stylesheet for send button."""
+        return f"""
             QPushButton {{
                 background-color: {"#2e7d32" if get_effective_color_mode() == "dark" else "#4CAF50"};
                 border: none;
@@ -641,20 +669,15 @@ class CustomPopupWindow(QWidget):
             QPushButton:hover {{
                 background-color: {"#1b5e20" if get_effective_color_mode() == "dark" else "#45a049"};
             }}
-        """,
-        )
-        send_btn.setFixedSize(
-            self.custom_input.sizeHint().height(), self.custom_input.sizeHint().height()
-        )
-        send_btn.clicked.connect(self.on_custom_change)
-        input_layout.addWidget(send_btn)
+        """
 
-        content_layout.addWidget(self.input_area)
-
-        # Force Chat toggle area (only shown when text is selected)
+    def _create_force_chat_toggle_if_needed(self, content_layout: QVBoxLayout) -> None:
+        """Create force chat toggle area if text or image is selected."""
         if self.has_sel_text or self.has_image:
             self.create_force_chat_toggle(content_layout)
 
+    def _setup_buttons_and_content(self, content_layout: QVBoxLayout) -> None:
+        """Setup buttons and main content based on available input."""
         if self.has_sel_text and not self.has_image:
             self.build_buttons_list()
             self.rebuild_grid_layout(content_layout)
@@ -663,10 +686,10 @@ class CustomPopupWindow(QWidget):
             self.edit_button.hide()
             self.custom_input.setMinimumWidth(300)
 
-        # Initialize button visibility for normal mode
         self.initialize_button_visibility()
 
-        # show update notice if applicable
+    def _show_update_notice_if_available(self, content_layout: QVBoxLayout) -> None:
+        """Show update notice if an update is available."""
         update_available = self.app.settings_manager.update_available or False
 
         if update_available:
@@ -678,12 +701,13 @@ class CustomPopupWindow(QWidget):
                 "There's an update! :D Download now."
                 "</a>"
             )
-
             self.update_label.setStyleSheet("margin-top: 10px;")
             content_layout.addWidget(
                 self.update_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter
             )
 
+    def _finalize_ui_setup(self) -> None:
+        """Finalize UI setup with event filters and focus."""
         self.installEventFilter(self)
         QtCore.QTimer.singleShot(
             250, lambda: self.custom_input.setFocus() if self.custom_input else None
@@ -896,7 +920,6 @@ class CustomPopupWindow(QWidget):
         creates DraggableButton for each (except "Custom"),
         storing them in self.button_widgets in the same order.
         """
-        from ui.ui_utils import get_icon_path
 
         # Properly delete old button widgets before clearing the list
         for old_button in self.button_widgets:
@@ -1035,7 +1058,6 @@ class CustomPopupWindow(QWidget):
         # Create edit icon (top-left)
         edit_btn = QPushButton(btn.icon_container)
         edit_btn.setGeometry(3, 3, 16, 16)
-        from ui.ui_utils import get_icon_path
 
         pencil_icon = get_icon_path("pencil", with_theme=True)
         if pencil_icon.exists():
