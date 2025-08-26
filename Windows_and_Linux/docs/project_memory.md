@@ -54,6 +54,13 @@ Writing Tools is a cross-platform desktop application that provides AI-powered t
 
 ## **🔧 RECENT FIXES & IMPORTANT NOTES**
 
+### **Chat Window Toggle Feature (Added)**
+- **Feature**: Ctrl+Space now closes existing chat windows and returns to main popup
+- **Issue Fixed**: Inconsistency in variable names (`response_window` vs `current_response_window`)
+- **Solution**: Corrected variable reference in `on_hotkey_pressed()` method
+- **Location**: `WritingToolApp.py:on_hotkey_pressed()`
+- **Benefit**: Users can now seamlessly switch between chat and main interface
+
 ### **Text Replacement Bug (Fixed)**
 - **Issue**: Complex clipboard operations caused replacement failures
 - **Solution**: Simplified to use `pyperclip` with backup/restore pattern

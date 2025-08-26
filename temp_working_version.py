@@ -6,21 +6,16 @@ Used for displaying a custom popup window with various input fields and options.
 """
 
 import logging
-import threading
 from functools import partial
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from PySide6 import QtCore, QtGui
+from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QApplication,
-    QCheckBox,
     QDialog,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QMessageBox,
     QPlainTextEdit,
     QPushButton,
     QRadioButton,
@@ -30,73 +25,72 @@ from PySide6.QtWidgets import (
 
 from config.data_operations import create_default_actions_config
 from config.interfaces import ActionConfig
-from ui.ResponseWindow import ResponseWindow
 from ui.ui_utils import ThemeBackground, get_effective_color_mode
 
 if TYPE_CHECKING:
-    from ui.ResponseWindow import ResponseWindow
-    from WritingToolApp import WritingToolApp
+    from Windows_and_Linux.WritingToolApp import WritingToolApp
 
 
 def _(x):
     return x
 
 
-class ActionConfigWithName(ActionConfig, total=False):
-    name: str
-
-
-class ToggleSwitch(QCheckBox):
+class ToggleSwitch(QWidget):
     """Custom toggle switch widget with sliding circle animation"""
 
     toggled = QtCore.Signal(bool)
 
-    def __init__(self, parent: QWidget | None = None):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedSize(50, 24)
         self.setCheckable(True)
-        self._circle_position: int = 2
+        self._checked = False
+        self._circle_position = 2
         self._animation = QtCore.QPropertyAnimation(self, b"circle_position")
         self._animation.setDuration(150)
 
-        # Connect native QCheckBox signal to animation
-        self.toggled.connect(self._animate_to_position)
+    def setChecked(self, checked):
+        if self._checked != checked:
+            self._checked = checked
+            self._animate_to_position()
+            self.toggled.emit(checked)
 
-    def setChecked(self, arg__1: bool) -> None:
-        super().setChecked(arg__1)
+    def isChecked(self):
+        return self._checked
 
-    def setCheckable(self, arg__1: bool) -> None:
-        super().setCheckable(arg__1)
+    def setCheckable(self, checkable):
+        # For compatibility with QCheckBox interface
+        pass
 
     @QtCore.Property(int)
-    def circle_position(self) -> int:  # type: ignore
+    def circle_position(self):  # type: ignore
         return self._circle_position
 
     @circle_position.setter
-    def circle_position(self, pos: int) -> None:
+    def circle_position(self, pos):
         self._circle_position = pos
         self.update()
 
-    def _animate_to_position(self) -> None:
-        start_pos = 2 if not self.isChecked() else 28
-        end_pos = 28 if self.isChecked() else 2
+    def _animate_to_position(self):
+        start_pos = 2 if not self._checked else 28
+        end_pos = 28 if self._checked else 2
 
         self._animation.setStartValue(start_pos)
         self._animation.setEndValue(end_pos)
         self._animation.start()
 
-    def mousePressEvent(self, e: QtGui.QMouseEvent) -> None:
-        if e.button() == QtCore.Qt.MouseButton.LeftButton:
-            self.setChecked(not self.isChecked())
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
+            self.setChecked(not self._checked)
 
-    def paintEvent(self, arg__1: QtGui.QPaintEvent) -> None:
+    def paintEvent(self, event):
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
 
         # Colors based on theme
         dark_mode = get_effective_color_mode() == "dark"
 
-        if self.isChecked():
+        if self._checked:
             bg_color = QtGui.QColor("#2196F3")  # Blue when ON
         else:
             bg_color = QtGui.QColor("#444" if dark_mode else "#ddd")  # Gray when OFF
@@ -119,12 +113,7 @@ class ButtonEditDialog(QDialog):
     (name/title, system instruction, open_in_window, etc.).
     """
 
-    def __init__(
-        self,
-        parent: QWidget | None = None,
-        button_data: dict | None = None,
-        title: str = "Edit Button",
-    ):
+    def __init__(self, parent=None, button_data=None, title="Edit Button"):
         super().__init__(parent)
         self.button_data = (
             button_data
@@ -258,7 +247,7 @@ class ButtonEditDialog(QDialog):
         """,
         )
 
-    def get_button_data(self) -> ActionConfigWithName:
+    def get_button_data(self):
         return {
             "name": self.name_input.text(),
             "prefix": "Make this change to the following text:\n\n",
@@ -269,14 +258,14 @@ class ButtonEditDialog(QDialog):
         }
 
 
-class DraggableButton(QPushButton):
-    def __init__(self, parent_popup: "CustomPopupWindow", key: str, text: str):
+class DraggableButton(QtWidgets.QPushButton):
+    def __init__(self, parent_popup, key, text):
         super().__init__(text, parent_popup)
-        self.popup: CustomPopupWindow = parent_popup
-        self.key: str = key
-        self.drag_start_position: QtCore.QPoint | None = None
+        self.popup = parent_popup
+        self.key = key
+        self.drag_start_position = None
         self.setAcceptDrops(True)
-        self.icon_container: QWidget | None = None
+        self.icon_container = None
 
         # Enable mouse tracking and hover events, and styled background
         self.setMouseTracking(True)
@@ -306,7 +295,7 @@ class DraggableButton(QPushButton):
         """
         self.setStyleSheet(self.base_style)
 
-    def refresh_button_style(self) -> None:
+    def refresh_button_style(self):
         """Refresh the button style when color mode changes."""
         self.base_style = f"""
             QPushButton {{
@@ -324,7 +313,7 @@ class DraggableButton(QPushButton):
         """
         self.setStyleSheet(self.base_style)
 
-    def enterEvent(self, event: QtGui.QEnterEvent) -> None:
+    def enterEvent(self, event):
         # Only update the hover property if NOT in edit mode.
         if not self.popup.edit_mode:
             self.setProperty("hover", True)
@@ -332,14 +321,14 @@ class DraggableButton(QPushButton):
             self.style().polish(self)
         super().enterEvent(event)
 
-    def leaveEvent(self, event: QtCore.QEvent) -> None:
+    def leaveEvent(self, event):
         if not self.popup.edit_mode:
             self.setProperty("hover", False)
             self.style().unpolish(self)
             self.style().polish(self)
         super().leaveEvent(event)
 
-    def mousePressEvent(self, e: QtGui.QMouseEvent) -> None:
+    def mousePressEvent(self, e):
         if e.button() == Qt.MouseButton.LeftButton:
             if self.popup.edit_mode:
                 self.drag_start_position = e.pos()
@@ -347,7 +336,7 @@ class DraggableButton(QPushButton):
                 return
         super().mousePressEvent(e)
 
-    def mouseMoveEvent(self, arg__1: QtGui.QMouseEvent) -> None:
+    def mouseMoveEvent(self, arg__1: QtGui.QMouseEvent):
         if (
             not (arg__1.buttons() & Qt.MouseButton.LeftButton)
             or not self.drag_start_position
@@ -355,7 +344,7 @@ class DraggableButton(QPushButton):
             return
 
         distance = (arg__1.pos() - self.drag_start_position).manhattanLength()
-        if distance < QApplication.startDragDistance():
+        if distance < QtWidgets.QApplication.startDragDistance():
             return
 
         if self.popup.edit_mode:
@@ -372,7 +361,7 @@ class DraggableButton(QPushButton):
             self.drag_start_position = None
             _ = drag.exec_(Qt.DropAction.MoveAction)
 
-    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
+    def dragEnterEvent(self, event):
         if self.popup.edit_mode and event.mimeData().hasFormat(
             "application/x-button-index"
         ):
@@ -388,11 +377,11 @@ class DraggableButton(QPushButton):
         else:
             event.ignore()
 
-    def dragLeaveEvent(self, event: QtGui.QDragLeaveEvent) -> None:
+    def dragLeaveEvent(self, event):
         self.setStyleSheet(self.base_style)
         event.accept()
 
-    def dropEvent(self, event: QtGui.QDropEvent) -> None:
+    def dropEvent(self, event):
         if not self.popup.edit_mode or not event.mimeData().hasFormat(
             "application/x-button-index"
         ):
@@ -413,48 +402,40 @@ class DraggableButton(QPushButton):
         event.setDropAction(Qt.DropAction.MoveAction)
         event.acceptProposedAction()
 
-    def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
+    def resizeEvent(self, event):
         super().resizeEvent(event)
         if self.icon_container:
             self.icon_container.setGeometry(0, 0, self.width(), self.height())
 
 
-class CustomPopupWindow(QWidget):
-    def __init__(
-        self,
-        app: "WritingToolApp",
-        selected_text: str | None = None,
-        image: QtGui.QImage | None = None,
-    ):
+class CustomPopupWindow(QtWidgets.QWidget):
+    def __init__(self, app: "WritingToolApp", selected_text):
         super().__init__()
-        self._logger = logging.getLogger(__name__)
         self.app = app
-        self.selected_text: str | None = selected_text
-        self.image: QtGui.QImage | None = image
+        self.selected_text = selected_text
         self.edit_mode = False
-        self.has_text = bool(selected_text.strip() if selected_text else False)
-        self.has_image = bool(image is not None)
+        self.has_text = bool(selected_text.strip())
 
-        self.drag_label: QLabel | None = None
-        self.edit_button: QPushButton | None = None
-        self.reset_button: QPushButton | None = None
-        self.edit_close_button: QPushButton | None = None
-        self.close_button: QPushButton | None = None
-        self.custom_input: QLineEdit | None = None
-        self.input_area: QWidget | None = None
-        self.update_label: QLabel | None = None
+        self.drag_label = None
+        self.edit_button = None
+        self.reset_button = None
+        self.edit_close_button = None
+        self.close_button = None
+        self.custom_input = None
+        self.input_area = None
+        self.update_label = None
 
         # Force Chat toggle and lock state
-        self.force_chat_toggle: QCheckBox | None = None
-        self.force_chat_lock: QPushButton | None | None = None
-        self.force_chat_area: QWidget | None = None
+        self.force_chat_toggle = None
+        self.force_chat_lock = None
+        self.force_chat_area = None
 
-        self.button_widgets: list[Any] = []
+        self.button_widgets = []
 
         # Variables for dragging functionality
         self.is_dragging = False
-        self.drag_start_position: QtCore.QPoint | None = None
-        self.top_bar_widget: QWidget | None = None
+        self.drag_start_position = None
+        self.top_bar_widget = None  # Reference to top bar widget
 
         self.init_ui()
 
@@ -465,7 +446,7 @@ class CustomPopupWindow(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowTitle("Writing Tools")
 
-        main_layout = QVBoxLayout(self)
+        main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         self.background = ThemeBackground(
@@ -476,13 +457,13 @@ class CustomPopupWindow(QWidget):
         )
         main_layout.addWidget(self.background)
 
-        content_layout = QVBoxLayout(self.background)
+        content_layout = QtWidgets.QVBoxLayout(self.background)
         # Margin Control
         content_layout.setContentsMargins(10, 4, 10, 10)
         content_layout.setSpacing(10)
 
         # TOP BAR LAYOUT & STYLE
-        self.top_bar_widget = QWidget()
+        self.top_bar_widget = QtWidgets.QWidget()
         self.top_bar_widget.setFixedHeight(30)  # Fixed height for drag area
         top_bar = QHBoxLayout(self.top_bar_widget)
         top_bar.setContentsMargins(0, 0, 0, 0)
@@ -619,9 +600,7 @@ class CustomPopupWindow(QWidget):
 
         self.custom_input = QLineEdit()
         self.custom_input.setPlaceholderText(
-            _("Describe your change...")
-            if self.has_text and not self.has_image
-            else _("Ask your AI...")
+            _("Describe your change...") if self.has_text else _("Ask your AI...")
         )
         self.custom_input.setStyleSheet(
             f"""
@@ -663,10 +642,10 @@ class CustomPopupWindow(QWidget):
         content_layout.addWidget(self.input_area)
 
         # Force Chat toggle area (only shown when text is selected)
-        if self.has_text and not self.has_image:
+        if self.has_text:
             self.create_force_chat_toggle(content_layout)
 
-        if self.has_text and not self.has_image:
+        if self.has_text:
             self.build_buttons_list()
             self.rebuild_grid_layout(content_layout)
         else:
@@ -700,7 +679,7 @@ class CustomPopupWindow(QWidget):
             250, lambda: self.custom_input.setFocus() if self.custom_input else None
         )
 
-    def setup_draggable_top_bar(self) -> None:
+    def setup_draggable_top_bar(self):
         """Configure top bar to be draggable"""
         if self.top_bar_widget:
             # Install event filter on top bar
@@ -709,7 +688,7 @@ class CustomPopupWindow(QWidget):
             # Change cursor to indicate draggable area
             self.top_bar_widget.setCursor(Qt.CursorShape.OpenHandCursor)
 
-    def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:
+    def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent):
         # Handle buttons cursors first
         if watched in [
             self.close_button,
@@ -774,7 +753,7 @@ class CustomPopupWindow(QWidget):
                 return True
         return super().eventFilter(watched, event)
 
-    def create_force_chat_toggle(self, parent_layout: QVBoxLayout) -> None:
+    def create_force_chat_toggle(self, parent_layout):
         """Create the Force Chat toggle with lock button."""
         self.force_chat_area = QWidget()
         force_chat_layout = QHBoxLayout(self.force_chat_area)
@@ -841,7 +820,7 @@ class CustomPopupWindow(QWidget):
 
         parent_layout.addWidget(self.force_chat_area)
 
-    def update_lock_icon(self) -> None:
+    def update_lock_icon(self):
         """Update the lock icon based on current state."""
         # Ensure the lock button exists
         if not self.force_chat_lock:
@@ -851,14 +830,14 @@ class CustomPopupWindow(QWidget):
         else:
             self.force_chat_lock.setText("🔓")
 
-    def on_force_chat_toggled(self, checked: bool) -> None:
+    def on_force_chat_toggled(self, checked):
         """Handle Force Chat toggle state change."""
         # If locked, save the state
         if self.force_chat_lock and self.force_chat_lock.isChecked():
             self.app.settings_manager.force_chat_enabled = checked
             self.app.settings_manager.save()
 
-    def on_force_chat_lock_toggled(self, checked: bool) -> None:
+    def on_force_chat_lock_toggled(self, checked):
         """Handle Force Chat lock state change."""
         self.update_lock_icon()
 
@@ -894,7 +873,7 @@ class CustomPopupWindow(QWidget):
             not hasattr(self.app, "settings_manager")
             or not self.app.settings_manager.settings
         ):
-            self._logger.warning("Settings manager not available, using default actions")
+            logging.warning("Settings manager not available, using default actions")
             return create_default_actions_config()
 
         return self.app.settings_manager.settings.actions
@@ -912,7 +891,7 @@ class CustomPopupWindow(QWidget):
             "open_in_window": action_config.get("open_in_window", False),
         }
 
-    def build_buttons_list(self) -> None:
+    def build_buttons_list(self):
         """
         Loads actions from unified settings system,
         creates DraggableButton for each (except "Custom"),
@@ -933,9 +912,7 @@ class CustomPopupWindow(QWidget):
             if name == "Custom":
                 continue
             b = DraggableButton(self, name, name)
-            icon_path = get_icon_path(
-                action_config.get("icon", "Not Found"), with_theme=True
-            )
+            icon_path = get_icon_path(action_config.get("icon", None), with_theme=True)
             if icon_path.exists():
                 b.setIcon(QtGui.QIcon(icon_path.as_posix()))
 
@@ -957,7 +934,7 @@ class CustomPopupWindow(QWidget):
                 b.clicked.connect(partial(self.on_generic_instruction, name))
             self.button_widgets.append(b)
 
-    def rebuild_grid_layout(self, parent_layout=None, force_edit_mode=None) -> None:
+    def rebuild_grid_layout(self, parent_layout=None, force_edit_mode=None):
         """Rebuild grid layout with consistent sizing and proper Add New button placement."""
         if not parent_layout:
             parent_layout = self.background.layout()
@@ -970,7 +947,7 @@ class CustomPopupWindow(QWidget):
         # Remove existing grid and Add New button - PROPERLY DELETE WIDGETS
         for i in reversed(range(parent_layout.count())):
             item = parent_layout.itemAt(i)
-            if isinstance(item, QGridLayout):
+            if isinstance(item, QtWidgets.QGridLayout):
                 grid = item
                 # First, properly delete all widgets in the grid
                 for j in reversed(range(grid.count())):
@@ -991,7 +968,7 @@ class CustomPopupWindow(QWidget):
                     widget.deleteLater()
 
         # Create new grid with fixed column width
-        grid = QGridLayout()
+        grid = QtWidgets.QGridLayout()
         grid.setSpacing(10)
         grid.setColumnMinimumWidth(0, 120)
         grid.setColumnMinimumWidth(1, 120)
@@ -1006,11 +983,11 @@ class CustomPopupWindow(QWidget):
                 col = 0
                 row += 1
 
-        if isinstance(parent_layout, (QVBoxLayout, QHBoxLayout)):
+        if isinstance(parent_layout, (QtWidgets.QVBoxLayout, QtWidgets.QHBoxLayout)):
             parent_layout.addLayout(grid)
 
         # Add New button (only in edit mode & only if we have text)
-        if edit_mode_to_use and self.has_text and not self.has_image:
+        if edit_mode_to_use and self.has_text:
             add_btn = QPushButton("+ Add New")
             add_btn.setStyleSheet(
                 f"""
@@ -1032,12 +1009,12 @@ class CustomPopupWindow(QWidget):
             add_btn.clicked.connect(self.add_new_button_clicked)
             parent_layout.addWidget(add_btn)
 
-    def add_edit_delete_icons(self, btn) -> None:
+    def add_edit_delete_icons(self, btn):
         """Add edit/delete icons as overlays with proper spacing."""
         if hasattr(btn, "icon_container") and btn.icon_container:
             btn.icon_container.deleteLater()
 
-        btn.icon_container = QWidget(btn)
+        btn.icon_container = QtWidgets.QWidget(btn)
         btn.icon_container.setAttribute(
             QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents, False
         )
@@ -1085,10 +1062,10 @@ class CustomPopupWindow(QWidget):
         btn.icon_container.raise_()
         btn.icon_container.show()
 
-    def enter_edit_mode(self) -> None:
+    def enter_edit_mode(self):
         """Enter edit mode - called when user clicks the pencil icon."""
         self.edit_mode = True
-        self._logger.debug("Entering edit mode")
+        logging.debug("Entering edit mode")
 
         # Show edit mode UI elements
         if self.edit_button is not None:
@@ -1111,15 +1088,15 @@ class CustomPopupWindow(QWidget):
         # Add edit overlays to buttons
         self.add_edit_overlays_to_buttons()
 
-    def exit_edit_mode(self) -> None:
+    def exit_edit_mode(self):
         """Exit edit mode - called when user clicks the close button in edit mode."""
         self.edit_mode = False
-        self._logger.debug("Exiting edit mode")
+        logging.debug("Exiting edit mode")
 
         # Reload the window to ensure clean state and proper layout
         self.reload_window()
 
-    def add_edit_overlays_to_buttons(self) -> None:
+    def add_edit_overlays_to_buttons(self):
         """Add edit overlays to all buttons when entering edit mode."""
         for btn in self.button_widgets:
             self.add_edit_delete_icons(btn)
@@ -1127,7 +1104,7 @@ class CustomPopupWindow(QWidget):
         # Rebuild grid layout to show edit mode
         self.rebuild_grid_layout(force_edit_mode=True)
 
-    def initialize_button_visibility(self) -> None:
+    def initialize_button_visibility(self):
         """Initialize button visibility for normal (non-edit) mode."""
         self.edit_mode = False
         if hasattr(self, "reset_button") and self.reset_button is not None:
@@ -1138,7 +1115,6 @@ class CustomPopupWindow(QWidget):
             self.drag_label.hide()
         if (
             self.has_text
-            and not self.has_image
             and hasattr(self, "edit_button")
             and self.edit_button is not None
         ):
@@ -1150,11 +1126,11 @@ class CustomPopupWindow(QWidget):
         if hasattr(self, "force_chat_area") and self.force_chat_area is not None:
             self.force_chat_area.setVisible(not self.edit_mode)
 
-    def on_reset_clicked(self) -> None:
+    def on_reset_clicked(self):
         """
         Reset options to default actions and reload the interface.
         """
-        confirm_box = QMessageBox()
+        confirm_box = QtWidgets.QMessageBox()
         confirm_box.setWindowFlags(
             confirm_box.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
         )
@@ -1163,13 +1139,14 @@ class CustomPopupWindow(QWidget):
             "This will reset all buttons to their original configuration.\nYour custom buttons will be removed.\n\nAre you sure you want to continue?",
         )
         confirm_box.setStandardButtons(
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QtWidgets.QMessageBox.StandardButton.Yes
+            | QtWidgets.QMessageBox.StandardButton.No
         )
-        confirm_box.setDefaultButton(QMessageBox.StandardButton.No)
+        confirm_box.setDefaultButton(QtWidgets.QMessageBox.StandardButton.No)
 
-        if confirm_box.exec_() == QMessageBox.StandardButton.Yes:
+        if confirm_box.exec_() == QtWidgets.QMessageBox.StandardButton.Yes:
             try:
-                self._logger.debug("Resetting to default actions")
+                logging.debug("Resetting to default actions")
                 # Reset actions to defaults in unified settings
                 if (
                     hasattr(self.app, "settings_manager")
@@ -1181,14 +1158,14 @@ class CustomPopupWindow(QWidget):
                     )
                     self.app.settings_manager.save()
                 else:
-                    self._logger.error("Settings manager not available for reset")
+                    logging.error("Settings manager not available for reset")
 
                 # Reload the interface immediately
                 self.build_buttons_list()
                 self.rebuild_grid_layout(force_edit_mode=self.edit_mode)
 
                 # Show success message
-                success_msg = QMessageBox()
+                success_msg = QtWidgets.QMessageBox()
                 success_msg.setWindowFlags(
                     success_msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
                 )
@@ -1199,26 +1176,28 @@ class CustomPopupWindow(QWidget):
                 success_msg.exec_()
 
             except Exception as e:
-                self._logger.exception(f"Error resetting options: {e}")
+                logging.exception(f"Error resetting options: {e}")
                 self.app.show_message_signal.emit(
                     "Error", f"An error occurred while resetting: {e!s}"
                 )
 
-    def add_new_button_clicked(self) -> None:
+    def add_new_button_clicked(self):
         dialog = ButtonEditDialog(self, title="Add New Button")
         if dialog.exec_():
             bd = dialog.get_button_data()
+            # Create new ActionConfig and save directly
+            from config.interfaces import ActionConfig
 
             action_config = ActionConfig(
-                prefix=bd.get("prefix", ""),
-                instruction=bd.get("instruction", ""),
-                icon=bd.get("icon", ""),
-                open_in_window=bd.get("open_in_window", False),
+                prefix=bd["prefix"],
+                instruction=bd["instruction"],
+                icon=bd["icon"],
+                open_in_window=bd["open_in_window"],
             )
-            self.app.settings_manager.update_action(bd.get("name", ""), action_config)
+            self.app.settings_manager.update_action(bd["name"], action_config)
 
             # Show success message
-            msg = QMessageBox()
+            msg = QtWidgets.QMessageBox()
             msg.setWindowFlags(
                 msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
             )
@@ -1226,21 +1205,18 @@ class CustomPopupWindow(QWidget):
             msg.setText(
                 "Your new button has been saved and is now available in the tools list."
             )
-            msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+            msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
             msg.exec_()
 
             # Reload the window instead of closing it
             self.reload_window()
 
-    def edit_button_clicked(self, btn: QPushButton) -> None:
+    def edit_button_clicked(self, btn):
         """User clicked the small pencil icon over a button."""
-        key = getattr(btn, "key", None)
-        if key is None:
-            self._logger.error("Button does not have a 'key' attribute.")
-            return
+        key = btn.key
         actions = self.get_actions()
         if key not in actions:
-            self._logger.error(f"Action not found: {key}")
+            logging.error(f"Action not found: {key}")
             return
 
         action_config = actions[key]
@@ -1251,53 +1227,49 @@ class CustomPopupWindow(QWidget):
         if dialog.exec_():
             new_data = dialog.get_button_data()
             # Remove old action if name changed
-            if new_data.get("name", "") != key:
+            if new_data["name"] != key:
                 self.app.settings_manager.remove_action(key)
 
             # Create and save new ActionConfig
             from config.interfaces import ActionConfig
 
             action_config = ActionConfig(
-                prefix=new_data.get("prefix", ""),
-                instruction=new_data.get("instruction", ""),
-                icon=new_data.get("icon", ""),
-                open_in_window=new_data.get("open_in_window", False),
+                prefix=new_data["prefix"],
+                instruction=new_data["instruction"],
+                icon=new_data["icon"],
+                open_in_window=new_data["open_in_window"],
             )
-            self.app.settings_manager.update_action(
-                new_data.get("name", ""), action_config
-            )
+            self.app.settings_manager.update_action(new_data["name"], action_config)
 
             # Show success message
-            msg = QMessageBox()
+            msg = QtWidgets.QMessageBox()
             msg.setWindowFlags(
                 msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
             )
             msg.setWindowTitle("Button Updated")
             msg.setText("Your button changes have been saved and are now active.")
-            msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+            msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
             msg.exec_()
 
             # Reload the window instead of closing it
             self.reload_window()
 
-    def delete_button_clicked(self, btn: QPushButton) -> None:
+    def delete_button_clicked(self, btn):
         """Handle deletion of a button."""
-        key = getattr(btn, "key", None)
-        if key is None:
-            self._logger.error("Button does not have a 'key' attribute.")
-            return
-        confirm = QMessageBox()
+        key = btn.key
+        confirm = QtWidgets.QMessageBox()
         confirm.setWindowFlags(
             confirm.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
         )
         confirm.setWindowTitle("Confirm Delete?")
         confirm.setText("Are you sure you want to continue?")
         confirm.setStandardButtons(
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QtWidgets.QMessageBox.StandardButton.Yes
+            | QtWidgets.QMessageBox.StandardButton.No
         )
-        confirm.setDefaultButton(QMessageBox.StandardButton.No)
+        confirm.setDefaultButton(QtWidgets.QMessageBox.StandardButton.No)
 
-        if confirm.exec_() == QMessageBox.StandardButton.Yes:
+        if confirm.exec_() == QtWidgets.QMessageBox.StandardButton.Yes:
             try:
                 # Remove action using SettingsManager
                 self.app.settings_manager.remove_action(key)
@@ -1315,12 +1287,12 @@ class CustomPopupWindow(QWidget):
                 self.reload_window()
 
             except Exception as e:
-                self._logger.exception(f"Error deleting button: {e}")
+                logging.exception(f"Error deleting button: {e}")
                 self.app.show_message_signal.emit(
                     "Error", f"An error occurred while deleting the button: {e!s}"
                 )
 
-    def update_json_from_grid(self) -> None:
+    def update_json_from_grid(self):
         """
         Called after a drop reorder. Reflect the new order in unified settings,
         so that user's custom arrangement persists.
@@ -1329,7 +1301,7 @@ class CustomPopupWindow(QWidget):
             not hasattr(self.app, "settings_manager")
             or not self.app.settings_manager.settings
         ):
-            self._logger.error("Settings manager not available, cannot update order")
+            logging.error("Settings manager not available, cannot update order")
             return
 
         # Get current actions
@@ -1350,9 +1322,9 @@ class CustomPopupWindow(QWidget):
         # Update settings and save
         self.app.settings_manager.settings.actions = new_actions
         self.app.settings_manager.save()
-        self._logger.debug("Button order updated in unified settings")
+        logging.debug("Button order updated in unified settings")
 
-    def reload_window(self) -> None:
+    def reload_window(self):
         """
         Reload the window with updated button configuration.
         This recreates the popup window with the same selected text.
@@ -1371,279 +1343,22 @@ class CustomPopupWindow(QWidget):
         new_popup.raise_()
         new_popup.activateWindow()
 
-    def on_custom_change(self) -> None:
-        """
-        Prompt entered by user in the input field.
-        """
-        widget = getattr(self, "custom_input", None)
-        txt = widget.text().strip() if widget else ""
-        if txt or self.has_image:
-            self.process_option(
-                "Custom", self.selected_text, self.is_force_chat_enabled(), txt
+    def on_custom_change(self):
+        txt = self.custom_input.text().strip() if self.custom_input else ""
+        if txt:
+            self.app.process_option(
+                "Custom", self.selected_text, txt, force_chat=self.is_force_chat_enabled()
             )
             self.close()
 
-    def on_generic_instruction(self, instruction: str) -> None:
-        """
-        User clicked a generic instruction button.
-        """
-        if not self.edit_mode and self.selected_text is not None:
-            self.process_option(
-                instruction, self.selected_text.strip(), self.is_force_chat_enabled()
+    def on_generic_instruction(self, instruction):
+        if not self.edit_mode:
+            self.app.process_option(
+                instruction, self.selected_text, force_chat=self.is_force_chat_enabled()
             )
             self.close()
 
-    def process_option(
-        self,
-        option: str,
-        selected_text: str | None,
-        force_chat: bool = False,
-        custom_change: str | None = None,
-    ) -> None:
-        """
-        Process the selected writing option in a separate thread.
-        """
-        self._logger.debug(f"Processing option: {option}")
-
-        should_setup_response_window = self._should_display_in_response_window(
-            option, selected_text, self.app.settings_manager.actions
-        )
-
-        if should_setup_response_window:
-            self._logger.debug("Setting up response window for output")
-            self._setup_response_window(option, selected_text)
-        elif hasattr(self.app, "current_response_window"):
-            self._logger.debug("Original selection will be replaced directly")
-            delattr(self.app, "current_response_window")
-
-        # Store force_chat state for the thread
-        self._current_force_chat = force_chat
-
-        # Start processing thread
-        threading.Thread(
-            target=self.process_option_thread,
-            args=(option, selected_text, custom_change),
-            daemon=True,
-        ).start()
-
-    def _setup_response_window(self, option: str, selected_text: str | None) -> None:
-        """
-        Set up the response window for the selected writing option.
-        """
-        is_custom = option == "Custom"
-        window_title = "Chat" if not is_custom else option
-        self.app.current_response_window = self.show_response_window(
-            window_title, selected_text
-        )
-
-        # Initialize chat history inline
-        self.app.current_response_window.chat_history = (
-            []
-            if not is_custom
-            else [
-                {
-                    "role": "user",
-                    "content": f"Original text to {option.lower()}:\n\n{selected_text}",
-                },
-            ]
-        )
-
-    def show_response_window(self, option: str, text: str | None) -> ResponseWindow:
-        """
-        Show the response in a new window instead of pasting it.
-        @see: ui.ResponseWindow.ResponseWindow
-        """
-        response_window = ResponseWindow(self.app, f"{option} Result")
-        if text:
-            response_window.selected_text = text  # Store the text for regeneration
-        response_window.show()
-        return response_window
-
-    def process_option_thread(
-        self, option: str, selected_text: str, custom_change: str | None = None
-    ) -> None:
-        """
-        Thread function to process the selected writing option using the AI model.
-        """
-        self._logger.debug(f"Starting processing thread for option: {option}")
-
-        try:
-            prompt_data = self._prepare_prompt_data(option, selected_text, custom_change)
-            if not prompt_data:
-                return
-
-            self.app.output_queue = ""
-            should_open_window = self._should_display_in_response_window(
-                option, selected_text, prompt_data["action_config"]
-            )
-
-            if should_open_window:
-                self._process_window_response(
-                    option, selected_text, custom_change, prompt_data
-                )
-            else:
-                self._process_direct_replacement(prompt_data)
-
-        except Exception as e:
-            self._handle_processing_error(e)
-
-    def _prepare_prompt_data(
-        self, option: str, selected_text: str, custom_change: str | None = None
-    ) -> dict | None:
-        """
-        Prepare prompt data for AI processing.
-        """
-        has_selected_text = selected_text.strip() != ""
-        is_custom_option = option == "Custom"
-
-        if not has_selected_text:
-            return self._handle_no_text_selected(is_custom_option, custom_change)
-        else:
-            return self._handle_text_selected(
-                option, selected_text, custom_change, is_custom_option
-            )
-
-    def _handle_no_text_selected(
-        self, is_custom_option: bool, custom_change: str | None
-    ) -> dict | None:
-        """Handle case where no text is selected."""
-        if is_custom_option:
-            return {
-                "prompt": custom_change,
-                "system_instruction": "You are a friendly, helpful, compassionate, and endearing AI conversational assistant. Avoid making assumptions or generating harmful, biased, or inappropriate content. When in doubt, do not make up information. Ask the user for clarification if needed. Try not be unnecessarily repetitive in your response. You can, and should as appropriate, use Markdown formatting to make your response nicely readable.",
-                "action_config": {},
-            }
-        else:
-            self.app.show_message_signal.emit(
-                "Error", "Please select text to use this option."
-            )
-            return None
-
-    def _handle_text_selected(
-        self,
-        option: str,
-        selected_text: str,
-        custom_change: str | None,
-        is_custom_option: bool,
-    ) -> dict | None:
-        """Handle case where text is selected."""
-        action_config = self.app.settings_manager.actions.get(option)
-        if not action_config:
-            self._logger.error(f"Action not found: {option}")
-            return None
-
-        prompt_prefix = action_config.get("prefix", "")
-        system_instruction = action_config.get("instruction", "")
-
-        if is_custom_option:
-            prompt = f"{prompt_prefix}Described change: {custom_change}\n\nText: {selected_text}"
-        else:
-            prompt = f"{prompt_prefix}{selected_text}"
-
-        return {
-            "prompt": prompt,
-            "system_instruction": system_instruction,
-            "action_config": action_config,
-        }
-
-    def _should_display_in_response_window(
-        self, option: str, selected_text: str | None, action_config: dict
-    ) -> bool:
-        """
-        Determine if response should be displayed in a window.
-        Conditions:
-        - Custom option with no selected text
-        - Selected text and "open_in_window" is True in action config
-        - Force Chat is enabled and there is selected text
-        - There is an image to process
-        """
-        has_selected_text = bool(selected_text and selected_text.strip() != "")
-        is_custom_option = option == "Custom"
-        force_chat = getattr(self, "_current_force_chat", False)
-
-        return (
-            (is_custom_option and not has_selected_text)
-            or (has_selected_text and action_config.get("open_in_window", False))
-            or (force_chat and has_selected_text)
-            or self.has_image
-        )
-
-    def _process_window_response(
-        self,
-        option: str,
-        selected_text: str,
-        custom_change: str | None,
-        prompt_data: dict,
-    ) -> None:
-        """Process AI response for window display."""
-        if not self.app.current_provider:
-            return
-
-        self._logger.debug("Getting response for window display")
-        response = self.app.current_provider.get_response(
-            prompt_data["system_instruction"],
-            str(prompt_data["prompt"]),
-            return_response=True,
-        )
-        self._logger.debug(f"Got response of length: {len(response) if response else 0}")
-
-        self._update_chat_history_if_needed(option, selected_text, custom_change)
-        self._update_response_window(response)
-
-    def _update_chat_history_if_needed(
-        self, option: str, selected_text: str, custom_change: str | None
-    ) -> None:
-        """Update chat history for custom prompts without text."""
-        is_custom_option = option == "Custom"
-        has_selected_text = selected_text.strip() != ""
-
-        if (
-            is_custom_option
-            and not has_selected_text
-            and self.app.current_response_window
-        ):
-            self.app.current_response_window.chat_history.append(
-                {"role": "user", "content": custom_change or ""},
-            )
-
-    def _update_response_window(self, response: str) -> None:
-        """Update response window with AI response (thread-safe)."""
-        if hasattr(self.app, 'current_response_window') and self.app.current_response_window:
-            QtCore.QMetaObject.invokeMethod(
-                self.app.current_response_window,
-                "set_text",
-                QtCore.Qt.ConnectionType.QueuedConnection,
-                QtCore.Q_ARG(str, response),
-            )
-            self._logger.debug("Invoked set_text on response window")
-        else:
-            self._logger.warning("current_response_window not available for update")
-
-    def _process_direct_replacement(self, prompt_data: dict) -> None:
-        """Process AI response for direct text replacement."""
-        if not self.app.current_provider:
-            return
-
-        self._logger.debug("Getting response for direct replacement")
-        prompt_str = str(prompt_data["prompt"])
-        self.app.current_provider.get_response(
-            prompt_data["system_instruction"], prompt_str
-        )
-        self._logger.debug("Response processed")
-
-    def _handle_processing_error(self, error: Exception) -> None:
-        """Handle errors during AI processing."""
-        self._logger.error(f"An error occurred: {error}", exc_info=True)
-
-        if "Resource has been exhausted" in str(error):
-            self.app.show_message_signal.emit(
-                "Error - Rate Limit Hit",
-                "Whoops! You've hit the per-minute rate limit of the Gemini API. Please try again in a few moments.\n\nIf this happens often, simply switch to a Gemini model with a higher usage limit in Settings.",
-            )
-        else:
-            self.app.show_message_signal.emit("Error", f"An error occurred: {error}")
-
-    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+    def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Escape:
             if self.edit_mode:
                 # If in edit mode, exit edit mode (like clicking the close button)

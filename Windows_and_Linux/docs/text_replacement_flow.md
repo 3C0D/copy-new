@@ -31,6 +31,11 @@ if self.non_editable_modal is not None:
 if self.popup_window is not None:
     self.popup_window.close()
 
+# Close existing response window (chat window) if open
+if self.current_response_window is not None:
+    self.current_response_window.close()
+    self.current_response_window = None
+
 # Cancel current request
 if self.current_provider:
     self.current_provider.cancel()

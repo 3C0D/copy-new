@@ -572,10 +572,17 @@ class WritingToolApp(QApplication):
             self.non_editable_modal.close()
             self.non_editable_modal = None
 
+        # Close existing popup window if open
         if self.popup_window is not None:
             self._logger.debug("Closing existing popup window")
             self.popup_window.close()
             self.popup_window = None
+
+        # Close existing response window if open
+        if self.current_response_window is not None:
+            self._logger.debug("Closing existing response window")
+            self.current_response_window.close()
+            self.current_response_window = None
 
         # Original hotkey handling continues...
         if self.current_provider:
@@ -594,17 +601,6 @@ class WritingToolApp(QApplication):
         Show the popup window when the hotkey is pressed.
         """
         self._logger.debug("Showing popup window")
-
-        # # Close existing non-editable modal if open
-        # if self.non_editable_modal is not None:
-        #     self._logger.debug("Closing existing non-editable modal")
-        #     self.non_editable_modal.close()
-        #     self.non_editable_modal = None
-
-        # if self.popup_window is not None:
-        #     self._logger.debug("Closing existing popup window")
-        #     self.popup_window.close()
-        #     self.popup_window = None
 
         # Check for image first
         if self.image is None:
