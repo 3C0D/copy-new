@@ -566,6 +566,17 @@ class WritingToolApp(QApplication):
             self.exit_app()
             return
 
+        # Close existing non-editable modal if open
+        if self.non_editable_modal is not None:
+            self._logger.debug("Closing existing non-editable modal")
+            self.non_editable_modal.close()
+            self.non_editable_modal = None
+
+        if self.popup_window is not None:
+            self._logger.debug("Closing existing popup window")
+            self.popup_window.close()
+            self.popup_window = None
+
         # Original hotkey handling continues...
         if self.current_provider:
             self._logger.debug("Cancelling current provider's request")
@@ -584,16 +595,16 @@ class WritingToolApp(QApplication):
         """
         self._logger.debug("Showing popup window")
 
-        # Close existing non-editable modal if open
-        if self.non_editable_modal is not None:
-            self._logger.debug("Closing existing non-editable modal")
-            self.non_editable_modal.close()
-            self.non_editable_modal = None
+        # # Close existing non-editable modal if open
+        # if self.non_editable_modal is not None:
+        #     self._logger.debug("Closing existing non-editable modal")
+        #     self.non_editable_modal.close()
+        #     self.non_editable_modal = None
 
-        if self.popup_window is not None:
-            self._logger.debug("Closing existing popup window")
-            self.popup_window.close()
-            self.popup_window = None
+        # if self.popup_window is not None:
+        #     self._logger.debug("Closing existing popup window")
+        #     self.popup_window.close()
+        #     self.popup_window = None
 
         # Check for image first
         if self.image is None:
@@ -740,11 +751,17 @@ class WritingToolApp(QApplication):
             current_clipboard = clipboard.text()
 
             if current_clipboard:  # Success - clipboard has content
-                selected_text = current_clipboard
-                self._logger.debug(
-                    f"Ctrl+C successful on attempt {attempt + 1}: {selected_text[:30] if selected_text else 'Empty'} ..."
-                )
-                break
+                # Check if it's a file path (from QuickLook/file selection)
+                if self._is_file_path(current_clipboard):
+                    self._logger.debug(f"Detected file path, treating as no selection: {current_clipboard}")
+                    selected_text = ""
+                    break
+                else:
+                    selected_text = current_clipboard
+                    self._logger.debug(
+                        f"Ctrl+C successful on attempt {attempt + 1}: {selected_text[:30] if selected_text else 'Empty'} ..."
+                    )
+                    break
             else:
                 # Failed attempt
                 if attempt < max_retries - 1:  # Don't wait after the last attempt
@@ -771,6 +788,38 @@ class WritingToolApp(QApplication):
 
         return selected_text
 
+    def _is_file_path(self, text: str) -> bool:
+        """
+        Check if the text is a file path (from file/icon selection).
+
+        Args:
+            text: The text to check
+
+        Returns:
+            bool: True if it's a file path, False if it's regular text
+        """
+        if not text or not text.strip():
+            return False
+
+        text = text.strip()
+
+        # Check for file:// URLs (what we saw in the logs)
+        if text.startswith('file:///'):
+            return True
+
+        # Check for Windows file paths (C:\, D:\, etc.)
+        if len(text) > 2 and text[1:3] == ':\\':
+            return True
+
+        # Check for UNC paths (\\server\share)
+        if text.startswith('\\\\'):
+            return True
+
+        # Check for Unix-style absolute paths
+        if text.startswith('/') and '/' in text[1:]:
+            return True
+
+        return False
     # ============================================================================
     # USER INTERFACE METHODS
     # ============================================================================

@@ -1608,7 +1608,7 @@ class CustomPopupWindow(QWidget):
 
     def _update_response_window(self, response: str) -> None:
         """Update response window with AI response (thread-safe)."""
-        if self.app.current_response_window:
+        if hasattr(self.app, 'current_response_window') and self.app.current_response_window:
             QtCore.QMetaObject.invokeMethod(
                 self.app.current_response_window,
                 "set_text",
@@ -1616,6 +1616,8 @@ class CustomPopupWindow(QWidget):
                 QtCore.Q_ARG(str, response),
             )
             self._logger.debug("Invoked set_text on response window")
+        else:
+            self._logger.warning("current_response_window not available for update")
 
     def _process_direct_replacement(self, prompt_data: dict) -> None:
         """Process AI response for direct text replacement."""

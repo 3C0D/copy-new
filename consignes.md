@@ -1,14 +1,3 @@
-ajouter le modèle mistral devstral-medium-latest À la liste Des des modèles Mistral. 
-Plutôt que de mettre dans certains modèles "images understanding", mets "vision".
-Sinon devant la la première propriété De de chaque modèle, le. Le nom qui est montré dans les interfaces Tu rajoutes une étoile au début Et tu mets un commentaire dans constants.py Comme quoi ce sont des modèles qui supportent l'image (en anglais bien sûr.)
-Et sinon, dans les settings En dessous du choix du modèle Mais une ligne de commentaire en italique Comme quoi les modèles qui ont une étoile Sont des modèles qui supportent la vision.
-
-Donc finalement, dans data, quand les modèles seront ajoutés. Il y aura une option vision sur None true ou false. 
-Évidemment, dans constante, on va renseigner le les modèles qui ont la vision, donc ils seront forcément sur true ou false
-
-Donc ajouter une propriété vison à tous les modèles de tous les providers, pour voir s'il supporte les images. pour voir les modèles actuels qui supportent les images, Fais une recherche internet pour ça. 
-Bon pour ollama voir dessous. Étant donné que la liste est dynamique Quand la liste sera updaté Lancez ces fonction aussi. voir ci dessous. à adpater en python...
-
 --------------------------------------------
 réponse donné par claude chat:
 Pour détecter automatiquement si un modèle Ollama supporte la reconnaissance d'images, voici plusieurs approches que vous pourriez implémenter :
