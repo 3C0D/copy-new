@@ -9,6 +9,8 @@ import logging
 from functools import partial
 from typing import TYPE_CHECKING
 
+from config.data_operations import create_default_actions_config
+from config.interfaces import ActionConfig
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -22,9 +24,6 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
-from config.data_operations import create_default_actions_config
-from config.interfaces import ActionConfig
 from ui.ui_utils import ThemeBackground, get_effective_color_mode
 
 if TYPE_CHECKING:
@@ -414,7 +413,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
         self.app = app
         self.selected_text = selected_text
         self.edit_mode = False
-        self.has_text = bool(selected_text.strip())
+        self.has_sel_text = bool(selected_text.strip())
 
         self.drag_label = None
         self.edit_button = None
@@ -600,7 +599,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
 
         self.custom_input = QLineEdit()
         self.custom_input.setPlaceholderText(
-            _("Describe your change...") if self.has_text else _("Ask your AI...")
+            _("Describe your change...") if self.has_sel_text else _("Ask your AI...")
         )
         self.custom_input.setStyleSheet(
             f"""
@@ -642,10 +641,10 @@ class CustomPopupWindow(QtWidgets.QWidget):
         content_layout.addWidget(self.input_area)
 
         # Force Chat toggle area (only shown when text is selected)
-        if self.has_text:
+        if self.has_sel_text:
             self.create_force_chat_toggle(content_layout)
 
-        if self.has_text:
+        if self.has_sel_text:
             self.build_buttons_list()
             self.rebuild_grid_layout(content_layout)
         else:
@@ -987,7 +986,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
             parent_layout.addLayout(grid)
 
         # Add New button (only in edit mode & only if we have text)
-        if edit_mode_to_use and self.has_text:
+        if edit_mode_to_use and self.has_sel_text:
             add_btn = QPushButton("+ Add New")
             add_btn.setStyleSheet(
                 f"""
@@ -1114,7 +1113,7 @@ class CustomPopupWindow(QtWidgets.QWidget):
         if hasattr(self, "drag_label") and self.drag_label is not None:
             self.drag_label.hide()
         if (
-            self.has_text
+            self.has_sel_text
             and hasattr(self, "edit_button")
             and self.edit_button is not None
         ):

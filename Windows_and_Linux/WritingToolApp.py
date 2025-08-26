@@ -567,19 +567,19 @@ class WritingToolApp(QApplication):
             return
 
         # Close existing non-editable modal if open
-        if self.non_editable_modal is not None:
+        if hasattr(self, "non_editable_modal") and self.non_editable_modal is not None:
             self._logger.debug("Closing existing non-editable modal")
             self.non_editable_modal.close()
             self.non_editable_modal = None
 
         # Close existing popup window if open
-        if self.popup_window is not None:
+        if hasattr(self, "popup_window") and self.popup_window is not None:
             self._logger.debug("Closing existing popup window")
             self.popup_window.close()
             self.popup_window = None
 
         # Close existing response window if open
-        if self.current_response_window is not None:
+        if hasattr(self, "current_response_window") and self.current_response_window is not None:
             self._logger.debug("Closing existing response window")
             self.current_response_window.close()
             self.current_response_window = None
@@ -978,7 +978,7 @@ class WritingToolApp(QApplication):
         logging.debug("Showing non-editable modal window")
         try:
             # Close existing modal if any
-            if self.non_editable_modal is not None:
+            if hasattr(self, "non_editable_modal") and self.non_editable_modal is not None:
                 self.non_editable_modal.close()
                 self.non_editable_modal = None
 

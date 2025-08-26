@@ -432,7 +432,7 @@ class CustomPopupWindow(QWidget):
         self.selected_text: str | None = selected_text
         self.image: QtGui.QImage | None = image
         self.edit_mode = False
-        self.has_text = bool(selected_text.strip() if selected_text else False)
+        self.has_sel_text = bool(selected_text.strip() if selected_text else False)
         self.has_image = bool(image is not None)
 
         self.drag_label: QLabel | None = None
@@ -620,7 +620,7 @@ class CustomPopupWindow(QWidget):
         self.custom_input = QLineEdit()
         self.custom_input.setPlaceholderText(
             _("Describe your change...")
-            if self.has_text and not self.has_image
+            if self.has_sel_text and not self.has_image
             else _("Ask your AI...")
         )
         self.custom_input.setStyleSheet(
@@ -663,10 +663,10 @@ class CustomPopupWindow(QWidget):
         content_layout.addWidget(self.input_area)
 
         # Force Chat toggle area (only shown when text is selected)
-        if self.has_text and not self.has_image:
+        if self.has_sel_text or self.has_image:
             self.create_force_chat_toggle(content_layout)
 
-        if self.has_text and not self.has_image:
+        if self.has_sel_text and not self.has_image:
             self.build_buttons_list()
             self.rebuild_grid_layout(content_layout)
         else:
@@ -1010,7 +1010,7 @@ class CustomPopupWindow(QWidget):
             parent_layout.addLayout(grid)
 
         # Add New button (only in edit mode & only if we have text)
-        if edit_mode_to_use and self.has_text and not self.has_image:
+        if edit_mode_to_use and self.has_sel_text and not self.has_image:
             add_btn = QPushButton("+ Add New")
             add_btn.setStyleSheet(
                 f"""
@@ -1130,6 +1130,7 @@ class CustomPopupWindow(QWidget):
     def initialize_button_visibility(self) -> None:
         """Initialize button visibility for normal (non-edit) mode."""
         self.edit_mode = False
+        self._logger.debug("Initializing button visibility")
         if hasattr(self, "reset_button") and self.reset_button is not None:
             self.reset_button.hide()
         if hasattr(self, "edit_close_button") and self.edit_close_button is not None:
@@ -1137,7 +1138,7 @@ class CustomPopupWindow(QWidget):
         if hasattr(self, "drag_label") and self.drag_label is not None:
             self.drag_label.hide()
         if (
-            self.has_text
+            self.has_sel_text
             and not self.has_image
             and hasattr(self, "edit_button")
             and self.edit_button is not None
@@ -1608,7 +1609,10 @@ class CustomPopupWindow(QWidget):
 
     def _update_response_window(self, response: str) -> None:
         """Update response window with AI response (thread-safe)."""
-        if hasattr(self.app, 'current_response_window') and self.app.current_response_window:
+        if (
+            hasattr(self.app, "current_response_window")
+            and self.app.current_response_window
+        ):
             QtCore.QMetaObject.invokeMethod(
                 self.app.current_response_window,
                 "set_text",

@@ -1,11 +1,11 @@
 # 💬 **CHAT INTERACTION FLOW - Interactive Documentation**
 
-## **COMPLETE FLOW - "Chat Mode" Case (Response Window) :**
+## **COMPLETE FLOW - "Response Window" Case (return_response=True) :**
 
 ### **📋 Overview for LLM :**
 
 ```markdown
-User Action → Hotkey Detection → UI Creation → Chat Mode → AI Response → Response Window → Text Replacement
+User Action → Hotkey Detection → UI Creation → ResponseWindow Mode → AI Response → Response Window → Text Replacement
 ```
 
 ---
@@ -83,18 +83,58 @@ self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(self, selected_text, 
 
 ---
 
-## **3. CustomPopupWindow opens (Chat Mode)**
+## **3. CustomPopupWindow opens (Response Window Mode)**
 
-### **Action :** User interface ready for chat interaction
+### **Action :** User interface ready for response window interaction
 
 ### **Code :** [`CustomPopupWindow`](../ui/CustomPopupWindow.py)
 
 ### **What this class does :**
 
-- Displays interface with options (Rewrite, Summary, Custom, etc.)
-- Shows that no text is selected (chat mode)
-- Captures custom instruction
-- Waits for user action
+- **Interface Setup** : Creates popup with drag bar, input field, and send button
+- **Mode Detection** : [`process_option()`](../ui/CustomPopupWindow.py#LXXX) detects no text selected → **ResponseWindow** activated
+- **Options Display** : Shows available AI tools based on context
+
+### **Available Options in Response Window Mode :**
+
+#### **🎯 Custom Option (Primary)**
+
+- **Input Field** : User types free-form request (e.g., "Write a poem about AI")
+- **System Instruction** : Friendly conversational AI assistant
+- **Output** : Always opens in **ResponseWindow** for interaction
+- **Use Case** : General questions, brainstorming, creative tasks
+
+#### **🛠️ Force Chat Toggle (Optional)**
+
+- **When Available** : Only shown when text would normally be replaced
+- **Function** : Forces `return_response=True` even with selected text
+- **Lock Feature** : Can be locked to maintain setting between uses
+- **Visual** : Custom toggle switch with sliding animation
+
+#### **🔧 Edit Mode (Settings)**
+
+- **Access** : Click pencil icon (top-left)
+- **Features** : Add, edit, delete, and reorder AI tools
+- **Drag & Drop** : Reorder tools by dragging
+- **Persistence** : Changes saved to unified settings system
+
+### **Response Window Mode Specific Behavior :**
+
+**Location :** [`process_option()` in CustomPopupWindow.py](../ui/CustomPopupWindow.py#LXXX)
+
+```python
+# Key condition for response window mode
+if not selected_text.strip():  # Empty string = response window mode
+    return_response = True      # → Opens ResponseWindow
+    current_response_window = self.show_response_window()
+```
+
+### **Interface Elements :**
+
+- **Top Bar** : Drag handle + Edit button + Close button
+- **Input Area** : Text field + Send button with icon
+- **No Action Buttons** : Response window mode doesn't show Rewrite/Summary buttons
+- **Force Chat Area** : Hidden in pure response window mode (no text selected)
 
 ---
 
@@ -108,22 +148,22 @@ self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(self, selected_text, 
 
 ---
 
-## **5. CustomPopupWindow.process_option() - Chat Mode**
+## **5. CustomPopupWindow.process_option() - Response Window Mode**
 
-### **Action :** Process selected option in chat mode
+### **Action :** Process selected option in response window mode
 
 ### **Code :** [`process_option()`](../ui/CustomPopupWindow.py#LXXX)
 
 ### **What this function does :**
 
-- `return_response = True` (chat window mode)
+- `return_response = True` (response window mode)
 - `current_response_window = self.show_response_window()` (creates response window)
 - Launches processing in separate thread
 
 ```python
-# Configuration for chat mode (no selected text)
+# Configuration for response window mode (no selected text)
 if option in ['Rewrite', 'Custom', 'Summary'] and not selected_text.strip():
-    # Chat window mode
+    # Response window mode
     return_response = True
     current_response_window = self.show_response_window()
 else:
@@ -259,20 +299,20 @@ if not return_response and not hasattr(self.app, "current_response_window"):
 ### **Key files to monitor :**
 
 - [`WritingToolApp.py`](../WritingToolApp.py) - Main logic and popup handling
-- [`CustomPopupWindow.py`](../ui/CustomPopupWindow.py) - Chat mode detection and ResponseWindow creation
+- [`CustomPopupWindow.py`](../ui/CustomPopupWindow.py) - Response window mode detection and ResponseWindow creation
 - [`ResponseWindow.py`](../ui/ResponseWindow.py) - Chat interface and follow-up handling
 - [`aiprovider.py`](../aiprovider.py) - AI communication and response routing
 
 ---
 
-## **📊 COMPARISON - Chat Mode vs Direct Replacement :**
+## **📊 COMPARISON - Response Window Mode vs Direct Replacement :**
 
-| Aspect | Chat Mode (No Selection) | Direct Replacement (With Selection) |
-|--------|--------------------------|------------------------------------|
+| Aspect | Response Window Mode (No Selection) | Direct Replacement (With Selection) |
+|--------|------------------------------------|------------------------------------|
 | **Trigger** | Ctrl+Space without selection | Ctrl+Space with selection |
 | **return_response** | `True` | `False` |
 | **Response Window** | ✅ Created | ❌ None |
-| **Output Method** | Display in chat window | Direct text replacement |
+| **Output Method** | Display in ResponseWindow | Direct text replacement |
 | **Follow-up** | ✅ Additional questions | ❌ Single action |
 | **Use Case** | Research, brainstorming, chat | Quick text editing |
 
@@ -280,10 +320,10 @@ if not return_response and not hasattr(self.app, "current_response_window"):
 
 ## **💡 PRO TIPS :**
 
-- **Chat mode** is perfect for research, getting AI suggestions, or multi-step interactions
+- **Response window mode** is perfect for research, getting AI suggestions, or multi-step interactions
 - **Direct replacement** is ideal for quick text transformations
 - Use **follow-up questions** to refine AI responses before replacing text
-- **Copy from chat** using buttons or keyboard shortcuts to replace text anywhere
+- **Copy from ResponseWindow** using buttons or keyboard shortcuts to replace text anywhere
 
 ---
 
