@@ -1,8 +1,16 @@
+Faire une synthèse des aides plus tard Demandez à 1LLM...
+
 # 🛠️ Development Strategy and Setup
 
-This guide explains the development environment setup and best practices for contributing to Writing Tools.
+This guide explains how to set up the development environment and best practices for contributing to writing tools.
+
+## Tips
+
+The best way is to use the VSC `Code Runner` extension to run the scripts. It's easy and fast. And there's a configuration directly integrated into the repository. No need to navigate through subfolders, just open the project. And run it. You can also use `exe Runner` to directly execute the build without having to go into the file's folder and click on it. (From VSC explorer)
 
 ## 🚀 Quick Development Setup
+
+****
 
 ### 1. **Environment Setup**
 
@@ -11,12 +19,17 @@ The project uses automated scripts that handle virtual environment creation and 
 ```bash
 # Windows
 cd Windows_and_Linux
-.\run.bat dev
+python scripts\build_dev.py # Run in development mode 
+other modes see To Run Writing Tools Directly from the Source Code and To Compile the Application Yourself
 
 # Linux
 cd Windows_and_Linux
-./run.sh dev
+python3 scripts/build_dev.py
 ```
+
+Once the virtual environment is created, so that the interpreter can properly read the scripts, enter the command console: interpreter and choose the Python interpreter. So that it indicates the exe in `Windows_and_Linux\myvenv\Scripts\python.exe` under Windows and `Windows_and_Linux\myvenv\bin\python` under Linux. This way, the scripts, type corrections, and a port will be OK. Otherwise, it will look for the general Python and will not be able to read the types and others correctly.
+
+You can also run the `update_deps.py` script if you don't plan to do a direct build. See below
 
 ### 2. **Update Dependencies**
 

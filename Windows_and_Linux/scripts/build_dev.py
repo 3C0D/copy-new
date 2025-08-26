@@ -35,9 +35,9 @@ if os.name == "nt":  # Windows
         check_data,
         clear_console,
         copy_required_files,
-        get_activation_script,
         get_executable_name,
         get_project_root,
+        get_python_executable,
         setup_environment,
         terminate_existing_processes,
     )
@@ -46,9 +46,9 @@ else:  # Linux/Unix
         check_data,
         clear_console,
         copy_required_files,
-        get_activation_script,
         get_executable_name,
         get_project_root,
+        get_python_executable,
         setup_environment,
         terminate_existing_processes,
     )
@@ -72,7 +72,7 @@ def run_dev_build(venv_path: str = "myvenv", console_mode: bool = False) -> bool
             print(f"Warning: Could not remove {spec_file}: {e}")
 
     # Use the virtual environment's Python to run PyInstaller
-    python_cmd = get_activation_script(venv_path)
+    python_cmd: Path = get_python_executable(venv_path)
 
     # Build icon path
     icon_path = Path("config/icons/app_icon.ico")
@@ -211,9 +211,7 @@ def run_dev_build(venv_path: str = "myvenv", console_mode: bool = False) -> bool
         print(f"PyInstaller development build completed successfully ({mode_text} mode)!")
 
         if console_mode:
-            print(
-                "Console mode enabled - logs will be visible in terminal when running the exe"
-            )
+            print("Console mode enabled - logs will be visible in terminal when running the exe")
         else:
             print("Windowed mode - logs will be written to dist/dev/build_dev_debug.log")
 
@@ -223,9 +221,7 @@ def run_dev_build(venv_path: str = "myvenv", console_mode: bool = False) -> bool
         print(f"Error: Build failed with error: {e}")
         return False
     except FileNotFoundError:
-        print(
-            "Error: PyInstaller not found. Please install it with: pip install pyinstaller"
-        )
+        print("Error: PyInstaller not found. Please install it with: pip install pyinstaller")
         return False
 
 
@@ -243,9 +239,7 @@ def launch_build(extra_args: list[str] | None = None) -> bool:
     if extra_args:
         cmd.extend(extra_args)
 
-    print(
-        f"Launching {exe_path} with args: {' '.join(extra_args) if extra_args else 'none'}..."
-    )
+    print(f"Launching {exe_path} with args: {' '.join(extra_args) if extra_args else 'none'}...")
     try:
         if sys.platform.startswith("win"):
             subprocess.Popen(cmd, shell=False)

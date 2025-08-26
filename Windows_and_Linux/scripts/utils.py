@@ -376,7 +376,9 @@ def get_executable_name(base_name: str = "Writing Tools") -> str:
     return base_name
 
 
-def terminate_existing_processes(exe_name: str | None = None, script_name: str | None = None) -> None:
+def terminate_existing_processes(
+    exe_name: str | None = None, script_name: str | None = None
+) -> None:
     """Terminate any existing Writing Tools processes (both exe and script)"""
     print("Checking for and terminating any existing Writing Tools processes...")
 
@@ -435,13 +437,3 @@ def setup_environment(
     except Exception as e:
         print(f"Error setting up environment: {e}")
         return False, None
-
-
-def get_activation_script(venv_path: str) -> Path:
-    """Get the appropriate activation script path for the platform"""
-    venv = Path(venv_path)
-
-    if sys.platform.startswith("win"):
-        return venv / "Scripts" / "python.exe"
-    else:
-        return venv / "bin" / "python"

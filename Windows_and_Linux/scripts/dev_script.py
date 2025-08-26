@@ -43,11 +43,10 @@ def launch_application(
     extra_args: list[str] | None = None,
 ) -> bool:
     """Launch the main application using the virtual environment"""
-    python_cmd = get_python_executable(venv_path)
-    python_path = Path(python_cmd)
+    python_cmd: Path = get_python_executable(venv_path)
 
-    if not python_path.exists():
-        print(f"Error: Python executable not found at {python_path}")
+    if not python_cmd.exists():
+        print(f"Error: Python executable not found at {python_cmd}")
         return False
 
     # main.py should be in the current directory (Windows_and_Linux)
@@ -57,7 +56,7 @@ def launch_application(
         return False
 
     # Build command with extra arguments
-    cmd = [str(python_path), str(script_path)]
+    cmd = [str(python_cmd), str(script_path)]
     if extra_args:
         cmd.extend(extra_args)
 

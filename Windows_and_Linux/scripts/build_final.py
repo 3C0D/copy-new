@@ -20,9 +20,9 @@ if os.name == "nt":  # Windows
         check_data,
         clear_console,
         copy_required_files,
-        get_activation_script,
         get_executable_name,
         get_project_root,
+        get_python_executable,
         setup_environment,
         terminate_existing_processes,
     )
@@ -31,9 +31,9 @@ else:  # Linux/Unix
         check_data,
         clear_console,
         copy_required_files,
-        get_activation_script,
         get_executable_name,
         get_project_root,
+        get_python_executable,
         setup_environment,
         terminate_existing_processes,
     )
@@ -100,7 +100,7 @@ def clean_build_directories() -> None:
 def run_build_final(venv_path: str = "myvenv") -> bool:
     """Run PyInstaller build for final release (clean, optimized)"""
     # Use the virtual environment's Python to run PyInstaller
-    python_cmd = get_activation_script(venv_path)
+    python_cmd = get_python_executable(venv_path)
 
     # Build icon path
     icon_path = Path("config/icons/app_icon.ico")
@@ -243,9 +243,7 @@ def run_build_final(venv_path: str = "myvenv") -> bool:
         print(f"Error: Build failed with error: {e}")
         return False
     except FileNotFoundError:
-        print(
-            "Error: PyInstaller not found. Please install it with: pip install pyinstaller"
-        )
+        print("Error: PyInstaller not found. Please install it with: pip install pyinstaller")
         return False
 
 

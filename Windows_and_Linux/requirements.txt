@@ -9,6 +9,7 @@ pyinstaller
 ollama
 psutil
 requests
+ruff
 
 # Qt complement
 PySide6-stubs
