@@ -17,5 +17,5 @@
     "ruff.path": [
         "./Windows_and_Linux/myvenv/Scripts/ruff.exe"
     ],
-    "python.languageServer": "Pylance"
+    "python.languageServer": "None"
 }

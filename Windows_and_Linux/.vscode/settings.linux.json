@@ -4,6 +4,7 @@
     "python.analysis.include": [
         "./Windows_and_Linux/**"
     ],
+    "editor.wordWrap": "on",
     "python.defaultInterpreterPath": "./Windows_and_Linux/myvenv/bin/python",
     "python.analysis.extraPaths": [
         "./Windows_and_Linux/myvenv/lib/python3.*/site-packages",

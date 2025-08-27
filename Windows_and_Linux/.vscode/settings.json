@@ -4,6 +4,7 @@
     "python.analysis.include": [
         "./**"
     ],
+    "editor.wordWrap": "on",
     "python.defaultInterpreterPath": "./myvenv/Scripts/python.exe",
     "python.analysis.extraPaths": [
         "./myvenv/Lib/site-packages",

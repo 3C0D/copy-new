@@ -207,7 +207,7 @@ class ButtonEditDialog(QDialog):
 
         radio_layout = QHBoxLayout()
         self.replace_radio = QRadioButton("Replace the selected text")
-        self.window_radio = QRadioButton("In a pop-up window (with follow-up support)")
+        self.window_radio = QRadioButton("In a chat pop-up window")
         for r in (self.replace_radio, self.window_radio):
             r.setStyleSheet(f"color: {'#fff' if get_effective_color_mode() == 'dark' else '#333'};")
 
@@ -217,6 +217,15 @@ class ButtonEditDialog(QDialog):
         radio_layout.addWidget(self.replace_radio)
         radio_layout.addWidget(self.window_radio)
         layout.addLayout(radio_layout)
+
+        # Indicator information
+        indicator_label = QLabel(
+            "<i>A small indicator will be shown on the button: Ⓡ for replace, Ⓒ for chat</i>"
+        )
+        indicator_label.setStyleSheet(
+            f"color: {'#aaa' if get_effective_color_mode() == 'dark' else '#666'}; font-size: 11px; font-style: italic;"
+        )
+        layout.addWidget(indicator_label)
 
         # OK & Cancel
         btn_layout = QHBoxLayout()
@@ -273,6 +282,7 @@ class DraggableButton(QPushButton):
         self.drag_start_position: QtCore.QPoint | None = None
         self.setAcceptDrops(True)
         self.icon_container: QWidget | None = None
+        self.action_indicator: QLabel | None = None
 
         # Enable mouse tracking and hover events, and styled background
         self.setMouseTracking(True)
@@ -403,9 +413,41 @@ class DraggableButton(QPushButton):
         event.acceptProposedAction()
 
     def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
+        """Handle resize events to reposition UI elements."""
         super().resizeEvent(event)
         if self.icon_container:
             self.icon_container.setGeometry(0, 0, self.width(), self.height())
+        if self.action_indicator:
+            self.action_indicator.setGeometry(self.width() - 20, 4, 16, 16)
+
+    def set_action_indicator(self, open_in_window: bool) -> None:
+        """Set the action indicator (Ⓡ or Ⓒ) based on action type."""
+        if self.action_indicator:
+            self.action_indicator.deleteLater()
+
+        self.action_indicator = QLabel(self)
+        indicator_text = "Ⓒ" if open_in_window else "Ⓡ"
+        self.action_indicator.setText(indicator_text)
+        self.action_indicator.setStyleSheet(
+            f"""
+            QLabel {{
+                background-color: {"#666" if get_effective_color_mode() == "dark" else "#ddd"};
+                color: {"#fff" if get_effective_color_mode() == "dark" else "#000"};
+                border-radius: 10px;
+                font-size: 12px;
+                font-weight: bold;
+                padding: 2px;
+                min-width: 16px;
+                max-width: 16px;
+                min-height: 16px;
+                max-height: 16px;
+                text-align: center;
+            }}
+        """
+        )
+        self.action_indicator.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.action_indicator.setGeometry(self.width() - 20, 4, 16, 16)
+        self.action_indicator.show()
 
 
 class CustomPopupWindow(QWidget):
@@ -927,6 +969,8 @@ class CustomPopupWindow(QWidget):
         for old_button in self.button_widgets:
             if hasattr(old_button, "icon_container") and old_button.icon_container:
                 old_button.icon_container.deleteLater()
+            if hasattr(old_button, "action_indicator") and old_button.action_indicator:
+                old_button.action_indicator.deleteLater()
             old_button.deleteLater()
 
         self.button_widgets.clear()
@@ -939,6 +983,10 @@ class CustomPopupWindow(QWidget):
             icon_path = get_icon_path(action_config.get("icon", "Not Found"), with_theme=True)
             if icon_path.exists():
                 b.setIcon(QtGui.QIcon(icon_path.as_posix()))
+
+            # Set action indicator based on open_in_window
+            open_in_window = action_config.get("open_in_window", False)
+            b.set_action_indicator(open_in_window)
 
             # Add tooltip with tool name and description
             tooltip_text = name
