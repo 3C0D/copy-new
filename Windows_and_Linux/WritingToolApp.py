@@ -590,14 +590,7 @@ class WritingToolApp(QApplication):
             self.image = self.get_clipboard_image()
 
         if self.image is None:
-            # First attempt with default sleep
             selected_text = self.get_selected_text(sleep_duration=0.2)
-
-            # Retry with longer sleep if no text captured
-            # if not selected_text:
-            #     logging.debug("No text captured, retrying with longer sleep")
-            #     selected_text = self.get_selected_text(sleep_duration=0.5)
-
             logging.debug(f'Selected text: "{selected_text}"')
         else:
             selected_text = None

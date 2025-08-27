@@ -499,7 +499,8 @@ class CustomPopupWindow(QWidget):
 
         self._create_top_bar(content_layout)
         self._create_input_area(content_layout)
-        self._create_force_chat_toggle_if_needed(content_layout)
+        if self.has_sel_text:
+            self.create_force_chat_toggle(content_layout)
         self._setup_buttons_and_content(content_layout)
         self._show_update_notice_if_available(content_layout)
 
@@ -539,13 +540,13 @@ class CustomPopupWindow(QWidget):
         top_bar_layout = QHBoxLayout(self.top_bar_widget)
         top_bar_layout.setContentsMargins(0, 0, 0, 0)
         top_bar_layout.setSpacing(0)
-
-        self._create_reset_button(top_bar_layout)
+        if self.has_sel_text:
+            self._create_reset_button(top_bar_layout)
+            self._create_drag_label(top_bar_layout)
+            self._create_edit_buttons(top_bar_layout)
+        self._create_close_button(top_bar_layout)
         # Configure mouse events for draggable top bar
         self.setup_draggable_top_bar()
-        self._create_drag_label(top_bar_layout)
-        self._create_edit_buttons(top_bar_layout)
-        self._create_close_button(top_bar_layout)
 
         content_layout.addWidget(self.top_bar_widget)
 
@@ -667,7 +668,7 @@ class CustomPopupWindow(QWidget):
         self.custom_input = QLineEdit()
         placeholder = (
             _("Describe your change...")
-            if self.has_sel_text and not self.has_image
+            if self.has_sel_text
             else _("Ask your AI...")
         )
         self.custom_input.setPlaceholderText(placeholder)
@@ -715,20 +716,13 @@ class CustomPopupWindow(QWidget):
             }}
         """
 
-    def _create_force_chat_toggle_if_needed(self, content_layout: QVBoxLayout) -> None:
-        """Create force chat toggle area if text or image is selected."""
-        if self.has_sel_text or self.has_image:
-            self.create_force_chat_toggle(content_layout)
-
     def _setup_buttons_and_content(self, content_layout: QVBoxLayout) -> None:
         """Setup buttons and main content based on available input."""
-        if self.has_sel_text and not self.has_image:
+        if self.has_sel_text:
             self.build_buttons_list()
             self.rebuild_grid_layout(content_layout)
         else:
-            # If no text, hide the edit button; user can only do custom instructions
-            if self.edit_button is not None:
-                self.edit_button.hide()
+            # Only custom instructions input if no selected text
             if self.custom_input is not None:
                 self.custom_input.setMinimumWidth(300)
 
@@ -1064,7 +1058,7 @@ class CustomPopupWindow(QWidget):
             parent_layout.addLayout(grid)
 
         # Add New button (only in edit mode & only if we have text)
-        if edit_mode_to_use and self.has_sel_text and not self.has_image:
+        if edit_mode_to_use and self.has_sel_text:
             add_btn = QPushButton("+ Add New")
             add_btn.setStyleSheet(
                 f"""
@@ -1193,7 +1187,6 @@ class CustomPopupWindow(QWidget):
             self.drag_label.hide()
         if (
             self.has_sel_text
-            and not self.has_image
             and hasattr(self, "edit_button")
             and self.edit_button is not None
         ):
@@ -1410,8 +1403,9 @@ class CustomPopupWindow(QWidget):
         """
         widget = getattr(self, "custom_input", None)
         txt = widget.text().strip() if widget else ""
-        if txt or self.has_image:
+        if txt:
             self.process_option("Custom", self.selected_text, self.is_force_chat_enabled(), txt)
+            self._logger.debug(f" C'est ici que se ferme custom Windows.$$$$$$$$$$$$$$$$$$$$")
             self.close()
 
     def on_generic_instruction(self, instruction: str) -> None:
