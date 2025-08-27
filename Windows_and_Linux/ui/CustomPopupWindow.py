@@ -541,6 +541,8 @@ class CustomPopupWindow(QWidget):
         top_bar_layout.setSpacing(0)
 
         self._create_reset_button(top_bar_layout)
+        # Configure mouse events for draggable top bar
+        self.setup_draggable_top_bar()
         self._create_drag_label(top_bar_layout)
         self._create_edit_buttons(top_bar_layout)
         self._create_close_button(top_bar_layout)
