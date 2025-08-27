@@ -639,9 +639,9 @@ class CustomPopupWindow(QWidget):
             send_btn.setIcon(QtGui.QIcon(send_icon.as_posix()))
 
         send_btn.setStyleSheet(self._get_send_button_style())
-        send_btn.setFixedSize(
-            self.custom_input.sizeHint().height(), self.custom_input.sizeHint().height()
-        )
+        # Use a fallback size if self.custom_input is None
+        input_height = self.custom_input.sizeHint().height() if self.custom_input else 32
+        send_btn.setFixedSize(input_height, input_height)
         send_btn.clicked.connect(self.on_custom_change)
         layout.addWidget(send_btn)
 
@@ -683,8 +683,10 @@ class CustomPopupWindow(QWidget):
             self.rebuild_grid_layout(content_layout)
         else:
             # If no text, hide the edit button; user can only do custom instructions
-            self.edit_button.hide()
-            self.custom_input.setMinimumWidth(300)
+            if self.edit_button is not None:
+                self.edit_button.hide()
+            if self.custom_input is not None:
+                self.custom_input.setMinimumWidth(300)
 
         self.initialize_button_visibility()
 
@@ -1086,7 +1088,8 @@ class CustomPopupWindow(QWidget):
 
         # Show edit mode UI elements
         if self.edit_button is not None:
-            self.edit_button.hide()
+            if self.edit_button is not None:
+                self.edit_button.hide()
         if self.close_button is not None:
             self.close_button.hide()
         if self.reset_button is not None:

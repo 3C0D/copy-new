@@ -3,6 +3,7 @@
 ## **COMPLETE FLOW - "Rewrite" Case (Direct Replacement) :**
 
 ### **📋 Overview for LLM :**
+
 ```
 User Action → Hotkey Detection → UI Creation → Option Processing → AI Response → Text Replacement
 ```
@@ -10,9 +11,13 @@ User Action → Hotkey Detection → UI Creation → Option Processing → AI Re
 ---
 
 ## **1. 👤 User presses Ctrl+Space**
+
 ### **Action :** User triggers the keyboard shortcut
+
 ### **Code :** [`on_hotkey_pressed()`](../WritingToolApp.py#L565)
+
 ### **What this function does :**
+
 - Checks for shortcut spam (anti-abuse protection)
 - Closes existing windows (modal/popup)
 - Cancels current provider request
@@ -48,9 +53,13 @@ QtCore.QMetaObject.invokeMethod(self, "_show_popup", QtCore.Qt.ConnectionType.Qu
 ---
 
 ## **2. → _show_popup()**
+
 ### **Action :** Popup window display
+
 ### **Code :** [`_show_popup()`](../WritingToolApp.py#L583)
+
 ### **What this function does :**
+
 - Captures selected text (if no image present)
 - Closes existing windows
 - Creates and positions CustomPopupWindow
@@ -75,9 +84,13 @@ self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(self, selected_text, 
 ---
 
 ## **3. CustomPopupWindow opens**
+
 ### **Action :** User interface ready
+
 ### **Code :** [`CustomPopupWindow`](../ui/CustomPopupWindow.py)
+
 ### **What this class does :**
+
 - Displays interface with options (Rewrite, Summary, etc.)
 - Captures custom instruction
 - Waits for user action
@@ -85,15 +98,21 @@ self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(self, selected_text, 
 ---
 
 ## **4. 👤 User types "fix this code" + clicks "Rewrite"**
+
 ### **Action :** User defines instruction and chooses mode
+
 ### **Code :** CustomPopupWindow user interface
 
 ---
 
 ## **5. CustomPopupWindow.process_option()**
+
 ### **Action :** Process selected option
+
 ### **Code :** [`process_option()`](../ui/CustomPopupWindow.py#LXXX)
+
 ### **What this function does :**
+
 - `return_response = False` (direct replacement mode)
 - `current_response_window = None` (no response window)
 - Launches processing in separate thread
@@ -116,10 +135,15 @@ threading.Thread(target=self.process_option_thread, args=(option, selected_text,
 ---
 
 ## **6. get_response() called with return_response=False**
+
 ### **Action :** Request to AI
+
 ### **Code :** [`get_response()`](../aiprovider.py#LXXX)
+
 ### **What this function does :**
+
 - Checks response mode :
+
   ```python
   if not return_response and not hasattr(self.app, "current_response_window"):
       # Direct replacement mode
@@ -130,7 +154,9 @@ threading.Thread(target=self.process_option_thread, args=(option, selected_text,
 ---
 
 ## **7. Provider checks :**
+
 ### **Condition :**
+
 ```python
 if not return_response and not hasattr(self.app, "current_response_window"):
    → ✅ TRUE : emits output_ready_signal + returns ""
@@ -139,18 +165,26 @@ if not return_response and not hasattr(self.app, "current_response_window"):
 ---
 
 ## **8. Signal output_ready_signal.emit(response_text)**
+
 ### **Action :** Signal emission with response
+
 ### **Code :** Connected to [`replace_text()`](../WritingToolApp.py#LXXX)
+
 ### **What this signal does :**
+
 - Transports generated text to replacement function
 - Ensures execution in main thread
 
 ---
 
 ## **9. replace_text() processes response_text**
+
 ### **Action :** Final text replacement
+
 ### **Code :** [`replace_text()`](../WritingToolApp.py#LXXX)
+
 ### **What this function does :**
+
 - Copies to clipboard
 - Simulates Ctrl+V to paste
 - Handles errors (non-editable windows)
@@ -186,6 +220,7 @@ def _handle_clipboard_paste(self) -> None:
 ## **🔧 TROUBLESHOOTING - Checkpoints :**
 
 ### **If text is not replaced :**
+
 1. ✅ Check that `return_response=False`
 2. ✅ Check that `current_response_window=None`
 3. ✅ Check that `output_ready_signal` is emitted
@@ -193,6 +228,7 @@ def _handle_clipboard_paste(self) -> None:
 5. ✅ Check that `pyperclip` works correctly
 
 ### **Key files to monitor :**
+
 - [`WritingToolApp.py`](../WritingToolApp.py) - Main logic
 - [`CustomPopupWindow.py`](../ui/CustomPopupWindow.py) - User interface
 - [`aiprovider.py`](../aiprovider.py) - AI communication
