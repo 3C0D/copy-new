@@ -1429,10 +1429,13 @@ class CustomPopupWindow(QWidget):
         Process the selected writing option in a separate thread.
         """
         self._logger.debug(f"Processing option: {option}")
+        self._logger.debug(f"selected_text: {selected_text}ùùùùùùùùùùùùùùùùùùùùùùùùùùùùù")
 
         should_setup_response_window = self._should_display_in_response_window(
             option, selected_text, self.app.settings_manager.actions
         )
+
+        self._logger.debug(f"should_setup_response_window: {should_setup_response_window}!!!!")
 
         if should_setup_response_window:
             self._logger.debug("Setting up response window for output")
@@ -1460,6 +1463,7 @@ class CustomPopupWindow(QWidget):
         self.app.current_response_window = self.show_response_window(window_title, selected_text)
 
         # Initialize chat history inline
+        # Il va falloir ajouter image.
         self.app.current_response_window.chat_history = (
             []
             if not is_custom
@@ -1479,7 +1483,9 @@ class CustomPopupWindow(QWidget):
         response_window = ResponseWindow(self.app, f"{option} Result")
         if text:
             response_window.selected_text = text  # Store the text for regeneration
-        response_window.show()
+            self._logger.debug(f"Showing response window with text: {text}!!!!!!!!!!!!!!!")
+        self._logger.debug(f"Showing response window with text: {text}!!!!!!!!!!!!!!!")
+        response_window.show() # ??? Le problème viendrait de là
         return response_window
 
     def process_option_thread(
@@ -1574,7 +1580,7 @@ class CustomPopupWindow(QWidget):
         - Custom option with no selected text
         - Selected text and "open_in_window" is True in action config
         - Force Chat is enabled and there is selected text
-        - There is an image to process
+        # - There is an image to process
         """
         has_selected_text = bool(selected_text and selected_text.strip() != "")
         is_custom_option = option == "Custom"
@@ -1584,7 +1590,7 @@ class CustomPopupWindow(QWidget):
             (is_custom_option and not has_selected_text)
             or (has_selected_text and action_config.get("open_in_window", False))
             or (force_chat and has_selected_text)
-            or self.has_image
+            # or self.has_image
         )
 
     def _process_window_response(
