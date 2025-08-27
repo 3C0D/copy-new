@@ -769,6 +769,13 @@ class CustomPopupWindow(QWidget):
             self.top_bar_widget.setCursor(Qt.CursorShape.OpenHandCursor)
 
     def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:
+        """Event filter that handles cursor changes and dragging behavior for the top bar.
+
+        This filter manages:
+        - Setting appropriate cursors for buttons and top bar
+        - Handling drag & drop functionality for window movement
+        - Window deactivation behavior
+        """
         # Handle buttons cursors first
         if watched in [
             self.close_button,
@@ -905,7 +912,7 @@ class CustomPopupWindow(QWidget):
             self.force_chat_lock.setText("🔓")
 
     def on_force_chat_toggled(self, checked: bool) -> None:
-        """Handle Force Chat toggle state change."""
+        """Handle Force Chat toggle state change. Save if locked."""
         # If locked, save the state
         if self.force_chat_lock and self.force_chat_lock.isChecked():
             self.app.settings_manager.force_chat_enabled = checked
