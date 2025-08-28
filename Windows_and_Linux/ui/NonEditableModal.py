@@ -19,6 +19,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ui.ui_utils import get_effective_color_mode
+
 if TYPE_CHECKING:
     from WritingToolApp import WritingToolApp
 
@@ -47,7 +49,7 @@ class NonEditableModal(QDialog):
         self.setFixedSize(600, 400)
 
         self.setup_ui()
-        self.apply_styles()
+        self.apply_styles(get_effective_color_mode())
 
         # Register for theme changes
         self.register_for_theme_changes()
@@ -98,12 +100,12 @@ class NonEditableModal(QDialog):
 
         self.copy_button.setFocus()
 
-    def apply_styles(self) -> None:
+    def apply_styles(self, current_mode: str) -> None:
         """Apply theme styles"""
         # Use the standardized color mode detection
-        from ui.ui_utils import get_effective_color_mode
+        # from ui.ui_utils import get_effective_color_mode
 
-        current_mode = get_effective_color_mode()
+        # current_mode = get_effective_color_mode()
         is_dark = current_mode == "dark"
 
         if is_dark:
@@ -173,9 +175,9 @@ class NonEditableModal(QDialog):
             # ThemeManager not available, skip registration
             pass
 
-    def refresh_theme(self) -> None:
+    def refresh_theme(self, new_mode: str) -> None:
         """Refresh the modal's theme when color mode changes."""
-        self.apply_styles()
+        self.apply_styles(new_mode)
 
     def closeEvent(self, arg__1: QtGui.QCloseEvent) -> None:
         """Handle window close event and unregister from theme manager."""

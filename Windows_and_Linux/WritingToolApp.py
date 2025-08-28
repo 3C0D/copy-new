@@ -64,6 +64,7 @@ class WritingToolApp(QApplication):
     show_message_signal = Signal(str, str)  # a signal for showing message boxes
     hotkey_triggered_signal = Signal()
     followup_response_signal = Signal(str)
+    create_response_window_signal = Signal(str, str)  # (option, selected_text)
 
     def __init__(self, argv):
         super().__init__(argv)
@@ -108,9 +109,63 @@ class WritingToolApp(QApplication):
             self._logger.error(f"Full traceback: {traceback.format_exc()}")
             raise
 
+    @QtCore.Slot(str, str)
+    def create_response_window(self, option: str, selected_text: str) -> None:
+        """
+        Creates a ResponseWindow in the main GUI thread.
+        Called via signal from any thread.
+        """
+        self._logger.debug(f"Creating response window for option: {option}")
+
+        # Close existing window if present
+        if hasattr(self, 'current_response_window') and self.current_response_window:
+            self.current_response_window.close()
+
+        # Create new window (in GUI thread)
+        window_title = "Chat" if option == "Custom" and not selected_text.strip() else option
+        self.current_response_window = ResponseWindow(self, f"{window_title} Result")
+
+        if selected_text:
+            self.current_response_window.selected_text = selected_text
+
+        # Initialize chat history
+        is_custom_no_text = option == "Custom" and not selected_text.strip()
+        if is_custom_no_text:
+            self.current_response_window.chat_history = []
+        else:
+            self.current_response_window.chat_history = [
+                {
+                    "role": "user",
+                    "content": f"Original text to {option.lower()}:\n\n{selected_text}",
+                }
+            ]
+
+        # Show the window
+        self.current_response_window.show()
+        self._logger.debug("Response window created and shown")
+
+
+    @property
+    def current_response_window(self) -> ResponseWindow | None:
+        """Get the current response window."""
+        return getattr(self, 'current_response_window', None)
+
+    @current_response_window.setter
+    def current_response_window(self, value : ResponseWindow | None) -> None:
+        """Set the current response window with proper cleanup."""
+            # Clean up previous window if it exist
+        if hasattr(self, 'current_response_window') and self.current_response_window:
+            old_window = self.current_response_window  # type: ignore
+            if old_window != value:  # Don't close if it's the same window
+                try:
+                    old_window.close()
+                except Exception as e:
+                    self._logger.debug(f"Error closing previous response window: {e}")
+
+        self.current_response_window = value
+
     def _setup_core_attributes(self) -> None:
         """Initialize core application attributes."""
-        self.current_response_window: ResponseWindow | None = None
         self.current_provider: AIProvider | None = None
         self.output_queue = ""
         self.paused = False
@@ -121,6 +176,8 @@ class WritingToolApp(QApplication):
         self.output_ready_signal.connect(self.replace_text)
         self.show_message_signal.connect(self.show_message_box)
         self.hotkey_triggered_signal.connect(self.on_hotkey_pressed)
+        self.create_response_window_signal.connect(self.create_response_window)
+
 
     def _setup_settings(self) -> None:
         """Initialize settings manager and load configuration."""
@@ -827,17 +884,6 @@ class WritingToolApp(QApplication):
         # If settings button was clicked, open settings
         if settings_button and msg_box.clickedButton() == settings_button:
             self.show_settings()
-
-    # def show_response_window(self, option: str, text: str | None) -> ResponseWindow:
-    #     """
-    #     Show the response in a new window instead of pasting it.
-    #     @see: ui.ResponseWindow.ResponseWindow
-    #     """
-    #     response_window = ResponseWindow(self, f"{option} Result")
-    #     if text:
-    #         response_window.selected_text = text  # Store the text for regeneration
-    #     response_window.show()
-    #     return response_window
 
     @Slot(str)
     def replace_text(self, new_text: str) -> None:
