@@ -768,10 +768,10 @@ class GeminiProvider(AIProvider):
                 # Updated safety settings for 2025 - BLOCK_NONE is now restricted
                 # Use BLOCK_ONLY_HIGH for maximum permissiveness without special access
                 safety_settings = {
-                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
                 }
 
                 # Check if CIVIC_INTEGRITY category exists (may vary by API version)
@@ -780,7 +780,7 @@ class GeminiProvider(AIProvider):
                         HarmCategory, "HARM_CATEGORY_CIVIC_INTEGRITY", None
                     )
                     if civic_integrity_category is not None:
-                        safety_settings[civic_integrity_category] = HarmBlockThreshold.BLOCK_NONE
+                        safety_settings[civic_integrity_category] = HarmBlockThreshold.BLOCK_ONLY_HIGH
                 except (AttributeError, TypeError):
                     # Handle cases where HarmCategory might be None or attribute doesn't exist
                     pass
@@ -923,7 +923,7 @@ class OpenAICompatibleProvider(AIProvider):
                 temperature=0.5,
                 stream=False,
             )
-            response_text = response.choices[0].message.content.strip()
+            response_text = response.choices[0].message.content.rstrip("\n")
 
             if not return_response and not hasattr(self.app, "current_response_window"):
                 self.app.output_ready_signal.emit(response_text)
@@ -1664,7 +1664,7 @@ class OllamaProvider(AIProvider):
 
             logging.debug(f"Ollama using model: '{self.api_model}'")
             response = self.client.chat(model=self.api_model, messages=messages)
-            response_text = response["message"]["content"].strip()
+            response_text = response["message"]["content"].rstrip("\n")
             if not return_response and not hasattr(self.app, "current_response_window"):
                 self.app.output_ready_signal.emit(response_text)
             return response_text
@@ -1822,13 +1822,13 @@ class AnthropicProvider(AIProvider):
                 model=self.api_model,
                 messages=messages,  # type: ignore
                 max_tokens=4000,
-                temperature=0.7,
+                temperature=0.4,
             )
 
             if self.close_requested:
                 return ""
 
-            response_text = response.choices[0].message.content
+            response_text = response.choices[0].message.content.rstrip("\n")
             logging.debug(f"Anthropic API response: {response_text}")
             logging.debug(
                 f"Anthropic response length: {len(response_text) if response_text else 0}"
@@ -1957,6 +1957,14 @@ class MistralProvider(AIProvider):
             f"MistralProvider current config - api_key: {self.api_key[:10] if self.api_key else 'None'}..., api_model: {self.api_model}",
         )
 
+                # DEBUG: Log the incoming request
+        logging.info("🔥 MistralProvider.get_response called")
+        logging.info(f"🔥 system_instruction length: {len(system_instruction)}")
+        logging.info(f"🔥 prompt length: {len(prompt)}")
+        logging.info(f"🔥 prompt preview: {prompt}...")
+        logging.info(f"🔥 return_response: {return_response}")
+        logging.info(f"🔥 image_data present: {image_data is not None}")
+
         # Reset cancellation flag at start of new request (like other providers)
         self.close_requested = False
 
@@ -2024,7 +2032,7 @@ class MistralProvider(AIProvider):
             data = {
                 "model": self.api_model,
                 "messages": messages,
-                "temperature": 0.7,
+                "temperature": 0.4,
                 "max_tokens": 4000,
             }
 
@@ -2042,7 +2050,7 @@ class MistralProvider(AIProvider):
                 result = response.json()
 
                 if "choices" in result and len(result["choices"]) > 0:
-                    response_text = result["choices"][0]["message"]["content"]
+                    response_text = result["choices"][0]["message"]["content"].strip("\n")
 
                     logging.debug(f"Mistral API response: {response_text}")
                     logging.debug(

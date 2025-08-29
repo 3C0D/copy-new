@@ -1391,8 +1391,8 @@ class CustomPopupWindow(QWidget):
         Prompt entered by user in the input field.
         """
         widget = getattr(self, "custom_input", None)
-        txt = widget.text().strip() if widget else ""
-        if txt:
+        txt = widget.text() if widget else ""
+        if txt.strip():
             self.app.process_option("Custom", self.selected_text, self.is_force_chat_enabled(), txt)
             self.close()
 
@@ -1402,7 +1402,7 @@ class CustomPopupWindow(QWidget):
         """
         if not self.edit_mode and self.selected_text is not None:
             self.app.process_option(
-                instruction, self.selected_text.strip(), self.is_force_chat_enabled()
+                instruction, self.selected_text, self.is_force_chat_enabled()
             )
             self.close()
 

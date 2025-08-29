@@ -866,7 +866,7 @@ class ResponseWindow(ThemedWidget):
         if not self.input_field or not self.chat_area:
             return
 
-        message = self.input_field.text().strip()
+        message = self.input_field.text()
         if not message:
             return
 

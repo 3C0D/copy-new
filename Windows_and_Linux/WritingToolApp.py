@@ -110,66 +110,13 @@ class WritingToolApp(QApplication):
             self._logger.error(f"Full traceback: {traceback.format_exc()}")
             raise
 
-    # @QtCore.Slot(str, str)
-    # def create_response_window(self, option: str, selected_text: str) -> None:
-    #     """
-    #     Creates a ResponseWindow in the main GUI thread.
-    #     Called via signal from any thread.
-    #     """
-    #     self._logger.debug(f"Creating response window for option: {option}")
-
-    #     # Close existing window if present
-    #     if hasattr(self, 'current_response_window') and self.current_response_window:
-    #         self.current_response_window.close()
-
-    #     # Create new window (in GUI thread)
-    #     window_title = "Chat" if option == "Custom" and not selected_text.strip() else option
-    #     self.current_response_window = ResponseWindow(self, f"{window_title} Result")
-
-    #     if selected_text:
-    #         self.current_response_window.selected_text = selected_text
-
-    #     # Initialize chat history
-    #     is_custom_no_text = option == "Custom" and not selected_text.strip()
-    #     if is_custom_no_text:
-    #         self.current_response_window.chat_history = []
-    #     else:
-    #         self.current_response_window.chat_history = [
-    #             {
-    #                 "role": "user",
-    #                 "content": f"Original text to {option.lower()}:\n\n{selected_text}",
-    #             }
-    #         ]
-
-    #     # Show the window
-    #     self.current_response_window.show()
-    #     self._logger.debug("Response window created and shown")
-
-    # @property
-    # def current_response_window(self) -> ResponseWindow | None:
-    #     """Get the current response window."""
-    #     return getattr(self, 'current_response_window', None)
-
-    # @current_response_window.setter
-    # def current_response_window(self, value : ResponseWindow | None) -> None:
-    #     """Set the current response window with proper cleanup."""
-    #         # Clean up previous window if it exist
-    #     if hasattr(self, 'current_response_window') and self.current_response_window:
-    #         old_window = self.current_response_window  # type: ignore
-    #         if old_window != value:  # Don't close if it's the same window
-    #             try:
-    #                 old_window.close()
-    #             except Exception as e:
-    #                 self._logger.debug(f"Error closing previous response window: {e}")
-
-    #     self.current_response_window = value
-
     def _setup_core_attributes(self) -> None:
         """Initialize core application attributes."""
         self.current_response_window: ResponseWindow | None = None
         self.current_provider: AIProvider | None = None
         self.output_queue = ""
         self.paused = False
+        self.original_selection: str | None = None
         self.image: QImage | None = None
 
     def _setup_signals(self) -> None:
@@ -647,7 +594,7 @@ class WritingToolApp(QApplication):
             self.image = self.get_clipboard_image()
 
         if self.image is None:
-            selected_text = self.get_selected_text(sleep_duration=0.2)
+            selected_text = self.original_selection = self.get_selected_text(sleep_duration=0.1)
             logging.debug(f'Selected text: "{selected_text}"')
         else:
             selected_text = None
@@ -813,7 +760,7 @@ class WritingToolApp(QApplication):
 
         # Clean the selected text
         if selected_text:
-            selected_text = selected_text.strip()
+            selected_text = selected_text
             self._logger.debug(f"Text retrieved and cleaned: {len(selected_text)} characters")
         else:
             selected_text = ""
@@ -1010,9 +957,9 @@ class WritingToolApp(QApplication):
         system_instruction = action_config.get("instruction", "")
 
         if is_custom_option:
-            prompt = f"{prompt_prefix}Described change: {custom_change}\n\nText: {selected_text}"
+            prompt = f"{prompt_prefix}Described change: {custom_change}\nText: {selected_text}\n"
         else:
-            prompt = f"{prompt_prefix}{selected_text}"
+            prompt = f"{prompt_prefix}{selected_text}\n"
 
         return {
             "prompt": prompt,
@@ -1188,8 +1135,24 @@ class WritingToolApp(QApplication):
                 # Handle other options - try clipboard-based replacement with fallback
                 self._handle_clipboard_paste()
 
-            # Clear output queue if not using response window
-            if not hasattr(self, "current_response_window"):
+                # Check if selection changed (indicating successful paste)
+                new_selection = self.get_selected_text(sleep_duration=0.1)
+
+                # If selection is the same, paste failed (non-editable page)
+                if (
+                    self.original_selection == new_selection
+                    and self.original_selection
+                    and self.original_selection.strip()
+                ):
+                    # Fallback to modal window for non-editable pages
+                    cleaned_text = self.output_queue.rstrip("\n")
+                    QtCore.QMetaObject.invokeMethod(
+                        self,
+                        "_show_non_editable_modal",
+                        QtCore.Qt.ConnectionType.QueuedConnection,
+                        QtCore.Q_ARG(str, cleaned_text),
+                    )
+                self.original_selection = None
                 self.output_queue = ""
 
         except Exception as e:
