@@ -33,6 +33,7 @@ import ui.NonEditableModal
 import ui.OnboardingWindow
 import ui.ResponseWindow
 import ui.SettingsWindow
+from config.interfaces import ActionConfig
 
 if TYPE_CHECKING:
     from aiprovider import AIProvider
@@ -877,13 +878,15 @@ class WritingToolApp(QApplication):
 
         is_custom_option = option == "Custom"
         has_selected_text = bool(selected_text and selected_text.strip() != "")
-        action_config = self.settings_manager.actions
+        action_config = self.settings_manager.actions.get(option, {})
 
         should_setup_response_window = (
             (is_custom_option and not has_selected_text)
             or action_config.get("open_in_window", False)
             or (force_chat and has_selected_text)  # Force Chat with text
         )
+
+        self._logger.debug(f"should_setup_response_window: {should_setup_response_window}!!!")
 
         if should_setup_response_window:
             self._setup_response_window(option, selected_text)
@@ -937,7 +940,7 @@ class WritingToolApp(QApplication):
             selected_text: The text selected by the user
             custom_change: Optional custom change description for Custom option
         """
-        self._logger.debug(f"Starting processing thread for option: {option}")
+        self._logger.debug(f"Starting processing thread for option!!!!: {option}")
 
         try:
             prompt_data = self._prepare_prompt_data(option, selected_text, custom_change)
@@ -998,7 +1001,7 @@ class WritingToolApp(QApplication):
         is_custom_option: bool,
     ) -> dict | None:
         """Handle case where text is selected."""
-        action_config = self.settings_manager.actions.get(option)
+        action_config: ActionConfig = self.settings_manager.actions.get(option, {})
         if not action_config:
             self._logger.error(f"Action not found: {option}")
             return None
@@ -1018,16 +1021,17 @@ class WritingToolApp(QApplication):
         }
 
     def _should_display_in_window(
-        self, option: str, selected_text: str, action_config: dict
+        self, option: str, selected_text: str, action_config: ActionConfig
     ) -> bool:
         """Determine if response should be displayed in a window."""
         has_selected_text = selected_text.strip() != ""
         is_custom_option = option == "Custom"
         force_chat = getattr(self, "_current_force_chat", False)
+        action_config_option = action_config.get(option, {})
 
         return (
             (is_custom_option and not has_selected_text)
-            or (has_selected_text and action_config.get("open_in_window", False))
+            or (has_selected_text and action_config_option.get("open_in_window", False))
             or (force_chat and has_selected_text)
         )
 
@@ -1067,7 +1071,7 @@ class WritingToolApp(QApplication):
 
     def _update_response_window(self, response: str) -> None:
         """Update response window with AI response (thread-safe)."""
-        if self.current_response_window:
+        if hasattr(self, "current_response_window") and self.current_response_window:
             QtCore.QMetaObject.invokeMethod(
                 self.current_response_window,
                 "set_text",
@@ -1075,6 +1079,8 @@ class WritingToolApp(QApplication):
                 QtCore.Q_ARG(str, response),
             )
             self._logger.debug("Invoked set_text on response window")
+        else:
+            self._logger.warning("No current_response_window to update!!!")
 
     def _process_direct_replacement(self, prompt_data: dict) -> None:
         """Process AI response for direct text replacement."""

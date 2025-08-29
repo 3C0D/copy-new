@@ -1407,28 +1407,6 @@ class CustomPopupWindow(QWidget):
             )
             self.close()
 
-    def _should_display_in_response_window(
-        self, option: str, selected_text: str | None, action_config: dict
-    ) -> bool:
-        """
-        Determine if response should be displayed in a window.
-        Conditions:
-        - Custom option with no selected text
-        - Selected text and "open_in_window" is True in action config
-        - Force Chat is enabled and there is selected text
-        # - There is an image to process
-        """
-        has_selected_text = bool(selected_text and selected_text.strip() != "")
-        is_custom_option = option == "Custom"
-        force_chat = getattr(self, "_current_force_chat", False)
-
-        return (
-            (is_custom_option and not has_selected_text)
-            or (has_selected_text and action_config.get("open_in_window", False))
-            or (force_chat and has_selected_text)
-            # or self.has_image
-        )
-
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key.Key_Escape:
             if self.edit_mode:
