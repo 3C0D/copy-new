@@ -886,7 +886,7 @@ class WritingToolApp(QApplication):
             or (force_chat and has_selected_text)  # Force Chat with text
         )
 
-        self._logger.debug(f"should_setup_response_window: {should_setup_response_window}!!!")
+        self._logger.debug(f"should_setup_response_window: {should_setup_response_window}")
 
         if should_setup_response_window:
             self._setup_response_window(option, selected_text)
@@ -940,7 +940,7 @@ class WritingToolApp(QApplication):
             selected_text: The text selected by the user
             custom_change: Optional custom change description for Custom option
         """
-        self._logger.debug(f"Starting processing thread for option!!!!: {option}")
+        self._logger.debug(f"Starting processing thread for option: {option}")
 
         try:
             prompt_data = self._prepare_prompt_data(option, selected_text, custom_change)
@@ -1079,7 +1079,7 @@ class WritingToolApp(QApplication):
             )
             self._logger.debug("Invoked set_text on response window")
         else:
-            self._logger.warning("No current_response_window to update!!!")
+            self._logger.warning("No current_response_window to update")
 
     def _process_direct_replacement(self, prompt_data: dict) -> None:
         """Process AI response for direct text replacement."""

@@ -228,9 +228,9 @@ self.app.current_response_window.chat_history = [
 
 ```
 DEBUG - Processing option: Custom
-DEBUG - should_setup_response_window: True!!!!
+DEBUG - should_setup_response_window: True
 DEBUG - Setting up response window for output
-DEBUG - Showing response window with text: c'est!!!!!!!!!!!!!!!
+DEBUG - Showing response window with text: c'est
 DEBUG - Getting response for window display
 DEBUG - Got response of length: X
 DEBUG - Invoked set_text on response window
@@ -240,7 +240,7 @@ DEBUG - Invoked set_text on response window
 
 ```
 DEBUG - Processing option: Custom
-DEBUG - should_setup_response_window: False!!!!  # ❌ PROBLÈME
+DEBUG - should_setup_response_window: False  # ❌ PROBLÈME
 WARNING - current_response_window not available for update  # ❌ CONSÉQUENCE
 ```
 

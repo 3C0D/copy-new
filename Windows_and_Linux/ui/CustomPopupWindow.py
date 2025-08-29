@@ -1394,7 +1394,6 @@ class CustomPopupWindow(QWidget):
         txt = widget.text().strip() if widget else ""
         if txt:
             self.app.process_option("Custom", self.selected_text, self.is_force_chat_enabled(), txt)
-            self._logger.debug(" C'est ici que se ferme custom Windows.$$$$$$$$$$$$$$$$$$$$")
             self.close()
 
     def on_generic_instruction(self, instruction: str) -> None:
