@@ -1024,14 +1024,13 @@ class WritingToolApp(QApplication):
         self, option: str, selected_text: str, action_config: ActionConfig
     ) -> bool:
         """Determine if response should be displayed in a window."""
-        has_selected_text = selected_text.strip() != ""
         is_custom_option = option == "Custom"
+        has_selected_text = selected_text.strip() != ""
         force_chat = getattr(self, "_current_force_chat", False)
-        action_config_option = action_config.get(option, {})
 
         return (
             (is_custom_option and not has_selected_text)
-            or (has_selected_text and action_config_option.get("open_in_window", False))
+            or (has_selected_text and action_config.get("open_in_window", False))
             or (force_chat and has_selected_text)
         )
 
