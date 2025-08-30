@@ -5,11 +5,13 @@ This module contains the core application logic for the Writing Tools applicatio
 including AI provider management, hotkey handling, and user interface coordination.
 """
 
+import base64
 import gettext
 import logging
 import os
 import signal
 import sys
+import tempfile
 import threading
 import time
 import types
@@ -1043,7 +1045,8 @@ class WritingToolApp(QApplication):
 
     def _qimage_to_base64(self, image: QImage) -> str:
         """
-        Convert QImage to base64 string for API transmission.
+        Convert QImage to base64 string for API transmission using temporary file approach.
+        Similar to main_window.py implementation but with proper temporary file handling.
 
         Args:
             image: QImage to convert
@@ -1052,27 +1055,66 @@ class WritingToolApp(QApplication):
             str: Base64 encoded image data
         """
         try:
-            # Convert QImage to bytes
-            byte_array = QtCore.QByteArray()
-            buffer = QtCore.QBuffer(byte_array)
-            buffer.open(QtCore.QIODevice.OpenModeFlag.WriteOnly)
+            # Create temporary file path
+            temp_path = self._get_temp_image_path()
 
-            # Save as PNG (most compatible format)
-            image.save(buffer, b"PNG")
-            buffer.close()
+            # Save QImage to temporary file (PNG format for compatibility)
+            if not image.save(str(temp_path), 'PNG'.encode()):
+                self._logger.error("Failed to save QImage to temporary file")
+                return ""
 
-            # Convert to base64
-            import base64
+            # Read the temporary file and convert to base64
+            try:
+                with open(temp_path, "rb") as image_file:
+                    image_bytes = image_file.read()
+                    base64_string = base64.b64encode(image_bytes).decode('utf-8')
 
-            image_bytes = byte_array.data()
-            base64_string = base64.b64encode(image_bytes).decode("utf-8")
+                self._logger.debug(f"Converted image to base64: {len(base64_string)} characters")
+                return base64_string
 
-            self._logger.debug(f"Converted image to base64: {len(base64_string)} characters")
-            return base64_string
+            finally:
+                # Clean up temporary file
+                try:
+                    temp_path.unlink(missing_ok=True)
+                except Exception as cleanup_error:
+                    self._logger.warning(f"Failed to cleanup temporary file {temp_path}: {cleanup_error}")
 
         except Exception as e:
             self._logger.error(f"Error converting QImage to base64: {e}")
             return ""
+
+    def _get_temp_image_path(self) -> Path:
+        """
+        Get appropriate temporary file path for clipboard image based on execution mode.
+
+        Returns:
+            Path: Temporary file path for clipboard image
+        """
+        try:
+            # Determine execution mode
+            mode = self._detect_mode()
+
+            if mode == "dev":
+                # Development mode: use project directory
+                temp_dir = Path(__file__).parent
+            elif mode in ["build-dev", "build-final"]:
+                # Build mode: use system temp directory
+                temp_dir = Path(tempfile.gettempdir())
+            else:
+                # Fallback to system temp directory
+                temp_dir = Path(tempfile.gettempdir())
+
+            # Create unique temporary file name
+            temp_filename = f"writingtools_clipboard_{int(time.time() * 1000)}.png"
+            temp_path = temp_dir / temp_filename
+
+            self._logger.debug(f"Using temporary image path: {temp_path}")
+            return temp_path
+
+        except Exception as e:
+            self._logger.error(f"Error creating temp image path: {e}")
+            # Fallback to system temp directory
+            return Path(tempfile.gettempdir()) / f"writingtools_clipboard_{int(time.time() * 1000)}.png"
 
     def _should_display_in_window(
         self, option: str, selected_text: str, action_config: ActionConfig, has_image: bool
