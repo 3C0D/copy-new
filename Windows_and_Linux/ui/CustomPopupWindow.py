@@ -650,19 +650,106 @@ class CustomPopupWindow(QWidget):
         """
 
     def _create_input_area(self, content_layout: QVBoxLayout) -> None:
-        """Create the input area with text field and send button."""
+        """Create the input area with text field, send button, and image preview if applicable."""
         self.input_area = QWidget()
-        input_layout = QHBoxLayout(self.input_area)
+        input_layout = QVBoxLayout(self.input_area)  # Changed to VBoxLayout for stacking
         input_layout.setContentsMargins(0, 0, 0, 0)
+        input_layout.setSpacing(8)
 
-        # Add image indicator icon if there's an image
+        # Create horizontal layout for input field and send button
+        input_row = QWidget()
+        input_row_layout = QHBoxLayout(input_row)
+        input_row_layout.setContentsMargins(0, 0, 0, 0)
+
+        self._create_custom_input(input_row_layout)
+        self._create_send_button(input_row_layout)
+
+        input_layout.addWidget(input_row)
+
+        # Add image preview if there's an image
         if self.has_image:
-            self._create_image_indicator(input_layout)
-
-        self._create_custom_input(input_layout)
-        self._create_send_button(input_layout)
+            self._create_image_preview(input_layout)
 
         content_layout.addWidget(self.input_area)
+
+    def _create_image_preview(self, layout: QVBoxLayout) -> None:
+        """Create an image preview widget below the input field."""
+        # Image preview container
+        preview_container = QWidget()
+        preview_container.setStyleSheet(
+            f"""
+            QWidget {{
+                background-color: {"#2a2a2a" if get_effective_color_mode() == "dark" else "#f5f5f5"};
+                border: 1px solid {"#555" if get_effective_color_mode() == "dark" else "#ddd"};
+                border-radius: 8px;
+                padding: 8px;
+            }}
+            """
+        )
+        preview_layout = QVBoxLayout(preview_container)
+        preview_layout.setContentsMargins(8, 8, 8, 8)
+        preview_layout.setSpacing(5)
+
+        # Image preview label
+        image_label = QLabel("📷 Image Preview:")
+        image_label.setStyleSheet(
+            f"""
+            QLabel {{
+                color: {"#fff" if get_effective_color_mode() == "dark" else "#666"};
+                font-size: 12px;
+                font-weight: bold;
+                margin-bottom: 5px;
+            }}
+            """
+        )
+        preview_layout.addWidget(image_label)
+
+        # Actual image display
+        self.image_display = QLabel()
+        self.image_display.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.image_display.setMinimumHeight(120)
+        self.image_display.setMaximumHeight(200)
+        self.image_display.setStyleSheet(
+            """
+            QLabel {
+                border: 1px dashed #999;
+                border-radius: 4px;
+                background-color: rgba(255, 255, 255, 0.1);
+            }
+            """
+        )
+
+        # Scale and display the image
+        if self.image:
+            # Create a scaled pixmap for preview
+            pixmap = QtGui.QPixmap.fromImage(self.image)
+            scaled_pixmap = pixmap.scaled(
+                300,
+                180,  # Max preview size
+                QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+                QtCore.Qt.TransformationMode.SmoothTransformation,
+            )
+            self.image_display.setPixmap(scaled_pixmap)
+
+            # Add image info
+            info_text = f"Size: {self.image.width()}×{self.image.height()} pixels"
+            info_label = QLabel(info_text)
+            info_label.setStyleSheet(
+                f"""
+                QLabel {{
+                    color: {"#aaa" if get_effective_color_mode() == "dark" else "#888"};
+                    font-size: 11px;
+                    margin-top: 3px;
+                }}
+                """
+            )
+            info_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            preview_layout.addWidget(info_label)
+        else:
+            self.image_display.setText("No image preview available")
+
+        preview_layout.addWidget(self.image_display)
+        layout.addWidget(preview_container)
 
     def _create_custom_input(self, layout: QHBoxLayout) -> None:
         """Create the custom input text field."""
@@ -670,7 +757,7 @@ class CustomPopupWindow(QWidget):
         placeholder = (
             _("Describe your change...")
             if self.has_sel_text
-            else _("Describe what to do on this image?")
+            else _("What would you like to know about this image?")
             if self.has_image
             else _("Ask your AI...")
         )
@@ -678,21 +765,6 @@ class CustomPopupWindow(QWidget):
         self.custom_input.setStyleSheet(self._get_input_style())
         self.custom_input.returnPressed.connect(self.on_custom_change)
         layout.addWidget(self.custom_input)
-
-    def _create_image_indicator(self, layout: QHBoxLayout) -> None:
-        """Create a small image indicator icon when there's an image."""
-        image_label = QLabel("🖼️")
-        image_label.setStyleSheet(
-            f"""
-            QLabel {{
-                color: {"#fff" if get_effective_color_mode() == "dark" else "#666"};
-                font-size: 16px;
-                padding: 0px 5px 0px 0px;
-            }}
-        """,
-        )
-        image_label.setToolTip("Image attached")
-        layout.addWidget(image_label)
 
     def _create_send_button(self, layout: QHBoxLayout) -> None:
         """Create the send button for the input area."""
@@ -709,14 +781,19 @@ class CustomPopupWindow(QWidget):
         layout.addWidget(send_btn)
 
     def _get_input_style(self) -> str:
-        """Get stylesheet for input field."""
+        """Get the styling for input elements."""
+        current_mode = get_effective_color_mode()
         return f"""
             QLineEdit {{
-                padding: 8px;
-                border: 1px solid {"#777" if get_effective_color_mode() == "dark" else "#ccc"};
+                padding: 10px;
+                border: 2px solid {"#555" if current_mode == "dark" else "#ddd"};
                 border-radius: 8px;
-                background-color: {"#333" if get_effective_color_mode() == "dark" else "white"};
-                color: {"#fff" if get_effective_color_mode() == "dark" else "#000"};
+                background-color: {"#333" if current_mode == "dark" else "#fff"};
+                color: {"#fff" if current_mode == "dark" else "#333"};
+                font-size: 14px;
+            }}
+            QLineEdit:focus {{
+                border-color: {"#4CAF50" if current_mode == "dark" else "#2196F3"};
             }}
         """
 
@@ -1418,7 +1495,9 @@ class CustomPopupWindow(QWidget):
         widget = getattr(self, "custom_input", None)
         txt = widget.text() if widget else ""
         if txt.strip():
-            self.app.process_option("Custom", self.selected_text, self.is_force_chat_enabled(), txt, self.has_image)
+            self.app.process_option(
+                "Custom", self.selected_text, self.is_force_chat_enabled(), txt, self.has_image
+            )
             self.close()
 
     def on_generic_instruction(self, instruction: str) -> None:

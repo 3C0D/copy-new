@@ -14,14 +14,13 @@ import threading
 import time
 import types
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from pynput import keyboard as keyboard
 
 # os.environ["QT_LOGGING_RULES"] = (
 #     "qt.qpa.mime.warning=false;qt.qpa.mime.debug=false;qt.qpa.mime.info=false"  # Suppress QMimeDatabase warnings
 # )
-# os.environ['QT_FORCE_STDERR_LOGGING'] = '0'  # If previous line doesn't work, try this
 from PySide6 import QtCore, QtGui
 from PySide6.QtCore import QLocale, Signal, Slot
 from PySide6.QtGui import QCursor, QGuiApplication, QImage
@@ -65,7 +64,6 @@ class WritingToolApp(QApplication):
     show_message_signal = Signal(str, str)  # a signal for showing message boxes
     hotkey_triggered_signal = Signal()
     followup_response_signal = Signal(str)
-    # create_response_window_signal = Signal(str, str)  # (option, selected_text)
 
     def __init__(self, argv):
         super().__init__(argv)
@@ -125,7 +123,6 @@ class WritingToolApp(QApplication):
         self.output_ready_signal.connect(self.replace_text)
         self.show_message_signal.connect(self.show_message_box)
         self.hotkey_triggered_signal.connect(self.on_hotkey_pressed)
-        # self.create_response_window_signal.connect(self.create_response_window)
 
     def _setup_settings(self) -> None:
         """Initialize settings manager and load configuration."""
@@ -578,6 +575,13 @@ class WritingToolApp(QApplication):
             self.current_provider.cancel()
             self.output_queue = ""
 
+        # Clean up image resources
+        if hasattr(self, 'image') and self.image:
+            self.image = None
+
+        # Clear any stored image data
+        self.has_image = False
+
         # noinspection PyTypeChecker
         QtCore.QMetaObject.invokeMethod(
             self, "_show_popup", QtCore.Qt.ConnectionType.QueuedConnection
@@ -652,26 +656,27 @@ class WritingToolApp(QApplication):
     def get_clipboard_image(self) -> QImage | None:
         """
         Get the image data currently stored in the clipboard from screenshots or image copy operations.
-
-        Handles both QImage and QPixmap formats, converts QPixmap to QImage automatically.
-        Common sources: Print Screen, Shift+Win+S, browser "Copy image", app screenshots, etc.
-
-        Returns:
-            QImage | None: The clipboard image as QImage, or None if no image found
+        Enhanced error handling and format support.
         """
-        clipboard = QApplication.clipboard()
-        mime_data = clipboard.mimeData()
-
-        if not mime_data.hasImage():
-            self._logger.debug("No image found in clipboard")
-            return None
-
         try:
+            clipboard = QApplication.clipboard()
+            mime_data = clipboard.mimeData()
+
+            if not mime_data.hasImage():
+                self._logger.debug("No image found in clipboard")
+                return None
+
+            # Check available formats for debugging
+            available_formats = mime_data.formats()
+            self._logger.debug(f"Available clipboard formats: {available_formats}")
+
             image_data = mime_data.imageData()
 
-            # clipboard is cleared to not have the image again next time and allow selected text to be used
             if isinstance(image_data, QImage):
-                self._logger.debug("QImage found in clipboard")
+                self._logger.debug(f"QImage found in clipboard: {image_data.width()}x{image_data.height()}")
+                if image_data.isNull():
+                    self._logger.warning("QImage is null")
+                    return None
                 clipboard.clear()
                 self._logger.debug("Clipboard cleared after image retrieval")
                 return image_data
@@ -679,6 +684,10 @@ class WritingToolApp(QApplication):
             elif hasattr(image_data, "toImage"):  # QPixmap
                 self._logger.debug("Converting QPixmap to QImage")
                 qimage = image_data.toImage()
+                if qimage.isNull():
+                    self._logger.warning("Converted QImage is null")
+                    return None
+                self._logger.debug(f"QPixmap converted: {qimage.width()}x{qimage.height()}")
                 clipboard.clear()
                 self._logger.debug("Clipboard cleared after image retrieval")
                 return qimage
@@ -839,7 +848,7 @@ class WritingToolApp(QApplication):
         self._logger.debug(f"should_setup_response_window: {should_setup_response_window}")
 
         if should_setup_response_window:
-            self._setup_response_window(option, selected_text)
+            self._setup_response_window(option, selected_text, self.image)
         elif hasattr(self, "current_response_window"):
             delattr(self, "current_response_window")
 
@@ -849,37 +858,46 @@ class WritingToolApp(QApplication):
         # Start processing thread
         threading.Thread(
             target=self.process_option_thread,
-            args=(option, selected_text, custom_change),
+            args=(option, selected_text, self.image, custom_change),
             daemon=True,
         ).start()
 
-    def _setup_response_window(self, option: str, selected_text: str | None) -> None:
+    def _setup_response_window(
+        self, option: str, selected_text: str | None, image: QImage | None
+    ) -> None:
         """
         Set up the response window for the selected writing option.
         """
-        # self.create_response_window_signal.emit(option, selected_text or "")
         is_custom = option == "Custom"
         window_title = "Chat" if not is_custom else option
         self.current_response_window = self.show_response_window(window_title, selected_text)
 
-        # Initialize chat history inline
-
-        #     if image_data:
-        # user_content = [
-        #     {"type": "text", "text": prompt},
-        #     {"type": "image_url", "image_url": f"data:image/png;base64,{image_data}"},
-        # ]
-
-        self.current_response_window.chat_history = (
-            []
-            if not is_custom
-            else [
+        # Handle chat history based on content type
+        if image is not None:
+            # Image mode - no selected text
+            self.current_response_window.chat_history = [
+                {"role": "user", "content": f"Image analysis request: {option.lower()}"}
+            ]
+        elif is_custom and not selected_text: # ajouté mais pas utile???!
+            # Custom mode without text
+            self.current_response_window.chat_history = [
                 {
                     "role": "user",
                     "content": f"Original text to {option.lower()}:\n\n{selected_text}",
-                },
+                }
             ]
-        )
+        else:
+            # Text mode
+            self.current_response_window.chat_history = (
+                []
+                if not is_custom
+                else [
+                    {
+                        "role": "user",
+                        "content": f"Original text to {option.lower()}:\n\n{selected_text}",
+                    },
+                ]
+            )
 
         self._logger.debug(f"Chat history: {self.current_response_window.chat_history}")
 
@@ -888,54 +906,47 @@ class WritingToolApp(QApplication):
     # ============================================================================
 
     def process_option_thread(
-        self, option: str, selected_text: str, custom_change: str | None = None
+        self,
+        option: str,
+        selected_text: str,
+        image: QtGui.QImage | None = None,
+        custom_change: str | None = None,
     ) -> None:
         """
         Thread function to process the selected writing option using the AI model.
+        Enhanced to support image processing.
 
         Args:
             option: The selected writing option (e.g., "Summary", "Custom", "Proofread")
             selected_text: The text selected by the user
+            image: The image copied from the clipboard
             custom_change: Optional custom change description for Custom option
         """
         self._logger.debug(f"Starting processing thread for option: {option}")
+        self._logger.debug(f"Has image: {image is not None}")
 
         try:
-            prompt_data = self._prepare_prompt_data(option, selected_text, custom_change)
+            prompt_data = self._prepare_prompt_data(option, selected_text, image, custom_change)
             if not prompt_data:
                 return
 
             self.output_queue = ""
             should_open_window = self._should_display_in_window(
-                option, selected_text, prompt_data["action_config"]
+                option, selected_text, prompt_data["action_config"], image is not None
             )
 
             if should_open_window:
                 self._process_window_response(option, selected_text, custom_change, prompt_data)
             else:
-                self._process_direct_replacement(prompt_data)
+                # For image processing, we should always use window display
+                if image is not None:
+                    self._logger.warning("Image processing should open window, redirecting...should never happen????")
+                    self._process_window_response(option, selected_text, custom_change, prompt_data)
+                else:
+                    self._process_direct_replacement(prompt_data)
 
         except Exception as e:
             self._handle_processing_error(e)
-
-    def _prepare_prompt_data(
-        self, option: str, selected_text: str, custom_change: str | None = None
-    ) -> dict | None:
-        """
-        Prepare prompt data for AI processing.
-
-        Returns:
-            dict: Contains prompt, system_instruction, and action_config, or None if invalid
-        """
-        has_selected_text = selected_text.strip() != ""
-        is_custom_option = option == "Custom"
-
-        if not has_selected_text:
-            return self._handle_no_text_selected(is_custom_option, custom_change)
-        else:
-            return self._handle_text_selected(
-                option, selected_text, custom_change, is_custom_option
-            )
 
     def _handle_no_text_selected(
         self, is_custom_option: bool, custom_change: Optional[str]
@@ -951,45 +962,133 @@ class WritingToolApp(QApplication):
             self.show_message_signal.emit("Error", "Please select text to use this option.")
             return None
 
-    def _handle_text_selected(
+    def _prepare_prompt_data(
         self,
         option: str,
         selected_text: str,
+        image: QImage | None,
+        custom_change: str | None = None,
+    ) -> dict | None:
+        """
+        Prepare prompt data for AI processing including image support.
+
+        Returns:
+            dict: Contains prompt, system_instruction, action_config, and image_data, or None if invalid
+        """
+        has_selected_text = selected_text and selected_text.strip() != ""
+        is_custom_option = option == "Custom"
+        has_image = image is not None
+
+        if not has_selected_text and not has_image:
+            return self._handle_no_text_selected(is_custom_option, custom_change)
+        else:
+            return self._handle_text_or_image_selected(
+                option, selected_text, image, custom_change, is_custom_option
+            )
+
+    def _handle_text_or_image_selected(
+        self,
+        option: str,
+        selected_text: str,
+        image: QImage | None,
         custom_change: str | None,
         is_custom_option: bool,
     ) -> dict | None:
-        """Handle case where text is selected."""
+        """Handle case where text is selected or image is available."""
         action_config: ActionConfig = self.settings_manager.actions.get(option, {})
-        if not action_config:
-            self._logger.error(f"Action not found: {option}")
-            return None
 
-        prompt_prefix = action_config.get("prefix", "")
-        system_instruction = action_config.get("instruction", "")
-
-        if is_custom_option:
-            prompt = f"{prompt_prefix}Described change: {custom_change}\nText: {selected_text}\n"
+        # For image analysis, use a specialized system instruction
+        if image is not None:
+            if is_custom_option:
+                system_instruction = (
+                    "You are a helpful AI assistant specialized in image analysis. "
+                    "Analyze the provided image and respond to the user's specific request. "
+                    "Be detailed, accurate, and helpful in your analysis. "
+                    "Use clear, well-structured responses with markdown formatting when appropriate."
+                )
+                prompt = custom_change or "Please analyze this image and describe what you see."
+            else:
+                # For pre-defined actions with images, adapt the instruction
+                system_instruction = action_config.get("instruction", "") + (
+                    " Analyze the provided image in the context of this request."
+                )
+                prompt = action_config.get("prefix", "") + (custom_change or "")
         else:
-            prompt = f"{prompt_prefix}{selected_text}\n"
+            # Text-based processing
+            if not action_config:
+                self._logger.error(f"Action not found: {option}")
+                return None
+
+            prompt_prefix = action_config.get("prefix", "")
+            system_instruction = action_config.get("instruction", "")
+
+            if is_custom_option:
+                prompt = (
+                    f"{prompt_prefix}Described change: {custom_change}\nText: {selected_text}\n"
+                )
+            else:
+                prompt = f"{prompt_prefix}{selected_text}\n"
+
+        # Convert QImage to base64 if present
+        image_data = None
+        if image:
+            image_data = self._qimage_to_base64(image)
 
         return {
             "prompt": prompt,
             "system_instruction": system_instruction,
             "action_config": action_config,
+            "image_data": image_data,
         }
 
+    def _qimage_to_base64(self, image: QImage) -> str:
+        """
+        Convert QImage to base64 string for API transmission.
+
+        Args:
+            image: QImage to convert
+
+        Returns:
+            str: Base64 encoded image data
+        """
+        try:
+            # Convert QImage to bytes
+            byte_array = QtCore.QByteArray()
+            buffer = QtCore.QBuffer(byte_array)
+            buffer.open(QtCore.QIODevice.OpenModeFlag.WriteOnly)
+
+            # Save as PNG (most compatible format)
+            image.save(buffer, b"PNG")
+            buffer.close()
+
+            # Convert to base64
+            import base64
+
+            image_bytes = byte_array.data()
+            base64_string = base64.b64encode(image_bytes).decode("utf-8")
+
+            self._logger.debug(f"Converted image to base64: {len(base64_string)} characters")
+            return base64_string
+
+        except Exception as e:
+            self._logger.error(f"Error converting QImage to base64: {e}")
+            return ""
+
     def _should_display_in_window(
-        self, option: str, selected_text: str, action_config: ActionConfig
+        self, option: str, selected_text: str, action_config: ActionConfig, has_image: bool
     ) -> bool:
         """Determine if response should be displayed in a window."""
         is_custom_option = option == "Custom"
-        has_selected_text = selected_text.strip() != ""
+        has_selected_text = selected_text and selected_text.strip() != "" or False
         force_chat = getattr(self, "_current_force_chat", False)
 
         return (
-            (is_custom_option and not has_selected_text)
-            or (has_selected_text and action_config.get("open_in_window", False))
-            or (force_chat and has_selected_text)
+            (
+                is_custom_option and not has_selected_text
+            )  # Custom without text (includes image case)
+            or (has_selected_text and action_config.get("open_in_window", False))  # Window mode
+            or (has_image and action_config.get("open_in_window", False))  # Window mode
+            or (force_chat and has_selected_text)  # Force Chat with text
         )
 
     def _process_window_response(
@@ -999,32 +1098,49 @@ class WritingToolApp(QApplication):
         custom_change: str | None,
         prompt_data: dict,
     ) -> None:
-        """Process AI response for window display."""
+        """Process AI response for window display with image support."""
         if not self.current_provider:
             return
 
         self._logger.debug("Getting response for window display")
+
+        # Extract image data from prompt_data
+        image_data = prompt_data.get("image_data")
+
         response = self.current_provider.get_response(
             prompt_data["system_instruction"],
             str(prompt_data["prompt"]),
             return_response=True,
+            image_data=image_data,  # Pass image data to provider
         )
         self._logger.debug(f"Got response of length: {len(response) if response else 0}")
 
-        self._update_chat_history_if_needed(option, selected_text, custom_change)
+        self._update_chat_history_if_needed(option, selected_text, custom_change, image_data)
         self._update_response_window(response)
 
     def _update_chat_history_if_needed(
-        self, option: str, selected_text: str, custom_change: str | None
+        self,
+        option: str,
+        selected_text: str,
+        custom_change: str | None,
+        image_data: str | None = None,
     ) -> None:
-        """Update chat history for custom prompts without text."""
+        """Update chat history for custom prompts, including image context."""
         is_custom_option = option == "Custom"
-        has_selected_text = selected_text.strip() != ""
+        has_selected_text = selected_text and selected_text.strip() != ""
+        has_image = image_data is not None
 
-        if is_custom_option and not has_selected_text and self.current_response_window:
-            self.current_response_window.chat_history.append(
-                {"role": "user", "content": custom_change or ""},
-            )
+        if self.current_response_window:
+            if is_custom_option and has_image and not has_selected_text:
+                # Image analysis request
+                self.current_response_window.chat_history.append(
+                    {"role": "user", "content": custom_change or "Analyze this image"},
+                )
+            elif is_custom_option and not has_selected_text and not has_image:
+                # Text-only custom request
+                self.current_response_window.chat_history.append(
+                    {"role": "user", "content": custom_change or ""},
+                )
 
     def _update_response_window(self, response: str) -> None:
         """Update response window with AI response (thread-safe)."""
@@ -1097,9 +1213,20 @@ class WritingToolApp(QApplication):
     def show_response_window(self, option: str, text: str | None) -> ResponseWindow:
         """
         Show the response in a new window instead of pasting it.
+        Enhanced to support image display and analysis.
         """
         response_window = ResponseWindow(self, f"{option} Result")
-        response_window.selected_text = text  # Store the text for regeneration
+
+        # Set image and text context
+        if self.has_image and self.image:
+            response_window.image = self.image
+            self._logger.debug("Image set in response window")
+            # For image analysis, we don't need selected text
+            response_window.selected_text = None
+        else:
+            response_window.selected_text = text  # Store the text for regeneration
+            response_window.image = None
+
         response_window.show()
         return response_window
 
@@ -1199,7 +1326,6 @@ class WritingToolApp(QApplication):
         try:
             import pyperclip
 
-            # Use the simple, working approach from the old branch
             clipboard_backup = pyperclip.paste()
             cleaned_text = self.output_queue.rstrip("\n")
             pyperclip.copy(cleaned_text)
@@ -1476,7 +1602,7 @@ class WritingToolApp(QApplication):
 
     def process_followup_question(self, response_window: ResponseWindow, question: str) -> None:
         """
-        Process a follow-up question in the chat window.
+        Process a follow-up question in the chat window, with image support.
         """
         logging.debug(f"Processing follow-up question: {question}")
 
@@ -1494,39 +1620,96 @@ class WritingToolApp(QApplication):
                 # Get chat history
                 history = response_window.chat_history.copy()
 
-                # System instruction based on original option
-                system_instruction = "You are a helpful AI assistant. Provide clear and direct responses, maintaining the same format and style as your previous responses. If appropriate, use Markdown formatting to make your response more readable."
+                # System instruction based on context (image vs text)
+                if response_window.image:
+                    system_instruction = (
+                        "You are a helpful AI assistant specialized in image analysis and visual understanding. "
+                        "Continue the conversation about the image, providing detailed and accurate responses. "
+                        "Use clear, well-structured responses with markdown formatting when appropriate."
+                    )
+                else:
+                    system_instruction = (
+                        "You are a helpful AI assistant. Provide clear and direct responses, "
+                        "maintaining the same format and style as your previous responses. "
+                        "If appropriate, use Markdown formatting to make your response more readable."
+                    )
 
                 logging.debug("Sending request to AI provider")
+
+                # Get image data if available
+                image_data = None
+                if response_window.image :
+                    image_data = self._qimage_to_base64(response_window.image)
 
                 # Format conversation differently based on provider
                 if self.current_provider and isinstance(self.current_provider, GeminiProvider):
                     # For Gemini, use the proper history format with roles
                     chat_messages = []
 
-                    # Convert our roles to Gemini's expected roles
-                    for msg in history:
+                    # Convert our roles to Gemini's expected roles and handle images
+                    for i, msg in enumerate(history):
                         gemini_role = "model" if msg["role"] == "assistant" else "user"
-                        chat_messages.append({"role": gemini_role, "parts": msg["content"]})
+
+                        # For the first user message with image, include the image
+                        if (
+                            i == 0
+                            and msg["role"] == "user"
+                            and image_data
+                            and "Image analysis request" in msg["content"]
+                        ):
+                            # Create content with image for first message
+                            content_parts = [
+                                msg["content"],
+                                {"inline_data": {"mime_type": "image/png", "data": image_data}},
+                            ]
+                            chat_messages.append({"role": gemini_role, "parts": content_parts})
+                        else:
+                            chat_messages.append({"role": gemini_role, "parts": msg["content"]})
 
                     # Start chat with history
                     if hasattr(self.current_provider, "model") and self.current_provider.model:
-                        chat = self.current_provider.model.start_chat(history=chat_messages)
+                        chat = self.current_provider.model.start_chat(
+                            history=chat_messages[:-1]
+                        )  # Exclude last question
 
-                        # Get response using the chat
+                        # Send the latest question
                         response = chat.send_message(question)
                         response_text = response.text
                     else:
                         response_text = "Error: Provider model not available"
 
-                elif self.current_provider and isinstance(self.current_provider, OllamaProvider):
-                    # For Ollama, prepare messages with system instruction and history
-                    messages = [{"role": "system", "content": system_instruction}]
+                elif self.current_provider and isinstance(self.current_provider, MistralProvider):
+                    # For Mistral, prepare messages with system instruction and history
+                    # Use Union type to handle both string and list content
 
-                    for msg in history:
-                        messages.append({"role": msg["role"], "content": msg["content"]})
+                    messages: list[dict[str, Any]] = [
+                        {"role": "system", "content": system_instruction}
+                    ]
 
-                    # Get response from Ollama
+                    # Add history messages, handling images for Mistral
+                    for i, msg in enumerate(history[:-1]):  # Exclude the just-added question
+                        if (
+                            i == 0
+                            and msg["role"] == "user"
+                            and image_data
+                            and "Image analysis request" in msg["content"]
+                        ):
+                            # First message with image
+                            user_content: list[dict[str, Any]] = [
+                                {"type": "text", "text": msg["content"]},
+                                {
+                                    "type": "image_url",
+                                    "image_url": f"data:image/png;base64,{image_data}",
+                                },
+                            ]
+                            messages.append({"role": "user", "content": user_content})
+                        else:
+                            messages.append({"role": msg["role"], "content": msg["content"]})
+
+                    # Add the current question
+                    messages.append({"role": "user", "content": question})
+
+                    # Get response from Mistral
                     response_text = self.current_provider.get_response(
                         system_instruction,
                         messages,
@@ -1534,14 +1717,35 @@ class WritingToolApp(QApplication):
                     )
 
                 elif self.current_provider:
-                    # For OpenAI/compatible providers, prepare messages array, add system message
-                    messages = [{"role": "system", "content": system_instruction}]
+                    # For OpenAI/compatible providers, prepare messages array
+                    # Use Union type to handle both string and list content
+
+                    messages: list[dict[str, Any]]= [
+                        {"role": "system", "content": system_instruction}
+                    ]
 
                     # Add history messages (including latest question)
-                    for msg in history:
-                        # Convert 'assistant' role to 'assistant' for OpenAI
+                    for i, msg in enumerate(history):
                         role = "assistant" if msg["role"] == "assistant" else "user"
-                        messages.append({"role": role, "content": msg["content"]})
+
+                        # Handle image for first user message if present
+                        if (
+                            i == 0
+                            and msg["role"] == "user"
+                            and image_data
+                            and "Image analysis request" in msg["content"]
+                        ):
+                            # OpenAI format for image
+                            content: list[dict[str, Any]] = [
+                                {"type": "text", "text": msg["content"]},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {"url": f"data:image/png;base64,{image_data}"},
+                                },
+                            ]
+                            messages.append({"role": role, "content": content})
+                        else:
+                            messages.append({"role": role, "content": msg["content"]})
 
                     # Get response by passing the full messages array
                     response_text = self.current_provider.get_response(
@@ -1566,7 +1770,7 @@ class WritingToolApp(QApplication):
                 if "Resource has been exhausted" in str(e):
                     self.show_message_signal.emit(
                         "Error - Rate Limit Hit",
-                        "Whoops! You've hit the per-minute rate limit of the Gemini API. Please try again in a few moments.\n\nIf this happens often, simply switch to a Gemini model with a higher usage limit in Settings.",
+                        "Whoops! You've hit the per-minute rate limit of the API. Please try again in a few moments.\n\nIf this happens often, try switching to a different model in Settings.",
                     )
                     self.followup_response_signal.emit(
                         "Sorry, an error occurred while processing your question."
@@ -1579,7 +1783,6 @@ class WritingToolApp(QApplication):
 
         # Start the thread
         threading.Thread(target=process_thread, daemon=True).start()
-
     def show_settings(self, providers_only: bool = False, previous_window=None) -> None:
         """
         Show the settings window with debounce protection against rapid clicks.

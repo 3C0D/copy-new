@@ -466,6 +466,7 @@ class ResponseWindow(ThemedWidget):
         self.setWindowTitle(title)
         self.option = title.replace(" Result", "")
         self.selected_text: str | None = None
+        self.image: QtGui.QImage | None = None
         self.input_field = None
         self.loading_label = None
         self.loading_container = None
@@ -515,6 +516,21 @@ class ResponseWindow(ThemedWidget):
         )
         top_bar.addWidget(title_label)
 
+        # Add image indicator in title bar if we have an image
+        if self.image:
+            image_indicator = QLabel("📷")
+            image_indicator.setStyleSheet(
+                f"""
+                QLabel {{
+                    color: {"#aaaaaa" if current_mode == "dark" else "#666666"};
+                    font-size: 16px;
+                    margin-left: 10px;
+                }}
+                """
+            )
+            image_indicator.setToolTip("Image analysis mode")
+            top_bar.addWidget(image_indicator)
+
         top_bar.addStretch()
 
         # Zoom label with matched size
@@ -548,6 +564,10 @@ class ResponseWindow(ThemedWidget):
 
         self.content_layout.addLayout(top_bar)
 
+        # Add image preview if we have an image
+        if self.image:
+            self._create_image_preview_section()
+
         # Copy controls with matching text size
         copy_bar = QHBoxLayout()
         copy_hint = QLabel(
@@ -565,7 +585,7 @@ class ResponseWindow(ThemedWidget):
         loading_layout = QHBoxLayout(loading_container)
         loading_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.loading_label = QLabel(_("Thinking"))
+        self.loading_label = QLabel(_("Analyzing image" if self.image else "Thinking"))
         self.loading_label.setStyleSheet(
             f"""
             QLabel {{
@@ -601,7 +621,12 @@ class ResponseWindow(ThemedWidget):
         bottom_bar = QHBoxLayout()
 
         self.input_field = QLineEdit()
-        self.input_field.setPlaceholderText(_("Ask a follow-up question") + "...")
+        placeholder_text = (
+            _("Ask a follow-up question about this image") + "..."
+            if self.image
+            else _("Ask a follow-up question") + "..."
+        )
+        self.input_field.setPlaceholderText(placeholder_text)
         self.input_field.setStyleSheet(
             f"""
             QLineEdit {{
@@ -643,29 +668,124 @@ class ResponseWindow(ThemedWidget):
 
         self.content_layout.addLayout(bottom_bar)
 
-    # Method to get first response text
-    # def get_first_response_text(self):
-    #     """Get the first model response text from chat history"""
-    #     try:
-    #         # Check chat history exists
-    #         if not self.chat_history:
-    #             return None
+    def _create_image_preview_section(self) -> None:
+        """Create a collapsible image preview section in the response window."""
+        if not self.image:
+            return
 
-    #         # Find first assistant message
-    #         for msg in self.chat_history:
-    #             if msg["role"] == "assistant":
-    #                 return msg["content"]
+        current_mode = get_effective_color_mode()
 
-    #         return None
-    #     except Exception as e:
-    #         logging.exception(f"Error getting first response: {e}")
-    #         return None
+        # Create collapsible section
+        image_section = QWidget()
+        image_section.setStyleSheet(
+            f"""
+            QWidget {{
+                background-color: {"#2a2a2a" if current_mode == "dark" else "#f8f9fa"};
+                border: 1px solid {"#555" if current_mode == "dark" else "#dee2e6"};
+                border-radius: 8px;
+                margin: 5px 0;
+            }}
+            """
+        )
 
-    # def copy_first_response(self):
-    #     """Copy only the first model response as Markdown"""
-    #     response_text = self.get_first_response_text()
-    #     if response_text:
-    #         QApplication.clipboard().setText(response_text)
+        section_layout = QVBoxLayout(image_section)
+        section_layout.setContentsMargins(10, 10, 10, 10)
+        section_layout.setSpacing(8)
+
+        # Header with collapse/expand button
+        header_layout = QHBoxLayout()
+
+        self.toggle_button = QPushButton("▼")
+        self.toggle_button.setFixedSize(20, 20)
+        self.toggle_button.setStyleSheet(
+            f"""
+            QPushButton {{
+                background: transparent;
+                border: none;
+                color: {"#ffffff" if current_mode == "dark" else "#333333"};
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {"#404040" if current_mode == "dark" else "#e9ecef"};
+                border-radius: 10px;
+            }}
+            """
+        )
+        self.toggle_button.clicked.connect(self._toggle_image_preview)
+        header_layout.addWidget(self.toggle_button)
+
+        header_label = QLabel("Source Image")
+        header_label.setStyleSheet(
+            f"""
+            QLabel {{
+                color: {"#ffffff" if current_mode == "dark" else "#333333"};
+                font-size: 14px;
+                font-weight: bold;
+            }}
+            """
+        )
+        header_layout.addWidget(header_label)
+
+        header_layout.addStretch()
+
+        # Image info
+        info_text = f"{self.image.width()}×{self.image.height()} pixels"
+        info_label = QLabel(info_text)
+        info_label.setStyleSheet(
+            f"""
+            QLabel {{
+                color: {"#aaaaaa" if current_mode == "dark" else "#666666"};
+                font-size: 12px;
+            }}
+            """
+        )
+        header_layout.addWidget(info_label)
+
+        section_layout.addLayout(header_layout)
+
+        # Image display
+        self.image_display_widget = QLabel()
+        self.image_display_widget.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.image_display_widget.setStyleSheet(
+            """
+            QLabel {
+                border: 1px solid #999;
+                border-radius: 4px;
+                padding: 5px;
+                background-color: rgba(255, 255, 255, 0.05);
+            }
+            """
+        )
+
+        # Scale image for display
+        pixmap = QtGui.QPixmap.fromImage(self.image)
+        scaled_pixmap = pixmap.scaled(
+            400,
+            300,  # Max display size in response window
+            QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+            QtCore.Qt.TransformationMode.SmoothTransformation,
+        )
+        self.image_display_widget.setPixmap(scaled_pixmap)
+
+        section_layout.addWidget(self.image_display_widget)
+        if self.content_layout:
+            self.content_layout.addWidget(image_section)
+
+        # Store references for toggling
+        self.image_section = image_section
+        self.image_display_collapsed = False
+
+    def _toggle_image_preview(self) -> None:
+        """Toggle the image preview visibility."""
+        if hasattr(self, "image_display_widget") and hasattr(self, "toggle_button"):
+            if self.image_display_collapsed:
+                self.image_display_widget.setVisible(True)
+                self.toggle_button.setText("▼")
+                self.image_display_collapsed = False
+            else:
+                self.image_display_widget.setVisible(False)
+                self.toggle_button.setText("▶")
+                self.image_display_collapsed = True
 
     def get_button_style(self) -> str:
         current_mode = get_effective_color_mode()
@@ -810,15 +930,21 @@ class ResponseWindow(ThemedWidget):
 
     @Slot(str)
     def set_text(self, text: str) -> None:
-        """Set initial response text with enhanced handling"""
+        """Set initial response text with enhanced handling for image analysis"""
         if not text.strip() or not self.chat_area:
             return
 
-        # Always ensure chat history is initialized properly
-        self.chat_history = [
-            {"role": "user", "content": f"{self.option}: {self.selected_text}"},
-            {"role": "assistant", "content": text},  # Add initial response immediately
-        ]
+        # Enhanced chat history initialization for image analysis
+        if self.image:
+            self.chat_history = [
+                {"role": "user", "content": f"Image analysis request: {self.option}"},
+                {"role": "assistant", "content": text},
+            ]
+        else:
+            self.chat_history = [
+                {"role": "user", "content": f"{self.option}: {self.selected_text}"},
+                {"role": "assistant", "content": text},
+            ]
 
         self.stop_thinking_animation()
         text_display = self.chat_area.add_message(text)
