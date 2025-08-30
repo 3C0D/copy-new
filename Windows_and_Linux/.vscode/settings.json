@@ -1,0 +1,73 @@
+{
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.diagnosticMode": "workspace",
+    "python.analysis.include": [
+        "./**"
+    ],
+    "editor.wordWrap": "on",
+    "python.defaultInterpreterPath": "./myvenv/Scripts/python.exe",
+    "python.analysis.extraPaths": [
+        "./myvenv/Lib/site-packages",
+        "./Windows_and_Linux"
+    ],
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.typeCheckingMode": "basic",
+    "python.terminal.activateEnvironment": true,
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+        },
+        "files.trimTrailingWhitespace": true
+    },
+    
+    "ruff.configuration": "./pyproject.toml",
+    "ruff.path": ["./myvenv/Scripts/ruff.exe"],
+    "python.formatting.provider": "none",
+    "editor.formatOnType": false,
+    
+    "files.associations": {
+        "*.py": "python"
+    },
+    "python.envFile": "${workspaceFolder}/Windows_and_Linux/.env",
+    
+    "search.exclude": {
+        "**/build": true,
+        "**/__pycache__": true,
+        "**/myvenv": true,
+        "**/.git": true,
+        "**/target": true
+    },
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/build/**": true,
+        "**/dist/**": true,
+        "**/__pycache__/**": true,
+        "**/myvenv/**": true,
+        "**/.pytest_cache/**": true,
+        "**/.mypy_cache/**": true
+    },
+    "python.analysis.exclude": [
+        "build",
+        "dist",
+        "__pycache__",
+        "myvenv",
+        ".pytest_cache",
+        ".mypy_cache"
+    ],
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/.DS_Store": true
+    },
+    
+    "files.trimTrailingWhitespace": true,
+    "files.trimFinalNewlines": true,
+    "files.insertFinalNewline": true,
+    "editor.renderWhitespace": "boundary"
+}

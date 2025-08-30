@@ -1,0 +1,21 @@
+{
+    "code-runner.respectShebang": false,
+    "code-runner.clearPreviousOutput": true,
+    "code-runner.runInTerminal": true,    
+
+    "python.defaultInterpreterPath": "./Windows_and_Linux/myvenv/Scripts/python.exe",
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+        },
+        "files.trimTrailingWhitespace": true
+    },
+    "ruff.configuration": "./Windows_and_Linux/pyproject.toml",
+    "ruff.path": [
+        "./Windows_and_Linux/myvenv/Scripts/ruff.exe"
+    ],
+    "python.languageServer": "Pylance"
+}

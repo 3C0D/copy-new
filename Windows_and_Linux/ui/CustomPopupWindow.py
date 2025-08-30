@@ -655,6 +655,10 @@ class CustomPopupWindow(QWidget):
         input_layout = QHBoxLayout(self.input_area)
         input_layout.setContentsMargins(0, 0, 0, 0)
 
+        # Add image indicator icon if there's an image
+        if self.has_image:
+            self._create_image_indicator(input_layout)
+
         self._create_custom_input(input_layout)
         self._create_send_button(input_layout)
 
@@ -663,11 +667,32 @@ class CustomPopupWindow(QWidget):
     def _create_custom_input(self, layout: QHBoxLayout) -> None:
         """Create the custom input text field."""
         self.custom_input = QLineEdit()
-        placeholder = _("Describe your change...") if self.has_sel_text else _("Ask your AI...")
+        placeholder = (
+            _("Describe your change...")
+            if self.has_sel_text
+            else _("Describe what to do on this image?")
+            if self.has_image
+            else _("Ask your AI...")
+        )
         self.custom_input.setPlaceholderText(placeholder)
         self.custom_input.setStyleSheet(self._get_input_style())
         self.custom_input.returnPressed.connect(self.on_custom_change)
         layout.addWidget(self.custom_input)
+
+    def _create_image_indicator(self, layout: QHBoxLayout) -> None:
+        """Create a small image indicator icon when there's an image."""
+        image_label = QLabel("🖼️")
+        image_label.setStyleSheet(
+            f"""
+            QLabel {{
+                color: {"#fff" if get_effective_color_mode() == "dark" else "#666"};
+                font-size: 16px;
+                padding: 0px 5px 0px 0px;
+            }}
+        """,
+        )
+        image_label.setToolTip("Image attached")
+        layout.addWidget(image_label)
 
     def _create_send_button(self, layout: QHBoxLayout) -> None:
         """Create the send button for the input area."""
@@ -1393,7 +1418,7 @@ class CustomPopupWindow(QWidget):
         widget = getattr(self, "custom_input", None)
         txt = widget.text() if widget else ""
         if txt.strip():
-            self.app.process_option("Custom", self.selected_text, self.is_force_chat_enabled(), txt)
+            self.app.process_option("Custom", self.selected_text, self.is_force_chat_enabled(), txt, self.has_image)
             self.close()
 
     def on_generic_instruction(self, instruction: str) -> None:
@@ -1401,9 +1426,7 @@ class CustomPopupWindow(QWidget):
         User clicked a generic instruction button.
         """
         if not self.edit_mode and self.selected_text is not None:
-            self.app.process_option(
-                instruction, self.selected_text, self.is_force_chat_enabled()
-            )
+            self.app.process_option(instruction, self.selected_text, self.is_force_chat_enabled())
             self.close()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:

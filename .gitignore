@@ -5,8 +5,8 @@
 .idea
 
 # VSCode settings (exclude all VSCode config files)
-.vscode/
-Windows_and_Linux/.vscode/
+.vscode/launch.json
+.
 
 # Development notes and temporary docs
 dev_notes/

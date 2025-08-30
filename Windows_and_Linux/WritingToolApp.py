@@ -118,6 +118,7 @@ class WritingToolApp(QApplication):
         self.paused = False
         self.original_selection: str | None = None
         self.image: QImage | None = None
+        self.has_image = bool(self.image is not None)
 
     def _setup_signals(self) -> None:
         """Connect application signals to their handlers."""
@@ -811,6 +812,7 @@ class WritingToolApp(QApplication):
         selected_text: str | None,
         force_chat: bool = False,
         custom_change: str | None = None,
+        has_image: bool = False,
     ) -> None:
         """
         Check if the text is a file path (from file/icon selection).
@@ -829,6 +831,7 @@ class WritingToolApp(QApplication):
 
         should_setup_response_window = (
             (is_custom_option and not has_selected_text)
+            or (is_custom_option and has_image)
             or action_config.get("open_in_window", False)
             or (force_chat and has_selected_text)  # Force Chat with text
         )
@@ -860,7 +863,13 @@ class WritingToolApp(QApplication):
         self.current_response_window = self.show_response_window(window_title, selected_text)
 
         # Initialize chat history inline
-        # Il va falloir ajouter image.
+
+        #     if image_data:
+        # user_content = [
+        #     {"type": "text", "text": prompt},
+        #     {"type": "image_url", "image_url": f"data:image/png;base64,{image_data}"},
+        # ]
+
         self.current_response_window.chat_history = (
             []
             if not is_custom
@@ -871,6 +880,8 @@ class WritingToolApp(QApplication):
                 },
             ]
         )
+
+        self._logger.debug(f"Chat history: {self.current_response_window.chat_history}")
 
     # ============================================================================
     # AI PROCESSING METHODS
