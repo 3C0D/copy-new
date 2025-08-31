@@ -1065,7 +1065,7 @@ class WritingToolApp(QApplication):
             self._logger.debug(
                 f"🖼️ Processing image in _handle_text_or_image_selected - image size: {image.width()}x{image.height()}"
             )
-            image_data = self._qimage_to_base64(image)
+            image_data = self._qimage_to_base64(image, use_physical_file=False)
             if image_data:
                 self._logger.debug(
                     f"🖼️ Image converted to base64 successfully - length: {len(image_data)}"
@@ -1080,10 +1080,36 @@ class WritingToolApp(QApplication):
             "image_data": image_data,
         }
 
-    def _qimage_to_base64(self, image: QImage) -> str:
+    def _qimage_to_base64(self, image: QImage, use_physical_file: bool = True) -> str:
         """
-        Convert QImage to base64 string for API transmission using temporary file approach.
-        Similar to main_window.py implementation but with proper temporary file handling.
+        Convert QImage to base64 string for API transmission.
+
+        Supports two approaches:
+        1. Physical file approach (use_physical_file=True): Creates temporary file, saves QImage, reads and converts to base64
+        2. Memory approach (use_physical_file=False): Direct conversion using QBuffer without file I/O
+
+        Args:
+            image: QImage to convert
+            use_physical_file: Whether to use temporary file approach. Defaults to False for memory-based conversion.
+
+        Returns:
+            str: Base64 encoded image data
+        """
+        try:
+            if use_physical_file:
+                # Original approach using temporary file
+                return self._qimage_to_base64_with_file(image)
+            else:
+                # Alternative approach using memory buffer
+                return self._qimage_to_base64_memory(image)
+
+        except Exception as e:
+            self._logger.error(f"Error converting QImage to base64: {e}")
+            return ""
+
+    def _qimage_to_base64_with_file(self, image: QImage) -> str:
+        """
+        Convert QImage to base64 using temporary file approach (legacy method).
 
         Args:
             image: QImage to convert
@@ -1094,7 +1120,7 @@ class WritingToolApp(QApplication):
         try:
             # Create temporary file path
             temp_path = self._get_temp_image_path()
-            self._logger.debug(f"🖼️ Converting QImage to base64 - temp path: {temp_path}")
+            self._logger.debug(f"🖼️ Converting QImage to base64 with file - temp path: {temp_path}")
 
             # Save QImage to temporary file (PNG format for compatibility)
             if not image.save(str(temp_path)):  # Use overload without format parameter
@@ -1124,7 +1150,71 @@ class WritingToolApp(QApplication):
                     )
 
         except Exception as e:
-            self._logger.error(f"Error converting QImage to base64: {e}")
+            self._logger.error(f"Error converting QImage to base64 with file: {e}")
+            return ""
+
+    def _qimage_to_base64_memory(self, image: QImage) -> str:
+        """
+        Convert QImage to base64 using memory buffer approach (new method).
+        
+        Args:
+            image: QImage to convert
+
+        Returns:
+            str: Base64 encoded image data
+        """
+        try:
+            from PySide6.QtCore import QBuffer, QByteArray, QIODevice
+
+            # Validate image
+            if image.isNull():
+                self._logger.error("🖼️ Image is null, cannot convert")
+                return ""
+
+            self._logger.debug(f"🖼️ Image size: {image.width()}x{image.height()}, format: {image.format()}")
+
+            # Create byte array and buffer
+            byte_array = QByteArray()
+            buffer = QBuffer(byte_array)
+            
+            if not buffer.open(QIODevice.OpenModeFlag.WriteOnly):
+                self._logger.error("🖼️ Failed to open buffer for writing")
+                return ""
+
+            # Save QImage to buffer in PNG format
+            # Try to save directly first, then fallback to conversion
+            save_success = image.save(buffer, "PNG")
+            if not save_success:
+                # Fallback: convert to RGB32 format
+                rgb_image = image.convertToFormat(QtGui.QImage.Format.Format_RGB32)
+                buffer.close()
+                buffer = QBuffer(byte_array)
+                buffer.open(QIODevice.OpenModeFlag.WriteOnly)
+                save_success = rgb_image.save(buffer, "PNG")
+            buffer.close()
+            
+            if not save_success:
+                self._logger.error("🖼️ Failed to save QImage to memory buffer")
+                return ""
+
+            # Get the size of saved data
+            image_bytes = byte_array.data()
+            if not image_bytes:
+                self._logger.error("🖼️ No data saved to buffer")
+                return ""
+
+            self._logger.debug(f"🖼️ Image saved to buffer: {len(image_bytes)} bytes")
+            
+            # Convert to base64
+            base64_string = base64.b64encode(image_bytes).decode("utf-8")
+
+            self._logger.debug(
+                f"🖼️ Converted image to base64 from memory: {len(base64_string)} characters"
+            )
+            return base64_string
+
+        except Exception as e:
+            self._logger.error(f"Error converting QImage to base64 from memory: {e}", exc_info=True)
             return ""
 
     def _get_temp_image_path(self) -> Path:
@@ -1743,7 +1833,9 @@ class WritingToolApp(QApplication):
                     self._logger.debug(
                         f"🖼️ Processing follow-up with image - size: {response_window.image.width()}x{response_window.image.height()}"
                     )
-                    image_data = self._qimage_to_base64(response_window.image)
+                    image_data = self._qimage_to_base64(
+                        response_window.image, use_physical_file=False
+                    )
                     if image_data:
                         self._logger.debug(
                             f"🖼️ Follow-up image converted to base64 - length: {len(image_data)}"

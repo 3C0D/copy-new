@@ -574,7 +574,7 @@ class GeminiProvider(AIProvider):
         logging.debug("🔥 GeminiProvider.get_response called")
         logging.debug(f"🔥 system_instruction length: {len(system_instruction)}")
         logging.debug(f"🔥 prompt length: {len(prompt)}")
-        logging.debug(f"🔥 prompt preview:\n{prompt[:200].rstrip('\n')}...\n")
+        logging.debug(f"🔥 prompt preview:\n{prompt[:200]}...")
         logging.debug(f"🔥 return_response: {return_response}")
         logging.debug(f"🔥 image_data present: {image_data is not None}")
 
@@ -1989,7 +1989,7 @@ class MistralProvider(AIProvider):
         logging.debug("🔥 MistralProvider.get_response called")
         logging.debug(f"🔥 system_instruction length: {len(system_instruction)}")
         logging.debug(f"🔥 prompt length: {len(prompt)}")
-        logging.debug(f"🔥 prompt preview:\n{prompt[:200].rstrip('\n')}...\n")
+        logging.debug(f"🔥 prompt preview:\n{prompt[:200]}...")
         logging.debug(f"🔥 return_response: {return_response}")
         logging.debug(f"🔥 image_data present: {image_data is not None}")
 
@@ -2050,12 +2050,12 @@ class MistralProvider(AIProvider):
                 # Check if current model supports vision
                 vision_models = [
                     "pixtral-12b-2409",
-                    "mistral-small-2503", 
+                    "mistral-small-2503",
                     "mistral-medium-2505",
                     "pixtral-large-2411",
                     "mistral-small-latest"  # Keep for backward compatibility
                 ]
-                
+
                 if self.api_model not in vision_models:
                     error_msg = f"The selected model '{self.api_model}' does not support image analysis. Please choose a vision-capable model like pixtral-12b-2409 or mistral-small-2503."
                     logging.error(error_msg)
@@ -2064,7 +2064,7 @@ class MistralProvider(AIProvider):
                         error_msg,
                     )
                     return ""
-                
+
                 user_content = [
                     {"type": "text", "text": prompt},
                     {"type": "image_url", "image_url": f"data:image/png;base64,{image_data}"},

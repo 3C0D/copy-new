@@ -105,6 +105,16 @@ MISTRAL_MODELS = [
         "pixtral-large-2411",
         {"vision": True},
     ),
+    (
+        "Devstral Small 2505 (code-focused | multimodal)",
+        "devstral-small-2505",
+        {"vision": False},
+    ),
+    (
+        "Devstral Medium Latest (code-focused | multimodal)",
+        "devstral-medium-latest",
+        {"vision": False},
+    ),
 ]
 
 # Common Ollama models (users can add custom ones)
