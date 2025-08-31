@@ -37,6 +37,7 @@ Response Flow:
 # pyright: reportPrivateImportUsage=false
 
 # Standard library imports
+import io
 import logging
 import os
 import platform
@@ -48,27 +49,10 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Callable, Union, cast
 
 # Third-party imports (with fallbacks for optional dependencies)
-try:
-    import requests
-except ImportError:
-    requests = None
-
-try:
-    from ollama import Client as OllamaClient
-except ImportError:
-    OllamaClient = None
-
-try:
-    from openai import OpenAI
-except ImportError:
-    OpenAI = None
-
-try:
-    from PIL import Image as PILImage
-    import io
-except ImportError:
-    PILImage = None
-    io = None
+import requests
+from ollama import Client as OllamaClient
+from openai import OpenAI
+from PIL import Image as PILImage
 
 # PySide6 imports
 from PySide6 import QtCore
@@ -589,7 +573,7 @@ class GeminiProvider(AIProvider):
         logging.info("🔥 GeminiProvider.get_response called")
         logging.info(f"🔥 system_instruction length: {len(system_instruction)}")
         logging.info(f"🔥 prompt length: {len(prompt)}")
-        logging.info(f"🔥 prompt preview: {prompt[:200]}...")
+        logging.info(f"🔥 prompt preview:\n{prompt[:200].rstrip("\n")}...\n")
         logging.info(f"🔥 return_response: {return_response}")
         logging.info(f"🔥 image_data present: {image_data is not None}")
 
@@ -610,7 +594,9 @@ class GeminiProvider(AIProvider):
             # Prepare content for Gemini
             if image_data:
                 # Convert base64 to PIL Image like in gemini_integration.py
-                logging.info(f"🖼️ GeminiProvider: Converting base64 to PIL Image - length: {len(image_data)}")
+                logging.info(
+                    f"🖼️ GeminiProvider: Converting base64 to PIL Image - length: {len(image_data)}"
+                )
                 if PILImage is not None and io is not None:
                     try:
                         import base64
@@ -619,7 +605,9 @@ class GeminiProvider(AIProvider):
                         image_bytes = base64.b64decode(image_data)
                         # Create PIL Image from bytes
                         pil_image = PILImage.open(io.BytesIO(image_bytes))
-                        logging.info(f"🖼️ GeminiProvider: PIL Image created - size: {pil_image.size}, mode: {pil_image.mode}")
+                        logging.info(
+                            f"🖼️ GeminiProvider: PIL Image created - size: {pil_image.size}, mode: {pil_image.mode}"
+                        )
 
                         # For image analysis, create content with PIL Image and text
                         contents = [
@@ -628,7 +616,9 @@ class GeminiProvider(AIProvider):
                             prompt,
                         ]
                     except Exception as img_error:
-                        logging.error(f"🖼️ GeminiProvider: Failed to convert base64 to PIL Image: {img_error}")
+                        logging.error(
+                            f"🖼️ GeminiProvider: Failed to convert base64 to PIL Image: {img_error}"
+                        )
                         # Fallback to inline_data format
                         contents = [
                             system_instruction,
@@ -815,7 +805,9 @@ class GeminiProvider(AIProvider):
                         HarmCategory, "HARM_CATEGORY_CIVIC_INTEGRITY", None
                     )
                     if civic_integrity_category is not None:
-                        safety_settings[civic_integrity_category] = HarmBlockThreshold.BLOCK_ONLY_HIGH
+                        safety_settings[civic_integrity_category] = (
+                            HarmBlockThreshold.BLOCK_ONLY_HIGH
+                        )
                 except (AttributeError, TypeError):
                     # Handle cases where HarmCategory might be None or attribute doesn't exist
                     pass
@@ -1992,11 +1984,11 @@ class MistralProvider(AIProvider):
             f"MistralProvider current config - api_key: {self.api_key[:10] if self.api_key else 'None'}..., api_model: {self.api_model}",
         )
 
-                # DEBUG: Log the incoming request
+        # DEBUG: Log the incoming request
         logging.info("🔥 MistralProvider.get_response called")
         logging.info(f"🔥 system_instruction length: {len(system_instruction)}")
         logging.info(f"🔥 prompt length: {len(prompt)}")
-        logging.info(f"🔥 prompt preview: {prompt}...")
+        logging.info(f"🔥 prompt preview:\n{prompt[:200].rstrip("\n")}...\n")
         logging.info(f"🔥 return_response: {return_response}")
         logging.info(f"🔥 image_data present: {image_data is not None}")
 

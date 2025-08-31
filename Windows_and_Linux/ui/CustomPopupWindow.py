@@ -509,6 +509,11 @@ class CustomPopupWindow(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowTitle("Writing Tools")
 
+        # Set the window icon
+        icon_path = get_icon_path("app_icon", with_theme=False)
+        if icon_path.exists():
+            self.setWindowIcon(QtGui.QIcon(icon_path.as_posix()))
+
     def _create_main_layout(self) -> QVBoxLayout:
         """Create and configure the main layout."""
         main_layout = QVBoxLayout(self)
@@ -691,7 +696,7 @@ class CustomPopupWindow(QWidget):
         preview_layout.setSpacing(5)
 
         # Image preview label
-        image_label = QLabel("📷 Image Preview:")
+        image_label = QLabel("📷 Image from Clipboard:")
         image_label.setStyleSheet(
             f"""
             QLabel {{
@@ -730,21 +735,6 @@ class CustomPopupWindow(QWidget):
                 QtCore.Qt.TransformationMode.SmoothTransformation,
             )
             self.image_display.setPixmap(scaled_pixmap)
-
-            # Add image info
-            info_text = f"Size: {self.image.width()}×{self.image.height()} pixels"
-            info_label = QLabel(info_text)
-            info_label.setStyleSheet(
-                f"""
-                QLabel {{
-                    color: {"#aaa" if get_effective_color_mode() == "dark" else "#888"};
-                    font-size: 11px;
-                    margin-top: 3px;
-                }}
-                """
-            )
-            info_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-            preview_layout.addWidget(info_label)
         else:
             self.image_display.setText("No image preview available")
 
@@ -757,7 +747,7 @@ class CustomPopupWindow(QWidget):
         placeholder = (
             _("Describe your change...")
             if self.has_sel_text
-            else _("What would you like to know about this image?")
+            else _("Ask anything about this image...")
             if self.has_image
             else _("Ask your AI...")
         )
@@ -1496,7 +1486,7 @@ class CustomPopupWindow(QWidget):
         txt = widget.text() if widget else ""
         if txt.strip():
             self.app.process_option(
-                "Custom", self.selected_text, self.is_force_chat_enabled(), txt, self.has_image
+                "Custom", self.selected_text, self.is_force_chat_enabled(), txt, self.image
             )
             self.close()
 
@@ -1505,7 +1495,9 @@ class CustomPopupWindow(QWidget):
         User clicked a generic instruction button.
         """
         if not self.edit_mode and self.selected_text is not None:
-            self.app.process_option(instruction, self.selected_text, self.is_force_chat_enabled(), None, self.has_image)
+            self.app.process_option(
+                instruction, self.selected_text, self.is_force_chat_enabled(), None, self.image
+            )
             self.close()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
