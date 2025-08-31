@@ -640,6 +640,7 @@ class ResponseWindow(ThemedWidget):
         """,
         )
         self.input_field.returnPressed.connect(self.send_message)
+        self.input_field.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         bottom_bar.addWidget(self.input_field)
 
         send_button = QPushButton()
@@ -667,6 +668,17 @@ class ResponseWindow(ThemedWidget):
         bottom_bar.addWidget(send_button)
 
         self.content_layout.addLayout(bottom_bar)
+
+        # Ensure input field gets focus when window opens
+        QtCore.QTimer.singleShot(50, self.set_input_focus)
+
+    def set_input_focus(self) -> None:
+        """Force focus on input field when window opens"""
+        if self.input_field:
+            self.input_field.setFocus(Qt.FocusReason.OtherFocusReason)
+            self.raise_()
+            self.activateWindow()
+            self.input_field.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def _create_image_preview_section(self) -> None:
         """Create a collapsible image preview section in the response window."""
@@ -844,7 +856,7 @@ class ResponseWindow(ThemedWidget):
             self.input_field.setPlaceholderText(placeholder_text)
             self.input_field.setEnabled(True)
             # Force focus on input field, especially important for image mode
-            QtCore.QTimer.singleShot(100, self.input_field.setFocus)
+            QtCore.QTimer.singleShot(50, self.set_input_focus)
 
         # Force layout update
         if self.layout():
@@ -968,6 +980,9 @@ class ResponseWindow(ThemedWidget):
             text_display._apply_zoom()
 
         QtCore.QTimer.singleShot(100, self._adjust_window_height)
+        
+        # Ensure input field keeps focus after content is displayed
+        QtCore.QTimer.singleShot(150, self.set_input_focus)
 
     @Slot(str)
     def handle_followup_response(self, response_text: str) -> None:
