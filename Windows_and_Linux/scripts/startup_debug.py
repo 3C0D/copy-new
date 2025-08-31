@@ -54,27 +54,27 @@ def setup_detailed_logging() -> tuple[logging.Logger, str]:
 
     # Log des informations système au démarrage
     logger = logging.getLogger("STARTUP_DEBUG")
-    logger.info("=" * 80)
-    logger.info("WRITING TOOLS - STARTUP DEBUG SESSION")
-    logger.info("=" * 80)
-    logger.info(f"Log file: {log_file}")
-    logger.info(f"Python version: {sys.version}")
-    logger.info(f"Python executable: {sys.executable}")
-    logger.info(f"Script path: {sys.argv[0]}")
-    logger.info(f"Working directory: {os.getcwd()}")
-    logger.info(f"Frozen: {getattr(sys, 'frozen', False)}")
+    logger.debug("=" * 80)
+    logger.debug("WRITING TOOLS - STARTUP DEBUG SESSION")
+    logger.debug("=" * 80)
+    logger.debug(f"Log file: {log_file}")
+    logger.debug(f"Python version: {sys.version}")
+    logger.debug(f"Python executable: {sys.executable}")
+    logger.debug(f"Script path: {sys.argv[0]}")
+    logger.debug(f"Working directory: {os.getcwd()}")
+    logger.debug(f"Frozen: {getattr(sys, 'frozen', False)}")
 
     if getattr(sys, "frozen", False):
-        logger.info(f"Executable path: {sys.executable}")
-        logger.info(f"Base directory: {os.path.dirname(sys.executable)}")
+        logger.debug(f"Executable path: {sys.executable}")
+        logger.debug(f"Base directory: {os.path.dirname(sys.executable)}")
 
     # Informations sur l'environnement Windows
     try:
         import platform
 
-        logger.info(f"Platform: {platform.platform()}")
-        logger.info(f"Machine: {platform.machine()}")
-        logger.info(f"Processor: {platform.processor()}")
+        logger.debug(f"Platform: {platform.platform()}")
+        logger.debug(f"Machine: {platform.machine()}")
+        logger.debug(f"Processor: {platform.processor()}")
     except Exception as e:
         logger.error(f"Error getting platform info: {e}")
 
@@ -82,7 +82,7 @@ def setup_detailed_logging() -> tuple[logging.Logger, str]:
     env_vars = ["PATH", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "TEMP"]
     for var in env_vars:
         value = os.environ.get(var, "NOT_SET")
-        logger.info(f"ENV {var}: {value}")
+        logger.debug(f"ENV {var}: {value}")
 
     return logger, log_file
 
@@ -93,35 +93,35 @@ def log_systray_environment() -> bool:
 
     try:
         # Importer PySide6 et vérifier la disponibilité
-        logger.info("Importing PySide6...")
+        logger.debug("Importing PySide6...")
         from PySide6 import QtGui, QtWidgets
 
-        logger.info("PySide6 imported successfully")
+        logger.debug("PySide6 imported successfully")
 
         # Créer une application temporaire pour tester le systray
-        logger.info("Creating temporary QApplication...")
+        logger.debug("Creating temporary QApplication...")
         app = QtWidgets.QApplication.instance()
         if app is None:
             app = QtWidgets.QApplication([])
-            logger.info("New QApplication created")
+            logger.debug("New QApplication created")
         else:
-            logger.info("Using existing QApplication instance")
+            logger.debug("Using existing QApplication instance")
 
         # Tester la disponibilité du systray
-        logger.info("Testing system tray availability...")
+        logger.debug("Testing system tray availability...")
         systray_available = QtWidgets.QSystemTrayIcon.isSystemTrayAvailable()
-        logger.info(f"System tray available: {systray_available}")
+        logger.debug(f"System tray available: {systray_available}")
 
         # Informations sur les écrans
-        logger.info("Screen information:")
+        logger.debug("Screen information:")
         screens = QtGui.QGuiApplication.screens()
-        logger.info(f"Number of screens: {len(screens)}")
+        logger.debug(f"Number of screens: {len(screens)}")
         for i, screen in enumerate(screens):
-            logger.info(f"Screen {i}: {screen.name()} - {screen.geometry()}")
+            logger.debug(f"Screen {i}: {screen.name()} - {screen.geometry()}")
 
         # Test de création d'icône systray
         if systray_available:
-            logger.info("Attempting to create test system tray icon...")
+            logger.debug("Attempting to create test system tray icon...")
             try:
                 test_icon = QtWidgets.QSystemTrayIcon()
                 test_icon.setToolTip("Writing Tools Debug Test")
@@ -130,10 +130,10 @@ def log_systray_environment() -> bool:
                 # Vérifier si elle est visible
                 time.sleep(0.5)  # Petit délai
                 is_visible = test_icon.isVisible()
-                logger.info(f"Test tray icon visible: {is_visible}")
+                logger.debug(f"Test tray icon visible: {is_visible}")
 
                 test_icon.hide()
-                logger.info("Test tray icon cleaned up")
+                logger.debug("Test tray icon cleaned up")
 
             except Exception as e:
                 logger.error(f"Error creating test tray icon: {e}")
@@ -166,7 +166,7 @@ def find_project_python() -> str:
     # Tester chaque chemin
     for venv_path in possible_venv_paths:
         if os.path.exists(venv_path):
-            logger.info(f"Found virtual environment Python: {venv_path}")
+            logger.debug(f"Found virtual environment Python: {venv_path}")
             return venv_path
 
     # Fallback vers Python système
@@ -181,30 +181,30 @@ def main():
     logger, log_file = setup_detailed_logging()
 
     try:
-        logger.info("Starting Writing Tools startup debug...")
+        logger.debug("Starting Writing Tools startup debug...")
 
         # Trouver le bon Python
         project_python = find_project_python()
-        logger.info(f"Using Python: {project_python}")
+        logger.debug(f"Using Python: {project_python}")
 
         # Si on n'utilise pas le bon Python, relancer avec le bon
         if project_python != sys.executable and os.path.exists(project_python):
-            logger.info("Relaunching with project Python environment...")
+            logger.debug("Relaunching with project Python environment...")
             import subprocess
 
             script_path = os.path.abspath(__file__)
             result = subprocess.run([project_python, script_path], capture_output=True, text=True)
 
-            logger.info(f"Subprocess exit code: {result.returncode}")
+            logger.debug(f"Subprocess exit code: {result.returncode}")
             if result.stdout:
-                logger.info(f"Subprocess stdout:\n{result.stdout}")
+                logger.debug(f"Subprocess stdout:\n{result.stdout}")
             if result.stderr:
                 logger.error(f"Subprocess stderr:\n{result.stderr}")
 
             return result.returncode
 
         # Log de l'environnement systray
-        logger.info("Checking systray environment...")
+        logger.debug("Checking systray environment...")
         systray_ok = log_systray_environment()
 
         if not systray_ok:
@@ -212,17 +212,17 @@ def main():
             return 1
 
         # Maintenant lancer l'application principale
-        logger.info("Launching main Writing Tools application...")
+        logger.debug("Launching main Writing Tools application...")
 
         # Ajouter le répertoire Windows_and_Linux au path
         script_dir = os.path.dirname(os.path.abspath(__file__))
         windows_linux_dir = os.path.join(script_dir, "Windows_and_Linux")
         if os.path.exists(windows_linux_dir):
             sys.path.insert(0, windows_linux_dir)
-            logger.info(f"Added to path: {windows_linux_dir}")
+            logger.debug(f"Added to path: {windows_linux_dir}")
 
         # Nettoyer l'application temporaire avant de créer WritingToolApp
-        logger.info("Cleaning up temporary QApplication...")
+        logger.debug("Cleaning up temporary QApplication...")
         from PySide6 import QtWidgets
 
         temp_app = QtWidgets.QApplication.instance()
@@ -233,36 +233,36 @@ def main():
         # Importer et lancer l'application
         from WritingToolApp import WritingToolApp
 
-        logger.info("Creating WritingToolApp instance...")
+        logger.debug("Creating WritingToolApp instance...")
         app = WritingToolApp(sys.argv)
         app.setQuitOnLastWindowClosed(False)
 
         # Log de l'état de l'application après création
-        logger.info(f"App created. Tray icon exists: {app.tray_icon is not None}")
+        logger.debug(f"App created. Tray icon exists: {app.tray_icon is not None}")
         if app.tray_icon:
-            logger.info(f"Tray icon visible: {app.tray_icon.isVisible()}")
+            logger.debug(f"Tray icon visible: {app.tray_icon.isVisible()}")
 
         # Attendre un peu pour voir si le systray apparaît
-        logger.info("Waiting 10 seconds to monitor tray icon status...")
+        logger.debug("Waiting 10 seconds to monitor tray icon status...")
         for i in range(10):
             time.sleep(1)
             if app.tray_icon:
                 visible = app.tray_icon.isVisible()
-                logger.info(f"Second {i + 1}: Tray icon visible = {visible}")
+                logger.debug(f"Second {i + 1}: Tray icon visible = {visible}")
 
                 # Log des détails de l'icône
                 if hasattr(app.tray_icon, "icon") and not app.tray_icon.icon().isNull():
-                    logger.info(f"Second {i + 1}: Icon is set and valid")
+                    logger.debug(f"Second {i + 1}: Icon is set and valid")
                 else:
                     logger.warning(f"Second {i + 1}: Icon is null or not set")
             else:
-                logger.info(f"Second {i + 1}: No tray icon object")
+                logger.debug(f"Second {i + 1}: No tray icon object")
 
-        logger.info("Debug session completed successfully")
-        logger.info(f"Full log saved to: {log_file}")
+        logger.debug("Debug session completed successfully")
+        logger.debug(f"Full log saved to: {log_file}")
 
         # Garder l'application ouverte pour observation
-        logger.info("Application will remain running for observation...")
+        logger.debug("Application will remain running for observation...")
         return app.exec()
 
     except Exception as e:

@@ -269,7 +269,7 @@ class SettingsManager:
             return raw_data
         except (json.JSONDecodeError, Exception) as e:
             self._logger.error(f"Error loading settings from {self.data_file}: {e}")
-            self._logger.info("Using default settings")
+            self._logger.debug("Using default settings")
             return None
 
     def _write_settings_to_file(self) -> bool:

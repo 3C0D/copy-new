@@ -570,12 +570,12 @@ class GeminiProvider(AIProvider):
         self.close_requested = False
 
         # DEBUG: Log the incoming request
-        logging.info("🔥 GeminiProvider.get_response called")
-        logging.info(f"🔥 system_instruction length: {len(system_instruction)}")
-        logging.info(f"🔥 prompt length: {len(prompt)}")
-        logging.info(f"🔥 prompt preview:\n{prompt[:200].rstrip("\n")}...\n")
-        logging.info(f"🔥 return_response: {return_response}")
-        logging.info(f"🔥 image_data present: {image_data is not None}")
+        logging.debug("🔥 GeminiProvider.get_response called")
+        logging.debug(f"🔥 system_instruction length: {len(system_instruction)}")
+        logging.debug(f"🔥 prompt length: {len(prompt)}")
+        logging.debug(f"🔥 prompt preview:\n{prompt[:200].rstrip('\n')}...\n")
+        logging.debug(f"🔥 return_response: {return_response}")
+        logging.debug(f"🔥 image_data present: {image_data is not None}")
 
         # Check if model is configured
         if not self.model:
@@ -594,7 +594,7 @@ class GeminiProvider(AIProvider):
             # Prepare content for Gemini
             if image_data:
                 # Convert base64 to PIL Image like in gemini_integration.py
-                logging.info(
+                logging.debug(
                     f"🖼️ GeminiProvider: Converting base64 to PIL Image - length: {len(image_data)}"
                 )
                 if PILImage is not None and io is not None:
@@ -605,7 +605,7 @@ class GeminiProvider(AIProvider):
                         image_bytes = base64.b64decode(image_data)
                         # Create PIL Image from bytes
                         pil_image = PILImage.open(io.BytesIO(image_bytes))
-                        logging.info(
+                        logging.debug(
                             f"🖼️ GeminiProvider: PIL Image created - size: {pil_image.size}, mode: {pil_image.mode}"
                         )
 
@@ -700,8 +700,8 @@ class GeminiProvider(AIProvider):
             # Safely extract text from response
             try:
                 response_text = response.text.rstrip("\n")
-                logging.info(f"🔥 Gemini raw response.text: '{response_text}'")
-                logging.info(f"🔥 Gemini response_text length: {len(response_text)}")
+                logging.debug(f"🔥 Gemini raw response.text: '{response_text}'")
+                logging.debug(f"🔥 Gemini response_text length: {len(response_text)}")
             except ValueError as text_error:
                 # Fallback: manually extract text from parts
                 logging.warning(f"🔥 Gemini ValueError in response.text: {text_error}")
@@ -712,7 +712,7 @@ class GeminiProvider(AIProvider):
 
                 if text_parts:
                     response_text = "".join(text_parts).rstrip("\n")
-                    logging.info(f"🔥 Gemini fallback response_text: '{response_text}'")
+                    logging.debug(f"🔥 Gemini fallback response_text: '{response_text}'")
                 else:
                     error_msg = f"Could not extract text from Gemini response: {str(text_error)}"
                     logging.error(error_msg)
@@ -724,12 +724,12 @@ class GeminiProvider(AIProvider):
 
             # Direct replacement
             if not return_response and not hasattr(self.app, "current_response_window"):
-                logging.info(
+                logging.debug(
                     f"🔥 Gemini emitting signal with response_text length: {len(response_text)}"
                 )
-                logging.info(f"🔥 Gemini response_text preview: '{response_text[:200]}...'")
+                logging.debug(f"🔥 Gemini response_text preview: '{response_text[:200]}...'")
                 self.app.output_ready_signal.emit(response_text)
-                logging.info("🔥 Gemini signal emitted, returning empty string")
+                logging.debug("🔥 Gemini signal emitted, returning empty string")
                 return ""
             # Response window
             return response_text
@@ -823,7 +823,7 @@ class GeminiProvider(AIProvider):
                 )
 
                 # Log the safety configuration for debugging
-                logging.info(
+                logging.debug(
                     f"Gemini model initialized with BLOCK_ONLY_HIGH safety settings for model: {self.model_name}"
                 )
 
@@ -1985,12 +1985,12 @@ class MistralProvider(AIProvider):
         )
 
         # DEBUG: Log the incoming request
-        logging.info("🔥 MistralProvider.get_response called")
-        logging.info(f"🔥 system_instruction length: {len(system_instruction)}")
-        logging.info(f"🔥 prompt length: {len(prompt)}")
-        logging.info(f"🔥 prompt preview:\n{prompt[:200].rstrip("\n")}...\n")
-        logging.info(f"🔥 return_response: {return_response}")
-        logging.info(f"🔥 image_data present: {image_data is not None}")
+        logging.debug("🔥 MistralProvider.get_response called")
+        logging.debug(f"🔥 system_instruction length: {len(system_instruction)}")
+        logging.debug(f"🔥 prompt length: {len(prompt)}")
+        logging.debug(f"🔥 prompt preview:\n{prompt[:200].rstrip('\n')}...\n")
+        logging.debug(f"🔥 return_response: {return_response}")
+        logging.debug(f"🔥 image_data present: {image_data is not None}")
 
         # Reset cancellation flag at start of new request (like other providers)
         self.close_requested = False

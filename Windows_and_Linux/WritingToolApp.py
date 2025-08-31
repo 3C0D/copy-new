@@ -241,7 +241,7 @@ class WritingToolApp(QApplication):
         if startup_delay_needed:
             # Longer delay for Windows startup - systray needs more time to be ready
             delay = 5000 if is_frozen else 2000  # 5s for exe, 2s for dev
-            logging.info(
+            logging.debug(
                 f"Startup delay detected - waiting {delay / 1000}s for system tray to be ready"
             )
             logging.debug(
@@ -597,10 +597,10 @@ class WritingToolApp(QApplication):
         if self.image is None:
             selected_text = self.original_selection = self.get_selected_text(sleep_duration=0.1)
             logging.debug(f'Selected text: "{selected_text}"')
-            self._logger.info("🖼️ No image found, processing text selection")
+            self._logger.debug("🖼️ No image found, processing text selection")
         else:
             selected_text = None
-            self._logger.info(
+            self._logger.debug(
                 f"🖼️ Image found in clipboard - size: {self.image.width()}x{self.image.height()}"
             )
             self._logger.debug("Image found in clipboard, skipping text capture")
@@ -951,14 +951,7 @@ class WritingToolApp(QApplication):
             if should_open_window:
                 self._process_window_response(option, selected_text, custom_change, prompt_data)
             else:
-                # For image processing, we should always use window display
-                if image is not None:
-                    self._logger.warning(
-                        "Image processing should open window, redirecting...should never happen???????????????"
-                    )
-                    self._process_window_response(option, selected_text, custom_change, prompt_data)
-                else:
-                    self._process_direct_replacement(prompt_data)
+                self._process_direct_replacement(prompt_data)
 
             # Clean up image resources
             self.clean_image()
@@ -1069,12 +1062,12 @@ class WritingToolApp(QApplication):
         # Convert QImage to base64 if present
         image_data = None
         if image:
-            self._logger.info(
+            self._logger.debug(
                 f"🖼️ Processing image in _handle_text_or_image_selected - image size: {image.width()}x{image.height()}"
             )
             image_data = self._qimage_to_base64(image)
             if image_data:
-                self._logger.info(
+                self._logger.debug(
                     f"🖼️ Image converted to base64 successfully - length: {len(image_data)}"
                 )
             else:
@@ -1101,14 +1094,14 @@ class WritingToolApp(QApplication):
         try:
             # Create temporary file path
             temp_path = self._get_temp_image_path()
-            self._logger.info(f"🖼️ Converting QImage to base64 - temp path: {temp_path}")
+            self._logger.debug(f"🖼️ Converting QImage to base64 - temp path: {temp_path}")
 
             # Save QImage to temporary file (PNG format for compatibility)
             if not image.save(str(temp_path)):  # Use overload without format parameter
                 self._logger.error("🖼️ Failed to save QImage to temporary file")
                 return ""
 
-            self._logger.info(f"🖼️ QImage saved successfully to: {temp_path}")
+            self._logger.debug(f"🖼️ QImage saved successfully to: {temp_path}")
 
             # Read the temporary file and convert to base64
             try:
@@ -1116,8 +1109,8 @@ class WritingToolApp(QApplication):
                     image_bytes = image_file.read()
                     base64_string = base64.b64encode(image_bytes).decode("utf-8")
 
-                self._logger.info(f"🖼️ Converted image to base64: {len(base64_string)} characters")
-                self._logger.info(f"🖼️ Base64 preview: {base64_string[:100]}...")
+                self._logger.debug(f"🖼️ Converted image to base64: {len(base64_string)} characters")
+                self._logger.debug(f"🖼️ Base64 preview: {base64_string[:100]}...")
                 return base64_string
 
             finally:
@@ -1204,10 +1197,10 @@ class WritingToolApp(QApplication):
         image_data = prompt_data.get("image_data")
 
         if image_data:
-            self._logger.info(f"🖼️ Passing image data to provider - length: {len(image_data)}")
-            self._logger.info(f"🖼️ Image data preview: {image_data[:100]}...")
+            self._logger.debug(f"🖼️ Passing image data to provider - length: {len(image_data)}")
+            self._logger.debug(f"🖼️ Image data preview: {image_data[:100]}...")
         else:
-            self._logger.info("🖼️ No image data to pass to provider")
+            self._logger.debug("🖼️ No image data to pass to provider")
 
         response = self.current_provider.get_response(
             prompt_data["system_instruction"],
@@ -1246,8 +1239,9 @@ class WritingToolApp(QApplication):
                 {"role": "user", "content": custom_change or ""},
             )
 
-        self._logger.debug(f"Chat history updated to: {self.current_response_window.chat_history}")
-
+        self._logger.debug(
+            f"💬📜 Chat history updated to: {self.current_response_window.chat_history}"
+        )
 
     def _update_response_window(self, response: str) -> None:
         """Update response window with AI response (thread-safe)."""
@@ -1258,7 +1252,7 @@ class WritingToolApp(QApplication):
                 QtCore.Qt.ConnectionType.QueuedConnection,
                 QtCore.Q_ARG(str, response),
             )
-            self._logger.debug("Invoked set_text on response window")
+            self._logger.debug("🆕🪟 Invoked set_text on response window")
         else:
             self._logger.warning("No current_response_window to update")
 
@@ -1553,7 +1547,7 @@ class WritingToolApp(QApplication):
         for attempt in range(max_retries):
             if QSystemTrayIcon.isSystemTrayAvailable():
                 if attempt > 0:
-                    logging.info(f"System tray became available after {attempt + 1} attempts")
+                    logging.debug(f"System tray became available after {attempt + 1} attempts")
                 return True
 
             if attempt < max_retries - 1:  # Don't wait after the last attempt
@@ -1746,12 +1740,12 @@ class WritingToolApp(QApplication):
                 # Get image data if available
                 image_data = None
                 if response_window.image:
-                    self._logger.info(
+                    self._logger.debug(
                         f"🖼️ Processing follow-up with image - size: {response_window.image.width()}x{response_window.image.height()}"
                     )
                     image_data = self._qimage_to_base64(response_window.image)
                     if image_data:
-                        self._logger.info(
+                        self._logger.debug(
                             f"🖼️ Follow-up image converted to base64 - length: {len(image_data)}"
                         )
                     else:
@@ -1967,7 +1961,7 @@ class WritingToolApp(QApplication):
             frame: Current stack frame (unused but required by signal handler interface)
         """
         del signum, frame  # Explicitly mark as unused
-        logging.info("Received SIGINT. Exiting...")
+        logging.debug("Received SIGINT. Exiting...")
         self.exit_app()
 
     def exit_app(self) -> None:

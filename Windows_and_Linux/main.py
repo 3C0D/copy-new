@@ -35,20 +35,20 @@ def main():
         app.setQuitOnLastWindowClosed(False)
 
         if CONSOLE_MODE:
-            logging.info("Application started in console mode")
-            logging.info("Check your system tray for the Writing Tools icon")
+            logging.debug("Application started in console mode")
+            logging.debug("Check your system tray for the Writing Tools icon")
 
         exit_code = app.exec()
 
         if CONSOLE_MODE:
-            logging.info(f"Application exited with code: {exit_code}")
+            logging.debug(f"Application exited with code: {exit_code}")
 
         sys.exit(exit_code)
 
     except KeyboardInterrupt:
         if CONSOLE_MODE:
             print("\nApplication interrupted by user (Ctrl+C)")
-            logging.info("Application interrupted by user")
+            logging.debug("Application interrupted by user")
         sys.exit(0)
     except Exception as e:
         if CONSOLE_MODE:

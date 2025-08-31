@@ -49,7 +49,7 @@ def install_startup_debug() -> bool:
 
     try:
         script_dir = get_script_directory()
-        logger.info(f"Script directory: {script_dir}")
+        logger.debug(f"Script directory: {script_dir}")
 
         # Chemins des scripts
         python_script = os.path.join(script_dir, "startup_debug.py")
@@ -77,8 +77,8 @@ def install_startup_debug() -> bool:
             winreg.SetValueEx(key, debug_entry_name, 0, winreg.REG_SZ, debug_command)
             winreg.CloseKey(key)
 
-            logger.info(f"Successfully installed startup debug entry: {debug_entry_name}")
-            logger.info(f"Command: {debug_command}")
+            logger.debug(f"Successfully installed startup debug entry: {debug_entry_name}")
+            logger.debug(f"Command: {debug_command}")
 
             return True
 
@@ -104,9 +104,9 @@ def uninstall_startup_debug() -> bool:
 
             try:
                 winreg.DeleteValue(key, debug_entry_name)
-                logger.info(f"Successfully removed startup debug entry: {debug_entry_name}")
+                logger.debug(f"Successfully removed startup debug entry: {debug_entry_name}")
             except OSError:
-                logger.info("Startup debug entry was not found (already removed)")
+                logger.debug("Startup debug entry was not found (already removed)")
 
             winreg.CloseKey(key)
             return True
@@ -133,11 +133,11 @@ def check_startup_debug_status() -> tuple[bool, str | None]:
             value, _ = winreg.QueryValueEx(key, debug_entry_name)
             winreg.CloseKey(key)
 
-            logger.info(f"Startup debug is INSTALLED: {value}")
+            logger.debug(f"Startup debug is INSTALLED: {value}")
             return True, value
 
         except OSError:
-            logger.info("Startup debug is NOT installed")
+            logger.debug("Startup debug is NOT installed")
             return False, None
 
     except Exception as e:
@@ -150,8 +150,8 @@ def main():
     setup_logging()
     logger = logging.getLogger(__name__)
 
-    logger.info("Writing Tools - Startup Debug Installer")
-    logger.info("=" * 50)
+    logger.debug("Writing Tools - Startup Debug Installer")
+    logger.debug("=" * 50)
 
     if len(sys.argv) < 2:
         print("Usage:")
@@ -163,7 +163,7 @@ def main():
     command = sys.argv[1].lower()
 
     if command == "install":
-        logger.info("Installing startup debug...")
+        logger.debug("Installing startup debug...")
         if install_startup_debug():
             print("✓ Startup debug installed successfully!")
             print("The debug script will run at next Windows startup.")
@@ -173,7 +173,7 @@ def main():
             return 1
 
     elif command == "uninstall":
-        logger.info("Uninstalling startup debug...")
+        logger.debug("Uninstalling startup debug...")
         if uninstall_startup_debug():
             print("✓ Startup debug uninstalled successfully!")
         else:
@@ -181,7 +181,7 @@ def main():
             return 1
 
     elif command == "status":
-        logger.info("Checking startup debug status...")
+        logger.debug("Checking startup debug status...")
         is_installed, command_value = check_startup_debug_status()
         if is_installed:
             print("✓ Startup debug is INSTALLED")

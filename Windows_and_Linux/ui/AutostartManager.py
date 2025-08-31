@@ -143,7 +143,7 @@ class AutostartManager:
             if registry_state != settings_state:
                 # Update settings to match registry state
                 settings_manager.start_on_boot = registry_state
-                logging.info(f"Synchronized start_on_boot setting: {registry_state}")
+                logging.debug(f"Synchronized start_on_boot setting: {registry_state}")
 
             return True
 
@@ -170,7 +170,7 @@ class AutostartManager:
             if success:
                 # Update settings to match
                 settings_manager.start_on_boot = enable
-                logging.info(f"Set autostart to {enable} and updated settings")
+                logging.debug(f"Set autostart to {enable} and updated settings")
 
             return success
 
