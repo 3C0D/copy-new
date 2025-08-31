@@ -37,6 +37,7 @@ Response Flow:
 # pyright: reportPrivateImportUsage=false
 
 # Standard library imports
+import copy
 import io
 import logging
 import os
@@ -2063,7 +2064,18 @@ class MistralProvider(AIProvider):
                 "max_tokens": 4000,
             }
 
-            logging.debug(f"Mistral request data: {data}")
+            # to avoid very long logs because of image urls
+            data_for_logs = copy.deepcopy(data)
+            for message in data_for_logs["messages"]:
+                # Vérifier si content est une liste (avec images) ou une string (texte seul)
+                if isinstance(message["content"], list):
+                    for content_item in message["content"]:
+                        if isinstance(content_item, dict) and content_item.get("type") == "image_url":
+                            image_url = content_item["image_url"]
+                            truncated = image_url[:60] + "..."
+                            content_item["image_url"] = truncated
+
+            logging.debug(f"Mistral request data: {data_for_logs}")
 
             # Make API call using requests (like the working test code)
             response = requests.post(url, headers=headers, json=data, timeout=60)
