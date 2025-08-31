@@ -10,6 +10,7 @@ ollama
 psutil
 requests
 ruff
+Pillow
 
 # Qt complement
 PySide6-stubs

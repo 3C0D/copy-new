@@ -1505,7 +1505,7 @@ class CustomPopupWindow(QWidget):
         User clicked a generic instruction button.
         """
         if not self.edit_mode and self.selected_text is not None:
-            self.app.process_option(instruction, self.selected_text, self.is_force_chat_enabled())
+            self.app.process_option(instruction, self.selected_text, self.is_force_chat_enabled(), None, self.has_image)
             self.close()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:

@@ -2,7 +2,7 @@
     "python.analysis.autoImportCompletions": true,
     "python.analysis.diagnosticMode": "workspace",
     "python.analysis.include": [
-        "./**"
+        "${workspaceFolder}/*.py"
     ],
     "editor.wordWrap": "on",
     "python.defaultInterpreterPath": "./myvenv/Scripts/python.exe",
@@ -45,16 +45,12 @@
     "files.watcherExclude": {
         "**/.git/objects/**": true,
         "**/.git/subtree-cache/**": true,
-        "**/build/**": true,
-        "**/dist/**": true,
         "**/__pycache__/**": true,
         "**/myvenv/**": true,
         "**/.pytest_cache/**": true,
         "**/.mypy_cache/**": true
     },
     "python.analysis.exclude": [
-        "build",
-        "dist",
         "__pycache__",
         "myvenv",
         ".pytest_cache",

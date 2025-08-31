@@ -600,11 +600,16 @@ class WritingToolApp(QApplication):
         if self.image is None:
             self.image = self.get_clipboard_image()
 
+        # Update has_image flag based on actual image presence
+        self.has_image = bool(self.image is not None)
+
         if self.image is None:
             selected_text = self.original_selection = self.get_selected_text(sleep_duration=0.1)
             logging.debug(f'Selected text: "{selected_text}"')
+            self._logger.info("🖼️ No image found, processing text selection")
         else:
             selected_text = None
+            self._logger.info(f"🖼️ Image found in clipboard - size: {self.image.width()}x{self.image.height()}")
             self._logger.debug("Image found in clipboard, skipping text capture")
 
         try:
@@ -835,6 +840,7 @@ class WritingToolApp(QApplication):
             custom_change: Custom instruction for "Custom" option
         """
         self._logger.debug(f"Processing option: {option}")
+        self._logger.info(f"🖼️ process_option called - has_image param: {has_image}, self.has_image: {self.has_image}, self.image: {self.image is not None}")
 
         is_custom_option = option == "Custom"
         has_selected_text = bool(selected_text and selected_text.strip() != "")
@@ -848,6 +854,7 @@ class WritingToolApp(QApplication):
         )
 
         self._logger.debug(f"should_setup_response_window: {should_setup_response_window}")
+        self._logger.info(f"🖼️ Image processing decision - should_setup_response_window: {should_setup_response_window}")
 
         if should_setup_response_window:
             self._setup_response_window(option, selected_text, self.image)
@@ -1034,7 +1041,12 @@ class WritingToolApp(QApplication):
         # Convert QImage to base64 if present
         image_data = None
         if image:
+            self._logger.info(f"🖼️ Processing image in _handle_text_or_image_selected - image size: {image.width()}x{image.height()}")
             image_data = self._qimage_to_base64(image)
+            if image_data:
+                self._logger.info(f"🖼️ Image converted to base64 successfully - length: {len(image_data)}")
+            else:
+                self._logger.error("🖼️ Failed to convert image to base64")
 
         return {
             "prompt": prompt,
@@ -1057,11 +1069,14 @@ class WritingToolApp(QApplication):
         try:
             # Create temporary file path
             temp_path = self._get_temp_image_path()
+            self._logger.info(f"🖼️ Converting QImage to base64 - temp path: {temp_path}")
 
             # Save QImage to temporary file (PNG format for compatibility)
-            if not image.save(str(temp_path), 'PNG'.encode()):
-                self._logger.error("Failed to save QImage to temporary file")
+            if not image.save(str(temp_path)):  # Use overload without format parameter
+                self._logger.error("🖼️ Failed to save QImage to temporary file")
                 return ""
+
+            self._logger.info(f"🖼️ QImage saved successfully to: {temp_path}")
 
             # Read the temporary file and convert to base64
             try:
@@ -1069,15 +1084,17 @@ class WritingToolApp(QApplication):
                     image_bytes = image_file.read()
                     base64_string = base64.b64encode(image_bytes).decode('utf-8')
 
-                self._logger.debug(f"Converted image to base64: {len(base64_string)} characters")
+                self._logger.info(f"🖼️ Converted image to base64: {len(base64_string)} characters")
+                self._logger.info(f"🖼️ Base64 preview: {base64_string[:100]}...")
                 return base64_string
 
             finally:
                 # Clean up temporary file
                 try:
                     temp_path.unlink(missing_ok=True)
+                    self._logger.debug(f"🖼️ Cleaned up temporary file: {temp_path}")
                 except Exception as cleanup_error:
-                    self._logger.warning(f"Failed to cleanup temporary file {temp_path}: {cleanup_error}")
+                    self._logger.warning(f"🖼️ Failed to cleanup temporary file {temp_path}: {cleanup_error}")
 
         except Exception as e:
             self._logger.error(f"Error converting QImage to base64: {e}")
@@ -1148,6 +1165,12 @@ class WritingToolApp(QApplication):
 
         # Extract image data from prompt_data
         image_data = prompt_data.get("image_data")
+
+        if image_data:
+            self._logger.info(f"🖼️ Passing image data to provider - length: {len(image_data)}")
+            self._logger.info(f"🖼️ Image data preview: {image_data[:100]}...")
+        else:
+            self._logger.info("🖼️ No image data to pass to provider")
 
         response = self.current_provider.get_response(
             prompt_data["system_instruction"],
@@ -1680,8 +1703,13 @@ class WritingToolApp(QApplication):
 
                 # Get image data if available
                 image_data = None
-                if response_window.image :
+                if response_window.image:
+                    self._logger.info(f"🖼️ Processing follow-up with image - size: {response_window.image.width()}x{response_window.image.height()}")
                     image_data = self._qimage_to_base64(response_window.image)
+                    if image_data:
+                        self._logger.info(f"🖼️ Follow-up image converted to base64 - length: {len(image_data)}")
+                    else:
+                        self._logger.error("🖼️ Failed to convert follow-up image to base64")
 
                 # Format conversation differently based on provider
                 if self.current_provider and isinstance(self.current_provider, GeminiProvider):

@@ -63,6 +63,13 @@ try:
 except ImportError:
     OpenAI = None
 
+try:
+    from PIL import Image as PILImage
+    import io
+except ImportError:
+    PILImage = None
+    io = None
+
 # PySide6 imports
 from PySide6 import QtCore
 from PySide6.QtWidgets import (
@@ -602,12 +609,40 @@ class GeminiProvider(AIProvider):
         try:
             # Prepare content for Gemini
             if image_data:
-                # For image analysis, create content with image and text
-                contents = [
-                    system_instruction,
-                    {"inline_data": {"mime_type": "image/png", "data": image_data}},
-                    prompt,
-                ]
+                # Convert base64 to PIL Image like in gemini_integration.py
+                logging.info(f"🖼️ GeminiProvider: Converting base64 to PIL Image - length: {len(image_data)}")
+                if PILImage is not None and io is not None:
+                    try:
+                        import base64
+
+                        # Decode base64 to bytes
+                        image_bytes = base64.b64decode(image_data)
+                        # Create PIL Image from bytes
+                        pil_image = PILImage.open(io.BytesIO(image_bytes))
+                        logging.info(f"🖼️ GeminiProvider: PIL Image created - size: {pil_image.size}, mode: {pil_image.mode}")
+
+                        # For image analysis, create content with PIL Image and text
+                        contents = [
+                            system_instruction,
+                            pil_image,
+                            prompt,
+                        ]
+                    except Exception as img_error:
+                        logging.error(f"🖼️ GeminiProvider: Failed to convert base64 to PIL Image: {img_error}")
+                        # Fallback to inline_data format
+                        contents = [
+                            system_instruction,
+                            {"inline_data": {"mime_type": "image/png", "data": image_data}},
+                            prompt,
+                        ]
+                else:
+                    logging.warning("🖼️ GeminiProvider: PIL not available, using inline_data format")
+                    # Fallback to inline_data format when PIL is not available
+                    contents = [
+                        system_instruction,
+                        {"inline_data": {"mime_type": "image/png", "data": image_data}},
+                        prompt,
+                    ]
             else:
                 # For text-only requests
                 contents = [system_instruction, prompt]

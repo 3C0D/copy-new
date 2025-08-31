@@ -836,8 +836,15 @@ class ResponseWindow(ThemedWidget):
         if self.loading_label:
             self.loading_label.hide()
         if self.input_field:
-            self.input_field.setPlaceholderText(_("Ask a follow-up question"))
+            placeholder_text = (
+                _("Ask a follow-up question about this image") + "..."
+                if self.image
+                else _("Ask a follow-up question") + "..."
+            )
+            self.input_field.setPlaceholderText(placeholder_text)
             self.input_field.setEnabled(True)
+            # Force focus on input field, especially important for image mode
+            QtCore.QTimer.singleShot(100, self.input_field.setFocus)
 
         # Force layout update
         if self.layout():
