@@ -2047,6 +2047,24 @@ class MistralProvider(AIProvider):
 
             # Handle image data if provided for Mistral
             if image_data:
+                # Check if current model supports vision
+                vision_models = [
+                    "pixtral-12b-2409",
+                    "mistral-small-2503", 
+                    "mistral-medium-2505",
+                    "pixtral-large-2411",
+                    "mistral-small-latest"  # Keep for backward compatibility
+                ]
+                
+                if self.api_model not in vision_models:
+                    error_msg = f"The selected model '{self.api_model}' does not support image analysis. Please choose a vision-capable model like pixtral-12b-2409 or mistral-small-2503."
+                    logging.error(error_msg)
+                    self.app.show_message_signal.emit(
+                        "Model Incompatible",
+                        error_msg,
+                    )
+                    return ""
+                
                 user_content = [
                     {"type": "text", "text": prompt},
                     {"type": "image_url", "image_url": f"data:image/png;base64,{image_data}"},

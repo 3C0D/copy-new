@@ -86,23 +86,23 @@ MISTRAL_MODELS = [
         {"vision": False},
     ),
     (
-        "Mistral Small (balanced | free model with multimodal)",
-        "mistral-small-latest",
-        {"vision": True},
-    ),
-    (
         "* Pixtral 12B (multimodal | vision)",
         "pixtral-12b-2409",
         {"vision": True},
     ),
     (
-        "* Devstral Small 2505 (code-focused | multimodal)",
-        "devstral-small-2505",
+        "* Mistral Small 3.1 (multimodal | vision)",
+        "mistral-small-2503",
         {"vision": True},
     ),
     (
-        "* Devstral Medium Latest (code-focused | multimodal)",
-        "devstral-medium-latest",
+        "* Mistral Medium 3 (multimodal | vision)",
+        "mistral-medium-2505",
+        {"vision": True},
+    ),
+    (
+        "* Pixtral Large (multimodal | vision)",
+        "pixtral-large-2411",
         {"vision": True},
     ),
 ]
@@ -137,7 +137,7 @@ DEFAULT_MODELS = {
     "gemini": "gemini-2.5-flash",
     "openai": "gpt-4o-mini",
     "anthropic": "claude-3-5-haiku-20241022",
-    "mistral": "mistral-small-latest",
+    "mistral": "mistral-small-2503",
     "ollama": "",  # Empty because dynamically generated from ollama list
 }
 
