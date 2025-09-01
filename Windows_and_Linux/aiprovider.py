@@ -2053,7 +2053,7 @@ class MistralProvider(AIProvider):
                     "mistral-small-2503",
                     "mistral-medium-2505",
                     "pixtral-large-2411",
-                    "mistral-small-latest"  # Keep for backward compatibility
+                    "mistral-small-latest",  # Keep for backward compatibility
                 ]
 
                 if self.api_model not in vision_models:
@@ -2088,7 +2088,10 @@ class MistralProvider(AIProvider):
                 # Vérifier si content est une liste (avec images) ou une string (texte seul)
                 if isinstance(message["content"], list):
                     for content_item in message["content"]:
-                        if isinstance(content_item, dict) and content_item.get("type") == "image_url":
+                        if (
+                            isinstance(content_item, dict)
+                            and content_item.get("type") == "image_url"
+                        ):
                             image_url = content_item["image_url"]
                             truncated = image_url[:60] + "..."
                             content_item["image_url"] = truncated

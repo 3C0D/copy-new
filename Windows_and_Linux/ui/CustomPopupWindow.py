@@ -25,8 +25,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from config.constants import (
+    ANTHROPIC_MODELS,
+    GEMINI_MODELS,
+    MISTRAL_MODELS,
+    OPENAI_MODELS,
+)
 from config.data_operations import create_default_actions_config
-from config.interfaces import ActionConfig
+from config.interfaces import ActionConfig, ProviderConfig
 from ui.ui_utils import ThemeBackground, get_effective_color_mode, get_icon_path
 
 if TYPE_CHECKING:
@@ -1482,6 +1488,14 @@ class CustomPopupWindow(QWidget):
         """
         Prompt entered by user in the input field.
         """
+        # Check if image is provided but model doesn't support vision
+        if self.has_image and not self._check_vision_support():
+            self.app.show_message_signal.emit(
+                "Vision Not Supported",
+                "The current AI model does not support image analysis. Please select a model that supports vision capabilities.",
+            )
+            return
+
         widget = getattr(self, "custom_input", None)
         txt = widget.text() if widget else ""
         if txt.strip():
@@ -1499,6 +1513,67 @@ class CustomPopupWindow(QWidget):
                 instruction, self.selected_text, self.is_force_chat_enabled(), None, self.image
             )
             self.close()
+
+    def _check_vision_support(self) -> bool:
+        """
+        Check if the current AI provider and model support vision/image analysis.
+
+        Returns:
+            bool: True if the current model supports vision, False otherwise
+        """
+        provider_name = self.app.settings_manager.provider
+        provider: ProviderConfig = self.app.settings_manager.providers.get(provider_name, {})
+        api_model = provider.get("api_model", "")
+        self._logger.debug(
+            f"Checking vision support for provider: {provider_name}, model: {api_model}^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+        )
+
+        return self._has_vision_support(provider_name, api_model)
+
+    def _has_vision_support(self, provider_name: str, api_model: str) -> bool:
+        """
+        Common function to check vision support for a given provider and model.
+
+        Args:
+            provider_name: The internal provider name
+            api_model: The model identifier
+
+        Returns:
+            bool: True if the model supports vision, False otherwise
+        """
+        self._logger.debug(
+            f"Checking vision support for provider: {provider_name}, model: {api_model}"
+        )
+
+        if not api_model:
+            return False
+
+        if provider_name == "gemini":
+            return any(
+                model_tuple[1] == api_model and model_tuple[2].get("vision", False)
+                for model_tuple in GEMINI_MODELS
+            )
+        elif provider_name == "openai":
+            return any(
+                model_tuple[1] == api_model and model_tuple[2].get("vision", False)
+                for model_tuple in OPENAI_MODELS
+            )
+        elif provider_name == "anthropic":
+            return any(
+                model_tuple[1] == api_model and model_tuple[2].get("vision", False)
+                for model_tuple in ANTHROPIC_MODELS
+            )
+        elif provider_name == "mistral":
+            return any(
+                model_tuple[1] == api_model and model_tuple[2].get("vision", False)
+                for model_tuple in MISTRAL_MODELS
+            )
+        elif provider_name == "ollama":
+            # For Ollama, check if model name contains vision indicators
+            vision_indicators = ["llava", "bakllava", "moondream", "minicpm-v"]
+            return any(indicator in api_model.lower() for indicator in vision_indicators)
+
+        return False
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key.Key_Escape:
