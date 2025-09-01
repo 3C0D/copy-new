@@ -1524,9 +1524,6 @@ class CustomPopupWindow(QWidget):
         provider_name = self.app.settings_manager.provider
         provider: ProviderConfig = self.app.settings_manager.providers.get(provider_name, {})
         api_model = provider.get("api_model", "")
-        self._logger.debug(
-            f"Checking vision support for provider: {provider_name}, model: {api_model}^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-        )
 
         return self._has_vision_support(provider_name, api_model)
 
@@ -1548,28 +1545,23 @@ class CustomPopupWindow(QWidget):
         if not api_model:
             return False
 
-        if provider_name == "gemini":
+        # Map providers to their model lists
+        provider_models = {
+            "gemini": GEMINI_MODELS,
+            "openai": OPENAI_MODELS,
+            "anthropic": ANTHROPIC_MODELS,
+            "mistral": MISTRAL_MODELS,
+        }
+
+        # Check standard providers
+        if provider_name in provider_models:
             return any(
                 model_tuple[1] == api_model and model_tuple[2].get("vision", False)
-                for model_tuple in GEMINI_MODELS
+                for model_tuple in provider_models[provider_name]
             )
-        elif provider_name == "openai":
-            return any(
-                model_tuple[1] == api_model and model_tuple[2].get("vision", False)
-                for model_tuple in OPENAI_MODELS
-            )
-        elif provider_name == "anthropic":
-            return any(
-                model_tuple[1] == api_model and model_tuple[2].get("vision", False)
-                for model_tuple in ANTHROPIC_MODELS
-            )
-        elif provider_name == "mistral":
-            return any(
-                model_tuple[1] == api_model and model_tuple[2].get("vision", False)
-                for model_tuple in MISTRAL_MODELS
-            )
-        elif provider_name == "ollama":
-            # For Ollama, check if model name contains vision indicators
+
+        # Special case for Ollama
+        if provider_name == "ollama":
             vision_indicators = ["llava", "bakllava", "moondream", "minicpm-v"]
             return any(indicator in api_model.lower() for indicator in vision_indicators)
 

@@ -43,7 +43,7 @@ class SystemConfig(TypedDict, total=False):
 
 class ProviderConfig(TypedDict, total=False):
     api_key: str
-    model_name: str
+    api_model: str
 
 
 class CustomDataStructure(TypedDict, total=False):

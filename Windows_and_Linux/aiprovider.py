@@ -369,7 +369,7 @@ class AIProvider(ABC):
 
     # Type annotations for dynamically created attributes
     api_key: str
-    model_name: str
+    api_model: str
     api_base: str
     api_organisation: str
     api_project: str
@@ -410,20 +410,8 @@ class AIProvider(ABC):
         """
         pass
 
-    @property
-    def api_model(self) -> str:
-        """Generic getter for the api_model attribute."""
-        return getattr(self, "_api_model", "")
-
-    @api_model.setter
-    def api_model(self, value: str) -> None:
-        """Generic setter for the api_model attribute."""
-        self._api_model = value
-        # Also update the corresponding setting if it exists
-        for setting in self.settings:
-            if setting.name == "api_model":
-                setting.set_value(value)
-                break
+    # Suppression of the getter/setter for model_name, we use api_model directly
+    # which will be created by setattr() in load_config()
 
     @abstractmethod
     def get_response(
@@ -531,7 +519,7 @@ class GeminiProvider(AIProvider):
                 description="Paste your Gemini API key here",
             ),
             DropdownSetting(
-                name="model_name",
+                name="api_model",
                 display_name="Model",
                 default_value=get_default_model_for_provider("gemini"),
                 description="Select Gemini model to use",
@@ -814,7 +802,7 @@ class GeminiProvider(AIProvider):
                     pass
 
                 self.model = genai.GenerativeModel(
-                    model_name=self.model_name,
+                    model_name=self.api_model,
                     generation_config=genai.types.GenerationConfig(
                         candidate_count=1,
                         max_output_tokens=1000,
@@ -825,7 +813,7 @@ class GeminiProvider(AIProvider):
 
                 # Log the safety configuration for debugging
                 logging.debug(
-                    f"Gemini model initialized with BLOCK_ONLY_HIGH safety settings for model: {self.model_name}"
+                    f"Gemini model initialized with BLOCK_ONLY_HIGH safety settings for model: {self.api_model}"
                 )
 
             except AttributeError as e:
