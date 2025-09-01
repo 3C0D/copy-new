@@ -30,6 +30,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 
 import ui.AboutWindow
 import ui.CustomPopupWindow
+import ui.HelpWindow
 import ui.NonEditableModal
 import ui.OnboardingWindow
 import ui.ResponseWindow
@@ -141,6 +142,7 @@ class WritingToolApp(QApplication):
         self.tray_menu = None
         self.settings_window = None
         self.about_window = None
+        self.help_window = None
         self.non_editable_modal = None
         self.toggle_action = None
 
@@ -331,6 +333,7 @@ class WritingToolApp(QApplication):
         ui.ResponseWindow._ = self._
         ui.OnboardingWindow._ = self._
         ui.CustomPopupWindow._ = self._
+        ui.HelpWindow._ = self._
 
     def retranslate_ui(self) -> None:
         """Retranslate the user interface elements."""
@@ -1185,14 +1188,14 @@ class WritingToolApp(QApplication):
 
             # Save QImage to buffer in PNG format
             # Try to save directly first, then fallback to conversion
-            save_success = image.save(buffer, "PNG") # type: ignore
+            save_success = image.save(buffer, "PNG")  # type: ignore
             if not save_success:
                 # Fallback: convert to RGB32 format
                 rgb_image = image.convertToFormat(QtGui.QImage.Format.Format_RGB32)
                 buffer.close()
                 buffer = QBuffer(byte_array)
                 buffer.open(QIODevice.OpenModeFlag.WriteOnly)
-                save_success = rgb_image.save(buffer, "PNG") # type: ignore
+                save_success = rgb_image.save(buffer, "PNG")  # type: ignore
             buffer.close()
 
             if not save_success:
@@ -1716,6 +1719,9 @@ class WritingToolApp(QApplication):
         about_action = self.tray_menu.addAction(self._("About"))
         about_action.triggered.connect(self.show_about)
 
+        help_action = self.tray_menu.addAction(self._("Help"))
+        help_action.triggered.connect(self.show_help)
+
         # Exit menu item
         exit_action = self.tray_menu.addAction(self._("Exit"))
         exit_action.triggered.connect(self.exit_app)
@@ -2036,6 +2042,15 @@ class WritingToolApp(QApplication):
         if not self.about_window:
             self.about_window = ui.AboutWindow.AboutWindow()
         self.about_window.show()
+
+    def show_help(self) -> None:
+        """
+        Show the help window.
+        """
+        logging.debug("Showing help window")
+        if not self.help_window:
+            self.help_window = ui.HelpWindow.HelpWindow()
+        self.help_window.show()
 
     # ============================================================================
     # APPLICATION LIFECYCLE METHODS
