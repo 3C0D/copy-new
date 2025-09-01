@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from ui.ui_utils import ThemedWidget
+from ui.ui_utils import ThemedWidget, get_effective_color_mode
 
 
 def _(x):
@@ -101,10 +101,9 @@ class AboutWindow(ThemedWidget):
 
     def _get_title_style(self) -> str:
         """Get the title styling based on current theme."""
-        from ui.ui_utils import get_effective_color_mode
-
         current_mode = get_effective_color_mode()
-        color = "#ffffff" if current_mode == "dark" else "#333333"
+        current_mode = "dark"
+        color = "#ffffff" if current_mode == "dark" else "#344737"
         return f"font-size: 24px; font-weight: bold; color: {color};"
 
     def _get_about_content(self) -> str:
@@ -226,15 +225,14 @@ class AboutWindow(ThemedWidget):
 
     def _get_content_style(self) -> str:
         """Get the content styling based on current theme."""
-        from ui.ui_utils import get_effective_color_mode
 
-        current_mode = get_effective_color_mode()
+        # current_mode = get_effective_color_mode()
+        current_mode = "dark"
         color = "#ffffff" if current_mode == "dark" else "#333333"
         return f"font-size: 14px; color: {color}; padding: 10px;"
 
     def _get_button_style(self) -> str:
         """Get the button styling with theme awareness (Qt stylesheets only)."""
-        from ui.ui_utils import get_effective_color_mode
 
         mode = get_effective_color_mode()
         if mode == "dark":
