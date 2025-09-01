@@ -49,6 +49,12 @@ from aiprovider import (
     OllamaProvider,
     OpenAICompatibleProvider,
 )
+from config.constants import (
+    ANTHROPIC_MODELS,
+    GEMINI_MODELS,
+    MISTRAL_MODELS,
+    OPENAI_MODELS,
+)
 from config.settings import SettingsManager
 from ui.ResponseWindow import ResponseWindow
 from ui.ui_utils import get_icon_path, set_color_mode
@@ -826,6 +832,70 @@ class WritingToolApp(QApplication):
 
         return False
 
+    def _check_vision_support(self) -> bool:
+        """
+        Check if the current AI provider and model support vision/image analysis.
+
+        Returns:
+            bool: True if the current model supports vision, False otherwise
+        """
+        if not hasattr(self, "current_provider") or not self.current_provider:
+            return False
+
+        provider_name = self.current_provider.internal_name
+        model_name = None
+
+        # Get the current model based on provider
+        if provider_name == "gemini":
+            model_name = self.current_provider.model_name
+        elif provider_name in ["openai", "anthropic", "mistral"]:
+            model_name = self.current_provider.api_model
+        elif provider_name == "ollama":
+            model_name = self.current_provider.api_model
+
+        return self._has_vision_support(provider_name, model_name)
+
+    def _has_vision_support(self, provider_name: str, model_name: str) -> bool:
+        """
+        Common function to check vision support for a given provider and model.
+
+        Args:
+            provider_name: The internal provider name
+            model_name: The model identifier
+
+        Returns:
+            bool: True if the model supports vision, False otherwise
+        """
+        if not model_name:
+            return False
+
+        if provider_name == "gemini":
+            return any(
+                model_tuple[1] == model_name and model_tuple[2].get("vision", False)
+                for model_tuple in GEMINI_MODELS
+            )
+        elif provider_name == "openai":
+            return any(
+                model_tuple[1] == model_name and model_tuple[2].get("vision", False)
+                for model_tuple in OPENAI_MODELS
+            )
+        elif provider_name == "anthropic":
+            return any(
+                model_tuple[1] == model_name and model_tuple[2].get("vision", False)
+                for model_tuple in ANTHROPIC_MODELS
+            )
+        elif provider_name == "mistral":
+            return any(
+                model_tuple[1] == model_name and model_tuple[2].get("vision", False)
+                for model_tuple in MISTRAL_MODELS
+            )
+        elif provider_name == "ollama":
+            # For Ollama, check if model name contains vision indicators
+            vision_indicators = ["llava", "bakllava", "moondream", "minicpm-v"]
+            return any(indicator in model_name.lower() for indicator in vision_indicators)
+
+        return False
+
     def process_option(
         self,
         option: str,
@@ -846,6 +916,14 @@ class WritingToolApp(QApplication):
         """
         self._logger.debug(f"Processing option: {option}")
         has_image = image is not None
+
+        # Check if image is provided but model doesn't support vision
+        if has_image and not self._check_vision_support():
+            self.show_message_signal.emit(
+                "Vision Not Supported",
+                "The current AI model does not support image analysis. Please select a model that supports vision capabilities.",
+            )
+            return
 
         is_custom_option = option == "Custom"
         has_selected_text = bool(selected_text and selected_text.strip() != "")
@@ -1156,7 +1234,7 @@ class WritingToolApp(QApplication):
     def _qimage_to_base64_memory(self, image: QImage) -> str:
         """
         Convert QImage to base64 using memory buffer approach (new method).
-        
+
         Args:
             image: QImage to convert
 
@@ -1171,12 +1249,14 @@ class WritingToolApp(QApplication):
                 self._logger.error("🖼️ Image is null, cannot convert")
                 return ""
 
-            self._logger.debug(f"🖼️ Image size: {image.width()}x{image.height()}, format: {image.format()}")
+            self._logger.debug(
+                f"🖼️ Image size: {image.width()}x{image.height()}, format: {image.format()}"
+            )
 
             # Create byte array and buffer
             byte_array = QByteArray()
             buffer = QBuffer(byte_array)
-            
+
             if not buffer.open(QIODevice.OpenModeFlag.WriteOnly):
                 self._logger.error("🖼️ Failed to open buffer for writing")
                 return ""
@@ -1192,7 +1272,7 @@ class WritingToolApp(QApplication):
                 buffer.open(QIODevice.OpenModeFlag.WriteOnly)
                 save_success = rgb_image.save(buffer, "PNG")
             buffer.close()
-            
+
             if not save_success:
                 self._logger.error("🖼️ Failed to save QImage to memory buffer")
                 return ""
@@ -1204,7 +1284,7 @@ class WritingToolApp(QApplication):
                 return ""
 
             self._logger.debug(f"🖼️ Image saved to buffer: {len(image_bytes)} bytes")
-            
+
             # Convert to base64
             base64_string = base64.b64encode(image_bytes).decode("utf-8")
 
@@ -1390,7 +1470,7 @@ class WritingToolApp(QApplication):
         settings_button = None
         if any(
             keyword in title.lower()
-            for keyword in ["api", "key", "quota", "rate limit", "connection"]
+            for keyword in ["api", "key", "quota", "rate limit", "connection", "authentication"]
         ):
             settings_button = msg_box.addButton("Open Settings", QMessageBox.ButtonRole.ActionRole)
 
