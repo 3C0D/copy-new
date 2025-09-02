@@ -859,7 +859,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                 self.app.settings_manager.color_mode = color_mode
         else:
             # Create tray icon after initial setup completion
-            self.app.create_tray_icon()
+            self.app.settings_manager.create_tray_icon()
 
         # Save provider selection using internal name from dropdown data
         if self.provider_dropdown is not None:

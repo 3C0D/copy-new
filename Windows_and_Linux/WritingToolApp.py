@@ -38,15 +38,15 @@ import ui.SettingsWindow
 from config.interfaces import ActionConfig
 from config.settings import SettingsManager
 from ui.ResponseWindow import ResponseWindow
+from ui.systray import SystrayManager
 from ui.ThemeManager import theme_manager
-from ui.ui_utils import get_effective_color_mode, get_icon_path, set_color_mode
+from ui.ui_utils import get_icon_path, set_color_mode
 from update_checker import UpdateChecker
 
 if TYPE_CHECKING:
     from aiprovider import AIProvider
     from ui.ResponseWindow import ResponseWindow
 
-from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
 from aiprovider import (
     AnthropicProvider,
@@ -117,10 +117,10 @@ class WritingToolApp(QApplication):
         self.current_response_window: ResponseWindow | None = None
         self.current_provider: AIProvider | None = None
         self.output_queue = ""
-        self.paused = False
         self.original_selection: str | None = None
         self.image: QImage | None = None
         self.has_image = bool(self.image is not None)
+        self.systray_manager = SystrayManager(self)
 
     def _setup_signals(self) -> None:
         """Connect application signals to their handlers."""
@@ -138,8 +138,8 @@ class WritingToolApp(QApplication):
     @QtCore.Slot(str)
     def on_theme_changed(self, new_mode: str) -> None:
         """Handle theme changes from ThemeManager."""
-        if self.tray_menu:
-            self.apply_tray_menu_styles(self.tray_menu)
+        if self.systray_manager.tray_menu:
+            self.systray_manager.apply_tray_menu_styles(self.systray_manager.tray_menu)
 
     def _setup_settings(self) -> None:
         """Initialize settings manager and load configuration."""
@@ -153,12 +153,10 @@ class WritingToolApp(QApplication):
         self.onboarding_window = None
         self.popup_window = None
         self.tray_icon = None
-        self.tray_menu = None
         self.settings_window = None
         self.about_window = None
         self.help_window = None
         self.non_editable_modal = None
-        self.toggle_action = None
 
     def _setup_hotkey_system(self) -> None:
         """Initialize hotkey and keyboard listener system."""
@@ -263,9 +261,9 @@ class WritingToolApp(QApplication):
             logging.debug(
                 f"Detected potential startup scenario, delaying tray icon creation by {delay}ms"
             )
-            QtCore.QTimer.singleShot(delay, self.create_tray_icon)
+            QtCore.QTimer.singleShot(delay, self.systray_manager.create_tray_icon)
         else:
-            self.create_tray_icon()
+            self.systray_manager.create_tray_icon()
 
     def _sync_autostart_settings(self) -> None:
         """Synchronize autostart settings between registry and configuration."""
@@ -351,7 +349,7 @@ class WritingToolApp(QApplication):
 
     def retranslate_ui(self) -> None:
         """Retranslate the user interface elements."""
-        self.update_tray_menu()
+        self.systray_manager.update_tray_menu()
 
     def change_language(self, lang: str) -> None:
         """Change the application language and update all UI elements."""
@@ -520,7 +518,7 @@ class WritingToolApp(QApplication):
                 self.hotkey_listener = None
 
             def on_activate():
-                if self.paused:
+                if self.systray_manager.paused:
                     return
                 self._logger.debug("triggered hotkey")
                 self.hotkey_triggered_signal.emit()  # Emit the signal when hotkey is pressed
@@ -1599,165 +1597,6 @@ class WritingToolApp(QApplication):
         """Clean up modal reference when it's closed"""
         self.non_editable_modal = None
 
-    def create_tray_icon(self) -> None:
-        """
-        Create the system tray icon for the application.
-        """
-        if self.tray_icon:
-            logging.debug("Tray icon already exists")
-            return
-
-        logging.debug("Creating system tray icon")
-
-        # Check if system tray is available with retry mechanism for startup
-        if not self._is_system_tray_available_with_retry():
-            logging.error("System tray is not available on this system after retries")
-            return
-
-        icon_path = get_icon_path("app_icon", with_theme=False)
-        logging.debug(f"Icon path resolved to: {icon_path}")
-
-        if not icon_path.exists():
-            logging.warning(f"Tray icon not found at {icon_path}")
-            # Use a default icon if not found
-            self.tray_icon = QSystemTrayIcon(self)
-        else:
-            logging.debug(f"Loading icon from: {icon_path}")
-            icon = QtGui.QIcon(icon_path.as_posix())
-            if icon.isNull():
-                logging.warning(f"Failed to load icon from {icon_path}")
-            self.tray_icon = QSystemTrayIcon(icon, self)
-        # Set the tooltip (hover name) for the tray icon
-        self.tray_icon.setToolTip("WritingTools")
-        self.tray_menu = QMenu()
-
-        self.tray_icon.setContextMenu(self.tray_menu)
-
-        # Timer to prevent rapid successive clicks that could accidentally trigger menu items
-        # This prevents the bug where rapid right-clicks open Settings accidentally
-        self.last_tray_click_time = 0
-        self.tray_click_debounce_ms = 300  # 300ms debounce period
-
-        self.update_tray_menu()
-        self.tray_icon.show()
-        logging.debug("Tray icon show() called")
-
-        # Verify if it's actually visible with retry
-        self._verify_tray_icon_visibility()
-
-        # Auto change context menu on theme change
-        self.register_for_theme_changes()
-        logging.debug("Tray icon setup completed")
-
-    def _is_system_tray_available_with_retry(
-        self, max_retries: int = 5, delay_ms: int = 1000
-    ) -> bool:
-        """
-        Check if system tray is available with retry mechanism.
-        This is especially important during Windows startup when the system tray
-        might not be immediately available.
-
-        Args:
-            max_retries: Maximum number of retry attempts
-            delay_ms: Delay between retries in milliseconds
-
-        Returns:
-            bool: True if system tray becomes available, False otherwise
-        """
-        for attempt in range(max_retries):
-            if QSystemTrayIcon.isSystemTrayAvailable():
-                if attempt > 0:
-                    logging.debug(f"System tray became available after {attempt + 1} attempts")
-                return True
-
-            if attempt < max_retries - 1:  # Don't wait after the last attempt
-                logging.debug(
-                    f"System tray not available, attempt {attempt + 1}/{max_retries}, retrying in {delay_ms}ms..."
-                )
-                QtCore.QTimer.singleShot(delay_ms, lambda: None)
-                self.processEvents()  # Process pending events
-                time.sleep(delay_ms / 1000.0)  # Convert to seconds
-
-        logging.warning(f"System tray not available after {max_retries} attempts")
-        return False
-
-    def _verify_tray_icon_visibility(self, max_retries: int = 2, delay_ms: int = 250) -> None:
-        """
-        Verify that the tray icon is actually visible with retry mechanism.
-
-        Args:
-            max_retries: Maximum number of retry attempts
-            delay_ms: Delay between retries in milliseconds
-        """
-        for attempt in range(max_retries):
-            if self.tray_icon and self.tray_icon.isVisible():
-                logging.debug(f"Tray icon confirmed visible after {attempt + 1} attempts")
-                return
-
-            if attempt < max_retries - 1:  # Don't wait after the last attempt
-                logging.debug(
-                    f"Tray icon not visible, attempt {attempt + 1}/{max_retries}, retrying..."
-                )
-                QtCore.QTimer.singleShot(delay_ms, lambda: None)
-                self.processEvents()  # Process pending events
-                time.sleep(delay_ms / 1000.0)  # Convert to seconds
-                if self.tray_icon:
-                    self.tray_icon.show()  # Try showing again
-
-        if self.tray_icon and not self.tray_icon.isVisible():
-            logging.warning("Tray icon reports as NOT visible after retries")
-        else:
-            logging.debug("Tray icon visibility verification completed")
-
-    def update_tray_menu(self) -> None:
-        """
-        Update the tray menu with all menu items, including pause functionality
-        and proper translations.
-        """
-        if self.tray_menu is None:
-            return
-
-        self.tray_menu.clear()
-
-        # Apply styles using the current color mode
-        self.apply_tray_menu_styles(self.tray_menu)
-
-        # Settings menu item
-        settings_action = self.tray_menu.addAction(self._("Settings"))
-        settings_action.triggered.connect(self.show_settings)
-
-        # Pause/Resume toggle action
-        self.toggle_action = self.tray_menu.addAction(
-            self._("Resume") if self.paused else self._("Pause")
-        )
-        self.toggle_action.triggered.connect(self.toggle_paused)
-
-        # About menu item
-        about_action = self.tray_menu.addAction(self._("About"))
-        about_action.triggered.connect(self.show_about)
-
-        help_action = self.tray_menu.addAction(self._("Help"))
-        help_action.triggered.connect(self.show_help)
-
-        # Exit menu item
-        exit_action = self.tray_menu.addAction(self._("Exit"))
-        exit_action.triggered.connect(self.exit_app)
-
-    def toggle_paused(self) -> None:
-        """Toggle the paused state of the application."""
-        logging.debug("Toggle paused state")
-        self.paused = not self.paused
-        if self.toggle_action is not None:
-            self.toggle_action.setText(self._("Resume") if self.paused else self._("Pause"))
-        logging.debug("App is paused" if self.paused else "App is resumed")
-
-    def apply_tray_menu_styles(self, menu) -> None:
-        """
-        Apply styles to the tray menu based on current color mode.
-        """
-        styles = theme_manager.get_styles()
-        menu.setStyleSheet(styles.get("tray_menu", ""))
-
     """
     The function below (process_followup_question) processes follow-up questions in the chat interface for Summary, Key Points, and Table operations.
 
@@ -2006,7 +1845,8 @@ class WritingToolApp(QApplication):
         # This fixes the bug where rapid right-clicks on tray icon open Settings accidentally
         if (
             hasattr(self, "last_tray_click_time")
-            and (current_time - self.last_tray_click_time) < self.tray_click_debounce_ms
+            and (current_time - self.last_tray_click_time)
+            < self.systray_manager.tray_click_debounce_ms
         ):
             logging.debug("Settings click ignored due to debounce protection")
             return
