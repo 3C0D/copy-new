@@ -35,7 +35,7 @@ from config.constants import PROVIDER_DISPLAY_NAMES
 from config.data_operations import get_provider_display_name
 from ui.AutostartManager import AutostartManager
 from ui.ThemeManager import ThemeAwareMixin, theme_manager
-from ui.ui_utils import ThemedWidget, get_icon_path, ui_utils
+from ui.ui_utils import ThemedWidget, get_icon_path, set_color_mode, ui_utils
 
 
 def _(x):
@@ -676,8 +676,6 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
             self.app.settings_manager.color_mode = color_mode
 
             # Update global colorMode variable
-            from ui.ui_utils import set_color_mode
-
             set_color_mode(color_mode)
 
             # Apply color mode change immediately via centralized theme manager

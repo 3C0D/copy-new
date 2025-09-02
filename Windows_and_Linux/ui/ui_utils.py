@@ -58,9 +58,9 @@ def get_icon_path(icon_name: str, with_theme: bool = True) -> Path:
         else:
             # base_dir = Path(sys.argv[0]).parent.resolve()
             base_dir = Path(sys.argv[0]).parent
-        # If we're in the Windows_and_Linux subdirectory, go up one level
-        if base_dir.name == "Windows_and_Linux":
-            base_dir = base_dir.parent
+        # # If we're in the Windows_and_Linux subdirectory, go up one level
+        # if base_dir.name == "Windows_and_Linux":
+        #     base_dir = base_dir.parent
 
     # Define possible extensions and filenames
     extensions = [".svg", ".png"]  # SVG takes precedence

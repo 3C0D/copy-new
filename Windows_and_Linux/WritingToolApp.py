@@ -36,6 +36,11 @@ import ui.OnboardingWindow
 import ui.ResponseWindow
 import ui.SettingsWindow
 from config.interfaces import ActionConfig
+from config.settings import SettingsManager
+from ui.ResponseWindow import ResponseWindow
+from ui.ThemeManager import theme_manager
+from ui.ui_utils import get_effective_color_mode, get_icon_path, set_color_mode
+from update_checker import UpdateChecker
 
 if TYPE_CHECKING:
     from aiprovider import AIProvider
@@ -50,10 +55,6 @@ from aiprovider import (
     OllamaProvider,
     OpenAICompatibleProvider,
 )
-from config.settings import SettingsManager
-from ui.ResponseWindow import ResponseWindow
-from ui.ui_utils import get_icon_path, set_color_mode
-from update_checker import UpdateChecker
 
 _ = gettext.gettext
 
@@ -126,6 +127,19 @@ class WritingToolApp(QApplication):
         self.output_ready_signal.connect(self.replace_text)
         self.show_message_signal.connect(self.show_message_box)
         self.hotkey_triggered_signal.connect(self.on_hotkey_pressed)
+
+    def register_for_theme_changes(self) -> None:
+        """Register the app for theme change notifications."""
+        try:
+            theme_manager.theme_changed.connect(self.on_theme_changed)
+        except ImportError:
+            logging.warning("ThemeManager not available")
+
+    @QtCore.Slot(str)
+    def on_theme_changed(self, new_mode: str) -> None:
+        """Handle theme changes from ThemeManager."""
+        if self.tray_menu:
+            self.apply_tray_menu_styles(self.tray_menu)
 
     def _setup_settings(self) -> None:
         """Initialize settings manager and load configuration."""
@@ -1616,6 +1630,7 @@ class WritingToolApp(QApplication):
         # Set the tooltip (hover name) for the tray icon
         self.tray_icon.setToolTip("WritingTools")
         self.tray_menu = QMenu()
+
         self.tray_icon.setContextMenu(self.tray_menu)
 
         # Timer to prevent rapid successive clicks that could accidentally trigger menu items
@@ -1630,6 +1645,8 @@ class WritingToolApp(QApplication):
         # Verify if it's actually visible with retry
         self._verify_tray_icon_visibility()
 
+        # Auto change context menu on theme change
+        self.register_for_theme_changes()
         logging.debug("Tray icon setup completed")
 
     def _is_system_tray_available_with_retry(
@@ -1702,8 +1719,8 @@ class WritingToolApp(QApplication):
 
         self.tray_menu.clear()
 
-        # Apply dark mode styles using darkdetect
-        self.apply_dark_mode_styles(self.tray_menu)
+        # Apply styles using the current color mode
+        self.apply_tray_menu_styles(self.tray_menu)
 
         # Settings menu item
         settings_action = self.tray_menu.addAction(self._("Settings"))
@@ -1734,37 +1751,12 @@ class WritingToolApp(QApplication):
             self.toggle_action.setText(self._("Resume") if self.paused else self._("Pause"))
         logging.debug("App is paused" if self.paused else "App is resumed")
 
-    @staticmethod
-    def apply_dark_mode_styles(menu) -> None:
+    def apply_tray_menu_styles(self, menu) -> None:
         """
         Apply styles to the tray menu based on current color mode.
         """
-        from ui.ui_utils import get_effective_color_mode
-
-        current_mode = get_effective_color_mode()
-        is_dark_mode = current_mode == "dark"
-        palette = menu.palette()
-
-        if is_dark_mode:
-            logging.debug("Tray icon dark")
-            # Dark mode colors
-            palette.setColor(
-                QtGui.QPalette.ColorRole.Window, QtGui.QColor("#2d2d2d")
-            )  # Dark background
-            palette.setColor(
-                QtGui.QPalette.ColorRole.WindowText, QtGui.QColor("#ffffff")
-            )  # White text
-        else:
-            logging.debug("Tray icon light")
-            # Light mode colors
-            palette.setColor(
-                QtGui.QPalette.ColorRole.Window, QtGui.QColor("#ffffff")
-            )  # Light background
-            palette.setColor(
-                QtGui.QPalette.ColorRole.WindowText, QtGui.QColor("#000000")
-            )  # Black text
-
-        menu.setPalette(palette)
+        styles = theme_manager.get_styles()
+        menu.setStyleSheet(styles.get("tray_menu", ""))
 
     """
     The function below (process_followup_question) processes follow-up questions in the chat interface for Summary, Key Points, and Table operations.
