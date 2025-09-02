@@ -110,11 +110,11 @@ class ThemeManager(QtCore.QObject):
                 color: {"#ffffff" if is_dark else "#000000"};
                 border: 1px solid {"#555555" if is_dark else "#cccccc"};
                 border-radius: 8px;
-                padding: 4px;
+                padding: 2px;
                 selection-background-color: {"#404040" if is_dark else "#e6e6e6"};
             }}
             QMenu::item {{
-                padding: 8px 20px;
+                padding: 4px 20px;
                 border-radius: 4px;
             }}
             QMenu::item:selected {{
@@ -123,7 +123,7 @@ class ThemeManager(QtCore.QObject):
             QMenu::separator {{
                 height: 1px;
                 background: {"#555555" if is_dark else "#cccccc"};
-                margin: 4px 10px;
+                margin: 2px 10px;
             }}
             """,
         }

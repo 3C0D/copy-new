@@ -95,9 +95,7 @@ class SystrayManager:
         settings_action.triggered.connect(self.app.show_settings)
 
         # Pause/Resume toggle action
-        self.toggle_action = self.tray_menu.addAction(
-            _("Resume") if self.paused else _("Pause")
-        )
+        self.toggle_action = self.tray_menu.addAction(_("Resume") if self.paused else _("Pause"))
         self.toggle_action.triggered.connect(self.toggle_paused)
 
         # About menu item
@@ -113,11 +111,11 @@ class SystrayManager:
 
     def toggle_paused(self) -> None:
         """Toggle the paused state of the application."""
-        logging.debug("Toggle paused state")
+        self._logger.debug("Toggle paused state")
         self.paused = not self.paused
         if self.toggle_action is not None:
             self.toggle_action.setText(_("Resume") if self.paused else _("Pause"))
-        logging.debug("App is paused" if self.paused else "App is resumed")
+        self._logger.debug("App is paused" if self.paused else "App is resumed")
 
     def apply_tray_menu_styles(self, menu) -> None:
         """
