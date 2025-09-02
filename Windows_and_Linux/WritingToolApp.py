@@ -1584,12 +1584,8 @@ class WritingToolApp(QApplication):
 
             # Create and show the modal window
             self.non_editable_modal = ui.NonEditableModal.NonEditableModal(self, transformed_text)
-
-            # Connect close event to clean up reference
-            self.non_editable_modal.finished.connect(self._on_non_editable_modal_closed)
-
-            # Show the modal (use exec() to make it truly modal and keep it open)
-            self.non_editable_modal.exec()
+            self.non_editable_modal.close_signal.connect(self.on_onboarding_closed)
+            self.non_editable_modal.show()
 
         except Exception as e:
             self._logger.error(f"Error showing non-editable modal: {e}", exc_info=True)

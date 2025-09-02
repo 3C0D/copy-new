@@ -12,7 +12,6 @@ from PySide6 import QtCore, QtGui
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtWidgets import (
     QApplication,
-    QDialog,
     QHBoxLayout,
     QPushButton,
     QTextBrowser,
@@ -20,7 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from ui.ThemeManager import ThemeAwareMixin, theme_manager
-from ui.ui_utils import get_effective_color_mode
+from ui.ui_utils import ThemedWidget, get_effective_color_mode
 
 if TYPE_CHECKING:
     from WritingToolApp import WritingToolApp
@@ -30,20 +29,20 @@ def _(x):
     return x
 
 
-class NonEditableModal(QDialog, ThemeAwareMixin):
+class NonEditableModal(ThemeAwareMixin,ThemedWidget):
     """Modal window to display transformed text when pasting fails."""
 
+    # Signal    emitted when window is closed (not when proceeding to next step)
+    close_signal = QtCore.Signal()
+
     def __init__(self, app: "WritingToolApp", transformed_text: str | None):
-        QDialog.__init__(self)
+        super().__init__()
         self.app = app
         self.transformed_text = transformed_text
 
-        # Window with standard controls (minimize/close) and stay on top
-        # self.setWindowFlags(
-        #     Qt.WindowType.Dialog
-        #     | Qt.WindowType.WindowStaysOnTopHint,
-        # )
-        self.setModal(True)
+        self.setWindowTitle(" ")  # Hidden title "python"
+
+        self.set_transparent_icon()
 
         # Fixed size
         self.setFixedSize(600, 400)
@@ -61,29 +60,10 @@ class NonEditableModal(QDialog, ThemeAwareMixin):
 
     def setup_ui(self) -> None:
         """Setup the user interface"""
-        layout = QVBoxLayout(self)
+        # Use the background widget from ThemedWidget
+        layout = QVBoxLayout(self.background)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
-
-        # Window controls at the top
-        controls_layout = QHBoxLayout()
-        controls_layout.addStretch()
-
-        # Minimize button
-        self.minimize_button = QPushButton("─")
-        self.minimize_button.setFixedSize(36, 36)
-        self.minimize_button.clicked.connect(self.showMinimized)
-        self.minimize_button.setToolTip(_("Minimize"))
-
-        # Close button
-        self.close_button = QPushButton("✕")
-        self.close_button.setFixedSize(36, 36)
-        self.close_button.clicked.connect(self.close)
-        self.close_button.setToolTip(_("Close"))
-
-        controls_layout.addWidget(self.minimize_button)
-        controls_layout.addWidget(self.close_button)
-        layout.addLayout(controls_layout)
 
         # Text display area
         self.text_display = QTextBrowser()
@@ -194,6 +174,8 @@ class NonEditableModal(QDialog, ThemeAwareMixin):
             theme_manager.unregister_widget(self)
         except ImportError:
             pass
+
+        self.close_signal.emit()
         super().closeEvent(event)
 
     @Slot()
@@ -206,7 +188,7 @@ class NonEditableModal(QDialog, ThemeAwareMixin):
         except Exception as e:
             logging.exception(f"Error copying text: {e}")
 
-    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None: # pyright: ignore[reportIncompatibleMethodOverride]
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Handle key press events"""
         if event.key() == Qt.Key.Key_Escape:
             self.close()

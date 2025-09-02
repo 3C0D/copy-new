@@ -5,7 +5,7 @@ from pathlib import Path
 import darkdetect
 from PySide6 import QtCore, QtGui
 from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtWidgets import QLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QLayout, QVBoxLayout, QWidget
 
 colorMode = "dark" if darkdetect.isDark() else "light"
 
@@ -146,11 +146,10 @@ class ThemedWidget(QWidget):
     def setup_window_and_layout(self) -> None:
         # Configure window flags for standard minimize/close/title behavior
         self.setWindowFlags(
-            self.windowFlags()
-            & ~QtCore.Qt.WindowType.WindowSystemMenuHint
+            self.windowFlags() & ~QtCore.Qt.WindowType.WindowSystemMenuHint
             | QtCore.Qt.WindowType.WindowCloseButtonHint
             | QtCore.Qt.WindowType.WindowMinimizeButtonHint
-            | QtCore.Qt.WindowType.WindowTitleHint
+            | QtCore.Qt.WindowType.WindowStaysOnTopHint
         )
 
         # Set window icon
@@ -164,9 +163,28 @@ class ThemedWidget(QWidget):
         self.background = ThemeBackground(self, "gradient")
         main_layout.addWidget(self.background)
 
-    def add_minimize_button(self) -> None:
-        """Add minimize button to the window."""
-        self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowType.WindowMinimizeButtonHint)
+    def clean_TitleBar(self) -> None:
+        """Clean title bar. Hide title and set transparent icon."""
+        self.setWindowTitle(" ")  # Hidden title "python"
+        self.set_transparent_icon()
+
+    # def add_minimize_button(self) -> None:
+    #     """Add minimize button to the window."""
+    #     self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowType.WindowMinimizeButtonHint)
+
+    def set_transparent_icon(self) -> None:
+        """Set a transparent window icon."""
+        pixmap = QtGui.QPixmap(32, 32)
+        pixmap.fill(QtCore.Qt.GlobalColor.transparent)
+        self.setWindowIcon(QtGui.QIcon(pixmap))
+
+    def center_on_screen(self) -> None:
+        """Center the window on the primary screen."""
+        screen = QApplication.primaryScreen().geometry()
+        window_rect = self.geometry()
+        x = (screen.width() - window_rect.width()) // 2
+        y = (screen.height() - window_rect.height()) // 2
+        self.move(x, y)
 
     def get_dropdown_style(self) -> str:
         """Get standardized dropdown styling based on current theme."""

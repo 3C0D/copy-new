@@ -44,14 +44,7 @@ class HelpWindow(ThemedWidget):
         # Center window on screen
         self._center_on_screen()
 
-        # Configure window flags for minimal chrome
-        self.setWindowFlags(
-            self.windowFlags()
-            & ~QtCore.Qt.WindowType.WindowMinimizeButtonHint
-            & ~QtCore.Qt.WindowType.WindowSystemMenuHint
-            | QtCore.Qt.WindowType.WindowCloseButtonHint
-            | QtCore.Qt.WindowType.WindowTitleHint
-        )
+        # Note: Window flags are handled by ThemedWidget
 
         self._set_transparent_icon()
 

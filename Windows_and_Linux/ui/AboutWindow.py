@@ -2,7 +2,6 @@ import webbrowser
 
 from PySide6 import QtCore, QtGui
 from PySide6.QtWidgets import (
-    QApplication,
     QFrame,
     QLabel,
     QPushButton,
@@ -41,27 +40,10 @@ class AboutWindow(ThemedWidget):
 
     def _setup_window(self) -> None:
         """Configure window properties and positioning."""
-        self.setWindowTitle(" ")  # Hidden title "python"
+        self.clean_TitleBar()
         self.setMinimumSize(self.min_width, self.min_height)
-
         # Center window on screen
-        self._center_on_screen()
-
-        self._set_transparent_icon()
-
-    def _center_on_screen(self) -> None:
-        """Center the window on the primary screen."""
-        screen = QApplication.primaryScreen().geometry()
-        window_rect = self.geometry()
-        x = (screen.width() - window_rect.width()) // 2
-        y = (screen.height() - window_rect.height()) // 2
-        self.move(x, y)
-
-    def _set_transparent_icon(self) -> None:
-        """Set a transparent window icon."""
-        pixmap = QtGui.QPixmap(32, 32)
-        pixmap.fill(QtCore.Qt.GlobalColor.transparent)
-        self.setWindowIcon(QtGui.QIcon(pixmap))
+        self.center_on_screen()
 
     def _create_layout(self) -> None:
         """Create the main layout structure."""

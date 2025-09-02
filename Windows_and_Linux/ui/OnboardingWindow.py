@@ -70,9 +70,6 @@ class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
         self.setWindowTitle(_("Welcome to Writing Tools"))
         self.resize(950, 550)  # Reduced height by 50px to avoid taskbar overlap
 
-        # Add minimize button flag
-        self.add_minimize_button()
-
     def _create_layout(self) -> None:
         """Create the main layout structure with scroll area and margins."""
         # Main layout is already created in ThemedWidget with proper margins
