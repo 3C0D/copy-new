@@ -555,6 +555,7 @@ class GeminiProvider(AIProvider):
         Returns the full response text if return_response is True to show in a popup window,
         otherwise emits the text via the output_ready_signal for direct text replacement.
         Supports image analysis if image_data is provided.
+        Includes retry logic for safety filter blocks.
         """
         self.close_requested = False
 
@@ -579,183 +580,282 @@ class GeminiProvider(AIProvider):
                 return ""
             return error_msg
 
-        try:
-            # Prepare content for Gemini
-            if image_data:
-                # Convert base64 to PIL Image like in gemini_integration.py
-                logging.debug(
-                    f"🖼️ GeminiProvider: Converting base64 to PIL Image - length: {len(image_data)}"
-                )
-                if PILImage is not None and io is not None:
-                    try:
-                        import base64
+        # Retry logic for safety filters - up to 2 attempts
+        max_retries = 3
+        for attempt in range(max_retries):
+            attempt_num = attempt + 1
+            logging.info(f"🔄🔥 Gemini API call - Tentative {attempt_num}/{max_retries}")
 
-                        # Decode base64 to bytes
-                        image_bytes = base64.b64decode(image_data)
-                        # Create PIL Image from bytes
-                        pil_image = PILImage.open(io.BytesIO(image_bytes))
-                        logging.debug(
-                            f"🖼️ GeminiProvider: PIL Image created - size: {pil_image.size}, mode: {pil_image.mode}"
-                        )
+            try:
+                # Prepare content for Gemini
+                if image_data:
+                    # Convert base64 to PIL Image like in gemini_integration.py
+                    logging.debug(
+                        f"    🖼️ \u00A0 \u00A0 \u00A0 \u00A0 GeminiProvider: Converting base64 to PIL Image - length: {len(image_data)}"
+                    )
+                    if PILImage is not None and io is not None:
+                        try:
+                            import base64
 
-                        # For image analysis, create content with PIL Image and text
-                        contents = [
-                            system_instruction,
-                            pil_image,
-                            prompt,
-                        ]
-                    except Exception as img_error:
-                        logging.error(
-                            f"🖼️ GeminiProvider: Failed to convert base64 to PIL Image: {img_error}"
-                        )
-                        # Fallback to inline_data format
+                            # Decode base64 to bytes
+                            image_bytes = base64.b64decode(image_data)
+                            # Create PIL Image from bytes
+                            pil_image = PILImage.open(io.BytesIO(image_bytes))
+                            logging.debug(
+                                f" 🖼️ \u00A0 GeminiProvider: PIL Image created - size: {pil_image.size}, mode: {pil_image.mode}"
+                            )
+
+                            # For image analysis, create content with PIL Image and text
+                            contents = [
+                                system_instruction,
+                                pil_image,
+                                prompt,
+                            ]
+                        except Exception as img_error:
+                            logging.error(
+                                f" 🖼️ \u00A0 GeminiProvider: Failed to convert base64 to PIL Image: {img_error}"
+                            )
+                            # Fallback to inline_data format
+                            contents = [
+                                system_instruction,
+                                {"inline_data": {"mime_type": "image/png", "data": image_data}},
+                                prompt,
+                            ]
+                    else:
+                        logging.warning(" 🖼️ \u00A0 GeminiProvider: PIL not available, using inline_data format")
+                        # Fallback to inline_data format when PIL is not available
                         contents = [
                             system_instruction,
                             {"inline_data": {"mime_type": "image/png", "data": image_data}},
                             prompt,
                         ]
                 else:
-                    logging.warning("🖼️ GeminiProvider: PIL not available, using inline_data format")
-                    # Fallback to inline_data format when PIL is not available
-                    contents = [
-                        system_instruction,
-                        {"inline_data": {"mime_type": "image/png", "data": image_data}},
-                        prompt,
-                    ]
-            else:
-                # For text-only requests
-                contents = [system_instruction, prompt]
+                    # For text-only requests
+                    contents = [system_instruction, prompt]
 
-            # Single-shot call with streaming disabled
-            response = self.model.generate_content(contents=contents, stream=False)
+                # Single-shot call with streaming disabled
+                response = self.model.generate_content(contents=contents, stream=False)
 
-            # Check if response was blocked by safety filters
-            if not response.candidates:
-                error_msg = "Gemini blocked the request due to safety concerns. Try rephrasing your request."
-                logging.warning("Gemini response blocked - no candidates returned")
-                self.app.show_message_signal.emit(
-                    "Content Blocked",
-                    error_msg,
-                )
-                return ""
+                # Check if response was blocked by safety filters
+                if not response.candidates:
+                    error_detail = "🔥 Pas de candidats dans la réponse - réponse vide"
+                    logging.warning(f"🔥 Tentative {attempt_num}: {error_detail}")
+                    if attempt < max_retries - 1:  # If we have retries left, continue
+                        logging.warning(f"🔥 Tentative {attempt_num} échouée, nouvelle tentative...")
+                        continue
+                    else:  # No more retries, show error
+                        logging.warning(f"🔥 Échec définitif après {max_retries} tentatives: {error_detail}")
+                        error_msg = "Gemini blocked the request due to safety concerns. Try rephrasing your request."
+                        logging.warning("Gemini response blocked - no candidates returned")
+                        self.app.show_message_signal.emit(
+                            "Content Blocked",
+                            error_msg,
+                        )
+                        return ""
 
-            # Check the finish reason of the first candidate
-            candidate = response.candidates[0]
+                # Check the finish reason of the first candidate
+                candidate = response.candidates[0]
 
-            # Finish reason meanings:
-            # 1: STOP (normal completion)
-            # 2: SAFETY (blocked by safety filters)
-            # 3: RECITATION (blocked due to recitation)
-            # 4: OTHER (other reason)
-            if candidate.finish_reason == 2:  # SAFETY
-                error_msg = "Gemini blocked the response due to safety filters. Try rephrasing your request to be more neutral."
-                logging.warning(
-                    f"Gemini safety filter triggered. Finish reason: {candidate.finish_reason}"
-                )
-                self.app.show_message_signal.emit(
-                    "Content Blocked by Safety Filters",
-                    error_msg,
-                )
-                return ""
-            elif candidate.finish_reason == 3:  # RECITATION
-                error_msg = "Gemini blocked the response due to potential copyright concerns. Try a more original request."
-                logging.warning(
-                    f"Gemini recitation filter triggered. Finish reason: {candidate.finish_reason}"
-                )
-                self.app.show_message_signal.emit(
-                    "Content Blocked - Copyright Concern",
-                    error_msg,
-                )
-                return ""
-            elif candidate.finish_reason not in [1, None]:  # Not STOP or unset
-                error_msg = f"Gemini could not complete the response (reason code: {candidate.finish_reason}). Please try again."
-                logging.warning(f"Gemini unusual finish reason: {candidate.finish_reason}")
-                self.app.show_message_signal.emit(
-                    "Response Incomplete",
-                    error_msg,
-                )
-                return ""
-
-            # Check if response has content parts
-            if not candidate.content or not candidate.content.parts:
-                error_msg = "Gemini returned an empty response. Please try rephrasing your request."
-                logging.warning("Gemini returned no content parts")
-                self.app.show_message_signal.emit(
-                    "Empty Response",
-                    error_msg,
-                )
-                return ""
-
-            # Safely extract text from response
-            try:
-                response_text = response.text.rstrip("\n")
-                logging.debug(f"🔥 Gemini raw response.text: '{response_text}'")
-                logging.debug(f"🔥 Gemini response_text length: {len(response_text)}")
-            except ValueError as text_error:
-                # Fallback: manually extract text from parts
-                logging.warning(f"🔥 Gemini ValueError in response.text: {text_error}")
-                text_parts = []
-                for part in candidate.content.parts:
-                    if hasattr(part, "text") and part.text:
-                        text_parts.append(part.text)
-
-                if text_parts:
-                    response_text = "".join(text_parts).rstrip("\n")
-                    logging.debug(f"🔥 Gemini fallback response_text: '{response_text}'")
-                else:
-                    error_msg = f"Could not extract text from Gemini response: {str(text_error)}"
-                    logging.error(error_msg)
+                # Finish reason meanings:
+                # 1: STOP (normal completion)
+                # 2: SAFETY (blocked by safety filters)
+                # 3: RECITATION (blocked due to recitation)
+                # 4: OTHER (other reason)
+                if candidate.finish_reason == 2:  # SAFETY
+                    error_detail = f"🔥 Filtre de sécurité activé (code {candidate.finish_reason})"
+                    logging.warning(f"🔥 Tentative {attempt_num}: {error_detail}")
+                    if attempt < max_retries - 1:  # If we have retries left, continue
+                        logging.warning(f"🔥 Tentative {attempt_num} échouée, nouvelle tentative...")
+                        continue
+                    else:  # No more retries, show error
+                        logging.warning(f"🔥 Échec définitif après {max_retries} tentatives: {error_detail}")
+                        error_msg = "Gemini blocked the response due to safety filters. Try rephrasing your request to be more neutral."
+                        logging.warning(
+                            f"Gemini safety filter triggered. Finish reason: {candidate.finish_reason}"
+                        )
+                        self.app.show_message_signal.emit(
+                            "Content Blocked by Safety Filters",
+                            error_msg,
+                        )
+                        return ""
+                elif candidate.finish_reason == 3:  # RECITATION - No retry for copyright issues
+                    error_detail = f"🔥 Filtre de copyright activé (code {candidate.finish_reason})"
+                    logging.warning(f"🔥 Tentative {attempt_num}: {error_detail} - Pas de nouvelle tentative pour les problèmes de droits")
+                    error_msg = "Gemini blocked the response due to potential copyright concerns. Try a more original request."
+                    logging.warning(
+                        f"Gemini recitation filter triggered. Finish reason: {candidate.finish_reason}"
+                    )
                     self.app.show_message_signal.emit(
-                        "Response Processing Error",
-                        "Could not process the response from Gemini. Please try again.",
+                        "Content Blocked - Copyright Concern",
+                        error_msg,
+                    )
+                    return ""
+                elif candidate.finish_reason not in [1, None]:  # Not STOP or unset - No retry for other issues
+                    error_detail = f"🔥 Code d'erreur inhabituel (code {candidate.finish_reason})"
+                    logging.warning(f"🔥 Tentative {attempt_num}: {error_detail} - Pas de nouvelle tentative")
+                    error_msg = f"Gemini could not complete the response (reason code: {candidate.finish_reason}). Please try again."
+                    logging.warning(f"Gemini unusual finish reason: {candidate.finish_reason}")
+                    self.app.show_message_signal.emit(
+                        "Response Incomplete",
+                        error_msg,
                     )
                     return ""
 
-            # Direct replacement
-            if not return_response and not hasattr(self.app, "current_response_window"):
-                logging.debug(
-                    f"🔥 Gemini emitting signal with response_text length: {len(response_text)}"
-                )
-                logging.debug(f"🔥 Gemini response_text preview: '{response_text[:200]}...'")
-                self.app.output_ready_signal.emit(response_text)
-                logging.debug("🔥 Gemini signal emitted, returning empty string")
-                return ""
-            # Response window
-            return response_text
+                # Check if response has content parts
+                if not candidate.content or not candidate.content.parts:
+                    error_detail = "🔥 Réponse vide - pas de parties de contenu"
+                    logging.warning(f"🔥 Tentative {attempt_num}: {error_detail}")
+                    if attempt < max_retries - 1:  # If we have retries left, continue
+                        logging.warning(f"🔥 Tentative {attempt_num} échouée, nouvelle tentative...")
+                        continue
+                    else:  # No more retries, show error
+                        logging.warning(f"🔥 Échec définitif après {max_retries} tentatives: {error_detail}")
+                        error_msg = "Gemini returned an empty response. Please try rephrasing your request."
+                        logging.warning("Gemini returned no content parts")
+                        self.app.show_message_signal.emit(
+                            "Empty Response",
+                            error_msg,
+                        )
+                        return ""
 
-        except Exception as e:
-            error_str = str(e)
-            logging.exception(f"Error processing Gemini response: {error_str}")
+                # Check if response text indicates safety filter (in case finish_reason doesn't show it)
+                try:
+                    response_text = response.text.rstrip("\n")
+                    # Check for safety filter messages in response text
+                    safety_filter_messages = [
+                        "Content Blocked by Safety Filters",
+                        "Gemini blocked the response due to safety filters"
+                    ]
 
-            # Handle specific Gemini API errors with user-friendly messages
-            if "API_KEY_INVALID" in error_str or "invalid API key" in error_str.lower():
-                self.app.show_message_signal.emit(
-                    "Invalid API Key",
-                    "Your Gemini API key is invalid. Please check your API key in Settings and make sure it's correct.",
-                )
-            elif "quota exceeded" in error_str.lower() or "resource exhausted" in error_str.lower():
-                self.app.show_message_signal.emit(
-                    "Quota Exceeded",
-                    "You've exceeded your Gemini API quota. Please check your usage limits or try again later.",
-                )
-            elif "rate limit" in error_str.lower():
-                self.app.show_message_signal.emit(
-                    "Rate Limit Hit",
-                    "You're sending requests too quickly. Please wait a moment and try again.",
-                )
-            elif "finish_reason" in error_str.lower() and "safety" in error_str.lower():
-                self.app.show_message_signal.emit(
-                    "Content Blocked",
-                    "Gemini blocked the request due to safety concerns. Try rephrasing your request to be more neutral.",
-                )
-            else:
-                # Generic error with option to check settings
-                self.app.show_message_signal.emit(
-                    "API Error",
-                    f"An error occurred with the Gemini API:\n\n{error_str}\n\nPlease check your API key and settings.",
-                )
-        finally:
-            self.close_requested = False
+                    if any(msg.lower() in response_text.lower() for msg in safety_filter_messages):
+                        error_detail = f"🔥 Message de filtrage de sécurité détecté: {response_text[:100]}..."
+                        logging.warning(f"🔥 Tentative {attempt_num}: {error_detail}")
+                        if attempt < max_retries - 1:  # If we have retries left, continue
+                            logging.warning(f"🔥 Tentative {attempt_num} échouée, nouvelle tentative...")
+                            continue
+                        else:  # No more retries, show error
+                            logging.warning(f"🔥 Échec définitif après {max_retries} tentatives: {error_detail}")
+                            error_msg = response_text  # Use the actual message from Gemini
+                            logging.warning(f"Safety filter message detected in response text: {response_text}")
+                            self.app.show_message_signal.emit(
+                                "Content Blocked by Safety Filters",
+                                error_msg,
+                            )
+                            return ""
+
+                except ValueError as text_error:
+                    # Fallback: manually extract text from parts
+                    logging.warning(f"🔥 Gemini ValueError in response.text: {text_error}")
+                    text_parts = []
+                    for part in candidate.content.parts:
+                        if hasattr(part, "text") and part.text:
+                            text_parts.append(part.text)
+
+                    if text_parts:
+                        response_text = "".join(text_parts).rstrip("\n")
+                        logging.debug(f"🔥 Gemini fallback response_text: '{response_text}'")
+
+                        # Check for safety filter messages in fallback text
+                        safety_filter_messages = [
+                            "Content Blocked by Safety Filters",
+                            "Gemini blocked the response due to safety filters"
+                        ]
+
+                        if any(msg.lower() in response_text.lower() for msg in safety_filter_messages):
+                            error_detail = f"🔥 Message de filtrage de sécurité détecté (fallback): {response_text[:100]}..."
+                            logging.warning(f"🔥 Tentative {attempt_num}: {error_detail}")
+                            if attempt < max_retries - 1:  # If we have retries left, continue
+                                logging.warning(f"🔥 Tentative {attempt_num} échouée, nouvelle tentative...")
+                                continue
+                            else:  # No more retries, show error
+                                logging.warning(f"🔥 Échec définitif après {max_retries} tentatives: {error_detail}")
+                                error_msg = response_text  # Use the actual message from Gemini
+                                logging.warning(f"Safety filter message detected in fallback response text: {response_text}")
+                                self.app.show_message_signal.emit(
+                                    "Content Blocked by Safety Filters",
+                                    error_msg,
+                                )
+                                return ""
+                    else:
+                        error_detail = f"🔥 Impossible d'extraire le texte: {str(text_error)}"
+                        logging.warning(f"🔥 Tentative {attempt_num}: {error_detail}")
+                        if attempt < max_retries - 1:  # If we have retries left, continue
+                            logging.warning(f"🔥 Tentative {attempt_num} échouée, nouvelle tentative...")
+                            continue
+                        else:  # No more retries, show error
+                            logging.warning(f"🔥 Échec définitif après {max_retries} tentatives: {error_detail}")
+                            error_msg = f"Could not extract text from Gemini response: {str(text_error)}"
+                            logging.error(error_msg)
+                            self.app.show_message_signal.emit(
+                                "Response Processing Error",
+                                "Could not process the response from Gemini. Please try again.",
+                            )
+                            return ""
+
+                # If we get here, we have a valid response - log success and return it
+                success_msg = f"🔥 Réussite à la tentative {attempt_num}/{max_retries}"
+                logging.info(success_msg)
+                if attempt > 0:
+                    logging.info(f"🔥 Réponse obtenue après {attempt_num} tentative(s)")
+
+                logging.debug(f"🔥 Gemini raw response.text: '{response_text}'")
+                logging.debug(f"🔥 Gemini response_text length: {len(response_text)}")
+
+                # Direct replacement
+                if not return_response and not hasattr(self.app, "current_response_window"):
+                    logging.debug(
+                        f"🔥 Gemini emitting signal with response_text length: {len(response_text)}"
+                    )
+                    logging.debug(f"🔥 Gemini response_text preview: '{response_text[:200]}...'")
+                    self.app.output_ready_signal.emit(response_text)
+                    logging.debug("🔥 Gemini signal emitted, returning empty string")
+                    return ""
+                # Response window
+                return response_text
+
+            except Exception as e:
+                error_str = str(e)
+                logging.exception(f"Error processing Gemini response: {error_str}")
+
+                # Handle specific Gemini API errors with user-friendly messages
+                if "API_KEY_INVALID" in error_str or "invalid API key" in error_str.lower():
+                    self.app.show_message_signal.emit(
+                        "Invalid API Key",
+                        "Your Gemini API key is invalid. Please check your API key in Settings and make sure it's correct.",
+                    )
+                    return ""
+                elif "quota exceeded" in error_str.lower() or "resource exhausted" in error_str.lower():
+                    self.app.show_message_signal.emit(
+                        "Quota Exceeded",
+                        "You've exceeded your Gemini API quota. Please check your usage limits or try again later.",
+                    )
+                    return ""
+                elif "rate limit" in error_str.lower():
+                    self.app.show_message_signal.emit(
+                        "Rate Limit Hit",
+                        "You're sending requests too quickly. Please wait a moment and try again.",
+                    )
+                    return ""
+                elif "finish_reason" in error_str.lower() and "safety" in error_str.lower():
+                    self.app.show_message_signal.emit(
+                        "Content Blocked",
+                        "Gemini blocked the request due to safety concerns. Try rephrasing your request to be more neutral.",
+                    )
+                    return ""
+                else:
+                    # For other errors, if we have retries left, continue
+                    if attempt < max_retries - 1:
+                        logging.warning(f"Gemini API error on attempt {attempt + 1}/{max_retries}: {error_str}, retrying...")
+                        continue
+                    else:
+                        # Generic error with option to check settings
+                        self.app.show_message_signal.emit(
+                            "API Error",
+                            f"An error occurred with the Gemini API:\n\n{error_str}\n\nPlease check your API key and settings.",
+                        )
+                        return ""
+            finally:
+                self.close_requested = False
 
         return ""
 

@@ -29,7 +29,7 @@ def _(x):
     return x
 
 
-class NonEditableModal(ThemeAwareMixin,ThemedWidget):
+class NonEditableModal(ThemeAwareMixin, ThemedWidget):
     """Modal window to display transformed text when pasting fails."""
 
     # Signal    emitted when window is closed (not when proceeding to next step)
@@ -40,23 +40,19 @@ class NonEditableModal(ThemeAwareMixin,ThemedWidget):
         self.app = app
         self.transformed_text = transformed_text
 
-        self.setWindowTitle(" ")  # Hidden title "python"
-
-        self.set_transparent_icon()
-
-        # Fixed size
-        self.setFixedSize(600, 400)
-
+        self._setup_window()
         self.setup_ui()
         self.apply_styles(get_effective_color_mode())
 
         # Register for theme changes
         self.register_for_theme_changes()
 
-        # Center on screen
-        self.move(
-            QApplication.primaryScreen().geometry().center() - self.rect().center(),
-        )
+    def _setup_window(self) -> None:
+        """Configure window properties and positioning."""
+        self.clean_TitleBar()
+        # Fixed size
+        self.setFixedSize(600, 400)  # or self.setMinimumSize(600, 400) ???
+        self.center_on_screen()
 
     def setup_ui(self) -> None:
         """Setup the user interface"""

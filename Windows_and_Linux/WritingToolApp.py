@@ -600,7 +600,7 @@ class WritingToolApp(QApplication):
         """
         Show the popup window when the hotkey is pressed.
         """
-        self._logger.debug("🪟 Showing popup window")
+        self._logger.debug("🪟 \u00A0Showing popup window")
 
         # Check for image first
         if self.image is None:
@@ -612,16 +612,16 @@ class WritingToolApp(QApplication):
         if self.image is None:
             selected_text = self.original_selection = self.get_selected_text(sleep_duration=0.1)
             self._logger.debug(f'Selected text: "{selected_text}"')
-            self._logger.debug("🖼️ No image found, processing text selection")
+            self._logger.debug(" 🖼️ \u00A0 No image found, processing text selection")
         else:
             selected_text = None
             self._logger.debug(
-                f"🖼️ Image found in clipboard - size: {self.image.width()}x{self.image.height()}"
+                f" 🖼️ \u00A0 Image found in clipboard - size: {self.image.width()}x{self.image.height()}"
             )
             self._logger.debug("Image found in clipboard, skipping text capture")
 
         try:
-            self._logger.debug("🆕🪟 Creating new popup window")
+            self._logger.debug("🆕🪟 \u00A0Creating new popup window")
             self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(
                 self, selected_text, self.image
             )
@@ -1078,15 +1078,15 @@ class WritingToolApp(QApplication):
         image_data = None
         if image:
             self._logger.debug(
-                f"🖼️ Processing image in _handle_text_or_image_selected - image size: {image.width()}x{image.height()}"
+                f" 🖼️ \u00A0 Processing image in _handle_text_or_image_selected - image size: {image.width()}x{image.height()}"
             )
             image_data = self._qimage_to_base64(image, use_physical_file=False)
             if image_data:
                 self._logger.debug(
-                    f"🖼️ Image converted to base64 successfully - length: {len(image_data)}"
+                    f" 🖼️ \u00A0 Image converted to base64 successfully - length: {len(image_data)}"
                 )
             else:
-                self._logger.error("🖼️ Failed to convert image to base64")
+                self._logger.error(" 🖼️ \u00A0 Failed to convert image to base64")
 
         return {
             "prompt": prompt,
@@ -1135,14 +1135,14 @@ class WritingToolApp(QApplication):
         try:
             # Create temporary file path
             temp_path = self._get_temp_image_path()
-            self._logger.debug(f"🖼️ Converting QImage to base64 with file - temp path: {temp_path}")
+            self._logger.debug(f" 🖼️ \u00A0 Converting QImage to base64 with file - temp path: {temp_path}")
 
             # Save QImage to temporary file (PNG format for compatibility)
             if not image.save(str(temp_path)):  # Use overload without format parameter
-                self._logger.error("🖼️ Failed to save QImage to temporary file")
+                self._logger.error(" 🖼️ \u00A0 Failed to save QImage to temporary file")
                 return ""
 
-            self._logger.debug(f"🖼️ QImage saved successfully to: {temp_path}")
+            self._logger.debug(f" 🖼️ \u00A0 QImage saved successfully to: {temp_path}")
 
             # Read the temporary file and convert to base64
             try:
@@ -1150,18 +1150,18 @@ class WritingToolApp(QApplication):
                     image_bytes = image_file.read()
                     base64_string = base64.b64encode(image_bytes).decode("utf-8")
 
-                self._logger.debug(f"🖼️ Converted image to base64: {len(base64_string)} characters")
-                self._logger.debug(f"🖼️ Base64 preview: {base64_string[:100]}...")
+                self._logger.debug(f" 🖼️ \u00A0 Converted image to base64: {len(base64_string)} characters")
+                self._logger.debug(f" 🖼️ \u00A0 Base64 preview: {base64_string[:100]}...")
                 return base64_string
 
             finally:
                 # Clean up temporary file
                 try:
                     temp_path.unlink(missing_ok=True)
-                    self._logger.debug(f"🖼️ Cleaned up temporary file: {temp_path}")
+                    self._logger.debug(f" 🖼️ \u00A0 Cleaned up temporary file: {temp_path}")
                 except Exception as cleanup_error:
                     self._logger.warning(
-                        f"🖼️ Failed to cleanup temporary file {temp_path}: {cleanup_error}"
+                        f" 🖼️ \u00A0 Failed to cleanup temporary file {temp_path}: {cleanup_error}"
                     )
 
         except Exception as e:
@@ -1183,11 +1183,11 @@ class WritingToolApp(QApplication):
 
             # Validate image
             if image.isNull():
-                self._logger.error("🖼️ Image is null, cannot convert")
+                self._logger.error(" 🖼️ \u00A0 Image is null, cannot convert")
                 return ""
 
             self._logger.debug(
-                f"🖼️ Image size: {image.width()}x{image.height()}, format: {image.format()}"
+                f" 🖼️ \u00A0 Image size: {image.width()}x{image.height()}, format: {image.format()}"
             )
 
             # Create byte array and buffer
@@ -1195,7 +1195,7 @@ class WritingToolApp(QApplication):
             buffer = QBuffer(byte_array)
 
             if not buffer.open(QIODevice.OpenModeFlag.WriteOnly):
-                self._logger.error("🖼️ Failed to open buffer for writing")
+                self._logger.error(" 🖼️ \u00A0 Failed to open buffer for writing")
                 return ""
 
             # Save QImage to buffer in PNG format
@@ -1211,22 +1211,22 @@ class WritingToolApp(QApplication):
             buffer.close()
 
             if not save_success:
-                self._logger.error("🖼️ Failed to save QImage to memory buffer")
+                self._logger.error(" 🖼️ \u00A0 Failed to save QImage to memory buffer")
                 return ""
 
             # Get the size of saved data
             image_bytes = byte_array.data()
             if not image_bytes:
-                self._logger.error("🖼️ No data saved to buffer")
+                self._logger.error(" 🖼️ \u00A0 No data saved to buffer")
                 return ""
 
-            self._logger.debug(f"🖼️ Image saved to buffer: {len(image_bytes)} bytes")
+            self._logger.debug(f" 🖼️ \u00A0 Image saved to buffer: {len(image_bytes)} bytes")
 
             # Convert to base64
             base64_string = base64.b64encode(image_bytes).decode("utf-8")
 
             self._logger.debug(
-                f"🖼️ Converted image to base64 from memory: {len(base64_string)} characters"
+                f" 🖼️ \u00A0 Converted image to base64 from memory: {len(base64_string)} characters"
             )
             return base64_string
 
@@ -1304,10 +1304,10 @@ class WritingToolApp(QApplication):
         image_data = prompt_data.get("image_data")
 
         if image_data:
-            self._logger.debug(f"🖼️ Passing image data to provider - length: {len(image_data)}")
-            self._logger.debug(f"🖼️ Image data preview: {image_data[:100]}...")
+            self._logger.debug(f" 🖼️ \u00A0 Passing image data to provider - length: {len(image_data)}")
+            self._logger.debug(f" 🖼️ \u00A0 Image data preview: {image_data[:100]}...")
         else:
-            self._logger.debug("🖼️ No image data to pass to provider")
+            self._logger.debug(" 🖼️ \u00A0 No image data to pass to provider")
 
         response = self.current_provider.get_response(
             prompt_data["system_instruction"],
@@ -1359,7 +1359,7 @@ class WritingToolApp(QApplication):
                 QtCore.Qt.ConnectionType.QueuedConnection,
                 QtCore.Q_ARG(str, response),
             )
-            self._logger.debug("🆕🪟 Invoked set_text on response window")
+            self._logger.debug("🆕🪟 \u00A0Invoked set_text on response window")
         else:
             self._logger.warning("No current_response_window to update")
 
@@ -1676,17 +1676,17 @@ class WritingToolApp(QApplication):
                 image_data = None
                 if response_window.image:
                     self._logger.debug(
-                        f"🖼️ Processing follow-up with image - size: {response_window.image.width()}x{response_window.image.height()}"
+                        f" 🖼️ \u00A0 Processing follow-up with image - size: {response_window.image.width()}x{response_window.image.height()}"
                     )
                     image_data = self._qimage_to_base64(
                         response_window.image, use_physical_file=False
                     )
                     if image_data:
                         self._logger.debug(
-                            f"🖼️ Follow-up image converted to base64 - length: {len(image_data)}"
+                            f" 🖼️ \u00A0 Follow-up image converted to base64 - length: {len(image_data)}"
                         )
                     else:
-                        self._logger.error("🖼️ Failed to convert follow-up image to base64")
+                        self._logger.error(" 🖼️ \u00A0 Failed to convert follow-up image to base64")
 
                 # Format conversation differently based on provider
                 if self.current_provider and isinstance(self.current_provider, GeminiProvider):
