@@ -168,10 +168,6 @@ class ThemedWidget(QWidget):
         self.setWindowTitle(" ")  # Hidden title "python"
         self.set_transparent_icon()
 
-    # def add_minimize_button(self) -> None:
-    #     """Add minimize button to the window."""
-    #     self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowType.WindowMinimizeButtonHint)
-
     def set_transparent_icon(self) -> None:
         """Set a transparent window icon."""
         pixmap = QtGui.QPixmap(32, 32)
