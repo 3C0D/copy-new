@@ -2,8 +2,9 @@
 Centralized theme manager for the entire application.
 """
 
+from typing import Any
+
 from PySide6 import QtCore, QtGui
-from PySide6.QtWidgets import QWidget
 
 from ui.ui_utils import get_effective_color_mode, set_color_mode
 
@@ -28,12 +29,12 @@ class ThemeManager(QtCore.QObject):
         self._initialized: bool = True
         self._registered_widgets = []
 
-    def register_widget(self, widget: QWidget) -> None:
+    def register_widget(self, widget: Any) -> None:
         """Register a widget to receive theme updates."""
         if widget not in self._registered_widgets:
             self._registered_widgets.append(widget)
 
-    def unregister_widget(self, widget: QWidget) -> None:
+    def unregister_widget(self, widget: Any) -> None:
         """Unregister a widget."""
         if widget in self._registered_widgets:
             self._registered_widgets.remove(widget)
@@ -129,7 +130,7 @@ class ThemeManager(QtCore.QObject):
         }
 
 
-class ThemeAwareMixin(QWidget):
+class ThemeAwareMixin:
     """Mixin to make a widget theme change aware."""
 
     def __init__(self, *args, **kwargs):

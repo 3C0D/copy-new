@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ui.ThemeManager import ThemeAwareMixin, theme_manager
 from ui.ui_utils import get_effective_color_mode
 
 if TYPE_CHECKING:
@@ -29,11 +30,11 @@ def _(x):
     return x
 
 
-class NonEditableModal(QDialog):
+class NonEditableModal(QDialog, ThemeAwareMixin):
     """Modal window to display transformed text when pasting fails."""
 
     def __init__(self, app: "WritingToolApp", transformed_text: str | None):
-        super().__init__()
+        QDialog.__init__(self)
         self.app = app
         self.transformed_text = transformed_text
 
@@ -102,10 +103,6 @@ class NonEditableModal(QDialog):
 
     def apply_styles(self, current_mode: str) -> None:
         """Apply theme styles"""
-        # Use the standardized color mode detection
-        # from ui.ui_utils import get_effective_color_mode
-
-        # current_mode = get_effective_color_mode()
         is_dark = current_mode == "dark"
 
         if is_dark:
@@ -167,8 +164,6 @@ class NonEditableModal(QDialog):
     def register_for_theme_changes(self) -> None:
         """Register this modal for theme change notifications."""
         try:
-            from ui.ThemeManager import theme_manager
-
             theme_manager.register_widget(self)
             theme_manager.theme_changed.connect(self.refresh_theme)
         except ImportError:
@@ -177,17 +172,17 @@ class NonEditableModal(QDialog):
 
     def refresh_theme(self, new_mode: str) -> None:
         """Refresh the modal's theme when color mode changes."""
+        if new_mode is None:
+            new_mode = get_effective_color_mode()
         self.apply_styles(new_mode)
 
-    def closeEvent(self, arg__1: QtGui.QCloseEvent) -> None:
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Handle window close event and unregister from theme manager."""
         try:
-            from ui.ThemeManager import theme_manager
-
             theme_manager.unregister_widget(self)
         except ImportError:
             pass
-        super().closeEvent(arg__1)
+        super().closeEvent(event)
 
     @Slot()
     def copy_text(self) -> None:
@@ -199,17 +194,17 @@ class NonEditableModal(QDialog):
         except Exception as e:
             logging.exception(f"Error copying text: {e}")
 
-    def keyPressEvent(self, arg__1: QtGui.QKeyEvent) -> None:
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None: # pyright: ignore[reportIncompatibleMethodOverride]
         """Handle key press events"""
-        if arg__1.key() == Qt.Key.Key_Escape:
+        if event.key() == Qt.Key.Key_Escape:
             self.close()
         elif (
-            arg__1.key() == Qt.Key.Key_Return
-            and arg__1.modifiers() == Qt.KeyboardModifier.ControlModifier
+            event.key() == Qt.Key.Key_Return
+            and event.modifiers() == Qt.KeyboardModifier.ControlModifier
         ):
             self.copy_text()
         else:
-            super().keyPressEvent(arg__1)
+            super().keyPressEvent(event)
 
 
 # Example usage for testing
