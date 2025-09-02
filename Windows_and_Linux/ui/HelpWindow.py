@@ -1,11 +1,8 @@
-import webbrowser
-
 from PySide6 import QtCore, QtGui
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
     QLabel,
-    QPushButton,
     QScrollArea,
     QVBoxLayout,
 )
@@ -106,17 +103,19 @@ class HelpWindow(ThemedWidget):
     def _get_help_content(self) -> str:
         """Get the formatted help content HTML."""
         from ui.ui_utils import get_effective_color_mode
-        
+
         current_mode = get_effective_color_mode()
         text_color = "#ffffff" if current_mode == "dark" else "#333333"
         bg_color = "#2b2b2b" if current_mode == "dark" else "#ffffff"
-        highlight_bg = "rgba(76, 175, 80, 0.2)" if current_mode == "dark" else "rgba(76, 175, 80, 0.1)"
+        highlight_bg = (
+            "rgba(76, 175, 80, 0.2)" if current_mode == "dark" else "rgba(76, 175, 80, 0.1)"
+        )
         border_color = "#555555" if current_mode == "dark" else "#dddddd"
-        
+
         return f"""
         <div style='text-align: left; line-height: 1.6; color: {text_color}; background-color: {bg_color};'>
             <h2 style='color: {text_color};'>🎯 {_("How to Use Writing Tools")}</h2>
-            
+
             <h3 style='color: {text_color};'>🖼️ {_("Image Processing Priority")}</h3>
             <p><strong>{_("Clipboard Images:")}</strong> {_("When an image is in your clipboard, it takes priority over selected text. Press Ctrl+Space to open a prompt window for image analysis (OCR, translation, description, etc.).")}</p>
             <p><strong>{_("Screenshot Workflow:")}</strong> {_("Take a screenshot (Ctrl+Shift+S or Print Screen) → Image copied to clipboard → Ctrl+Space → Enter prompt → Chat window opens with AI response → Continue discussion about the image.")}</p>
@@ -124,7 +123,7 @@ class HelpWindow(ThemedWidget):
 
             <h3 style='color: {text_color};'>📝 {_("Text Selection & Interaction Modes")}</h3>
             <p><strong>{_("When no image in clipboard:")}</strong> {_("With no image in clipboard, text selection works with two interaction paths:")}</p>
-            
+
             <div style='margin-left: 20px; margin-bottom: 15px;'>
                 <h4 style='color: {text_color};'>🎯 {_("Manual Prompt Input")}</h4>
                 <p>{_("Type your custom prompt in the text area → Choose behavior:")}</p>
@@ -161,7 +160,7 @@ class HelpWindow(ThemedWidget):
             <p><strong>{_("Interface Settings:")}</strong> {_("Customize appearance, themes, and window behavior")}</p>
             <p><strong>{_("Global Shortcut:")}</strong> {_("Set your preferred keyboard shortcut (default: Ctrl+Space)")}</p>
             <p><strong>{_("LLM Selection:")}</strong> {_("Choose from available AI models. Models marked with ⭐ support image processing across all providers")}</p>
-            
+
             <h4 style='color: {text_color};'>🔧 {_("Ollama Integration")}</h4>
             <p><strong>{_("Installation:")}</strong> {_("Writing Tools can install Ollama automatically, opening chat interface immediately")}</p>
             <p><strong>{_("Model Testing:")}</strong> {_("Click models in chat interface to test and install directly")}</p>

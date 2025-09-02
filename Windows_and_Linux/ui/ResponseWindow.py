@@ -980,7 +980,7 @@ class ResponseWindow(ThemedWidget):
             text_display._apply_zoom()
 
         QtCore.QTimer.singleShot(100, self._adjust_window_height)
-        
+
         # Ensure input field keeps focus after content is displayed
         QtCore.QTimer.singleShot(150, self.set_input_focus)
 

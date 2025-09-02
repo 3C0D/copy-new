@@ -20,9 +20,9 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from pynput import keyboard as keyboard
 
-# os.environ["QT_LOGGING_RULES"] = (
-#     "qt.qpa.mime.warning=false;qt.qpa.mime.debug=false;qt.qpa.mime.info=false"  # Disable QMimeDatabase warnings
-# )
+os.environ["QT_LOGGING_RULES"] = (
+    "qt.qpa.mime.warning=false;qt.qpa.mime.debug=false;qt.qpa.mime.info=false"  # Disable QMimeDatabase warnings
+)
 from PySide6 import QtCore, QtGui
 from PySide6.QtCore import QLocale, Signal, Slot
 from PySide6.QtGui import QCursor, QGuiApplication, QImage
@@ -133,7 +133,7 @@ class WritingToolApp(QApplication):
         try:
             theme_manager.theme_changed.connect(self.on_theme_changed)
         except ImportError:
-            logging.warning("ThemeManager not available")
+            self._logger.warning("ThemeManager not available")
 
     @QtCore.Slot(str)
     def on_theme_changed(self, new_mode: str) -> None:
@@ -255,10 +255,10 @@ class WritingToolApp(QApplication):
         if startup_delay_needed:
             # Longer delay for Windows startup - systray needs more time to be ready
             delay = 5000 if is_frozen else 2000  # 5s for exe, 2s for dev
-            logging.debug(
+            self._logger.debug(
                 f"Startup delay detected - waiting {delay / 1000}s for system tray to be ready"
             )
-            logging.debug(
+            self._logger.debug(
                 f"Detected potential startup scenario, delaying tray icon creation by {delay}ms"
             )
             QtCore.QTimer.singleShot(delay, self.systray_manager.create_tray_icon)
@@ -286,11 +286,11 @@ class WritingToolApp(QApplication):
 
     def _handle_initialization_error(self, error: Exception) -> None:
         """Handle errors during application initialization."""
-        logging.exception(f"Error during app initialization: {error}")
-        logging.exception("Falling back to onboarding")
+        self._logger.exception(f"Error during app initialization: {error}")
+        self._logger.exception("Falling back to onboarding")
         import traceback
 
-        logging.debug(f"Full traceback: {traceback.format_exc()}")
+        self._logger.debug(f"Full traceback: {traceback.format_exc()}")
         self.show_onboarding()
 
     # ============================================================================
@@ -611,7 +611,7 @@ class WritingToolApp(QApplication):
 
         if self.image is None:
             selected_text = self.original_selection = self.get_selected_text(sleep_duration=0.1)
-            logging.debug(f'Selected text: "{selected_text}"')
+            self._logger.debug(f'Selected text: "{selected_text}"')
             self._logger.debug("🖼️ No image found, processing text selection")
         else:
             selected_text = None
@@ -1463,17 +1463,19 @@ class WritingToolApp(QApplication):
 
         error_message = "ERROR_TEXT_INCOMPATIBLE_WITH_REQUEST"
         self.output_queue += new_text
-        current_output = self.output_queue.strip()  # Strip whitespace for comparison
+        current_output = (
+            self.output_queue
+        )  # no strip there the answer can be code with indentation, on several lines
 
         # Handle error message
-        if current_output == error_message:
+        if current_output.strip() == error_message:
             self.show_message_signal.emit(
                 "Error", "The text is incompatible with the requested change."
             )
             return
 
         # Check if we're building up to the error message (to prevent partial pasting)
-        if len(current_output) <= len(error_message):
+        if len(current_output.strip()) <= len(error_message):
             clean_current = "".join(current_output.split())
             clean_error = "".join(error_message.split())
             if clean_current == clean_error[: len(clean_current)]:
@@ -1573,7 +1575,7 @@ class WritingToolApp(QApplication):
         """
         Show a modal window with the transformed text when pasting fails (non-editable page).
         """
-        logging.debug("Showing non-editable modal window")
+        self._logger.debug("Showing non-editable modal window")
         try:
             # Close existing modal if any
             if hasattr(self, "non_editable_modal") and self.non_editable_modal is not None:
@@ -1590,7 +1592,7 @@ class WritingToolApp(QApplication):
             self.non_editable_modal.exec()
 
         except Exception as e:
-            logging.error(f"Error showing non-editable modal: {e}", exc_info=True)
+            self._logger.error(f"Error showing non-editable modal: {e}", exc_info=True)
 
     @QtCore.Slot()
     def _on_non_editable_modal_closed(self) -> None:
@@ -1642,13 +1644,13 @@ class WritingToolApp(QApplication):
         """
         Process a follow-up question in the chat window, with image support.
         """
-        logging.debug(f"Processing follow-up question: {question}")
+        self._logger.debug(f"Processing follow-up question: {question}")
 
         def process_thread():
-            logging.debug("Starting follow-up processing thread")
+            self._logger.debug("Starting follow-up processing thread")
             try:
                 if not response_window.chat_history:
-                    logging.error("No chat history found")
+                    self._logger.error("No chat history found")
                     self.show_message_signal.emit("Error", "Chat history not found")
                     return
 
@@ -1672,7 +1674,7 @@ class WritingToolApp(QApplication):
                         "If appropriate, use Markdown formatting to make your response more readable."
                     )
 
-                logging.debug("Sending request to AI provider")
+                self._logger.debug("Sending request to AI provider")
 
                 # Get image data if available
                 image_data = None
@@ -1805,7 +1807,7 @@ class WritingToolApp(QApplication):
                 else:
                     response_text = "Error: No provider available"
 
-                logging.debug(f"Got response of length: {len(response_text)}")
+                self._logger.debug(f"Got response of length: {len(response_text)}")
 
                 # Add response to chat history
                 response_window.chat_history.append({"role": "assistant", "content": response_text})
@@ -1814,7 +1816,7 @@ class WritingToolApp(QApplication):
                 self.followup_response_signal.emit(response_text)
 
             except Exception as e:
-                logging.error(f"Error processing follow-up question: {e}", exc_info=True)
+                self._logger.error(f"Error processing follow-up question: {e}", exc_info=True)
 
                 if "Resource has been exhausted" in str(e):
                     self.show_message_signal.emit(
@@ -1848,12 +1850,12 @@ class WritingToolApp(QApplication):
             and (current_time - self.last_tray_click_time)
             < self.systray_manager.tray_click_debounce_ms
         ):
-            logging.debug("Settings click ignored due to debounce protection")
+            self._logger.debug("Settings click ignored due to debounce protection")
             return
 
         self.last_tray_click_time = current_time
 
-        logging.debug("Showing settings window")
+        self._logger.debug("Showing settings window")
         # Always create a new settings window to handle providers_only correctly
         self.settings_window = ui.SettingsWindow.SettingsWindow(self, providers_only=providers_only)
 
@@ -1870,7 +1872,7 @@ class WritingToolApp(QApplication):
         """
         Show the about window.
         """
-        logging.debug("Showing about window")
+        self._logger.debug("Showing about window")
         if not self.about_window:
             self.about_window = ui.AboutWindow.AboutWindow()
         self.about_window.show()
@@ -1879,7 +1881,7 @@ class WritingToolApp(QApplication):
         """
         Show the help window.
         """
-        logging.debug("Showing help window")
+        self._logger.debug("Showing help window")
         if not self.help_window:
             self.help_window = ui.HelpWindow.HelpWindow()
         self.help_window.show()
@@ -1910,17 +1912,17 @@ class WritingToolApp(QApplication):
             frame: Current stack frame (unused but required by signal handler interface)
         """
         del signum, frame  # Explicitly mark as unused
-        logging.debug("Received SIGINT. Exiting...")
+        self._logger.debug("Received SIGINT. Exiting...")
         self.exit_app()
 
     def exit_app(self) -> None:
         """
         Exit the application.
         """
-        logging.debug("Stopping the listener")
+        self._logger.debug("Stopping the listener")
         if self.hotkey_listener is not None:
             self.hotkey_listener.stop()
-        logging.debug("Restoring default SIGINT handler")
+        self._logger.debug("Restoring default SIGINT handler")
         signal.signal(signal.SIGINT, signal.SIG_DFL)
-        logging.debug("Exiting application")
+        self._logger.debug("Exiting application")
         self.quit()

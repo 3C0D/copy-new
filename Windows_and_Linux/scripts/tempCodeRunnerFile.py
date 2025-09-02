@@ -1,1 +1,0 @@
-Launch the main application using the virtual environment
