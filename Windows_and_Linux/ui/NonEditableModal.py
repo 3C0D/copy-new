@@ -38,11 +38,12 @@ class NonEditableModal(QDialog, ThemeAwareMixin):
         self.app = app
         self.transformed_text = transformed_text
 
-        # Frameless window, always on top
+        # Frameless window, always on top with minimize functionality
         self.setWindowFlags(
             Qt.WindowType.Dialog
             | Qt.WindowType.FramelessWindowHint
-            | Qt.WindowType.WindowStaysOnTopHint,
+            | Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.WindowMinimizeButtonHint,
         )
         self.setModal(True)
 
@@ -66,6 +67,26 @@ class NonEditableModal(QDialog, ThemeAwareMixin):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
 
+        # Window controls at the top
+        controls_layout = QHBoxLayout()
+        controls_layout.addStretch()
+
+        # Minimize button
+        self.minimize_button = QPushButton("─")
+        self.minimize_button.setFixedSize(36, 36)
+        self.minimize_button.clicked.connect(self.showMinimized)
+        self.minimize_button.setToolTip(_("Minimize"))
+
+        # Close button
+        self.close_button = QPushButton("✕")
+        self.close_button.setFixedSize(36, 36)
+        self.close_button.clicked.connect(self.close)
+        self.close_button.setToolTip(_("Close"))
+
+        controls_layout.addWidget(self.minimize_button)
+        controls_layout.addWidget(self.close_button)
+        layout.addLayout(controls_layout)
+
         # Text display area
         self.text_display = QTextBrowser()
         self.text_display.setReadOnly(True)
@@ -79,9 +100,9 @@ class NonEditableModal(QDialog, ThemeAwareMixin):
         self.text_display.setHtml(html_content)
         layout.addWidget(self.text_display)
 
-        # Buttons
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
+        # Copy button at the bottom
+        copy_layout = QHBoxLayout()
+        copy_layout.addStretch()
 
         # Copy button
         self.copy_button = QPushButton("📋")
@@ -89,15 +110,8 @@ class NonEditableModal(QDialog, ThemeAwareMixin):
         self.copy_button.clicked.connect(self.copy_text)
         self.copy_button.setToolTip(_("Copy text"))
 
-        # Close button
-        self.close_button = QPushButton("✕")
-        self.close_button.setFixedSize(36, 36)
-        self.close_button.clicked.connect(self.close)
-        self.close_button.setToolTip(_("Close"))
-
-        button_layout.addWidget(self.copy_button)
-        button_layout.addWidget(self.close_button)
-        layout.addLayout(button_layout)
+        copy_layout.addWidget(self.copy_button)
+        layout.addLayout(copy_layout)
 
         self.copy_button.setFocus()
 
