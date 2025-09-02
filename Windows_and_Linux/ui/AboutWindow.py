@@ -41,20 +41,11 @@ class AboutWindow(ThemedWidget):
 
     def _setup_window(self) -> None:
         """Configure window properties and positioning."""
-        self.setWindowTitle(" ")  # Hidden title for clean look
+        self.setWindowTitle(" ")  # Hidden title "python"
         self.setMinimumSize(self.min_width, self.min_height)
 
         # Center window on screen
         self._center_on_screen()
-
-        # Configure window flags for minimal chrome
-        self.setWindowFlags(
-            self.windowFlags()
-            & ~QtCore.Qt.WindowType.WindowMinimizeButtonHint
-            & ~QtCore.Qt.WindowType.WindowSystemMenuHint
-            | QtCore.Qt.WindowType.WindowCloseButtonHint
-            | QtCore.Qt.WindowType.WindowTitleHint
-        )
 
         self._set_transparent_icon()
 

@@ -38,13 +38,11 @@ class NonEditableModal(QDialog, ThemeAwareMixin):
         self.app = app
         self.transformed_text = transformed_text
 
-        # Frameless window, always on top with minimize functionality
-        self.setWindowFlags(
-            Qt.WindowType.Dialog
-            | Qt.WindowType.FramelessWindowHint
-            | Qt.WindowType.WindowStaysOnTopHint
-            | Qt.WindowType.WindowMinimizeButtonHint,
-        )
+        # Window with standard controls (minimize/close) and stay on top
+        # self.setWindowFlags(
+        #     Qt.WindowType.Dialog
+        #     | Qt.WindowType.WindowStaysOnTopHint,
+        # )
         self.setModal(True)
 
         # Fixed size

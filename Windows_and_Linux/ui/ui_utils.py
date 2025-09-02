@@ -144,6 +144,15 @@ class ThemedWidget(QWidget):
         self.setup_window_and_layout()
 
     def setup_window_and_layout(self) -> None:
+        # Configure window flags for standard minimize/close/title behavior
+        self.setWindowFlags(
+            self.windowFlags()
+            & ~QtCore.Qt.WindowType.WindowSystemMenuHint
+            | QtCore.Qt.WindowType.WindowCloseButtonHint
+            | QtCore.Qt.WindowType.WindowMinimizeButtonHint
+            | QtCore.Qt.WindowType.WindowTitleHint
+        )
+
         # Set window icon
         icon_path = get_icon_path("app_icon", with_theme=False)
         if icon_path.exists():
