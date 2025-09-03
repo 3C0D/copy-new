@@ -1,10 +1,17 @@
 """
-Page totalement revue et commentée.
-vérifier/comparer logic scrolling avec About window
-étendre l'autostart à linux
-L285   No sure about that:      # Add save button (especially important for providers_only mode)
-        self.add_save_button(main_layout)
+ SettingsWindow.py
 
+This module implements the SettingsWindow class for the WritingToolApp.
+
+Key features:
+- Auto-save: All settings are automatically saved when changed
+  - Theme changes: immediate visual feedback and save
+  - Color mode: auto-applies and saves
+  - Hotkey/shortcut: registers and saves on change
+  - Provider selection/settings: saves on change or dropdown update
+  - Autostart: synchronizes and saves on toggle
+- Button role: only closes the window
+- Provider-only mode: for first-time setup completion
 """
 
 import logging
@@ -96,13 +103,6 @@ class SettingsWindow(ThemedWidget):
         self.setMinimumWidth(700)
         self.setFixedWidth(700)
 
-        # Window configuration - initially on top but can be moved to background
-        # self.setWindowFlags(
-        #     QtCore.Qt.WindowType.Window
-        #     | QtCore.Qt.WindowType.WindowCloseButtonHint
-        #     | QtCore.Qt.WindowType.WindowMinimizeButtonHint  # useful when user needs to retrieve API keys...
-        #     | QtCore.Qt.WindowType.WindowTitleHint,
-        # )
         # Show on top initially but allow user to move to background
         self.setWindowState(QtCore.Qt.WindowState.WindowActive)
         self.raise_()  # Bring window to the front
@@ -333,8 +333,8 @@ class SettingsWindow(ThemedWidget):
         scroll_area.setWidget(scroll_content)
         main_layout.addWidget(scroll_area)
 
-        # Add save button (especially important for providers_only mode)
-        self.add_save_button(main_layout)
+        # Add close button (especially important for providers_only mode)
+        self.add_close_button(main_layout)
 
         # Set appropriate window height based on screen size
         screen = QApplication.primaryScreen().geometry()
@@ -589,10 +589,11 @@ class SettingsWindow(ThemedWidget):
             self.raise_()
             self.activateWindow()
 
-    def add_save_button(self, main_layout: QVBoxLayout) -> None:
+    def add_close_button(self, main_layout: QVBoxLayout) -> None:
         """
-        Add a save/complete setup button at the bottom of the window.
+        Add a close/complete setup button at the bottom of the window.
         Button text varies based on context (setup vs normal settings).
+        Since all settings are auto-saved, this button simply closes the window.
         """
 
         button_container = QWidget()
@@ -608,11 +609,11 @@ class SettingsWindow(ThemedWidget):
         else:
             button_text = _("Close Settings")
 
-        self.save_button = QPushButton(button_text)
-        self.save_button.setFixedSize(150, 40)
+        self.close_button = QPushButton(button_text)
+        self.close_button.setFixedSize(150, 40)
         # Use effective mode based on user settings
         current_mode = self._get_effective_mode()
-        self.save_button.setStyleSheet(
+        self.close_button.setStyleSheet(
             f"""
             QPushButton {{
                 background-color: {"#0078d4" if current_mode == "light" else "#106ebe"};
@@ -632,9 +633,9 @@ class SettingsWindow(ThemedWidget):
         """,
         )
 
-        # Connect button to save function
-        self.save_button.clicked.connect(self.save_settings)
-        button_layout.addWidget(self.save_button)
+        # Connect button click to save_settings method for final processing and window closing
+        self.close_button.clicked.connect(self.save_settings)
+        button_layout.addWidget(self.close_button)
         main_layout.addWidget(button_container)
 
     def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
@@ -843,56 +844,15 @@ class SettingsWindow(ThemedWidget):
     def save_settings_without_closing(self) -> None:
         """
         Save all current settings to persistent storage without closing the window.
-        Handles both general app settings and provider-specific configurations.
+        Most settings are auto-saved, so only handle setup completion tasks.
         """
-        # Save general app settings (not in providers_only mode)
-        if not self.providers_only:
-            if self.shortcut_input is not None:
-                self.app.settings_manager.hotkey = self.shortcut_input.text() or "ctrl+space"
-            if self.gradient_radio is not None:
-                theme = "gradient" if self.gradient_radio.isChecked() else "plain"
-                self.app.settings_manager.theme = theme or "gradient"
-            if self.color_mode_dropdown is not None:
-                selected_text = self.color_mode_dropdown.currentText()
-                mode_mapping = {_("Auto"): "auto", _("Light"): "light", _("Dark"): "dark"}
-                color_mode = mode_mapping.get(selected_text, "auto")
-                self.app.settings_manager.color_mode = color_mode
-        else:
+        if self.providers_only:
             # Create tray icon after initial setup completion
             self.app.systray_manager.create_tray_icon()
 
-        # Save provider selection using internal name from dropdown data
-        if self.provider_dropdown is not None:
-            provider_internal_name = self.provider_dropdown.currentData()
-            if not provider_internal_name:
-                provider_internal_name = "gemini"
-        else:
-            provider_internal_name = "gemini"
-
-        self.app.settings_manager.provider = provider_internal_name
-
-        # Find the corresponding provider instance
-        selected_provider = next(
-            (
-                provider
-                for provider in self.app.providers
-                if provider.internal_name == provider_internal_name
-            ),
-            self.app.providers[0],
-        )
-
-        # Save provider-specific configuration
-        selected_provider.save_config()
-
-        # Update application's current provider
-        self.app.current_provider = selected_provider
-
-        # Load the saved configuration into the provider
-        provider_config = self.app._get_provider_config(provider_internal_name)
-        if self.app.current_provider:
-            self.app.current_provider.load_config(provider_config)
-        else:
-            logging.error("Current provider not set after save")
+        # Ensure shortcut is set to default if empty
+        if self.shortcut_input is not None:
+            self.app.settings_manager.hotkey = self.shortcut_input.text() or "ctrl+space"
 
         # Re-register hotkey with new settings
         self.app.register_hotkey()
