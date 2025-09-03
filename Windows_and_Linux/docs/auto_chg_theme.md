@@ -452,3 +452,55 @@ def closeEvent(self, arg__1: QtGui.QCloseEvent) -> None:
 **Total : ~20 lignes supprimées, 3 lignes modifiées, 1 ligne ajoutée à l'import.**
 
 Ces changements rendent le code plus cohérent avec l'architecture des autres widgets de l'application ! 🎯
+
+
+
+Voici la description simple de comment fonctionne maintenant le signal thème avec systray :
+
+## Schéma Logique - Signal Thème avec Systray
+
+### Architecture Créée
+
+```
+[ThemeManager] → [Systray] → [WritingToolApp] → [Slot Handler]
+     ↓               ↓               ↓             ↓
+   theme_changed  lambda emit    signal réemit  apply_tray_menu_styles()
+```
+
+### Flux Détaillé
+
+1. **Source** : `ThemeManager` détecte un changement (via OS ou config)
+   - Émet `theme_manager.theme_changed.emit("dark"/"light")`
+
+2. **Premier relai** : Dans `systray.py`
+   ```python
+   theme_manager.theme_changed.connect(
+       lambda new_mode: self.app.theme_changed_signal.emit(new_mode)
+   )
+   ```
+   - Reçoit le signal du ThemeManager
+   - Retransmet via lambda au signal de l'app
+
+3. **Deuxième relai** : Signal intermédiaire dans `WritingToolApp.py`
+   ```python
+   theme_changed_signal = Signal(str)
+   
+   # Dans _setup_signals()
+   self.theme_changed_signal.connect(self.on_theme_changed)
+   ```
+
+4. **Destination** : Slot handler final
+   ```python
+   @Slot(str)
+   def on_theme_changed(self, new_mode: str):
+       if self.systray_manager.tray_menu:
+           self.systray_manager.apply_tray_menu_styles(self.tray_menu)
+   ```
+
+### Logique
+- **Séparation** : Le ThemeManager reste indépendant du reste
+- **Cascade** : systray → app → handler final  
+- **Sécurité** : Évite les connexions directes complexes
+- **Pattern** : Suit exactement le comportement de `output_ready_signal`
+
+Le système marche maintenant sans fermer l'application ! 🎉

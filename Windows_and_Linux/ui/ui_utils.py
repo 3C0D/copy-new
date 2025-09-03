@@ -163,6 +163,13 @@ class ThemedWidget(QWidget):
         self.background = ThemeBackground(self, "gradient")
         main_layout.addWidget(self.background)
 
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
+        """Handle key press events with common shortcuts for all windows."""
+        if event.key() == QtCore.Qt.Key.Key_Escape:
+            self.close()
+        else:
+            super().keyPressEvent(event)
+
     def clean_TitleBar(self) -> None:
         """Clean title bar. Hide title and set transparent icon."""
         self.setWindowTitle(" ")  # Hidden title "python"

@@ -78,11 +78,11 @@ class NonEditableModal(ThemedWidget, ThemeAwareMixin):
         copy_layout = QHBoxLayout()
         copy_layout.addStretch()
 
-        # Copy button
+        # Copy button with shortcut indication
         self.copy_button = QPushButton("📋")
         self.copy_button.setFixedSize(36, 36)
         self.copy_button.clicked.connect(self.copy_text)
-        self.copy_button.setToolTip(_("Copy text"))
+        self.copy_button.setToolTip(_("Copy text to clipboard\nShortcut: Ctrl+R"))
 
         copy_layout.addWidget(self.copy_button)
         layout.addLayout(copy_layout)
@@ -164,6 +164,15 @@ class NonEditableModal(ThemedWidget, ThemeAwareMixin):
             new_mode = get_effective_color_mode()
         self.apply_styles(new_mode)
 
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
+        """Handle key press events for this modal."""
+        if event.key() == QtCore.Qt.Key.Key_R and event.modifiers() == QtCore.Qt.KeyboardModifier.ControlModifier:
+            # Ctrl+R to copy text
+            self.copy_text()
+        else:
+            # Let parent handle other keys (including Escape)
+            super().keyPressEvent(event)
+
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Handle window close event and unregister from theme manager."""
         try:
@@ -184,17 +193,7 @@ class NonEditableModal(ThemedWidget, ThemeAwareMixin):
         except Exception as e:
             logging.exception(f"Error copying text: {e}")
 
-    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
-        """Handle key press events"""
-        if event.key() == Qt.Key.Key_Escape:
-            self.close()
-        elif (
-            event.key() == Qt.Key.Key_Return
-            and event.modifiers() == Qt.KeyboardModifier.ControlModifier
-        ):
-            self.copy_text()
-        else:
-            super().keyPressEvent(event)
+
 
 
 # Example usage for testing
