@@ -97,12 +97,12 @@ class SettingsWindow(ThemedWidget):
         self.setFixedWidth(700)
 
         # Window configuration - initially on top but can be moved to background
-        self.setWindowFlags(
-            QtCore.Qt.WindowType.Window
-            | QtCore.Qt.WindowType.WindowCloseButtonHint
-            | QtCore.Qt.WindowType.WindowMinimizeButtonHint  # useful when user needs to retrieve API keys...
-            | QtCore.Qt.WindowType.WindowTitleHint,
-        )
+        # self.setWindowFlags(
+        #     QtCore.Qt.WindowType.Window
+        #     | QtCore.Qt.WindowType.WindowCloseButtonHint
+        #     | QtCore.Qt.WindowType.WindowMinimizeButtonHint  # useful when user needs to retrieve API keys...
+        #     | QtCore.Qt.WindowType.WindowTitleHint,
+        # )
         # Show on top initially but allow user to move to background
         self.setWindowState(QtCore.Qt.WindowState.WindowActive)
         self.raise_()  # Bring window to the front

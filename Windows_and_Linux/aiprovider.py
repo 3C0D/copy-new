@@ -498,6 +498,33 @@ class AIProvider(ABC):
         ongoing operations safely.
         """
 
+    def validate_connection(self) -> bool:
+        """
+        Validate the provider configuration before processing.
+
+        Returns:
+            bool: True if the provider is properly configured, False otherwise
+        """
+        # Check for API key
+        if hasattr(self, "api_key"):
+            if not self.api_key or not self.api_key.strip():
+                self.app.show_message_signal.emit(
+                    "Configuration Error",
+                    f"API key is required for {self.provider_name}. Please configure your API key in settings.",
+                )
+                return False
+
+        # Check for model
+        if hasattr(self, "api_model"):
+            if not self.api_model or not self.api_model.strip():
+                self.app.show_message_signal.emit(
+                    "Configuration Error",
+                    f"Model selection is required for {self.provider_name}. Please select a model in settings.",
+                )
+                return False
+
+        return True
+
 
 class GeminiProvider(AIProvider):
     """
@@ -590,6 +617,7 @@ class GeminiProvider(AIProvider):
                     if PILImage is not None and io is not None:
                         try:
                             import base64
+
                             # Decode base64 to bytes
                             image_bytes = base64.b64decode(image_data)
                             # Create PIL Image from bytes
@@ -708,7 +736,7 @@ class GeminiProvider(AIProvider):
                 # Extract response text with proper error handling
                 response_text = self._extract_response_text(response, candidate)
                 if not response_text:
-                    error_detail = f"🔥 Could not extract text from response"
+                    error_detail = "🔥 Could not extract text from response"
                     logging.warning(f"🔥 Attempt {attempt_num}: {error_detail}")
                     if attempt < max_retries - 1:
                         logging.warning(f"🔥 Attempt {attempt_num} failed, retrying...")
@@ -827,7 +855,7 @@ class GeminiProvider(AIProvider):
         """Check if text contains safety filter messages."""
         safety_filter_messages = [
             "Content Blocked by Safety Filters",
-            "Gemini blocked the response due to safety filters"
+            "Gemini blocked the response due to safety filters",
         ]
         return any(msg.lower() in text.lower() for msg in safety_filter_messages)
 
