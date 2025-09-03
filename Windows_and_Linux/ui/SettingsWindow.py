@@ -499,6 +499,7 @@ class SettingsWindow(ThemedWidget):
             )
 
         # Initialize provider config if needed
+        # Initialize providers if necessary
         if not self.app.settings_manager.providers:
             self.app.settings_manager.providers = {}
 
@@ -658,6 +659,7 @@ class SettingsWindow(ThemedWidget):
         if self.gradient_radio is not None and not self.providers_only:
             theme = "gradient" if self.gradient_radio.isChecked() else "plain"
             self.app.settings_manager.theme = theme
+            self.app.settings_manager.save()  # Save automatically to disk
 
             # Apply theme change immediately to the background for live preview
             if self.background is not None:
@@ -675,6 +677,7 @@ class SettingsWindow(ThemedWidget):
             color_mode = mode_mapping.get(selected_text, "auto")
 
             self.app.settings_manager.color_mode = color_mode
+            self.app.settings_manager.save()  # Auto-save to disk
 
             # Update global colorMode variable
             set_color_mode(color_mode)
@@ -888,6 +891,6 @@ class SettingsWindow(ThemedWidget):
         super().closeEvent(event)
 
     def refresh_theme(self) -> None:
-        """Appelé automatiquement quand le thème change via ThemeManager."""
-        # Utiliser l'ancienne méthode pour l'instant, sera refactorisée plus tard
+        """Automatically called when theme changes via ThemeManager."""
+        # Use the old method for now, will be refactored later
         self._refresh_ui_styles()
