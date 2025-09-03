@@ -44,6 +44,7 @@ class AboutWindow(ThemedWidget):
         self.setMinimumSize(self.min_width, self.min_height)
         # Center window on screen
         self.center_on_screen()
+        self.set_transparent_icon()
 
     def _create_layout(self) -> None:
         """Create the main layout structure."""

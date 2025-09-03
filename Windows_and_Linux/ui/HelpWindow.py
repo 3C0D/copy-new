@@ -1,4 +1,4 @@
-from PySide6 import QtCore, QtGui
+from PySide6 import QtCore
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
@@ -46,7 +46,7 @@ class HelpWindow(ThemedWidget):
 
         # Note: Window flags are handled by ThemedWidget
 
-        self._set_transparent_icon()
+        self.set_transparent_icon()
 
     def _center_on_screen(self) -> None:
         """Center the window on the primary screen."""
@@ -55,12 +55,6 @@ class HelpWindow(ThemedWidget):
         x = (screen.width() - window_rect.width()) // 2
         y = (screen.height() - window_rect.height()) // 2
         self.move(x, y)
-
-    def _set_transparent_icon(self) -> None:
-        """Set a transparent window icon."""
-        pixmap = QtGui.QPixmap(32, 32)
-        pixmap.fill(QtCore.Qt.GlobalColor.transparent)
-        self.setWindowIcon(QtGui.QIcon(pixmap))
 
     def _create_layout(self) -> None:
         """Create the main layout structure."""
@@ -109,7 +103,7 @@ class HelpWindow(ThemedWidget):
         <div style='text-align: left; line-height: 1.6; color: {text_color}; background-color: {bg_color};'>
             <h2 style='color: {text_color};'>🎯 {_("How to Use Writing Tools")}</h2>
 
-            <h3 style='color: {text_color};'> 🖼️\u00A0 {_("Image Processing Priority")}</h3>
+            <h3 style='color: {text_color};'> 🖼️\u00a0 {_("Image Processing Priority")}</h3>
             <p><strong>{_("Clipboard Images:")}</strong> {_("When an image is in your clipboard, it takes priority over selected text. Press Ctrl+Space to open a prompt window for image analysis (OCR, translation, description, etc.).")}</p>
             <p><strong>{_("Screenshot Workflow:")}</strong> {_("Take a screenshot (Ctrl+Shift+S or Print Screen) → Image copied to clipboard → Ctrl+Space → Enter prompt → Chat window opens with AI response → Continue discussion about the image.")}</p>
             <p><strong>{_("Clipboard Management:")}</strong> <b>{_("Once you validate the prompt and enter chat mode, the image is cleared from clipboard to prevent accidental reuse. If you cancel the prompt, the image remains in clipboard.")}</b></p>
@@ -167,7 +161,7 @@ class HelpWindow(ThemedWidget):
                 <div style='display: flex; justify-content: space-between; margin-top: 10px; color: {text_color};'>
                     <div>
                         <strong>{_("Flow:")}</strong><br>
-                         🖼️\u00A0 Image → Ctrl+Space → Prompt → Chat<br>
+                         🖼️\u00a0 Image → Ctrl+Space → Prompt → Chat<br>
                         📝 Text → Ctrl+Space → Manual/Action → Chat/Replace<br>
                         ❌ Cancel → Clipboard preserved<br>
                         ✅ Validate → Clipboard cleared
