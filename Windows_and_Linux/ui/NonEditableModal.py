@@ -29,7 +29,7 @@ def _(x):
     return x
 
 
-class NonEditableModal(ThemeAwareMixin, ThemedWidget):
+class NonEditableModal(ThemedWidget, ThemeAwareMixin):
     """Modal window to display transformed text when pasting fails."""
 
     # Signal    emitted when window is closed (not when proceeding to next step)
