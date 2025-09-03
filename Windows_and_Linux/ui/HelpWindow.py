@@ -65,13 +65,13 @@ class HelpWindow(ThemedWidget):
     def _load_content(self) -> None:
         """Load and display the help content."""
         # Title
-        title_label: QLabel = self._create_title_label()
-        self.content_layout.addWidget(title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.title_label: QLabel = self._create_title_label()
+        self.content_layout.addWidget(self.title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
 
         # Scrollable main content
         help_content: str = self._get_help_content()
-        content_widget: QScrollArea = self._create_scrollable_content(help_content)
-        self.content_layout.addWidget(content_widget)
+        self.scroll_area: QScrollArea = self._create_scrollable_content(help_content)
+        self.content_layout.addWidget(self.scroll_area)
 
     def _create_title_label(self) -> QLabel:
         """Create the main title label."""
@@ -92,8 +92,8 @@ class HelpWindow(ThemedWidget):
         from ui.ui_utils import get_effective_color_mode
 
         current_mode = get_effective_color_mode()
-        text_color = "#ffffff" if current_mode == "dark" else "#333333"
-        bg_color = "#2b2b2b" if current_mode == "dark" else "#ffffff"
+        text_color = "#f0f0f0" if current_mode == "dark" else "#333333"
+        bg_color = "transparent"
         highlight_bg = (
             "rgba(76, 175, 80, 0.2)" if current_mode == "dark" else "rgba(76, 175, 80, 0.1)"
         )
@@ -177,30 +177,42 @@ class HelpWindow(ThemedWidget):
         </div>
         """
 
+    def _get_scroll_style(self) -> str:
+        """Get the scrollbar styling based on current theme."""
+        from ui.ui_utils import get_effective_color_mode
+
+        current_mode = get_effective_color_mode()
+        if current_mode == "dark":
+            handle_color = "rgba(255, 255, 255, 0.3)"
+        else:
+            handle_color = "rgba(0, 0, 0, 0.3)"
+
+        return f"""
+        QScrollArea {{
+            background: transparent;
+            border: none;
+        }}
+        QScrollBar:vertical {{
+            background: transparent;
+            width: 10px;
+        }}
+        QScrollBar::handle:vertical {{
+            background: {handle_color};
+            border-radius: 5px;
+        }}
+        """
+
     def _create_scrollable_content(self, content: str) -> QScrollArea:
         """Create a scrollable area for the content."""
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        scroll_area.setStyleSheet("""
-            QScrollArea {
-                background: transparent;
-                border: none;
-            }
-            QScrollBar:vertical {
-                background: transparent;
-                width: 10px;
-            }
-            QScrollBar::handle:vertical {
-                background: rgba(0, 0, 0, 0.2);
-                border-radius: 5px;
-            }
-        """)
+        scroll_area.setStyleSheet(self._get_scroll_style())
 
-        content_widget = QLabel(content)
-        content_widget.setWordWrap(True)
-        content_widget.setOpenExternalLinks(True)
-        content_widget.setStyleSheet("""
+        self.content_widget = QLabel(content)
+        self.content_widget.setWordWrap(True)
+        self.content_widget.setOpenExternalLinks(True)
+        self.content_widget.setStyleSheet("""
             QLabel {
                 background: transparent;
                 padding: 10px;
@@ -208,5 +220,20 @@ class HelpWindow(ThemedWidget):
             }
         """)
 
-        scroll_area.setWidget(content_widget)
+        scroll_area.setWidget(self.content_widget)
         return scroll_area
+
+    def refresh_theme(self) -> None:
+        """Refresh all theme-dependent styles in the help window."""
+        # Update HTML content with new colors
+        help_content = self._get_help_content()
+        self.content_widget.setText(help_content)
+
+        # Update title style
+        self.title_label.setStyleSheet(self._get_title_style())
+
+        # Update scrollbar style
+        self.scroll_area.setStyleSheet(self._get_scroll_style())
+
+        # Force repaint to update background (gradient)
+        self.update()
