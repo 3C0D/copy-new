@@ -1499,7 +1499,7 @@ class CustomPopupWindow(QWidget):
             self.app.process_option(
                 "Custom", self.selected_text, self.is_force_chat_enabled(), txt, self.image
             )
-            # Don't close the popup - let the user see any errors or retry
+            self.close()
 
     def on_generic_instruction(self, instruction: str) -> None:
         """
@@ -1509,7 +1509,7 @@ class CustomPopupWindow(QWidget):
             self.app.process_option(
                 instruction, self.selected_text, self.is_force_chat_enabled(), None, self.image
             )
-            # Don't close the popup - let the user see any errors or retry
+            self.close()
 
     def _check_vision_support(self) -> bool:
         """

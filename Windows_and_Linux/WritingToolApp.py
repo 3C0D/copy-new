@@ -854,8 +854,11 @@ class WritingToolApp(QApplication):
             image: Optional image copied from the clipboard
         """
         self._logger.debug(f"Processing option: {option}")
-        has_image = image is not None
 
+        if self.current_provider is not None and not self.current_provider.validate_connection():
+            return
+
+        has_image = image is not None
         is_custom_option = option == "Custom"
         has_selected_text = bool(selected_text and selected_text.strip() != "")
         action_config = self.settings_manager.actions.get(option, {})
@@ -870,13 +873,20 @@ class WritingToolApp(QApplication):
         self._logger.debug(f"should_setup_response_window: {should_setup_response_window}")
         self._logger.debug(f"has_image: {has_image}")
 
+        if should_setup_response_window:
+            self._setup_response_window(option, selected_text, image)
+        elif hasattr(self, "current_response_window"):
+            delattr(self, "current_response_window")
+
+
+
         # Store force_chat state for the thread
         self._current_force_chat = force_chat
 
-        # Start processing thread with provider validation
+        # Start processing thread
         threading.Thread(
-            target=self.process_option_with_validation,
-            args=(option, selected_text, image, custom_change, should_setup_response_window),
+            target=self.process_option_thread,
+            args=(option, selected_text, image, custom_change),
             daemon=True,
         ).start()
 
@@ -967,43 +977,6 @@ class WritingToolApp(QApplication):
         if hasattr(self, "image") and self.image:
             self.image = None
         self.has_image = False
-
-    def process_option_with_validation(
-        self,
-        option: str,
-        selected_text: str,
-        image: QtGui.QImage | None = None,
-        custom_change: str | None = None,
-        should_setup_response_window: bool = False,
-    ) -> None:
-        """
-        Process the selected option with provider validation before opening ResponseWindow.
-
-        Args:
-            option: The selected writing option
-            selected_text: The text selected by the user
-            image: Optional image copied from the clipboard
-            custom_change: Optional custom instruction text
-            should_setup_response_window: Whether to open ResponseWindow for this option
-        """
-        self._logger.debug(f"Starting validation and processing for option: {option}")
-
-        try:
-            # Check if provider is properly initialized
-            if self.current_provider is not None and not self.current_provider.validate_connection():
-                return
-
-            # Now setup response window if needed (after validation)
-            if should_setup_response_window:
-                self._setup_response_window(option, selected_text, image)
-            elif hasattr(self, "current_response_window"):
-                delattr(self, "current_response_window")
-
-            # Continue with actual processing
-            self.process_option_thread(option, selected_text, image, custom_change)
-
-        except Exception as e:
-            self._handle_processing_error(e)
 
     def _prepare_prompt_data(
         self,
