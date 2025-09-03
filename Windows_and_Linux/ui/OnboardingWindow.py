@@ -15,7 +15,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ui.ThemeManager import ThemeAwareMixin
 from ui.ui_utils import ThemedWidget, ui_utils
 
 if TYPE_CHECKING:
@@ -26,7 +25,7 @@ def _(x):
     return x
 
 
-class OnboardingWindow(ThemeAwareMixin, ThemedWidget):
+class OnboardingWindow(ThemedWidget):
     """
     The onboarding window for first-time application setup.
     Guides users through initial configuration including shortcuts and theme selection.

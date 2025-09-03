@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 from config.constants import PROVIDER_DISPLAY_NAMES
 from config.data_operations import get_provider_display_name
 from ui.AutostartManager import AutostartManager
-from ui.ThemeManager import ThemeAwareMixin, theme_manager
+from ui.ThemeManager import theme_manager
 from ui.ui_utils import ThemedWidget, get_icon_path, set_color_mode, ui_utils
 
 
@@ -42,7 +42,7 @@ def _(x):
     return x
 
 
-class SettingsWindow(ThemeAwareMixin, ThemedWidget):
+class SettingsWindow(ThemedWidget):
     """
     The settings window for the application.
     Now with scrolling support for better usability on smaller screens.
@@ -859,7 +859,7 @@ class SettingsWindow(ThemeAwareMixin, ThemedWidget):
                 self.app.settings_manager.color_mode = color_mode
         else:
             # Create tray icon after initial setup completion
-            self.app.settings_manager.create_tray_icon()
+            self.app.systray_manager.create_tray_icon()
 
         # Save provider selection using internal name from dropdown data
         if self.provider_dropdown is not None:

@@ -142,6 +142,10 @@ class ThemedWidget(QWidget):
     def __init__(self):
         super().__init__()
         self.setup_window_and_layout()
+        self._theme_aware = False
+
+        # Theme management integration
+        self._register_for_theme_changes()
 
     def setup_window_and_layout(self) -> None:
         # Configure window flags for standard minimize/close/title behavior
@@ -275,6 +279,42 @@ class ThemedWidget(QWidget):
                     image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOSIgaGVpZ2h0PSI5IiB2aWV3Qm94PSIwIDAgOSA5IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNNy41IDIuNUwzLjc1IDYuMjVMMi41IDUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==);
                 }
             """
+
+    def _register_for_theme_changes(self) -> None:
+        """Register this widget for theme change notifications."""
+        try:
+            from ui.ThemeManager import theme_manager
+
+            theme_manager.register_widget(self)
+            theme_manager.theme_changed.connect(self._on_theme_changed)
+        except ImportError:
+            # ThemeManager not available, skip registration
+            pass
+
+    def _on_theme_changed(self) -> None:
+        """Automatically called when the theme changes."""
+        refresh_theme_method = getattr(self, "refresh_theme", None)
+        if refresh_theme_method and callable(refresh_theme_method):
+            refresh_theme_method()
+
+    def get_theme_styles(self) -> dict[str, str]:
+        """Get current theme styles as a shortcut."""
+        try:
+            from ui.ThemeManager import theme_manager
+
+            return theme_manager.get_styles()
+        except ImportError:
+            return {}
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        """Handle window close event and unregister from theme manager."""
+        try:
+            from ui.ThemeManager import theme_manager
+
+            theme_manager.unregister_widget(self)
+        except ImportError:
+            pass
+        super().closeEvent(event)
 
 
 class ThemeBackground(QWidget):

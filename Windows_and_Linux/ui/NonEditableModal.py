@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import markdown2
 import pyperclip
 from PySide6 import QtCore, QtGui
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import Slot
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -18,7 +18,6 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from ui.ThemeManager import ThemeAwareMixin, theme_manager
 from ui.ui_utils import ThemedWidget, get_effective_color_mode
 
 if TYPE_CHECKING:
@@ -29,7 +28,7 @@ def _(x):
     return x
 
 
-class NonEditableModal(ThemedWidget, ThemeAwareMixin):
+class NonEditableModal(ThemedWidget):
     """Modal window to display transformed text when pasting fails."""
 
     # Signal    emitted when window is closed (not when proceeding to next step)
@@ -43,9 +42,6 @@ class NonEditableModal(ThemedWidget, ThemeAwareMixin):
         self._setup_window()
         self.setup_ui()
         self.apply_styles(get_effective_color_mode())
-
-        # Register for theme changes
-        self.register_for_theme_changes()
 
     def _setup_window(self) -> None:
         """Configure window properties and positioning."""
@@ -149,39 +145,28 @@ class NonEditableModal(ThemedWidget, ThemeAwareMixin):
             """,
             )
 
-    def register_for_theme_changes(self) -> None:
-        """Register this modal for theme change notifications."""
-        try:
-            theme_manager.register_widget(self)
-            theme_manager.theme_changed.connect(self.refresh_theme)
-        except ImportError:
-            # ThemeManager not available, skip registration
-            pass
-
     def refresh_theme(self, new_mode: str) -> None:
         """Refresh the modal's theme when color mode changes."""
         if new_mode is None:
             new_mode = get_effective_color_mode()
         self.apply_styles(new_mode)
 
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
+        """Handle window close event."""
+        self.close_signal.emit()
+        super().closeEvent(event)
+
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Handle key press events for this modal."""
-        if event.key() == QtCore.Qt.Key.Key_R and event.modifiers() == QtCore.Qt.KeyboardModifier.ControlModifier:
+        if (
+            event.key() == QtCore.Qt.Key.Key_R
+            and event.modifiers() == QtCore.Qt.KeyboardModifier.ControlModifier
+        ):
             # Ctrl+R to copy text
             self.copy_text()
         else:
             # Let parent handle other keys (including Escape)
             super().keyPressEvent(event)
-
-    def closeEvent(self, event: QtGui.QCloseEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
-        """Handle window close event and unregister from theme manager."""
-        try:
-            theme_manager.unregister_widget(self)
-        except ImportError:
-            pass
-
-        self.close_signal.emit()
-        super().closeEvent(event)
 
     @Slot()
     def copy_text(self) -> None:
@@ -192,8 +177,6 @@ class NonEditableModal(ThemedWidget, ThemeAwareMixin):
             QtCore.QTimer.singleShot(1000, lambda: self.copy_button.setText("📋"))
         except Exception as e:
             logging.exception(f"Error copying text: {e}")
-
-
 
 
 # Example usage for testing

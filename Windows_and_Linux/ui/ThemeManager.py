@@ -4,7 +4,7 @@ Centralized theme manager for the entire application.
 
 from typing import Any
 
-from PySide6 import QtCore, QtGui
+from PySide6 import QtCore
 
 from ui.ui_utils import get_effective_color_mode, set_color_mode
 
@@ -130,35 +130,8 @@ class ThemeManager(QtCore.QObject):
         }
 
 
-class ThemeAwareMixin:
-    """Mixin to make a widget theme change aware."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        theme_manager.register_widget(self)
-        # Connect the theme change signal
-        theme_manager.theme_changed.connect(self._on_theme_changed)
-
-    def _on_theme_changed(self) -> None:
-        """Automatically called when the theme changes."""
-        # Call refresh_theme if the method exists in the derived class
-        refresh_theme_method = getattr(self, "refresh_theme", None)
-        if refresh_theme_method and callable(refresh_theme_method):
-            refresh_theme_method()
-
-    def get_styles(self) -> dict[str, str]:
-        """Shortcut to get current styles."""
-        return ThemeManager.get_styles()
-
-    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
-        """Unregister the widget when it closes."""
-        theme_manager.unregister_widget(self)
-        # Safely call parent's closeEvent if it exists
-        parent_close = getattr(super(), "closeEvent", None)
-        if parent_close:
-            parent_close(event)
-        else:
-            event.accept()
+# ThemeAwareMixin has been deprecated and integrated into ThemedWidget
+# All theme management is now handled automatically by ThemedWidget
 
 
 # Global instance
