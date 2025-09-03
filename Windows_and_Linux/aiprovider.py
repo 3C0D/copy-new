@@ -578,7 +578,7 @@ class GeminiProvider(AIProvider):
         max_retries = 3
         for attempt in range(max_retries):
             attempt_num = attempt + 1
-            logging.info(f"🔄🔥 Gemini API call - Tentative {attempt_num}/{max_retries}")
+            logging.info(f"🔄🔥 Gemini API call - Attempt {attempt_num}/{max_retries}")
 
             try:
                 # Prepare content for Gemini
@@ -627,18 +627,18 @@ class GeminiProvider(AIProvider):
 
                 # Check if response was blocked by safety filters
                 if not response.candidates:
-                    error_detail = "🔥 Pas de candidats dans la réponse - réponse vide"
-                    logging.warning(f"🔥 Tentative {attempt_num}: {error_detail}")
+                    error_detail = "🔥 No candidates in response - empty response"
+                    logging.warning(f"🔥 Attempt {attempt_num}: {error_detail}")
                     if attempt < max_retries - 1:
-                        logging.warning(f"🔥 Tentative {attempt_num} échouée, nouvelle tentative...")
+                        logging.warning(f"🔥 Attempt {attempt_num} failed, retrying...")
                         continue
                     else:
-                        logging.warning(f"🔥 Échec définitif après {max_retries} tentatives: {error_detail}")
+                        logging.warning(f"🔥 Final failure after {max_retries} attempts: {error_detail}")
                         error_msg = "Gemini blocked the request due to safety concerns. Try rephrasing your request."
-                        logging.warning("Gemini response blocked - no candidates returned")
+                        logging.error("Gemini response blocked - no candidates returned")
                         self.app.show_message_signal.emit(
                             "Content Blocked",
-                            error_msg,
+                            "Your request has been blocked by Gemini's safety filters. Please try rephrasing your request to be more neutral.",
                         )
                         return ""
 
@@ -651,13 +651,13 @@ class GeminiProvider(AIProvider):
                 # 3: RECITATION (blocked due to recitation)
                 # 4: OTHER (other reason)
                 if candidate.finish_reason == 2:  # SAFETY
-                    error_detail = f"🔥 Filtre de sécurité activé (code {candidate.finish_reason})"
-                    logging.warning(f"🔥 Tentative {attempt_num}: {error_detail}")
+                    error_detail = f"🔥 Safety filter activated (code {candidate.finish_reason})"
+                    logging.warning(f"🔥 Attempt {attempt_num}: {error_detail}")
                     if attempt < max_retries - 1:
-                        logging.warning(f"🔥 Tentative {attempt_num} échouée, nouvelle tentative...")
+                        logging.warning(f"🔥 Attempt {attempt_num} failed, retrying...")
                         continue
                     else:
-                        logging.warning(f"🔥 Échec définitif après {max_retries} tentatives: {error_detail}")
+                        logging.warning(f"🔥 Final failure after {max_retries} attempts: {error_detail}")
                         error_msg = "Gemini blocked the response due to safety filters. Try rephrasing your request to be more neutral."
                         logging.warning(
                             f"Gemini safety filter triggered. Finish reason: {candidate.finish_reason}"
@@ -668,8 +668,8 @@ class GeminiProvider(AIProvider):
                         )
                         return ""
                 elif candidate.finish_reason == 3:  # RECITATION - No retry for copyright issues
-                    error_detail = f"🔥 Filtre de copyright activé (code {candidate.finish_reason})"
-                    logging.warning(f"🔥 Tentative {attempt_num}: {error_detail} - Pas de nouvelle tentative pour les problèmes de droits")
+                    error_detail = f"🔥 Copyright filter activated (code {candidate.finish_reason})"
+                    logging.warning(f"🔥 Attempt {attempt_num}: {error_detail} - No retry for copyright issues")
                     error_msg = "Gemini blocked the response due to potential copyright concerns. Try a more original request."
                     logging.warning(
                         f"Gemini recitation filter triggered. Finish reason: {candidate.finish_reason}"
@@ -680,8 +680,8 @@ class GeminiProvider(AIProvider):
                     )
                     return ""
                 elif candidate.finish_reason not in [1, None]:  # Not STOP or unset - No retry for other issues
-                    error_detail = f"🔥 Code d'erreur inhabituel (code {candidate.finish_reason})"
-                    logging.warning(f"🔥 Tentative {attempt_num}: {error_detail} - Pas de nouvelle tentative")
+                    error_detail = f"🔥 Unexpected error code (code {candidate.finish_reason})"
+                    logging.warning(f"🔥 Attempt {attempt_num}: {error_detail} - No retry")
                     error_msg = f"Gemini could not complete the response (reason code: {candidate.finish_reason}). Please try again."
                     logging.warning(f"Gemini unusual finish reason: {candidate.finish_reason}")
                     self.app.show_message_signal.emit(
@@ -692,13 +692,13 @@ class GeminiProvider(AIProvider):
 
                 # Check if response has content parts
                 if not candidate.content or not candidate.content.parts:
-                    error_detail = "🔥 Réponse vide - pas de parties de contenu"
-                    logging.warning(f"🔥 Tentative {attempt_num}: {error_detail}")
+                    error_detail = "🔥 Empty response - no content parts"
+                    logging.warning(f"🔥 Attempt {attempt_num}: {error_detail}")
                     if attempt < max_retries - 1:
-                        logging.warning(f"🔥 Tentative {attempt_num} échouée, nouvelle tentative...")
+                        logging.warning(f"🔥 Attempt {attempt_num} failed, retrying...")
                         continue
                     else:
-                        logging.warning(f"🔥 Échec définitif après {max_retries} tentatives: {error_detail}")
+                        logging.warning(f"🔥 Final failure after {max_retries} attempts: {error_detail}")
                         self.app.show_message_signal.emit(
                             "Empty Response",
                             "Gemini returned an empty response. Please try rephrasing your request.",
@@ -708,13 +708,13 @@ class GeminiProvider(AIProvider):
                 # Extract response text with proper error handling
                 response_text = self._extract_response_text(response, candidate)
                 if not response_text:
-                    error_detail = f"🔥 Impossible d'extraire le texte de la réponse"
-                    logging.warning(f"🔥 Tentative {attempt_num}: {error_detail}")
+                    error_detail = f"🔥 Could not extract text from response"
+                    logging.warning(f"🔥 Attempt {attempt_num}: {error_detail}")
                     if attempt < max_retries - 1:
-                        logging.warning(f"🔥 Tentative {attempt_num} échouée, nouvelle tentative...")
+                        logging.warning(f"🔥 Attempt {attempt_num} failed, retrying...")
                         continue
                     else:
-                        logging.warning(f"🔥 Échec définitif après {max_retries} tentatives: {error_detail}")
+                        logging.warning(f"🔥 Final failure after {max_retries} attempts: {error_detail}")
                         self.app.show_message_signal.emit(
                             "Response Processing Error",
                             "Could not process the response from Gemini. Please try again.",
@@ -723,13 +723,13 @@ class GeminiProvider(AIProvider):
 
                 # Check if response text indicates safety filter (in case finish_reason doesn't show it)
                 if self._contains_safety_filter_message(response_text):
-                    error_detail = f"🔥 Message de filtrage de sécurité détecté: {response_text[:100]}..."
-                    logging.warning(f"🔥 Tentative {attempt_num}: {error_detail}")
+                    error_detail = f"🔥 Safety filter message detected: {response_text[:100]}..."
+                    logging.warning(f"🔥 Attempt {attempt_num}: {error_detail}")
                     if attempt < max_retries - 1:
-                        logging.warning(f"🔥 Tentative {attempt_num} échouée, nouvelle tentative...")
+                        logging.warning(f"🔥 Attempt {attempt_num} failed, retrying...")
                         continue
                     else:
-                        logging.warning(f"🔥 Échec définitif après {max_retries} tentatives: {error_detail}")
+                        logging.warning(f"🔥 Final failure after {max_retries} attempts: {error_detail}")
                         self.app.show_message_signal.emit(
                             "Content Blocked by Safety Filters",
                             response_text,
@@ -737,10 +737,10 @@ class GeminiProvider(AIProvider):
                         return ""
 
                 # If we get here, we have a valid response - log success and return it
-                success_msg = f"🔥 Réussite à la tentative {attempt_num}/{max_retries}"
+                success_msg = f"🔥 Success on attempt {attempt_num}/{max_retries}"
                 logging.info(success_msg)
                 if attempt > 0:
-                    logging.info(f"🔥 Réponse obtenue après {attempt_num} tentative(s)")
+                    logging.info(f"🔥 Response obtained after {attempt_num} attempt(s)")
 
                 logging.debug(f"🔥 Gemini raw response.text: '{response_text}'")
                 logging.debug(f"🔥 Gemini response_text length: {len(response_text)}")
@@ -820,7 +820,7 @@ class GeminiProvider(AIProvider):
                 logging.debug(f"🔥 Gemini fallback response_text: '{response_text}'")
                 return response_text
             else:
-                logging.warning(f"🔥 Impossible d'extraire le texte: {str(text_error)}")
+                logging.warning(f"🔥 Unable to extract text: {str(text_error)}")
                 return ""
 
     def _contains_safety_filter_message(self, text: str) -> bool:
@@ -1232,30 +1232,30 @@ def install_ollama_windows(app) -> bool:
 
         if result.returncode == 0:
             app.show_message_signal.emit(
-                "Installation réussie",
-                "Ollama a été installé avec succès ! Vous pouvez maintenant télécharger des modèles.",
+                "Installation Successful",
+                "Ollama has been installed successfully! You can now download models.",
             )
             return True
         else:
             app.show_message_signal.emit(
-                "Installation annulée",
-                "L'installation d'Ollama a été annulée ou a échoué.",
+                "Installation Cancelled",
+                "The Ollama installation was cancelled or failed.",
             )
             return False
 
     except ImportError:
         progress_window.close()
         app.show_message_signal.emit(
-            "Erreur",
-            "La bibliothèque 'requests' n'est pas disponible. Installation manuelle requise.",
+            "Error",
+            "The 'requests' library is not available. Manual installation required.",
         )
         return False
     except Exception as e:
         progress_window.close()
         logging.exception(f"Error installing Ollama: {e}")
         app.show_message_signal.emit(
-            "Erreur d'installation",
-            f"Erreur lors de l'installation d'Ollama: {str(e)}\n\nVeuillez installer manuellement depuis https://ollama.com",
+            "Installation Error",
+            f"Error installing Ollama: {str(e)}\n\nPlease install manually from https://ollama.com",
         )
         return False
 
@@ -1309,15 +1309,15 @@ def install_ollama_linux(app) -> bool:
 
         if result.returncode == 0:
             app.show_message_signal.emit(
-                "Installation réussie",
-                "Ollama a été installé avec succès ! Vous pouvez maintenant télécharger des modèles.",
+                "Installation Successful",
+                "Ollama has been installed successfully! You can now download models.",
             )
             return True
         else:
-            error_msg = result.stderr if result.stderr else "Erreur inconnue"
+            error_msg = result.stderr if result.stderr else "Unknown error"
             app.show_message_signal.emit(
-                "Erreur d'installation",
-                f"L'installation d'Ollama a échoué:\n\n{error_msg}\n\nVeuillez installer manuellement depuis https://ollama.com",
+                "Installation Error",
+                f"Ollama installation failed:\n\n{error_msg}\n\nPlease install manually from https://ollama.com",
             )
             return False
 
@@ -1325,8 +1325,8 @@ def install_ollama_linux(app) -> bool:
         progress_window.close()
         logging.exception(f"Error installing Ollama on Linux: {e}")
         app.show_message_signal.emit(
-            "Erreur d'installation",
-            f"Erreur lors de l'installation d'Ollama: {str(e)}\n\nVeuillez installer manuellement depuis https://ollama.com",
+            "Installation Error",
+            f"Error during Ollama installation: {str(e)}\n\nPlease install manually from https://ollama.com",
         )
         return False
 
@@ -2145,7 +2145,7 @@ class MistralProvider(AIProvider):
             # to avoid very long logs because of image urls
             data_for_logs = copy.deepcopy(data)
             for message in data_for_logs["messages"]:
-                # Vérifier si content est une liste (avec images) ou une string (texte seul)
+                # Check if content is a list (with images) or a string (text only)
                 if isinstance(message["content"], list):
                     for content_item in message["content"]:
                         if (

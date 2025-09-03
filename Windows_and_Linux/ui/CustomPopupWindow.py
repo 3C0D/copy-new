@@ -914,11 +914,8 @@ class CustomPopupWindow(QWidget):
                     if self.top_bar_widget:
                         self.top_bar_widget.setCursor(Qt.CursorShape.ArrowCursor)
 
-        # Hide on deactivate only if NOT in edit mode
-        if event.type() == QtCore.QEvent.Type.WindowDeactivate:
-            if not self.edit_mode:
-                self.hide()
-                return True
+        # Removed auto-hide on deactivate to allow settings window to open over it
+        # The window will now stay open when clicking outside
         return super().eventFilter(watched, event)
 
     def create_force_chat_toggle(self, parent_layout: QVBoxLayout) -> None:

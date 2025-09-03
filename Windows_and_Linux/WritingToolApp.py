@@ -844,7 +844,7 @@ class WritingToolApp(QApplication):
         image: QtGui.QImage | None = None,
     ) -> None:
         """
-        Check if the text is a file path (from file/icon selection).
+        Process the selected writing option.
 
         Args:
             option: The action option to process
