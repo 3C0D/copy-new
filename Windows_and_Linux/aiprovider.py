@@ -161,11 +161,11 @@ class TextSetting(AIProviderSetting):
 
     def render_to_layout(self, layout: QVBoxLayout) -> None:
         """Create and add the QLineEdit with its label to the layout."""
-        from ui.ui_utils import get_effective_color_mode
+        from ui.ui_utils import get_color_mode
 
         row_layout = QHBoxLayout()
         label = QLabel(self.display_name)
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
         label.setStyleSheet(
             f"font-size: 16px; color: {'#ffffff' if current_mode == 'dark' else '#333333'};"
         )
@@ -233,11 +233,11 @@ class DropdownSetting(AIProviderSetting):
 
     def render_to_layout(self, layout: QVBoxLayout) -> None:
         """Create and configure the QComboBox with available options."""
-        from ui.ui_utils import get_effective_color_mode
+        from ui.ui_utils import get_color_mode
 
         row_layout = QHBoxLayout()
         label = QLabel(self.display_name)
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
         label.setStyleSheet(
             f"font-size: 16px; color: {'#ffffff' if current_mode == 'dark' else '#333333'};"
         )
@@ -1595,7 +1595,7 @@ class OllamaProvider(AIProvider):
             QVBoxLayout,
         )
 
-        from ui.ui_utils import get_effective_color_mode
+        from ui.ui_utils import get_color_mode
 
         # Get available models
         ollama_models = get_ollama_models()
@@ -1619,7 +1619,7 @@ class OllamaProvider(AIProvider):
         dialog.resize(400, 200)
 
         # Apply theme styling
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
         dialog.setStyleSheet(
             f"""
             QDialog {{

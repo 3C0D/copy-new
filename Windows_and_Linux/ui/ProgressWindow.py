@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ui.ui_utils import get_effective_color_mode
+from ui.ui_utils import get_color_mode
 
 
 class ProgressWindow(QDialog):
@@ -68,7 +68,7 @@ class ProgressWindow(QDialog):
 
     def _apply_theme(self) -> None:
         """Apply the current theme to the window."""
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
 
         if current_mode == "dark":
             bg_color = "#2b2b2b"

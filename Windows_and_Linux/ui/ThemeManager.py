@@ -6,7 +6,7 @@ from typing import Any
 
 from PySide6 import QtCore
 
-from ui.ui_utils import get_effective_color_mode, set_color_mode
+from ui.ui_utils import get_color_mode, set_color_mode
 
 
 class ThemeManager(QtCore.QObject):
@@ -45,7 +45,7 @@ class ThemeManager(QtCore.QObject):
     def change_theme(self, new_mode: str) -> None:
         """Change the theme and notify all registered widgets."""
         set_color_mode(new_mode)
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
         self.theme_changed.emit(current_mode)
 
         # Refresh all registered widgets
@@ -81,7 +81,7 @@ class ThemeManager(QtCore.QObject):
     @staticmethod
     def get_styles() -> dict[str, str]:
         """Return all standardized styles based on the current theme."""
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
         is_dark = current_mode == "dark"
 
         return {

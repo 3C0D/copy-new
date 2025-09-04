@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from ui.ui_utils import ThemedWidget, get_effective_color_mode
+from ui.ui_utils import ThemedWidget, get_color_mode
 
 
 def _(x):
@@ -77,7 +77,7 @@ class AboutWindow(ThemedWidget):
 
     def _get_title_style(self) -> str:
         """Get the title styling based on current theme."""
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
         color = "#ffffff" if current_mode == "dark" else "#333333"
         return f"font-size: 24px; font-weight: bold; color: {color};"
 
@@ -207,7 +207,7 @@ class AboutWindow(ThemedWidget):
     def _get_button_style(self) -> str:
         """Get the button styling with theme awareness (Qt stylesheets only)."""
 
-        mode = get_effective_color_mode()
+        mode = get_color_mode()
         if mode == "dark":
             return """
                 QPushButton {
@@ -256,7 +256,7 @@ class AboutWindow(ThemedWidget):
         super().refresh_theme()
 
         current_bg_theme = self._get_current_background_theme()
-        current_color_mode = get_effective_color_mode()
+        current_color_mode = get_color_mode()
 
         theme_icon = "🌙" if current_color_mode == "dark" else "☀️\u00a0"
         bg_icon = "⚽" if current_bg_theme == "plain" else "🌈"

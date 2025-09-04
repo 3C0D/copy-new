@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ui.ui_utils import ThemedWidget, get_effective_color_mode
+from ui.ui_utils import ThemedWidget, get_color_mode
 
 if TYPE_CHECKING:
     from WritingToolApp import WritingToolApp
@@ -55,9 +55,9 @@ class MarkdownTextBrowser(QTextBrowser):
         new_size = int(self.base_font_size * self.zoom_factor)
 
         # Updated stylesheet with table styling
-        from ui.ui_utils import get_effective_color_mode
+        from ui.ui_utils import get_color_mode
 
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
 
         self.setStyleSheet(
             f"""
@@ -207,9 +207,9 @@ class MessageContainer(QWidget):
             if icon_path.exists():
                 self.copy_btn.setIcon(QtGui.QIcon(icon_path.as_posix()))
 
-            from ui.ui_utils import get_effective_color_mode
+            from ui.ui_utils import get_color_mode
 
-            current_mode = get_effective_color_mode()
+            current_mode = get_color_mode()
 
             self.copy_btn.setStyleSheet(
                 f"""
@@ -510,7 +510,7 @@ class ResponseWindow(ThemedWidget):
         top_bar = QHBoxLayout()
 
         title_label = QLabel(self.option)
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
         title_label.setStyleSheet(
             f"font-size: 20px; font-weight: bold; color: {'#ffffff' if current_mode == 'dark' else '#333333'};",
         )
@@ -685,7 +685,7 @@ class ResponseWindow(ThemedWidget):
         if not self.image:
             return
 
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
 
         # Create collapsible section
         image_section = QWidget()
@@ -800,7 +800,7 @@ class ResponseWindow(ThemedWidget):
                 self.image_display_collapsed = True
 
     def get_button_style(self) -> str:
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
         return f"""
             QPushButton {{
                 background-color: {"#444" if current_mode == "dark" else "#f8f9fa"};

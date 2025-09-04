@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 colorMode = "dark" if darkdetect.isDark() else "light"
 
 
-def get_effective_color_mode() -> str:
+def get_color_mode() -> str:
     """
     Get the effective color mode based on current settings.
     This function provides the same logic as _get_effective_mode() in windows.
@@ -71,7 +71,7 @@ def get_icon_path(icon_name: str, with_theme: bool = True) -> Path:
     # Define possible extensions and filenames
     extensions = [".svg", ".png"]  # SVG takes precedence
     if with_theme:
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
         theme_suffix = "_dark" if current_mode == "dark" else "_light"
         filenames = [f"{icon_name}{theme_suffix}{ext}" for ext in extensions]
         # Fallback to non-themed version if themed version doesn't exist
@@ -235,7 +235,7 @@ class ThemedWidget(QWidget):
 
     def get_dropdown_style(self) -> str:
         """Get standardized dropdown styling based on current theme."""
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
         if current_mode == "dark":
             return """
                 QComboBox {
@@ -269,7 +269,7 @@ class ThemedWidget(QWidget):
 
     def get_input_style(self) -> str:
         """Get standardized input field styling based on current theme."""
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
         return f"""
             font-size: 16px;
             padding: 5px;
@@ -280,19 +280,19 @@ class ThemedWidget(QWidget):
 
     def get_radio_style(self) -> str:
         """Get standardized radio button styling based on current theme."""
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
         return f"color: {'#ffffff' if current_mode == 'dark' else '#333333'}; font-size: 16px;"
 
     def get_label_style(self) -> str:
         """Get standardized label styling based on current theme."""
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
         color = "#ffffff" if current_mode == "dark" else "#333333"
         style = f"font-size: 16px; color: {color};"
         return style
 
     def get_checkbox_style(self) -> str:
         """Get standardized checkbox styling based on current theme."""
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
         if current_mode == "dark":
             # En mode dark, garder le style original (juste le texte)
             return "color: #ffffff; font-size: 16px;"
@@ -409,7 +409,7 @@ class ThemeBackground(QWidget):
                 if os.path.basename(base_dir) == "Windows_and_Linux":
                     base_dir = os.path.dirname(base_dir)
 
-            current_mode = get_effective_color_mode()
+            current_mode = get_color_mode()
             if self.is_popup:
                 bg_file = (
                     "background_popup_dark.png"
@@ -441,7 +441,7 @@ class ThemeBackground(QWidget):
             if background_image is None:
                 # Fallback to a solid color if no background found
                 background_image = QtGui.QPixmap(self.width(), self.height())
-                current_mode = get_effective_color_mode()
+                current_mode = get_color_mode()
                 background_image.fill(
                     QtGui.QColor(50, 50, 50)
                     if current_mode == "dark"
@@ -461,7 +461,7 @@ class ThemeBackground(QWidget):
 
             painter.drawPixmap(self.rect(), background_image)
         else:
-            current_mode = get_effective_color_mode()
+            current_mode = get_color_mode()
             if current_mode == "dark":
                 color = QtGui.QColor(35, 35, 35)  # Dark mode color
             else:

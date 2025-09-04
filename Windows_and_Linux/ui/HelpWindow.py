@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from ui.ui_utils import ThemedWidget, get_effective_color_mode
+from ui.ui_utils import ThemedWidget, get_color_mode
 
 
 def _(x):
@@ -77,7 +77,7 @@ class HelpWindow(ThemedWidget):
 
     def _get_help_content(self) -> str:
         """Get the formatted help content HTML."""
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
         text_color = "#f0f0f0" if current_mode == "dark" else "#333333"
         bg_color = "transparent"
         highlight_bg = (
@@ -165,7 +165,7 @@ class HelpWindow(ThemedWidget):
 
     def _get_scroll_style(self) -> str:
         """Get the scrollbar styling based on current theme."""
-        current_mode = get_effective_color_mode()
+        current_mode = get_color_mode()
         if current_mode == "dark":
             handle_color = "rgba(255, 255, 255, 0.3)"
         else:
@@ -213,7 +213,7 @@ class HelpWindow(ThemedWidget):
 
         # Log theme change with distinctive icon
         current_bg_theme = self._get_current_background_theme()
-        current_color_mode = get_effective_color_mode()
+        current_color_mode = get_color_mode()
 
         theme_icon = "🌙" if current_color_mode == "dark" else "☀️\u00a0"
         bg_icon = "⚽" if current_bg_theme == "plain" else "🌈"
