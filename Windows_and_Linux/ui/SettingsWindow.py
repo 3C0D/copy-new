@@ -239,8 +239,8 @@ class SettingsWindow(ThemedWidget):
             self.gradient_radio.setChecked(self.current_theme == "gradient")
             self.plain_radio.setChecked(self.current_theme == "plain")
             # Auto-save theme changes for immediate visual feedback
-            self.gradient_radio.toggled.connect(self.auto_save_theme)
-            self.plain_radio.toggled.connect(self.auto_save_theme)
+            self.gradient_radio.toggled.connect(self._on_theme_radio_changed)
+            self.plain_radio.toggled.connect(self._on_theme_radio_changed)
             theme_layout.addWidget(self.gradient_radio)
             theme_layout.addWidget(self.plain_radio)
             content_layout.addLayout(theme_layout)
@@ -652,19 +652,12 @@ class SettingsWindow(ThemedWidget):
             self.app.settings_manager.hotkey = self.shortcut_input.text() or "ctrl+space"
             self.app.register_hotkey()
 
-    def auto_save_theme(self) -> None:
-        """
-        Auto-save theme when it changes for immediate visual feedback.
-        """
+    def _on_theme_radio_changed(self) -> None:
+        """Handle theme radio button changes."""
         if self.gradient_radio is not None and not self.providers_only:
             theme = "gradient" if self.gradient_radio.isChecked() else "plain"
-            self.app.settings_manager.theme = theme
-            self.app.settings_manager.save()  # Save automatically to disk
-
-            # Apply theme change immediately to the background for live preview
-            if self.background is not None:
-                self.background.theme = theme
-                self.background.update()
+            # Use parent class method for theme change
+            self.auto_save_theme(theme)
 
     def auto_save_color_mode(self) -> None:
         """

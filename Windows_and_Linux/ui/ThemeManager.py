@@ -15,6 +15,9 @@ class ThemeManager(QtCore.QObject):
     # Signal emitted when the theme changes
     theme_changed = QtCore.Signal(str)  # Emits the new mode (dark/light)
 
+    # Signal emitted when the background theme changes
+    background_theme_changed = QtCore.Signal(str)  # Emits the new background theme (gradient/plain)
+
     _instance = None
 
     def __new__(cls):
@@ -53,6 +56,23 @@ class ThemeManager(QtCore.QObject):
                 except RuntimeError:
                     # Widget destroyed, remove it from the list
                     self._registered_widgets.remove(widget)
+
+    def change_background_theme(self, new_theme: str) -> None:
+        """Change the background theme (gradient/plain) and notify all registered widgets."""
+        self.background_theme_changed.emit(new_theme)
+
+        # Update background for all registered widgets
+        for widget in self._registered_widgets[:]:  # Copy to avoid modifications during iteration
+            try:
+                if hasattr(widget, "change_background_theme"):
+                    widget.change_background_theme(new_theme)
+                elif hasattr(widget, "background") and widget.background:
+                    # Direct update if widget has background but no method
+                    widget.background.theme = new_theme
+                    widget.background.update()
+            except RuntimeError:
+                # Widget destroyed, remove it from the list
+                self._registered_widgets.remove(widget)
 
     @staticmethod
     def get_styles() -> dict[str, str]:
@@ -128,10 +148,6 @@ class ThemeManager(QtCore.QObject):
             }}
             """,
         }
-
-
-# ThemeAwareMixin has been deprecated and integrated into ThemedWidget
-# All theme management is now handled automatically by ThemedWidget
 
 
 # Global instance

@@ -164,8 +164,49 @@ class ThemedWidget(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.background = ThemeBackground(self, "gradient")
+        # Get current theme from settings if available
+        current_theme = self._get_current_background_theme()
+        self.background = ThemeBackground(self, current_theme)
         main_layout.addWidget(self.background)
+
+    def _get_current_background_theme(self) -> str:
+        """Get the current background theme from settings."""
+        # Try to get from app settings manager if available
+        try:
+            if hasattr(self, "app"):
+                app = getattr(self, "app", None)
+                if app and hasattr(app, "settings_manager"):
+                    return app.settings_manager.theme or "gradient"
+        except:
+            pass
+        return "gradient"  # Default
+
+    def change_background_theme(self, theme: str) -> None:
+        """
+        Change the background theme (gradient/plain).
+        This method can be called by child classes or externally.
+        """
+        if self.background is not None:
+            self.background.theme = theme
+            self.background.update()
+
+    def auto_save_theme(self, theme: str) -> None:
+        """
+        Auto-save and apply theme changes.
+        This method should be overridden by child classes if they need custom save logic.
+        """
+        # Apply theme change immediately
+        self.change_background_theme(theme)
+
+        # Save to settings if available
+        try:
+            app = getattr(self, "app", None)
+            if app and hasattr(app, "settings_manager"):
+                app.settings_manager.theme = theme
+                app.settings_manager.save()
+        except AttributeError:
+            # Silently ignore if app or settings_manager is not available
+            pass
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Handle key press events with common shortcuts for all windows."""
@@ -287,6 +328,7 @@ class ThemedWidget(QWidget):
 
             theme_manager.register_widget(self)
             theme_manager.theme_changed.connect(self._on_theme_changed)
+            theme_manager.background_theme_changed.connect(self._on_background_theme_changed)
         except ImportError:
             # ThemeManager not available, skip registration
             pass
@@ -296,6 +338,22 @@ class ThemedWidget(QWidget):
         refresh_theme_method = getattr(self, "refresh_theme", None)
         if refresh_theme_method and callable(refresh_theme_method):
             refresh_theme_method()
+
+    def _on_background_theme_changed(self, theme: str) -> None:
+        """Automatically called when the background theme changes."""
+        if hasattr(self, "change_background_theme"):
+            self.change_background_theme(theme)
+        refresh_theme_method = getattr(self, "refresh_theme", None)
+        if refresh_theme_method and callable(refresh_theme_method):
+            refresh_theme_method()
+
+    def refresh_theme(self) -> None:
+        """
+        Called when theme changes. Override in child classes for specific refresh logic.
+        Base implementation just updates background if needed.
+        """
+        if self.background:
+            self.background.update()
 
     def get_theme_styles(self) -> dict[str, str]:
         """Get current theme styles as a shortcut."""
