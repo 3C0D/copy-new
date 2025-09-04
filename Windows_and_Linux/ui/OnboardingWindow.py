@@ -35,7 +35,7 @@ class OnboardingWindow(ThemedWidget):
     close_signal = QtCore.Signal()
 
     def __init__(self, app: "WritingToolApp"):
-        super().__init__()
+        super().__init__(app)
         self.app = app
 
         # Default configuration values

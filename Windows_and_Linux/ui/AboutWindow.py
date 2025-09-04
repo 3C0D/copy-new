@@ -26,8 +26,8 @@ class AboutWindow(ThemedWidget):
     min_height: int
     content_layout: QVBoxLayout
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, app=None) -> None:
+        super().__init__(app)
         self.min_width = 600
         self.min_height = 650
         self.init_ui()
@@ -55,8 +55,10 @@ class AboutWindow(ThemedWidget):
     def _load_content(self) -> None:
         """Load and display the about content."""
         # Title
-        title_label: QLabel = self._create_title_label()
-        self.content_layout.addWidget(title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
+        self._title_label: QLabel = self._create_title_label()
+        self.content_layout.addWidget(
+            self._title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter
+        )
 
         # Scrollable main content
         about_content: str = self._get_about_content()
@@ -64,8 +66,8 @@ class AboutWindow(ThemedWidget):
         self.content_layout.addWidget(content_widget)
 
         # Update button
-        update_button: QPushButton = self._create_update_button()
-        self.content_layout.addWidget(update_button)
+        self._update_button: QPushButton = self._create_update_button()
+        self.content_layout.addWidget(self._update_button)
 
     def _create_title_label(self) -> QLabel:
         """Create the main title label."""
@@ -76,8 +78,7 @@ class AboutWindow(ThemedWidget):
     def _get_title_style(self) -> str:
         """Get the title styling based on current theme."""
         current_mode = get_effective_color_mode()
-        current_mode = "dark"
-        color = "#ffffff" if current_mode == "dark" else "#344737"
+        color = "#ffffff" if current_mode == "dark" else "#333333"
         return f"font-size: 24px; font-weight: bold; color: {color};"
 
     def _get_about_content(self) -> str:
@@ -198,12 +199,10 @@ class AboutWindow(ThemedWidget):
         return update_button
 
     def _get_content_style(self) -> str:
-        """Get the content styling based on current theme."""
-
-        # current_mode = get_effective_color_mode()
-        current_mode = "dark"
-        color = "#ffffff" if current_mode == "dark" else "#333333"
-        return f"font-size: 14px; color: {color}; padding: 10px;"
+        """Get the content styling with fixed dark colors for better readability."""
+        color = "#e8dcc0"
+        background = "rgba(45, 45, 45, 0.95)"
+        return f"font-size: 14px; color: {color}; background-color: {background}; padding: 10px; border-radius: 8px;"
 
     def _get_button_style(self) -> str:
         """Get the button styling with theme awareness (Qt stylesheets only)."""
@@ -251,6 +250,26 @@ class AboutWindow(ThemedWidget):
     def check_for_updates(self) -> None:
         """Open the GitHub releases page to check for updates."""
         webbrowser.open("https://github.com/theJayTea/WritingTools/releases")
+
+    def refresh_theme(self) -> None:
+        """Refresh all theme-dependent styles in the about window."""
+        super().refresh_theme()
+
+        current_bg_theme = self._get_current_background_theme()
+        current_color_mode = get_effective_color_mode()
+
+        theme_icon = "🌙" if current_color_mode == "dark" else "☀️\u00a0"
+        bg_icon = "⚽" if current_bg_theme == "plain" else "🌈"
+
+        print(
+            f"🎯 AboutWindow theme update: {theme_icon} Color={current_color_mode} {bg_icon} BG={current_bg_theme}"
+        )
+
+        # Update title and button styles
+        if hasattr(self, "_title_label"):
+            self._title_label.setStyleSheet(self._get_title_style())
+        if hasattr(self, "_update_button"):
+            self._update_button.setStyleSheet(self._get_button_style())
 
     def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
         """Handle window resize events to maintain minimum size."""

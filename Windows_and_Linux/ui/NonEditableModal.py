@@ -35,7 +35,7 @@ class NonEditableModal(ThemedWidget):
     close_signal = QtCore.Signal()
 
     def __init__(self, app: "WritingToolApp", transformed_text: str | None):
-        super().__init__()
+        super().__init__(app)
         self.app = app
         self.transformed_text = transformed_text
 
@@ -145,10 +145,9 @@ class NonEditableModal(ThemedWidget):
             """,
             )
 
-    def refresh_theme(self, new_mode: str) -> None:
+    def refresh_theme(self) -> None:
         """Refresh the modal's theme when color mode changes."""
-        if new_mode is None:
-            new_mode = get_effective_color_mode()
+        new_mode = get_effective_color_mode()
         self.apply_styles(new_mode)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]

@@ -1,13 +1,12 @@
 from PySide6 import QtCore
 from PySide6.QtWidgets import (
-    QApplication,
     QFrame,
     QLabel,
     QScrollArea,
     QVBoxLayout,
 )
 
-from ui.ui_utils import ThemedWidget
+from ui.ui_utils import ThemedWidget, get_effective_color_mode
 
 
 def _(x):
@@ -24,49 +23,41 @@ class HelpWindow(ThemedWidget):
     min_height: int
     content_layout: QVBoxLayout
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, app=None) -> None:
+        super().__init__(app)
         self.min_width = 600
         self.min_height = 750
         self.init_ui()
 
     def init_ui(self) -> None:
         """Initialize the user interface for the help window."""
-        self._setup_window()
-        self._create_layout()
-        self._load_content()
+        self.configure_window()
+        self.create_layout()
+        self.load_help_content()
 
-    def _setup_window(self) -> None:
+    def configure_window(self) -> None:
         """Configure window properties and positioning."""
         self.setWindowTitle(" ")  # Hidden title for clean look
         self.setMinimumSize(self.min_width, self.min_height)
 
-        # Center window on screen
-        self._center_on_screen()
+        # Center window on screen using parent method
+        self.center_on_screen()
 
-        # Note: Window flags are handled by ThemedWidget
+        # Note: Window flags and icon are handled by ThemedWidget
 
-        self.set_transparent_icon()
-
-    def _center_on_screen(self) -> None:
-        """Center the window on the primary screen."""
-        screen = QApplication.primaryScreen().geometry()
-        window_rect = self.geometry()
-        x = (screen.width() - window_rect.width()) // 2
-        y = (screen.height() - window_rect.height()) // 2
-        self.move(x, y)
-
-    def _create_layout(self) -> None:
+    def create_layout(self) -> None:
         """Create the main layout structure."""
         self.content_layout = QVBoxLayout(self.background)
         self.content_layout.setContentsMargins(30, 30, 30, 30)
         self.content_layout.setSpacing(20)
 
-    def _load_content(self) -> None:
+    def load_help_content(self) -> None:
         """Load and display the help content."""
         # Title
         self.title_label: QLabel = self._create_title_label()
-        self.content_layout.addWidget(self.title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.content_layout.addWidget(
+            self.title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter
+        )
 
         # Scrollable main content
         help_content: str = self._get_help_content()
@@ -81,16 +72,11 @@ class HelpWindow(ThemedWidget):
 
     def _get_title_style(self) -> str:
         """Get the title styling based on current theme."""
-        from ui.ui_utils import get_effective_color_mode
-
-        current_mode = get_effective_color_mode()
-        color = "#ffffff" if current_mode == "dark" else "#333333"
-        return f"font-size: 24px; font-weight: bold; color: {color};"
+        base_label_style = self.get_label_style()
+        return f"{base_label_style} font-size: 24px; font-weight: bold; margin-bottom: 10px;"
 
     def _get_help_content(self) -> str:
         """Get the formatted help content HTML."""
-        from ui.ui_utils import get_effective_color_mode
-
         current_mode = get_effective_color_mode()
         text_color = "#f0f0f0" if current_mode == "dark" else "#333333"
         bg_color = "transparent"
@@ -153,7 +139,7 @@ class HelpWindow(ThemedWidget):
             <p><strong>{_("Model Testing:")}</strong> {_("Click models in chat interface to test and install directly")}</p>
             <p><strong>{_("Model Management:")}</strong> {_("Installed models appear immediately in settings dropdown")}</p>
 
-            <h3 style='color: {text_color};'>🎛️ {_("Systray/Settings")}</h3>
+            <h3 style='color: {text_color};'>🎛️\u00a0 {_("Systray/Settings")}</h3>
             <p><strong>{_("System Tray Menu:")}</strong> {_("Right-click icon for quick access to settings, help, and mode toggles")}</p>
 
             <div style='margin-top: 30px; padding: 15px; background: {highlight_bg}; border: 1px solid {border_color}; border-radius: 8px;'>
@@ -179,8 +165,6 @@ class HelpWindow(ThemedWidget):
 
     def _get_scroll_style(self) -> str:
         """Get the scrollbar styling based on current theme."""
-        from ui.ui_utils import get_effective_color_mode
-
         current_mode = get_effective_color_mode()
         if current_mode == "dark":
             handle_color = "rgba(255, 255, 255, 0.3)"
@@ -225,6 +209,19 @@ class HelpWindow(ThemedWidget):
 
     def refresh_theme(self) -> None:
         """Refresh all theme-dependent styles in the help window."""
+        super().refresh_theme()
+
+        # Log theme change with distinctive icon
+        current_bg_theme = self._get_current_background_theme()
+        current_color_mode = get_effective_color_mode()
+
+        theme_icon = "🌙" if current_color_mode == "dark" else "☀️\u00a0"
+        bg_icon = "⚽" if current_bg_theme == "plain" else "🌈"
+
+        print(
+            f"🎯 HelpWindow theme update: {theme_icon} Color={current_color_mode} {bg_icon} BG={current_bg_theme}"
+        )
+
         # Update HTML content with new colors
         help_content = self._get_help_content()
         self.content_widget.setText(help_content)

@@ -459,7 +459,7 @@ class ResponseWindow(ThemedWidget):
         title: str = _("Response"),
         parent: QWidget | None = None,
     ):
-        super().__init__()
+        super().__init__(app)
         self.app = app
         self.content_layout: QVBoxLayout | None = None
         self.original_title = title

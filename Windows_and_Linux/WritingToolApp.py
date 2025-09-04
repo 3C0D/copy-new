@@ -1876,7 +1876,7 @@ class WritingToolApp(QApplication):
         """
         self._logger.debug("Showing about window")
         if not self.about_window:
-            self.about_window = ui.AboutWindow.AboutWindow()
+            self.about_window = ui.AboutWindow.AboutWindow(self)
         self.about_window.show()
 
     def show_help(self) -> None:
@@ -1885,7 +1885,7 @@ class WritingToolApp(QApplication):
         """
         self._logger.debug("Showing help window")
         if not self.help_window:
-            self.help_window = ui.HelpWindow.HelpWindow()
+            self.help_window = ui.HelpWindow.HelpWindow(self)
         self.help_window.show()
 
     # ============================================================================

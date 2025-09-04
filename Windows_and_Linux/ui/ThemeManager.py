@@ -59,6 +59,10 @@ class ThemeManager(QtCore.QObject):
 
     def change_background_theme(self, new_theme: str) -> None:
         """Change the background theme (gradient/plain) and notify all registered widgets."""
+        # Log background theme change with distinctive icon
+        bg_icon = "🌈" if new_theme == "gradient" else "⚽"
+        print(f"🎨 ThemeManager background theme: {bg_icon} BG={new_theme}")
+
         self.background_theme_changed.emit(new_theme)
 
         # Update background for all registered widgets

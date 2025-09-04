@@ -1,11 +1,17 @@
 import os
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import darkdetect
 from PySide6 import QtCore, QtGui
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication, QLayout, QVBoxLayout, QWidget
+
+from ui.ThemeManager import theme_manager
+
+if TYPE_CHECKING:
+    from WritingToolApp import WritingToolApp
 
 colorMode = "dark" if darkdetect.isDark() else "light"
 
@@ -139,8 +145,9 @@ class ui_utils:
 
 
 class ThemedWidget(QWidget):
-    def __init__(self):
+    def __init__(self, app: "WritingToolApp"):  # Type hint using forward reference
         super().__init__()
+        self.app = app
         self.setup_window_and_layout()
         self._theme_aware = False
 
@@ -171,15 +178,7 @@ class ThemedWidget(QWidget):
 
     def _get_current_background_theme(self) -> str:
         """Get the current background theme from settings."""
-        # Try to get from app settings manager if available
-        try:
-            if hasattr(self, "app"):
-                app = getattr(self, "app", None)
-                if app and hasattr(app, "settings_manager"):
-                    return app.settings_manager.theme or "gradient"
-        except:
-            pass
-        return "gradient"  # Default
+        return self.app.settings_manager.theme or "gradient"
 
     def change_background_theme(self, theme: str) -> None:
         """
@@ -198,15 +197,15 @@ class ThemedWidget(QWidget):
         # Apply theme change immediately
         self.change_background_theme(theme)
 
-        # Save to settings if available
+        # Save to settings
+        self.app.settings_manager.theme = theme
+        self.app.settings_manager.save()
+
+        # Notify ThemeManager of background theme change
         try:
-            app = getattr(self, "app", None)
-            if app and hasattr(app, "settings_manager"):
-                app.settings_manager.theme = theme
-                app.settings_manager.save()
-        except AttributeError:
-            # Silently ignore if app or settings_manager is not available
-            pass
+            theme_manager.change_background_theme(theme)
+        except ImportError:
+            pass  # Silently handle missing ThemeManager
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Handle key press events with common shortcuts for all windows."""

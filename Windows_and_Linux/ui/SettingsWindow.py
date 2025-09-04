@@ -58,7 +58,7 @@ class SettingsWindow(ThemedWidget):
     close_signal = QtCore.Signal()
 
     def __init__(self, app: "WritingToolApp", providers_only: bool = False):
-        super().__init__()
+        super().__init__(app)
         self.app = app
         self.current_provider_layout = None
         # Special mode to show only provider settings (during first setup)
@@ -371,8 +371,6 @@ class SettingsWindow(ThemedWidget):
             parent = self.current_provider_layout.parent()
             if parent and hasattr(parent, "removeItem"):
                 # Cast to layout type to access removeItem method
-                from PySide6.QtWidgets import QLayout
-
                 if isinstance(parent, QLayout):
                     parent.removeItem(self.current_provider_layout)
             self.current_provider_layout.setParent(None)
@@ -656,6 +654,9 @@ class SettingsWindow(ThemedWidget):
         """Handle theme radio button changes."""
         if self.gradient_radio is not None and not self.providers_only:
             theme = "gradient" if self.gradient_radio.isChecked() else "plain"
+            # Log theme change with distinctive icon
+            bg_icon = "🌈" if theme == "gradient" else "⚽"
+            print(f"🎛️\u00a0 SettingsWindow theme change: {bg_icon} BG={theme}")
             # Use parent class method for theme change
             self.auto_save_theme(theme)
 
@@ -668,6 +669,12 @@ class SettingsWindow(ThemedWidget):
             selected_text = self.color_mode_dropdown.currentText()
             mode_mapping = {_("Auto"): "auto", _("Light"): "light", _("Dark"): "dark"}
             color_mode = mode_mapping.get(selected_text, "auto")
+
+            # Log color mode change with distinctive icon
+            theme_icon = (
+                "🌙" if color_mode == "dark" else ("☀️\u00a0" if color_mode == "light" else "🔄")
+            )
+            print(f"🎨 SettingsWindow color mode change: {theme_icon} Color={color_mode}")
 
             self.app.settings_manager.color_mode = color_mode
             self.app.settings_manager.save()  # Auto-save to disk
