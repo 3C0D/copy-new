@@ -22,8 +22,8 @@ if CONSOLE_MODE:
     print("Press Ctrl+C to exit.")
     print("=====================================")
 else:
-    # Standard logging for windowed mode
-    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+    # Standard logging for windowed mode (e.g vsc console)
+    logging.basicConfig(level=logging.DEBUG, format="%(name)s - %(levelname)s - %(message)s")
 
 
 def main():

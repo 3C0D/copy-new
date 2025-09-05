@@ -459,6 +459,7 @@ class ResponseWindow(ThemedWidget):
         parent: QWidget | None = None,
     ):
         super().__init__(app)
+        self._logger = logging.getLogger(__name__)
         self.app = app
         self.content_layout: QVBoxLayout | None = None
         self.original_title = title
@@ -481,9 +482,9 @@ class ResponseWindow(ThemedWidget):
         self.thinking_timer.setInterval(300)
 
         self.init_ui()
-        logging.debug("Connecting response signals")
+        self._logger.debug("Connecting response signals")
         self.app.followup_response_signal.connect(self.handle_followup_response)
-        logging.debug("Response signals connected")
+        self._logger.debug("Response signals connected")
 
         # Set initial size for "Thinking..." state
         initial_width = 500
@@ -942,7 +943,7 @@ class ResponseWindow(ThemedWidget):
             self._size_initialized = True
 
         except Exception as e:
-            logging.exception(f"Error adjusting window height: {e}")
+            self._logger.exception(f"Error adjusting window height: {e}")
             self.resize(600, 600)  # Updated fallback size
             self._size_initialized = True
 

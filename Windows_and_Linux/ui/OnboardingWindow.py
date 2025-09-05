@@ -36,6 +36,7 @@ class OnboardingWindow(ThemedWidget):
 
     def __init__(self, app: "WritingToolApp"):
         super().__init__(app)
+        self._logger = logging.getLogger(__name__)
         self.app = app
 
         # Default configuration values
@@ -59,7 +60,7 @@ class OnboardingWindow(ThemedWidget):
 
     def init_ui(self) -> None:
         """Initialize the user interface for the onboarding window."""
-        logging.debug("Initializing onboarding UI")
+        self._logger.debug("Initializing onboarding UI")
         self._setup_window()
         self._create_layout()
         self._show_welcome_screen()
@@ -466,20 +467,20 @@ class OnboardingWindow(ThemedWidget):
         """Save only the shortcut setting to persistent storage."""
         try:
             self.app.settings_manager.hotkey = self.shortcut
-            logging.debug(f"Shortcut setting saved: {self.shortcut}")
+            self._logger.debug(f"Shortcut setting saved: {self.shortcut}")
         except Exception as e:
-            logging.error(f"Failed to save shortcut setting: {e}")
+            self._logger.error(f"Failed to save shortcut setting: {e}")
 
     def _save_theme_setting(self) -> None:
         """Save only the theme setting to persistent storage."""
         try:
             self.app.settings_manager.theme = self.theme
         except Exception as e:
-            logging.error(f"Failed to save theme setting: {e}")
+            self._logger.error(f"Failed to save theme setting: {e}")
 
     def _on_next_clicked(self) -> None:
         """Handle 'Next' button click - navigate to API configuration step."""
-        logging.debug("Proceeding to next step of onboarding")
+        self._logger.debug("Proceeding to next step of onboarding")
 
         # Settings are already auto-saved, no need to save again
         # Navigate to API key configuration screen
@@ -490,9 +491,9 @@ class OnboardingWindow(ThemedWidget):
         try:
             self.app.settings_manager.hotkey = self.shortcut
             self.app.settings_manager.theme = self.theme
-            logging.debug("Settings saved successfully")
+            self._logger.debug("Settings saved successfully")
         except Exception as e:
-            logging.error(f"Failed to save settings: {e}")
+            self._logger.error(f"Failed to save settings: {e}")
 
     def _show_api_key_input(self) -> None:
         """Navigate to API key configuration screen and close this window."""

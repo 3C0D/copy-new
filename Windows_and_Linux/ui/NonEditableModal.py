@@ -37,6 +37,7 @@ class NonEditableModal(ThemedWidget):
     def __init__(self, app: "WritingToolApp", transformed_text: str | None):
         super().__init__(app)
         self.app = app
+        self._logger = logging.getLogger(__name__)
         self.transformed_text = transformed_text
 
         self._setup_window()
@@ -175,7 +176,7 @@ class NonEditableModal(ThemedWidget):
             self.copy_button.setText("✓")
             QtCore.QTimer.singleShot(1000, lambda: self.copy_button.setText("📋"))
         except Exception as e:
-            logging.exception(f"Error copying text: {e}")
+            self._logger.exception(f"Error copying text: {e}")
 
 
 # Example usage for testing

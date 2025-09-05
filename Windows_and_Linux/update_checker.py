@@ -16,6 +16,7 @@ UPDATE_DOWNLOAD_URL = "https://github.com/theJayTea/WritingTools/releases"
 class UpdateChecker:
     def __init__(self, app: "WritingToolApp"):
         self.app = app
+        self._logger = logging.getLogger(__name__)
 
     def _fetch_latest_version(self):
         """
@@ -28,13 +29,13 @@ class UpdateChecker:
                 try:
                     return int(data)
                 except ValueError:
-                    logging.warning(f"Invalid version number format: {data}")
+                    self._logger.warning(f"Invalid version number format: {data}")
                     return None
         except (URLError, HTTPError) as e:
-            logging.warning(f"Failed to fetch version info: {e}")
+            self._logger.warning(f"Failed to fetch version info: {e}")
             return None
         except Exception as e:
-            logging.exception(f"Unexpected error checking for updates: {e}")
+            self._logger.exception(f"Unexpected error checking for updates: {e}")
             return None
 
     def _retry_fetch_version(self):
