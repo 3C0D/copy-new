@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 from PySide6 import QtCore, QtGui
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
-from ui.ThemeManager import theme_manager
 from ui.ui_utils import get_icon_path
 
 if TYPE_CHECKING:
@@ -74,7 +73,7 @@ class SystrayManager:
         self._verify_tray_icon_visibility()
 
         # Handle theme changes through theme manager
-        theme_manager.theme_changed.connect(
+        self.app.theme_manager.theme_changed.connect(
             lambda new_mode: self.app.theme_changed_signal.emit(new_mode)
         )
 
@@ -124,7 +123,7 @@ class SystrayManager:
         """
         Apply styles to the tray menu based on current color mode.
         """
-        styles = theme_manager.get_styles()
+        styles = self.app.theme_manager.get_styles()
         menu.setStyleSheet(styles.get("tray_menu", ""))
 
     def _is_system_tray_available_with_retry(

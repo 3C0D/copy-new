@@ -8,7 +8,6 @@ from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication, QLayout, QVBoxLayout, QWidget
 
 if TYPE_CHECKING:
-    from ui.ThemeManager import theme_manager
     from WritingToolApp import WritingToolApp
 
 # colorMode = "dark" if darkdetect.isDark() else "light"
@@ -201,7 +200,7 @@ class ThemedWidget(QWidget):
 
         # Notify ThemeManager of background theme change
         try:
-            theme_manager.change_background_theme(theme)
+            self.app.theme_manager.change_background_theme(theme)
         except ImportError:
             pass  # Silently handle missing ThemeManager
 
@@ -320,9 +319,9 @@ class ThemedWidget(QWidget):
 
     def _register_for_theme_changes(self) -> None:
         """Register this widget for theme change notifications."""
-        theme_manager.register_widget(self)
-        theme_manager.theme_changed.connect(self._on_theme_changed)
-        theme_manager.background_theme_changed.connect(self._on_background_theme_changed)
+        self.app.theme_manager.register_widget(self)
+        self.app.theme_manager.theme_changed.connect(self._on_theme_changed)
+        self.app.theme_manager.background_theme_changed.connect(self._on_background_theme_changed)
 
     def _on_theme_changed(self) -> None:
         """Automatically called when the theme changes."""
@@ -348,11 +347,11 @@ class ThemedWidget(QWidget):
 
     def get_theme_styles(self) -> dict[str, str]:
         """Get current theme styles as a shortcut."""
-        return theme_manager.get_styles()
+        return self.app.theme_manager.get_styles()
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Handle window close event and unregister from theme manager."""
-        theme_manager.unregister_widget(self)
+        self.app.theme_manager.unregister_widget(self)
 
 
 class ThemeBackground(QWidget):

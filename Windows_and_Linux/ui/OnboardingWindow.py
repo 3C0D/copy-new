@@ -15,7 +15,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ui.ThemeManager import theme_manager
 from ui.ui_utils import ThemedWidget, ui_utils
 
 if TYPE_CHECKING:
@@ -418,7 +417,7 @@ class OnboardingWindow(ThemedWidget):
             self.app.settings_manager.save()  # Auto-save to disk
 
             # Apply theme change
-            theme_manager.change_theme(color_mode)
+            self.app.theme_manager.change_theme(color_mode)
 
             # Refresh UI styles with updated colorMode
             self._refresh_ui_styles()

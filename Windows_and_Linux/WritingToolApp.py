@@ -46,7 +46,6 @@ if TYPE_CHECKING:
     from aiprovider import AIProvider
     from ui.ResponseWindow import ResponseWindow
 
-
 from aiprovider import (
     AnthropicProvider,
     GeminiProvider,
@@ -54,6 +53,7 @@ from aiprovider import (
     OllamaProvider,
     OpenAICompatibleProvider,
 )
+from ui.ThemeManager import ThemeManager
 
 _ = gettext.gettext
 
@@ -151,6 +151,7 @@ class WritingToolApp(QApplication):
         self.about_window = None
         self.help_window = None
         self.non_editable_modal = None
+        self.theme_manager = ThemeManager(self)
 
     def _setup_hotkey_system(self) -> None:
         """Initialize hotkey and keyboard listener system."""

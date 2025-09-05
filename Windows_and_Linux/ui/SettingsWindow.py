@@ -41,7 +41,6 @@ if TYPE_CHECKING:
 from config.constants import PROVIDER_DISPLAY_NAMES
 from config.data_operations import get_provider_display_name
 from ui.AutostartManager import AutostartManager
-from ui.ThemeManager import theme_manager
 from ui.ui_utils import ThemedWidget, get_icon_path, ui_utils
 
 
@@ -381,7 +380,7 @@ class SettingsWindow(ThemedWidget):
         # Load and display provider logo if available
         if provider.logo:
             # Use get_icon_path for proper path resolution in all modes (dev, build, etc.)
-            logo_path = get_icon_path(self, f"provider_{provider.logo}", with_theme=False)
+            logo_path = get_icon_path(self.app, f"provider_{provider.logo}", with_theme=False)
             if logo_path.exists():
                 targetPixmap = ui_utils.resize_and_round_image(
                     QImage(logo_path),
@@ -671,7 +670,7 @@ class SettingsWindow(ThemedWidget):
             self.app.settings_manager.save()  # Auto-save to disk
 
             # Apply theme change
-            theme_manager.change_theme(color_mode)
+            self.app.theme_manager.change_theme(color_mode)
 
             # Refresh UI styles with updated colorMode
             self._refresh_ui_styles()

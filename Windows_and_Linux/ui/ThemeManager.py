@@ -9,7 +9,6 @@ from PySide6 import QtCore
 if TYPE_CHECKING:
     from WritingToolApp import WritingToolApp
 
-
 class ThemeManager(QtCore.QObject):
     """Centralized theme manager with signals to notify changes."""
 
@@ -19,20 +18,10 @@ class ThemeManager(QtCore.QObject):
     # Signal emitted when the background theme changes
     background_theme_changed = QtCore.Signal(str)  # Emits the new background theme (gradient/plain)
 
-    _instance = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-
     def __init__(self, app: "WritingToolApp"):
-        if hasattr(self, "_initialized"):
-            return
         super().__init__()
-        self._initialized: bool = True
-        self._registered_widgets = []
         self.app = app
+        self._registered_widgets = []
 
     def register_widget(self, widget: Any) -> None:
         """Register a widget to receive theme updates."""
@@ -77,7 +66,6 @@ class ThemeManager(QtCore.QObject):
             except RuntimeError:
                 # Widget destroyed, remove it from the list
                 self._registered_widgets.remove(widget)
-
 
     def get_styles(self) -> dict[str, str]:
         """Return all standardized styles based on the current theme."""
@@ -152,7 +140,3 @@ class ThemeManager(QtCore.QObject):
             }}
             """,
         }
-
-
-# Global instance
-theme_manager = ThemeManager(app)
