@@ -537,6 +537,7 @@ class CustomPopupWindow(QWidget):
     def _create_background_and_content_layout(self, main_layout: QVBoxLayout) -> QVBoxLayout:
         """Create background widget and content layout."""
         self.background = ThemeBackground(
+            self.app,
             self,
             self.app.settings_manager.theme or "gradient",
             is_popup=True,
