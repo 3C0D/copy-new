@@ -42,7 +42,7 @@ from config.constants import PROVIDER_DISPLAY_NAMES
 from config.data_operations import get_provider_display_name
 from ui.AutostartManager import AutostartManager
 from ui.ThemeManager import theme_manager
-from ui.ui_utils import ThemedWidget, get_icon_path, set_color_mode, ui_utils
+from ui.ui_utils import ThemedWidget, get_icon_path, ui_utils
 
 
 def _(x):
@@ -83,15 +83,6 @@ class SettingsWindow(ThemedWidget):
 
         self.init_ui()
         self.retranslate_ui()
-
-    def _get_effective_mode(self) -> str:
-        """Get the effective color mode based on user settings."""
-        user_mode = self.app.settings_manager.color_mode or "auto"
-        if user_mode == "auto":
-            import darkdetect
-
-            return "dark" if darkdetect.isDark() else "light"
-        return user_mode
 
     def init_ui(self) -> None:
         """
@@ -254,7 +245,7 @@ class SettingsWindow(ThemedWidget):
             self.color_mode_dropdown.addItems([_("Auto"), _("Light"), _("Dark")])
 
             # Set current selection based on saved setting
-            current_mode = self.app.settings_manager.color_mode or "auto"
+            current_mode = self.app.settings_manager.color_mode
             mode_index = {"auto": 0, "light": 1, "dark": 2}.get(current_mode, 0)
             self.color_mode_dropdown.setCurrentIndex(mode_index)
 
@@ -390,7 +381,7 @@ class SettingsWindow(ThemedWidget):
         # Load and display provider logo if available
         if provider.logo:
             # Use get_icon_path for proper path resolution in all modes (dev, build, etc.)
-            logo_path = get_icon_path(f"provider_{provider.logo}", with_theme=False)
+            logo_path = get_icon_path(self, f"provider_{provider.logo}", with_theme=False)
             if logo_path.exists():
                 targetPixmap = ui_utils.resize_and_round_image(
                     QImage(logo_path),
@@ -408,7 +399,7 @@ class SettingsWindow(ThemedWidget):
         provider_name_label = QLabel(provider.provider_name)
         # Provider title needs high contrast - force pure white/black
         # Use effective mode based on user settings
-        current_mode = self._get_effective_mode()
+        current_mode = self.app.settings_manager.color_mode
         provider_color = "#ffffff" if current_mode == "dark" else "#000000"
         provider_name_label.setStyleSheet(
             f"font-size: 18px; font-weight: bold; color: {provider_color};"
@@ -435,7 +426,7 @@ class SettingsWindow(ThemedWidget):
             # Main button
             if provider.button_text:
                 main_button = QPushButton(provider.button_text)
-                current_mode = self._get_effective_mode()
+                current_mode = self.app.settings_manager.color_mode
                 main_button.setStyleSheet(
                     f"""
                         QPushButton {{
@@ -458,7 +449,7 @@ class SettingsWindow(ThemedWidget):
             if hasattr(provider, "additional_buttons"):
                 for button_config in provider.additional_buttons:
                     additional_button = QPushButton(button_config["text"])
-                    current_mode = self._get_effective_mode()
+                    current_mode = self.app.settings_manager.color_mode
 
                     # Different style for secondary buttons
                     if button_config.get("style") == "secondary":
@@ -611,7 +602,7 @@ class SettingsWindow(ThemedWidget):
         self.close_button = QPushButton(button_text)
         self.close_button.setFixedSize(150, 40)
         # Use effective mode based on user settings
-        current_mode = self._get_effective_mode()
+        current_mode = self.app.settings_manager.color_mode
         self.close_button.setStyleSheet(
             f"""
             QPushButton {{
@@ -679,10 +670,7 @@ class SettingsWindow(ThemedWidget):
             self.app.settings_manager.color_mode = color_mode
             self.app.settings_manager.save()  # Auto-save to disk
 
-            # Update global colorMode variable
-            set_color_mode(color_mode)
-
-            # Apply color mode change immediately via centralized theme manager
+            # Apply theme change
             theme_manager.change_theme(color_mode)
 
             # Refresh UI styles with updated colorMode
@@ -727,7 +715,7 @@ class SettingsWindow(ThemedWidget):
             ):
                 # Provider title needs high contrast - force pure white/black
                 # Use effective mode based on user settings
-                current_mode = self._get_effective_mode()
+                current_mode = self.app.settings_manager.color_mode
                 provider_color = "#ffffff" if current_mode == "dark" else "#000000"
                 widget.setStyleSheet(
                     f"font-size: 18px; font-weight: bold; color: {provider_color};"
@@ -754,7 +742,7 @@ class SettingsWindow(ThemedWidget):
                 )
             ):
                 # Apply standard label style for field labels
-                current_mode = self._get_effective_mode()
+                current_mode = self.app.settings_manager.color_mode
                 label_color = "#ffffff" if current_mode == "dark" else "#333333"
                 widget.setStyleSheet(f"font-size: 16px; color: {label_color};")
 

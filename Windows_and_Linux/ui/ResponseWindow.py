@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ui.ui_utils import ThemedWidget, get_color_mode
+from ui.ui_utils import ThemedWidget
 
 if TYPE_CHECKING:
     from WritingToolApp import WritingToolApp
@@ -31,8 +31,9 @@ def _(x):
 class MarkdownTextBrowser(QTextBrowser):
     """Enhanced text browser for displaying Markdown content with improved sizing"""
 
-    def __init__(self, parent=None, is_user_message=False):
+    def __init__(self, app: "WritingToolApp", parent=None, is_user_message=False):
         super().__init__(parent)
+        self.app = app
         self.setReadOnly(True)
         self.setOpenExternalLinks(True)
         self.zoom_factor = 1.2
@@ -54,10 +55,7 @@ class MarkdownTextBrowser(QTextBrowser):
     def _apply_zoom(self) -> None:
         new_size = int(self.base_font_size * self.zoom_factor)
 
-        # Updated stylesheet with table styling
-        from ui.ui_utils import get_color_mode
-
-        current_mode = get_color_mode()
+        current_mode = self.app.settings_manager.color_mode
 
         self.setStyleSheet(
             f"""
@@ -180,8 +178,9 @@ class MarkdownTextBrowser(QTextBrowser):
 class MessageContainer(QWidget):
     """Container for individual messages with copy functionality"""
 
-    def __init__(self, parent=None, is_user=False, text="", text_display=None):
+    def __init__(self, app: "WritingToolApp", parent=None, is_user=False, text="", text_display=None):
         super().__init__(parent)
+        self.app = app
         self.markdown_text = text
         self.is_user = is_user
         self.text_display = text_display
@@ -203,13 +202,11 @@ class MessageContainer(QWidget):
             # Use the copy_md icon (SVG format with theme support)
             from ui.ui_utils import get_icon_path
 
-            icon_path = get_icon_path("copy_md", with_theme=True)
+            icon_path = get_icon_path(self.app, "copy_md", with_theme=True)
             if icon_path.exists():
                 self.copy_btn.setIcon(QtGui.QIcon(icon_path.as_posix()))
 
-            from ui.ui_utils import get_color_mode
-
-            current_mode = get_color_mode()
+            current_mode = self.app.settings_manager.color_mode
 
             self.copy_btn.setStyleSheet(
                 f"""
@@ -289,8 +286,9 @@ class MessageContainer(QWidget):
 class ChatContentScrollArea(QScrollArea):
     """Improved scrollable container for chat messages with dynamic sizing and proper spacing"""
 
-    def __init__(self, parent=None):
+    def __init__(self, app: "WritingToolApp", parent=None):
         super().__init__(parent)
+        self.app = app
         self.content_widget: QWidget | None = None
         self.content_layout: QVBoxLayout | None = None
         self.setup_ui()
@@ -359,12 +357,13 @@ class ChatContentScrollArea(QScrollArea):
         self.content_layout.takeAt(self.content_layout.count() - 1)
 
         # Create text display first
-        text_display = MarkdownTextBrowser(self.content_widget, is_user_message=is_user)
+        text_display = MarkdownTextBrowser(self.app, self.content_widget, is_user_message=is_user)
         html = markdown2.markdown(text, extras=["tables"])
         text_display.setHtml(html)
 
         # Wrap in MessageContainer for copy functionality
         msg_container = MessageContainer(
+            self.app,
             self.content_widget,
             is_user=is_user,
             text=text,
@@ -510,7 +509,7 @@ class ResponseWindow(ThemedWidget):
         top_bar = QHBoxLayout()
 
         title_label = QLabel(self.option)
-        current_mode = get_color_mode()
+        current_mode = self.app.settings_manager.color_mode
         title_label.setStyleSheet(
             f"font-size: 20px; font-weight: bold; color: {'#ffffff' if current_mode == 'dark' else '#333333'};",
         )
@@ -555,7 +554,7 @@ class ResponseWindow(ThemedWidget):
             btn = QPushButton()
             from ui.ui_utils import get_icon_path
 
-            btn.setIcon(QtGui.QIcon(get_icon_path(icon, with_theme=True).as_posix()))
+            btn.setIcon(QtGui.QIcon(get_icon_path(self.app, icon, with_theme=True).as_posix()))
             btn.setStyleSheet(self.get_button_style())
             btn.setToolTip(tooltip)
             btn.clicked.connect(action)
@@ -614,7 +613,7 @@ class ResponseWindow(ThemedWidget):
         self.start_thinking_animation(initial=True)
 
         # Enhanced chat area with full width
-        self.chat_area = ChatContentScrollArea()
+        self.chat_area = ChatContentScrollArea(self.app)
         self.content_layout.addWidget(self.chat_area)
 
         # Input area with enhanced styling
@@ -646,7 +645,7 @@ class ResponseWindow(ThemedWidget):
         send_button = QPushButton()
         from ui.ui_utils import get_icon_path
 
-        send_button.setIcon(QtGui.QIcon(get_icon_path("send", with_theme=True).as_posix()))
+        send_button.setIcon(QtGui.QIcon(get_icon_path(self.app, "send", with_theme=True).as_posix()))
         send_button.setStyleSheet(
             f"""
             QPushButton {{
@@ -685,7 +684,7 @@ class ResponseWindow(ThemedWidget):
         if not self.image:
             return
 
-        current_mode = get_color_mode()
+        current_mode = self.app.settings_manager.color_mode
 
         # Create collapsible section
         image_section = QWidget()
@@ -800,7 +799,7 @@ class ResponseWindow(ThemedWidget):
                 self.image_display_collapsed = True
 
     def get_button_style(self) -> str:
-        current_mode = get_color_mode()
+        current_mode = self.app.settings_manager.color_mode
         return f"""
             QPushButton {{
                 background-color: {"#444" if current_mode == "dark" else "#f8f9fa"};

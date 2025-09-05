@@ -1,3 +1,4 @@
+import logging
 import webbrowser
 
 from PySide6 import QtCore, QtGui
@@ -9,7 +10,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from ui.ui_utils import ThemedWidget, get_color_mode
+from ui.ui_utils import ThemedWidget
 
 
 def _(x):
@@ -26,8 +27,9 @@ class AboutWindow(ThemedWidget):
     min_height: int
     content_layout: QVBoxLayout
 
-    def __init__(self, app=None) -> None:
+    def __init__(self, app) -> None:
         super().__init__(app)
+        self._logger = logging.getLogger(__name__)
         self.min_width = 600
         self.min_height = 650
         self.init_ui()
@@ -77,7 +79,7 @@ class AboutWindow(ThemedWidget):
 
     def _get_title_style(self) -> str:
         """Get the title styling based on current theme."""
-        current_mode = get_color_mode()
+        current_mode = self.app.settings_manager.color_mode
         color = "#ffffff" if current_mode == "dark" else "#333333"
         return f"font-size: 24px; font-weight: bold; color: {color};"
 
@@ -207,7 +209,7 @@ class AboutWindow(ThemedWidget):
     def _get_button_style(self) -> str:
         """Get the button styling with theme awareness (Qt stylesheets only)."""
 
-        mode = get_color_mode()
+        mode = self.app.settings_manager.color_mode
         if mode == "dark":
             return """
                 QPushButton {
@@ -255,14 +257,14 @@ class AboutWindow(ThemedWidget):
         """Refresh all theme-dependent styles in the about window."""
         super().refresh_theme()
 
-        current_bg_theme = self._get_current_background_theme()
-        current_color_mode = get_color_mode()
+        background_theme = self.get_current_background_theme()
+        color_mode = self.app.settings_manager.color_mode
 
-        theme_icon = "🌙" if current_color_mode == "dark" else "☀️\u00a0"
-        bg_icon = "⚽" if current_bg_theme == "plain" else "🌈"
+        theme_icon = "🌙" if color_mode == "dark" else "☀️\u00a0"
+        bg_icon = "⚽" if background_theme == "plain" else "🌈"
 
-        print(
-            f"🎯 AboutWindow theme update: {theme_icon} Color={current_color_mode} {bg_icon} BG={current_bg_theme}"
+        self._logger.debug(
+            f"🎯 AboutWindow theme update: {theme_icon} Color={color_mode} {bg_icon} BG={background_theme}"
         )
 
         # Update title and button styles

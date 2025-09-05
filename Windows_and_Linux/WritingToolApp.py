@@ -39,7 +39,7 @@ from config.interfaces import ActionConfig
 from config.settings import SettingsManager
 from ui.ResponseWindow import ResponseWindow
 from ui.systray import SystrayManager
-from ui.ui_utils import get_icon_path, set_color_mode
+from ui.ui_utils import get_icon_path
 from update_checker import UpdateChecker
 
 if TYPE_CHECKING:
@@ -184,13 +184,6 @@ class WritingToolApp(QApplication):
     def _handle_normal_launch(self) -> None:
         """Handle normal application launch with configured providers."""
         self._logger.debug("Providers configured, setting up hotkey and tray icon")
-
-        # IMPORTANT: Synchronize global colorMode with saved settings before UI setup
-        # This prevents visual conflicts when data exists with a different color_mode
-        saved_color_mode = self.settings_manager.color_mode or "auto"
-
-        set_color_mode(saved_color_mode)
-        self._logger.debug(f"Synchronized colorMode with saved setting: {saved_color_mode}")
 
         try:
             self._initialize_ai_provider()
@@ -439,13 +432,6 @@ class WritingToolApp(QApplication):
         """
         self._logger.debug("Showing onboarding window")
 
-        # IMPORTANT: Synchronize global colorMode with saved settings before showing onboarding
-        # This prevents visual conflicts when data_dev.json exists with a different color_mode
-        saved_color_mode = self.settings_manager.color_mode or "auto"
-
-        set_color_mode(saved_color_mode)
-        self._logger.debug(f"Synchronized colorMode with saved setting: {saved_color_mode}")
-
         self.onboarding_window = ui.OnboardingWindow.OnboardingWindow(self)
         self.onboarding_window.close_signal.connect(self.on_onboarding_closed)
         self.onboarding_window.show()
@@ -634,7 +620,11 @@ class WritingToolApp(QApplication):
             return
 
         # Set the window icon
-        icon_path = get_icon_path("app_icon", with_theme=False)
+        icon_path = get_icon_path(
+            self,
+            "app_icon",
+            with_theme=False,
+        )
         if icon_path.exists():
             self.setWindowIcon(QtGui.QIcon(icon_path.as_posix()))
 
@@ -877,8 +867,6 @@ class WritingToolApp(QApplication):
             self._setup_response_window(option, selected_text, image)
         elif hasattr(self, "current_response_window"):
             delattr(self, "current_response_window")
-
-
 
         # Store force_chat state for the thread
         self._current_force_chat = force_chat

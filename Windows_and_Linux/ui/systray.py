@@ -42,7 +42,7 @@ class SystrayManager:
             self._logger.error("System tray is not available on this system after retries")
             return
 
-        icon_path = get_icon_path("app_icon", with_theme=False)
+        icon_path = get_icon_path(self.app, "app_icon", with_theme=False)
         self._logger.debug(f"Icon path resolved to: {icon_path}")
 
         if not icon_path.exists():

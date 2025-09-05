@@ -69,6 +69,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ui.ProgressWindow import OllamaInstallProgressWindow
+
 # Google Generative AI imports (with fallbacks)
 try:
     import google.generativeai as genai
@@ -117,6 +119,7 @@ class AIProviderSetting(ABC):
         description: str | None = None,
     ):
         self.name: str = name
+        self._logger = logging.getLogger(__name__)
         self.display_name: str = display_name or name
         self.default_value: str = default_value or ""
         self.description: str = description or ""
@@ -150,22 +153,22 @@ class TextSetting(AIProviderSetting):
 
     def __init__(
         self,
+        app: "WritingToolApp",
         name: str,
         display_name: str | None = None,
         default_value: str | None = None,
         description: str | None = None,
     ):
         super().__init__(name, display_name, default_value, description)
+        self.app = app
         self.internal_value: str | None = default_value
         self.input: QLineEdit | None = None
 
     def render_to_layout(self, layout: QVBoxLayout) -> None:
         """Create and add the QLineEdit with its label to the layout."""
-        from ui.ui_utils import get_color_mode
-
         row_layout = QHBoxLayout()
         label = QLabel(self.display_name)
-        current_mode = get_color_mode()
+        current_mode = self.app.settings_manager.color_mode
         label.setStyleSheet(
             f"font-size: 16px; color: {'#ffffff' if current_mode == 'dark' else '#333333'};"
         )
@@ -218,6 +221,7 @@ class DropdownSetting(AIProviderSetting):
 
     def __init__(
         self,
+        app: "WritingToolApp",
         name: str,
         display_name: str | None = None,
         default_value: str | None = None,
@@ -226,6 +230,7 @@ class DropdownSetting(AIProviderSetting):
         refresh_callback: Callable | None = None,
     ):
         super().__init__(name, display_name, default_value, description)
+        self.app = app
         self.options = options or []
         self.internal_value = default_value
         self.dropdown: QComboBox | None = None
@@ -233,11 +238,9 @@ class DropdownSetting(AIProviderSetting):
 
     def render_to_layout(self, layout: QVBoxLayout) -> None:
         """Create and configure the QComboBox with available options."""
-        from ui.ui_utils import get_color_mode
-
         row_layout = QHBoxLayout()
         label = QLabel(self.display_name)
-        current_mode = get_color_mode()
+        current_mode = self.app.settings_manager.color_mode
         label.setStyleSheet(
             f"font-size: 16px; color: {'#ffffff' if current_mode == 'dark' else '#333333'};"
         )
@@ -265,7 +268,7 @@ class DropdownSetting(AIProviderSetting):
                 self.dropdown.addItem(option, value)
                 # Store metadata (vision support) if necessary
             else:
-                logging.warning(f"Unexpected option format: {option_tuple}")
+                self._logger.warning(f"Unexpected option format: {option_tuple}")
 
         # Set current value
         if self.dropdown is not None:
@@ -341,7 +344,7 @@ class DropdownSetting(AIProviderSetting):
                     self.dropdown.addItem(option, value)
                     # Store metadata (vision support) if necessary
                 else:
-                    logging.warning(f"Unexpected option format: {option_tuple}")
+                    self._logger.warning(f"Unexpected option format: {option_tuple}")
 
             # Restore selection if possible
             if current_value:
@@ -387,10 +390,11 @@ class AIProvider(ABC):
         button_action: Callable | None = None,
         logo: str | None = None,
     ):
+        self.app = app
+        self._logger = logging.getLogger(__name__)
         self.provider_name = provider_name
         self.internal_name = internal_name
         self.settings = settings
-        self.app = app
         self.description = description if description else "An unfinished AI provider!"
         self.button_text = button_text
         self.button_action = button_action
@@ -541,11 +545,13 @@ class GeminiProvider(AIProvider):
 
         settings = [
             TextSetting(
+                app,
                 name="api_key",
                 display_name="API Key",
                 description="Paste your Gemini API key here",
             ),
             DropdownSetting(
+                app,
                 name="api_model",
                 display_name="Model",
                 default_value=get_default_model_for_provider("gemini"),
@@ -582,17 +588,17 @@ class GeminiProvider(AIProvider):
         self.close_requested = False
 
         # DEBUG: Log the incoming request
-        logging.debug("🔥 GeminiProvider.get_response called")
-        logging.debug(f"🔥 system_instruction length: {len(system_instruction)}")
-        logging.debug(f"🔥 prompt length: {len(prompt)}")
-        logging.debug(f"🔥 prompt preview:\n{prompt[:200]}...")
-        logging.debug(f"🔥 return_response: {return_response}")
-        logging.debug(f"🔥 image_data present: {image_data is not None}")
+        self._logger.debug("🔥 GeminiProvider.get_response called")
+        self._logger.debug(f"🔥 system_instruction length: {len(system_instruction)}")
+        self._logger.debug(f"🔥 prompt length: {len(prompt)}")
+        self._logger.debug(f"🔥 prompt preview:\n{prompt[:200]}...")
+        self._logger.debug(f"🔥 return_response: {return_response}")
+        self._logger.debug(f"🔥 image_data present: {image_data is not None}")
 
         # Check if model is configured
         if not self.model:
             error_msg = "Gemini API key not configured. Please add your API key in settings."
-            logging.error(error_msg)
+            self._logger.error(error_msg)
             if not return_response:
                 self.app.show_message_signal.emit(
                     "API Key Missing",
@@ -605,14 +611,14 @@ class GeminiProvider(AIProvider):
         max_retries = 3
         for attempt in range(max_retries):
             attempt_num = attempt + 1
-            logging.info(f"🔄🔥 Gemini API call - Attempt {attempt_num}/{max_retries}")
+            self._logger.info(f"🔄🔥 Gemini API call - Attempt {attempt_num}/{max_retries}")
 
             try:
                 # Prepare content for Gemini
                 if image_data:
                     # Convert base64 to PIL Image like in gemini_integration.py
-                    logging.debug(
-                        f"🖼️\u00A0 GeminiProvider: Converting base64 to PIL Image - length: {len(image_data)}"
+                    self._logger.debug(
+                        f"🖼️\u00a0 GeminiProvider: Converting base64 to PIL Image - length: {len(image_data)}"
                     )
                     if PILImage is not None and io is not None:
                         try:
@@ -622,15 +628,15 @@ class GeminiProvider(AIProvider):
                             image_bytes = base64.b64decode(image_data)
                             # Create PIL Image from bytes
                             pil_image = PILImage.open(io.BytesIO(image_bytes))
-                            logging.debug(
-                                f" 🖼️\u00A0 GeminiProvider: PIL Image created - size: {pil_image.size}, mode: {pil_image.mode}"
+                            self._logger.debug(
+                                f" 🖼️\u00a0 GeminiProvider: PIL Image created - size: {pil_image.size}, mode: {pil_image.mode}"
                             )
 
                             # For image analysis, create content with PIL Image and text
                             contents = [system_instruction, pil_image, prompt]
                         except Exception as img_error:
-                            logging.error(
-                                f" 🖼️\u00A0 GeminiProvider: Failed to convert base64 to PIL Image: {img_error}"
+                            self._logger.error(
+                                f" 🖼️\u00a0 GeminiProvider: Failed to convert base64 to PIL Image: {img_error}"
                             )
                             # Fallback to inline_data format
                             contents = [
@@ -639,7 +645,9 @@ class GeminiProvider(AIProvider):
                                 prompt,
                             ]
                     else:
-                        logging.warning(" 🖼️\u00A0 GeminiProvider: PIL not available, using inline_data format")
+                        self._logger.warning(
+                            " 🖼️\u00a0 GeminiProvider: PIL not available, using inline_data format"
+                        )
                         # Fallback to inline_data format when PIL is not available
                         contents = [
                             system_instruction,
@@ -656,14 +664,16 @@ class GeminiProvider(AIProvider):
                 # Check if response was blocked by safety filters
                 if not response.candidates:
                     error_detail = "🔥 No candidates in response - empty response"
-                    logging.warning(f"🔥 Attempt {attempt_num}: {error_detail}")
+                    self._logger.warning(f"🔥 Attempt {attempt_num}: {error_detail}")
                     if attempt < max_retries - 1:
-                        logging.warning(f"🔥 Attempt {attempt_num} failed, retrying...")
+                        self._logger.warning(f"🔥 Attempt {attempt_num} failed, retrying...")
                         continue
                     else:
-                        logging.warning(f"🔥 Final failure after {max_retries} attempts: {error_detail}")
+                        self._logger.warning(
+                            f"🔥 Final failure after {max_retries} attempts: {error_detail}"
+                        )
                         error_msg = "Gemini blocked the request due to safety concerns. Try rephrasing your request."
-                        logging.error("Gemini response blocked - no candidates returned")
+                        self._logger.error("Gemini response blocked - no candidates returned")
                         self.app.show_message_signal.emit(
                             "Content Blocked",
                             "Your request has been blocked by Gemini's safety filters. Please try rephrasing your request to be more neutral.",
@@ -680,14 +690,16 @@ class GeminiProvider(AIProvider):
                 # 4: OTHER (other reason)
                 if candidate.finish_reason == 2:  # SAFETY
                     error_detail = f"🔥 Safety filter activated (code {candidate.finish_reason})"
-                    logging.warning(f"🔥 Attempt {attempt_num}: {error_detail}")
+                    self._logger.warning(f"🔥 Attempt {attempt_num}: {error_detail}")
                     if attempt < max_retries - 1:
-                        logging.warning(f"🔥 Attempt {attempt_num} failed, retrying...")
+                        self._logger.warning(f"🔥 Attempt {attempt_num} failed, retrying...")
                         continue
                     else:
-                        logging.warning(f"🔥 Final failure after {max_retries} attempts: {error_detail}")
+                        self._logger.warning(
+                            f"🔥 Final failure after {max_retries} attempts: {error_detail}"
+                        )
                         error_msg = "Gemini blocked the response due to safety filters. Try rephrasing your request to be more neutral."
-                        logging.warning(
+                        self._logger.warning(
                             f"Gemini safety filter triggered. Finish reason: {candidate.finish_reason}"
                         )
                         self.app.show_message_signal.emit(
@@ -697,9 +709,11 @@ class GeminiProvider(AIProvider):
                         return ""
                 elif candidate.finish_reason == 3:  # RECITATION - No retry for copyright issues
                     error_detail = f"🔥 Copyright filter activated (code {candidate.finish_reason})"
-                    logging.warning(f"🔥 Attempt {attempt_num}: {error_detail} - No retry for copyright issues")
+                    self._logger.warning(
+                        f"🔥 Attempt {attempt_num}: {error_detail} - No retry for copyright issues"
+                    )
                     error_msg = "Gemini blocked the response due to potential copyright concerns. Try a more original request."
-                    logging.warning(
+                    self._logger.warning(
                         f"Gemini recitation filter triggered. Finish reason: {candidate.finish_reason}"
                     )
                     self.app.show_message_signal.emit(
@@ -707,11 +721,14 @@ class GeminiProvider(AIProvider):
                         error_msg,
                     )
                     return ""
-                elif candidate.finish_reason not in [1, None]:  # Not STOP or unset - No retry for other issues
+                elif candidate.finish_reason not in [
+                    1,
+                    None,
+                ]:  # Not STOP or unset - No retry for other issues
                     error_detail = f"🔥 Unexpected error code (code {candidate.finish_reason})"
-                    logging.warning(f"🔥 Attempt {attempt_num}: {error_detail} - No retry")
+                    self._logger.warning(f"🔥 Attempt {attempt_num}: {error_detail} - No retry")
                     error_msg = f"Gemini could not complete the response (reason code: {candidate.finish_reason}). Please try again."
-                    logging.warning(f"Gemini unusual finish reason: {candidate.finish_reason}")
+                    self._logger.warning(f"Gemini unusual finish reason: {candidate.finish_reason}")
                     self.app.show_message_signal.emit(
                         "Response Incomplete",
                         error_msg,
@@ -721,12 +738,14 @@ class GeminiProvider(AIProvider):
                 # Check if response has content parts
                 if not candidate.content or not candidate.content.parts:
                     error_detail = "🔥 Empty response - no content parts"
-                    logging.warning(f"🔥 Attempt {attempt_num}: {error_detail}")
+                    self._logger.warning(f"🔥 Attempt {attempt_num}: {error_detail}")
                     if attempt < max_retries - 1:
-                        logging.warning(f"🔥 Attempt {attempt_num} failed, retrying...")
+                        self._logger.warning(f"🔥 Attempt {attempt_num} failed, retrying...")
                         continue
                     else:
-                        logging.warning(f"🔥 Final failure after {max_retries} attempts: {error_detail}")
+                        self._logger.warning(
+                            f"🔥 Final failure after {max_retries} attempts: {error_detail}"
+                        )
                         self.app.show_message_signal.emit(
                             "Empty Response",
                             "Gemini returned an empty response. Please try rephrasing your request.",
@@ -737,12 +756,14 @@ class GeminiProvider(AIProvider):
                 response_text = self._extract_response_text(response, candidate)
                 if not response_text:
                     error_detail = "🔥 Could not extract text from response"
-                    logging.warning(f"🔥 Attempt {attempt_num}: {error_detail}")
+                    self._logger.warning(f"🔥 Attempt {attempt_num}: {error_detail}")
                     if attempt < max_retries - 1:
-                        logging.warning(f"🔥 Attempt {attempt_num} failed, retrying...")
+                        self._logger.warning(f"🔥 Attempt {attempt_num} failed, retrying...")
                         continue
                     else:
-                        logging.warning(f"🔥 Final failure after {max_retries} attempts: {error_detail}")
+                        self._logger.warning(
+                            f"🔥 Final failure after {max_retries} attempts: {error_detail}"
+                        )
                         self.app.show_message_signal.emit(
                             "Response Processing Error",
                             "Could not process the response from Gemini. Please try again.",
@@ -752,12 +773,14 @@ class GeminiProvider(AIProvider):
                 # Check if response text indicates safety filter (in case finish_reason doesn't show it)
                 if self._contains_safety_filter_message(response_text):
                     error_detail = f"🔥 Safety filter message detected: {response_text[:100]}..."
-                    logging.warning(f"🔥 Attempt {attempt_num}: {error_detail}")
+                    self._logger.warning(f"🔥 Attempt {attempt_num}: {error_detail}")
                     if attempt < max_retries - 1:
-                        logging.warning(f"🔥 Attempt {attempt_num} failed, retrying...")
+                        self._logger.warning(f"🔥 Attempt {attempt_num} failed, retrying...")
                         continue
                     else:
-                        logging.warning(f"🔥 Final failure after {max_retries} attempts: {error_detail}")
+                        self._logger.warning(
+                            f"🔥 Final failure after {max_retries} attempts: {error_detail}"
+                        )
                         self.app.show_message_signal.emit(
                             "Content Blocked by Safety Filters",
                             response_text,
@@ -766,28 +789,30 @@ class GeminiProvider(AIProvider):
 
                 # If we get here, we have a valid response - log success and return it
                 success_msg = f"🔥 Success on attempt {attempt_num}/{max_retries}"
-                logging.info(success_msg)
+                self._logger.info(success_msg)
                 if attempt > 0:
-                    logging.info(f"🔥 Response obtained after {attempt_num} attempt(s)")
+                    self._logger.info(f"🔥 Response obtained after {attempt_num} attempt(s)")
 
-                logging.debug(f"🔥 Gemini raw response.text: '{response_text}'")
-                logging.debug(f"🔥 Gemini response_text length: {len(response_text)}")
+                self._logger.debug(f"🔥 Gemini raw response.text: '{response_text}'")
+                self._logger.debug(f"🔥 Gemini response_text length: {len(response_text)}")
 
                 # Direct replacement
                 if not return_response and not hasattr(self.app, "current_response_window"):
-                    logging.debug(
+                    self._logger.debug(
                         f"🔥 Gemini emitting signal with response_text length: {len(response_text)}"
                     )
-                    logging.debug(f"🔥 Gemini response_text preview: '{response_text[:200]}...'")
+                    self._logger.debug(
+                        f"🔥 Gemini response_text preview: '{response_text[:200]}...'"
+                    )
                     self.app.output_ready_signal.emit(response_text)
-                    logging.debug("🔥 Gemini signal emitted, returning empty string")
+                    self._logger.debug("🔥 Gemini signal emitted, returning empty string")
                     return ""
                 # Response window
                 return response_text
 
             except Exception as e:
                 error_str = str(e)
-                logging.exception(f"Error processing Gemini response: {error_str}")
+                self._logger.exception(f"Error processing Gemini response: {error_str}")
 
                 # Handle specific Gemini API errors with user-friendly messages
                 if "API_KEY_INVALID" in error_str or "invalid API key" in error_str.lower():
@@ -796,7 +821,10 @@ class GeminiProvider(AIProvider):
                         "Your Gemini API key is invalid. Please check your API key in Settings and make sure it's correct.",
                     )
                     return ""
-                elif "quota exceeded" in error_str.lower() or "resource exhausted" in error_str.lower():
+                elif (
+                    "quota exceeded" in error_str.lower()
+                    or "resource exhausted" in error_str.lower()
+                ):
                     self.app.show_message_signal.emit(
                         "Quota Exceeded",
                         "You've exceeded your Gemini API quota. Please check your usage limits or try again later.",
@@ -817,7 +845,9 @@ class GeminiProvider(AIProvider):
                 else:
                     # For other errors, if we have retries left, continue
                     if attempt < max_retries - 1:
-                        logging.warning(f"Gemini API error on attempt {attempt + 1}/{max_retries}: {error_str}, retrying...")
+                        self._logger.warning(
+                            f"Gemini API error on attempt {attempt + 1}/{max_retries}: {error_str}, retrying..."
+                        )
                         continue
                     else:
                         # Generic error with option to check settings
@@ -837,7 +867,7 @@ class GeminiProvider(AIProvider):
             return response.text.rstrip("\n")
         except ValueError as text_error:
             # Fallback: manually extract text from parts
-            logging.warning(f"🔥 Gemini ValueError in response.text: {text_error}")
+            self._logger.warning(f"🔥 Gemini ValueError in response.text: {text_error}")
             text_parts = []
             for part in candidate.content.parts:
                 if hasattr(part, "text") and part.text:
@@ -845,10 +875,10 @@ class GeminiProvider(AIProvider):
 
             if text_parts:
                 response_text = "".join(text_parts).rstrip("\n")
-                logging.debug(f"🔥 Gemini fallback response_text: '{response_text}'")
+                self._logger.debug(f"🔥 Gemini fallback response_text: '{response_text}'")
                 return response_text
             else:
-                logging.warning(f"🔥 Unable to extract text: {str(text_error)}")
+                self._logger.warning(f"🔥 Unable to extract text: {str(text_error)}")
                 return ""
 
     def _contains_safety_filter_message(self, text: str) -> bool:
@@ -912,16 +942,16 @@ class GeminiProvider(AIProvider):
                 )
 
                 # Log the safety configuration for debugging
-                logging.debug(
+                self._logger.debug(
                     f"Gemini model initialized with BLOCK_ONLY_HIGH safety settings for model: {self.api_model}"
                 )
 
             except AttributeError as e:
-                logging.error(f"Error configuring Google Generative AI: {e}")
+                self._logger.error(f"Error configuring Google Generative AI: {e}")
                 self.model = None
             except Exception as e:
                 # Handle potential API key or configuration errors
-                logging.error(f"Failed to initialize Gemini model: {e}")
+                self._logger.error(f"Failed to initialize Gemini model: {e}")
                 self.model = None
         else:
             self.model = None
@@ -950,24 +980,28 @@ class OpenAICompatibleProvider(AIProvider):
 
         settings = [
             TextSetting(
+                app,
                 name="api_key",
                 display_name="API Key",
                 description="API key for the OpenAI-compatible API.",
             ),
             TextSetting(
+                app,
                 "api_base",
                 "API Base URL",
                 "https://api.openai.com/v1",
                 "E.g. https://api.openai.com/v1",
             ),
             TextSetting(
+                app,
                 "api_organisation",
                 "API Organisation",
                 "",
                 "Leave blank if not applicable.",
             ),
-            TextSetting("api_project", "API Project", "", "Leave blank if not applicable."),
+            TextSetting(app, "api_project", "API Project", "", "Leave blank if not applicable."),
             DropdownSetting(
+                app,
                 name="api_model",
                 display_name="API Model",
                 default_value=get_default_model_for_provider("openai"),
@@ -1047,7 +1081,7 @@ class OpenAICompatibleProvider(AIProvider):
 
         except Exception as e:
             error_str = str(e)
-            logging.exception(f"Error while generating content: {error_str}")
+            self._logger.exception(f"Error while generating content: {error_str}")
 
             # Handle specific OpenAI API errors
             if "invalid api key" in error_str.lower() or "unauthorized" in error_str.lower():
@@ -1177,11 +1211,8 @@ def install_ollama_windows(app) -> bool:
     Download and install Ollama on Windows automatically.
     Shows a progress window with animated loading dots during the process.
     """
-
-    from ui.ProgressWindow import OllamaInstallProgressWindow
-
     # Create and show progress window
-    progress_window = OllamaInstallProgressWindow()
+    progress_window = OllamaInstallProgressWindow(app)
     progress_window.show()
     progress_window.start_animation()
 
@@ -1292,11 +1323,8 @@ def install_ollama_linux(app) -> bool:
     """
     Install Ollama on Linux using the official installation script.
     """
-
-    from ui.ProgressWindow import OllamaInstallProgressWindow
-
     # Create and show progress window
-    progress_window = OllamaInstallProgressWindow()
+    progress_window = OllamaInstallProgressWindow(app)
     progress_window.show()
     progress_window.start_animation()
 
@@ -1475,9 +1503,9 @@ class OllamaProvider(AIProvider):
     """
 
     def __init__(self, app: "WritingToolApp"):
+        self.app = app
         self.close_requested: bool = False
         self.client: Any = None
-        self.app: WritingToolApp = app
 
         # Get available Ollama models
         ollama_models: list[tuple[str, str]] = get_ollama_models()
@@ -1489,12 +1517,14 @@ class OllamaProvider(AIProvider):
 
         settings = [
             TextSetting(
+                app,
                 "api_base",
                 "API Base URL",
                 "http://localhost:11434",
                 "E.g. http://localhost:11434",
             ),
             DropdownSetting(
+                app,
                 name="api_model",
                 display_name="API Model (detected automatically)",
                 default_value=default_ollama_model,
@@ -1503,6 +1533,7 @@ class OllamaProvider(AIProvider):
                 refresh_callback=self._refresh_models,
             ),
             TextSetting(
+                app,
                 "keep_alive",
                 "Time to keep the model loaded in memory in minutes",
                 "5",
@@ -1595,8 +1626,6 @@ class OllamaProvider(AIProvider):
             QVBoxLayout,
         )
 
-        from ui.ui_utils import get_color_mode
-
         # Get available models
         ollama_models = get_ollama_models()
 
@@ -1619,7 +1648,7 @@ class OllamaProvider(AIProvider):
         dialog.resize(400, 200)
 
         # Apply theme styling
-        current_mode = get_color_mode()
+        current_mode = self.app.settings_manager.color_mode
         dialog.setStyleSheet(
             f"""
             QDialog {{
@@ -1778,7 +1807,7 @@ class OllamaProvider(AIProvider):
                 )
                 return ""
 
-            logging.debug(f"Ollama using model: '{self.api_model}'")
+            self._logger.debug(f"Ollama using model: '{self.api_model}'")
             response = self.client.chat(model=self.api_model, messages=messages)
             response_text = response["message"]["content"].rstrip("\n")
             if not return_response and not hasattr(self.app, "current_response_window"):
@@ -1786,7 +1815,7 @@ class OllamaProvider(AIProvider):
             return response_text
         except Exception as e:
             error_str = str(e)
-            logging.exception(f"Error during Ollama chat: {error_str}")
+            self._logger.exception(f"Error during Ollama chat: {error_str}")
 
             # Handle specific Ollama errors
             if "connection" in error_str.lower() or "refused" in error_str.lower():
@@ -1832,14 +1861,17 @@ class AnthropicProvider(AIProvider):
         self.close_requested: bool = False
         self.client: Any = None
         self.app: WritingToolApp = app
+        self._logger = logging.getLogger(__name__)
         settings = [
             TextSetting(
+                app,
                 "api_key",
                 "API Key",
                 "",
                 "Enter your Anthropic API key",
             ),
             DropdownSetting(
+                app,
                 name="api_model",
                 display_name="API Model",
                 default_value=get_default_model_for_provider("anthropic"),
@@ -1874,10 +1906,10 @@ class AnthropicProvider(AIProvider):
         Supports conversation history for multi-turn interactions.
         Uses Anthropic's OpenAI-compatible endpoint for simplicity.
         """
-        logging.debug(
+        self._logger.debug(
             f"AnthropicProvider.get_response called with return_response={return_response}"
         )
-        logging.debug(
+        self._logger.debug(
             f"AnthropicProvider current config - api_key: {self.api_key[:10] if self.api_key else 'None'}..., api_model: {self.api_model}"
         )
 
@@ -1927,7 +1959,7 @@ class AnthropicProvider(AIProvider):
                 error_msg = (
                     "Anthropic client could not be initialized. Please check your API settings."
                 )
-                logging.error(error_msg)
+                self._logger.error(error_msg)
                 self.app.show_message_signal.emit(
                     "Initialization Error",
                     error_msg,
@@ -1945,15 +1977,15 @@ class AnthropicProvider(AIProvider):
                 return ""
 
             response_text = response.choices[0].message.content.rstrip("\n")
-            logging.debug(f"Anthropic API response: {response_text}")
-            logging.debug(
+            self._logger.debug(f"Anthropic API response: {response_text}")
+            self._logger.debug(
                 f"Anthropic response length: {len(response_text) if response_text else 0}"
             )
 
             # Handle empty or None response
             if not response_text or response_text.strip() == "":
                 error_msg = "Anthropic API returned an empty response. This might be due to insufficient credits or API limits."
-                logging.warning(error_msg)
+                self._logger.warning(error_msg)
                 self.app.show_message_signal.emit(
                     "Empty Response",
                     error_msg,
@@ -1961,21 +1993,21 @@ class AnthropicProvider(AIProvider):
                 return ""
 
             if return_response:
-                logging.debug(
+                self._logger.debug(
                     f"AnthropicProvider: Returning response text (length: {len(response_text)})"
                 )
                 return response_text
             # Emit the response via signal for direct replacement
-            logging.debug(
+            self._logger.debug(
                 f"AnthropicProvider: Emitting output_ready_signal with text (length: {len(response_text)})"
             )
             self.app.output_ready_signal.emit(response_text)
-            logging.debug("AnthropicProvider: Signal emitted successfully")
+            self._logger.debug("AnthropicProvider: Signal emitted successfully")
             return response_text
 
         except Exception as e:
             error_str = str(e)
-            logging.exception(f"Anthropic API error: {error_str}")
+            self._logger.exception(f"Anthropic API error: {error_str}")
 
             if "401" in error_str or "authentication" in error_str.lower():
                 self.app.show_message_signal.emit(
@@ -2028,12 +2060,14 @@ class MistralProvider(AIProvider):
         self.app: WritingToolApp = app
         settings = [
             TextSetting(
+                app,
                 "api_key",
                 "API Key",
                 "",
                 "Enter your Mistral API key",
             ),
             DropdownSetting(
+                app,
                 name="api_model",
                 display_name="API Model",
                 default_value=get_default_model_for_provider("mistral"),
@@ -2068,18 +2102,20 @@ class MistralProvider(AIProvider):
         Uses direct HTTP requests via requests library for maximum control
         over request format and error handling.
         """
-        logging.debug(f"MistralProvider.get_response called with return_response={return_response}")
-        logging.debug(
+        self._logger.debug(
+            f"MistralProvider.get_response called with return_response={return_response}"
+        )
+        self._logger.debug(
             f"MistralProvider current config - api_key: {self.api_key[:10] if self.api_key else 'None'}..., api_model: {self.api_model}",
         )
 
         # DEBUG: Log the incoming request
-        logging.debug("🔥 MistralProvider.get_response called")
-        logging.debug(f"🔥 system_instruction length: {len(system_instruction)}")
-        logging.debug(f"🔥 prompt length: {len(prompt)}")
-        logging.debug(f"🔥 prompt preview:\n{prompt[:200]}...")
-        logging.debug(f"🔥 return_response: {return_response}")
-        logging.debug(f"🔥 image_data present: {image_data is not None}")
+        self._logger.debug("🔥 MistralProvider.get_response called")
+        self._logger.debug(f"🔥 system_instruction length: {len(system_instruction)}")
+        self._logger.debug(f"🔥 prompt length: {len(prompt)}")
+        self._logger.debug(f"🔥 prompt preview:\n{prompt[:200]}...")
+        self._logger.debug(f"🔥 return_response: {return_response}")
+        self._logger.debug(f"🔥 image_data present: {image_data is not None}")
 
         # Reset cancellation flag at start of new request (like other providers)
         self.close_requested = False
@@ -2095,7 +2131,7 @@ class MistralProvider(AIProvider):
             # Check if API key and model are configured
             if not self.api_key or self.api_key.strip() == "":
                 error_msg = "Mistral API key not configured. Please add your API key in settings."
-                logging.error(error_msg)
+                self._logger.error(error_msg)
                 self.app.show_message_signal.emit(
                     "API Key Missing",
                     error_msg,
@@ -2104,14 +2140,14 @@ class MistralProvider(AIProvider):
 
             if not self.api_model or self.api_model.strip() == "":
                 error_msg = "Mistral model not selected. Please select a model in settings."
-                logging.error(error_msg)
+                self._logger.error(error_msg)
                 self.app.show_message_signal.emit(
                     "Model Missing",
                     error_msg,
                 )
                 return ""
 
-            logging.debug(
+            self._logger.debug(
                 f"Mistral API call - Key: {self.api_key[:10]}..., Model: {self.api_model}"
             )
 
@@ -2146,7 +2182,7 @@ class MistralProvider(AIProvider):
 
                 if self.api_model not in vision_models:
                     error_msg = f"The selected model '{self.api_model}' does not support image analysis. Please choose a vision-capable model like pixtral-12b-2409 or mistral-small-2503."
-                    logging.error(error_msg)
+                    self._logger.error(error_msg)
                     self.app.show_message_signal.emit(
                         "Model Incompatible",
                         error_msg,
@@ -2184,12 +2220,12 @@ class MistralProvider(AIProvider):
                             truncated = image_url[:60] + "..."
                             content_item["image_url"] = truncated
 
-            logging.debug(f"Mistral request data: {data_for_logs}")
+            self._logger.debug(f"Mistral request data: {data_for_logs}")
 
             # Make API call using requests (like the working test code)
             response = requests.post(url, headers=headers, json=data, timeout=60)
 
-            logging.debug(f"Mistral API status code: {response.status_code}")
+            self._logger.debug(f"Mistral API status code: {response.status_code}")
 
             if self.close_requested:
                 return ""
@@ -2200,15 +2236,15 @@ class MistralProvider(AIProvider):
                 if "choices" in result and len(result["choices"]) > 0:
                     response_text = result["choices"][0]["message"]["content"].strip("\n")
 
-                    logging.debug(f"Mistral API response: {response_text}")
-                    logging.debug(
+                    self._logger.debug(f"Mistral API response: {response_text}")
+                    self._logger.debug(
                         f"Mistral response length: {len(response_text) if response_text else 0}"
                     )
 
                     # Handle empty or None response
                     if not response_text or response_text.strip() == "":
                         error_msg = "Mistral API returned an empty response. This might be due to insufficient credits or API limits."
-                        logging.warning(error_msg)
+                        self._logger.warning(error_msg)
                         self.app.show_message_signal.emit(
                             "Empty Response",
                             error_msg,
@@ -2221,14 +2257,14 @@ class MistralProvider(AIProvider):
                     self.app.output_ready_signal.emit(response_text)
                     return response_text
                 error_msg = "Mistral API returned no content in response."
-                logging.error(f"{error_msg} Full response: {result}")
+                self._logger.error(f"{error_msg} Full response: {result}")
                 self.app.show_message_signal.emit(
                     "No Content",
                     error_msg,
                 )
                 return ""
             error_msg = f"Mistral API error {response.status_code}: {response.text}"
-            logging.error(error_msg)
+            self._logger.error(error_msg)
 
             if response.status_code == 401:
                 self.app.show_message_signal.emit(
@@ -2249,7 +2285,7 @@ class MistralProvider(AIProvider):
 
         except ImportError as e:
             error_msg = f"Missing required library: {e}. Please install 'requests' library."
-            logging.error(error_msg)
+            self._logger.error(error_msg)
             self.app.show_message_signal.emit(
                 "Missing Library",
                 "The 'requests' library is required for Mistral API. Please install it using: pip install requests",
@@ -2257,7 +2293,7 @@ class MistralProvider(AIProvider):
             return ""
         except Exception as e:
             error_str = str(e)
-            logging.exception(f"Mistral API error: {error_str}")
+            self._logger.exception(f"Mistral API error: {error_str}")
             self.app.show_message_signal.emit(
                 "Mistral Error",
                 f"An error occurred with Mistral:\n\n{error_str}\n\nPlease check your settings and try again.",

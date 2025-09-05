@@ -10,6 +10,8 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any
 
+import darkdetect
+
 from .data_operations import (
     create_default_settings,
     create_unified_settings_from_data,
@@ -89,6 +91,22 @@ class SettingsManager:
     def providers(self, value: dict[str, ProviderConfig]) -> None:
         """Set provider configurations."""
         self.settings.custom_data["providers"] = value
+
+    @property
+    def color_mode(self) -> str:
+        """Current color theme mode ('auto', 'dark', or 'light')."""
+        if "color_mode" not in self.settings.system:
+            self.settings.system["color_mode"] = "auto"
+        colorMode = self.settings.system["color_mode"]
+        if colorMode == "auto":
+            colorMode = "dark" if darkdetect.isDark() else "light"
+            self.settings.system["color_mode"] = colorMode
+        return colorMode
+
+    @color_mode.setter
+    def color_mode(self, value: str) -> None:
+        """Set the color theme mode."""
+        self.settings.system["color_mode"] = value
 
     def __getattr__(self, name: str) -> Any:
         """

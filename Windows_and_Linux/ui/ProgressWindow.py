@@ -2,6 +2,8 @@
 Progress Window for long-running operations like Ollama installation.
 """
 
+from typing import TYPE_CHECKING
+
 from PySide6 import QtCore, QtGui
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import (
@@ -13,7 +15,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ui.ui_utils import get_color_mode
+if TYPE_CHECKING:
+    from WritingToolApp import WritingToolApp
 
 
 class ProgressWindow(QDialog):
@@ -26,11 +29,13 @@ class ProgressWindow(QDialog):
 
     def __init__(
         self,
+        app: "WritingToolApp",
         title: str = "Operation in progress",
         message: str = "Please wait",
         parent: QWidget | None = None,
     ):
         super().__init__(parent)
+        self.app = app
         self.setWindowTitle(title)
         self.setModal(True)
         self.setFixedSize(400, 150)
@@ -68,7 +73,7 @@ class ProgressWindow(QDialog):
 
     def _apply_theme(self) -> None:
         """Apply the current theme to the window."""
-        current_mode = get_color_mode()
+        current_mode = self.app.settings_manager.color_mode
 
         if current_mode == "dark":
             bg_color = "#2b2b2b"
@@ -151,8 +156,10 @@ class OllamaInstallProgressWindow(ProgressWindow):
     Specialized progress window for Ollama installation.
     """
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, app: "WritingToolApp", parent: QWidget | None = None) -> None:
+        self.app = app
         super().__init__(
+            self.app,
             title="Ollama Installation",
             message="Ollama download in progress",
             parent=parent,

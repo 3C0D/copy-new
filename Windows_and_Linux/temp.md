@@ -1,3 +1,6 @@
+saved_color_mode = self.settings_manager.color_mode or "auto"
+
+
 dans settingsWindow.py Système de gestion du Focus avancé    
     
     def showEvent(self, event: QtGui.QShowEvent) -> None:

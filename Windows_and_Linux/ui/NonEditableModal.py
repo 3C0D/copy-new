@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from ui.ui_utils import ThemedWidget, get_color_mode
+from ui.ui_utils import ThemedWidget
 
 if TYPE_CHECKING:
     from WritingToolApp import WritingToolApp
@@ -41,7 +41,7 @@ class NonEditableModal(ThemedWidget):
 
         self._setup_window()
         self.setup_ui()
-        self.apply_styles(get_color_mode())
+        self.apply_styles(self.app.settings_manager.color_mode)
 
     def _setup_window(self) -> None:
         """Configure window properties and positioning."""
@@ -147,7 +147,7 @@ class NonEditableModal(ThemedWidget):
 
     def refresh_theme(self) -> None:
         """Refresh the modal's theme when color mode changes."""
-        new_mode = get_color_mode()
+        new_mode = self.app.settings_manager.color_mode
         self.apply_styles(new_mode)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]

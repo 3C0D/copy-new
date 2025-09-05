@@ -1,8 +1,7 @@
 {
     "code-runner.respectShebang": false,
     "code-runner.clearPreviousOutput": true,
-    "code-runner.runInTerminal": true,    
-
+    "code-runner.runInTerminal": true,
     "python.defaultInterpreterPath": "./Windows_and_Linux/myvenv/Scripts/python.exe",
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",
@@ -17,6 +16,12 @@
     "ruff.path": [
         "./Windows_and_Linux/myvenv/Scripts/ruff.exe"
     ],
-    // "python.languageServer": "Pylance",
-    "basedpyright.disableLanguageServices": true
+    "python.languageServer": "Pylance",
+    "python.analysis.diagnosticsSource": "Pylance",
+    "editor.defaultFormatter": null,
+    "[jsonc]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "basedpyright.disableLanguageServices": true,
+    // "basedpyright.disableLanguageServices": true
 }

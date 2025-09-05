@@ -3,47 +3,45 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import darkdetect
 from PySide6 import QtCore, QtGui
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication, QLayout, QVBoxLayout, QWidget
 
-from ui.ThemeManager import theme_manager
-
 if TYPE_CHECKING:
+    from ui.ThemeManager import theme_manager
     from WritingToolApp import WritingToolApp
 
-colorMode = "dark" if darkdetect.isDark() else "light"
+# colorMode = "dark" if darkdetect.isDark() else "light"
 
 
-def get_color_mode() -> str:
-    """
-    Get the effective color mode based on current settings.
-    This function provides the same logic as _get_effective_mode() in windows.
-    """
-    # Check if colorMode has been overridden by theme_override first
-    global colorMode
+# def get_color_mode() -> str:
+#     """
+#     Get the effective color mode based on current settings.
+#     This function provides the same logic as _get_effective_mode() in windows.
+#     """
+#     # Check if colorMode has been overridden by theme_override first
+#     global colorMode
 
-    # Simple fallback to global colorMode to avoid creating multiple SettingsManager instances
-    # The global colorMode is set by the main app and should be sufficient for UI styling
-    return colorMode
-
-
-def set_color_mode(theme: str) -> None:
-    """
-    Set the color mode globally, overriding auto-detection.
-
-    Args:
-        theme: "light", "dark", or "auto"
-    """
-    global colorMode
-    if theme == "auto":
-        colorMode = "dark" if darkdetect.isDark() else "light"
-    else:
-        colorMode = theme
+#     # Simple fallback to global colorMode to avoid creating multiple SettingsManager instances
+#     # The global colorMode is set by the main app and should be sufficient for UI styling
+#     return colorMode
 
 
-def get_icon_path(icon_name: str, with_theme: bool = True) -> Path:
+# def set_color_mode(theme: str) -> None:
+#     """
+#     Set the color mode globally, overriding auto-detection.
+
+#     Args:
+#         theme: "light", "dark", or "auto"
+#     """
+#     global colorMode
+#     if theme == "auto":
+#         colorMode = "dark" if darkdetect.isDark() else "light"
+#     else:
+#         colorMode = theme
+
+
+def get_icon_path(app: "WritingToolApp", icon_name: str, with_theme: bool = True) -> Path:
     """
     Get the correct path for an icon, handling both dev and build modes.
     Supports both PNG and SVG formats, with SVG taking precedence.
@@ -71,7 +69,7 @@ def get_icon_path(icon_name: str, with_theme: bool = True) -> Path:
     # Define possible extensions and filenames
     extensions = [".svg", ".png"]  # SVG takes precedence
     if with_theme:
-        current_mode = get_color_mode()
+        current_mode = app.settings_manager.color_mode
         theme_suffix = "_dark" if current_mode == "dark" else "_light"
         filenames = [f"{icon_name}{theme_suffix}{ext}" for ext in extensions]
         # Fallback to non-themed version if themed version doesn't exist
@@ -164,7 +162,7 @@ class ThemedWidget(QWidget):
         )
 
         # Set window icon
-        icon_path = get_icon_path("app_icon", with_theme=False)
+        icon_path = get_icon_path(self.app, "app_icon", with_theme=False)
         if icon_path.exists():
             self.setWindowIcon(QtGui.QIcon(icon_path.as_posix()))
 
@@ -172,11 +170,11 @@ class ThemedWidget(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         # Get current theme from settings if available
-        current_theme = self._get_current_background_theme()
-        self.background = ThemeBackground(self, current_theme)
+        current_theme = self.get_current_background_theme()
+        self.background = ThemeBackground(self.app, self, current_theme)
         main_layout.addWidget(self.background)
 
-    def _get_current_background_theme(self) -> str:
+    def get_current_background_theme(self) -> str:
         """Get the current background theme from settings."""
         return self.app.settings_manager.theme or "gradient"
 
@@ -235,7 +233,7 @@ class ThemedWidget(QWidget):
 
     def get_dropdown_style(self) -> str:
         """Get standardized dropdown styling based on current theme."""
-        current_mode = get_color_mode()
+        current_mode = self.app.settings_manager.color_mode
         if current_mode == "dark":
             return """
                 QComboBox {
@@ -269,7 +267,7 @@ class ThemedWidget(QWidget):
 
     def get_input_style(self) -> str:
         """Get standardized input field styling based on current theme."""
-        current_mode = get_color_mode()
+        current_mode = self.app.settings_manager.color_mode
         return f"""
             font-size: 16px;
             padding: 5px;
@@ -280,19 +278,19 @@ class ThemedWidget(QWidget):
 
     def get_radio_style(self) -> str:
         """Get standardized radio button styling based on current theme."""
-        current_mode = get_color_mode()
+        current_mode = self.app.settings_manager.color_mode
         return f"color: {'#ffffff' if current_mode == 'dark' else '#333333'}; font-size: 16px;"
 
     def get_label_style(self) -> str:
         """Get standardized label styling based on current theme."""
-        current_mode = get_color_mode()
+        current_mode = self.app.settings_manager.color_mode
         color = "#ffffff" if current_mode == "dark" else "#333333"
         style = f"font-size: 16px; color: {color};"
         return style
 
     def get_checkbox_style(self) -> str:
         """Get standardized checkbox styling based on current theme."""
-        current_mode = get_color_mode()
+        current_mode = self.app.settings_manager.color_mode
         if current_mode == "dark":
             # En mode dark, garder le style original (juste le texte)
             return "color: #ffffff; font-size: 16px;"
@@ -322,15 +320,9 @@ class ThemedWidget(QWidget):
 
     def _register_for_theme_changes(self) -> None:
         """Register this widget for theme change notifications."""
-        try:
-            from ui.ThemeManager import theme_manager
-
-            theme_manager.register_widget(self)
-            theme_manager.theme_changed.connect(self._on_theme_changed)
-            theme_manager.background_theme_changed.connect(self._on_background_theme_changed)
-        except ImportError:
-            # ThemeManager not available, skip registration
-            pass
+        theme_manager.register_widget(self)
+        theme_manager.theme_changed.connect(self._on_theme_changed)
+        theme_manager.background_theme_changed.connect(self._on_background_theme_changed)
 
     def _on_theme_changed(self) -> None:
         """Automatically called when the theme changes."""
@@ -356,22 +348,11 @@ class ThemedWidget(QWidget):
 
     def get_theme_styles(self) -> dict[str, str]:
         """Get current theme styles as a shortcut."""
-        try:
-            from ui.ThemeManager import theme_manager
-
-            return theme_manager.get_styles()
-        except ImportError:
-            return {}
+        return theme_manager.get_styles()
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Handle window close event and unregister from theme manager."""
-        try:
-            from ui.ThemeManager import theme_manager
-
-            theme_manager.unregister_widget(self)
-        except ImportError:
-            pass
-        super().closeEvent(event)
+        theme_manager.unregister_widget(self)
 
 
 class ThemeBackground(QWidget):
@@ -379,7 +360,8 @@ class ThemeBackground(QWidget):
     A custom widget that creates a background for the application based on the selected theme.
     """
 
-    def __init__(self, parent=None, theme="gradient", is_popup=False, border_radius=0):
+    def __init__(self, app: "WritingToolApp", parent=None, theme="gradient", is_popup=False, border_radius=0):
+        self.app = app
         super().__init__(parent)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_StyledBackground, True)
         self.theme = theme
@@ -409,7 +391,7 @@ class ThemeBackground(QWidget):
                 if os.path.basename(base_dir) == "Windows_and_Linux":
                     base_dir = os.path.dirname(base_dir)
 
-            current_mode = get_color_mode()
+            current_mode = self.app.settings_manager.color_mode
             if self.is_popup:
                 bg_file = (
                     "background_popup_dark.png"
@@ -441,7 +423,7 @@ class ThemeBackground(QWidget):
             if background_image is None:
                 # Fallback to a solid color if no background found
                 background_image = QtGui.QPixmap(self.width(), self.height())
-                current_mode = get_color_mode()
+                current_mode = self.app.settings_manager.color_mode
                 background_image.fill(
                     QtGui.QColor(50, 50, 50)
                     if current_mode == "dark"
@@ -461,7 +443,7 @@ class ThemeBackground(QWidget):
 
             painter.drawPixmap(self.rect(), background_image)
         else:
-            current_mode = get_color_mode()
+            current_mode = self.app.settings_manager.color_mode
             if current_mode == "dark":
                 color = QtGui.QColor(35, 35, 35)  # Dark mode color
             else:

@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ui.ThemeManager import theme_manager
 from ui.ui_utils import ThemedWidget, ui_utils
 
 if TYPE_CHECKING:
@@ -165,18 +166,10 @@ class OnboardingWindow(ThemedWidget):
         title_label.setStyleSheet(self._get_title_style())
         return title_label
 
-    def _get_effective_mode(self) -> str:
-        """Get the effective color mode based on user settings."""
-        user_mode = self.app.settings_manager.color_mode or "auto"
-        if user_mode == "auto":
-            import darkdetect
-
-            return "dark" if darkdetect.isDark() else "light"
-        return user_mode
 
     def _get_title_style(self) -> str:
         """Get the title styling based on current theme (dark/light mode)."""
-        current_mode = self._get_effective_mode()
+        current_mode = self.app.settings_manager.color_mode
         color = "#ffffff" if current_mode == "dark" else "#333333"
         return f"font-size: 24px; font-weight: bold; color: {color};"
 
@@ -235,7 +228,7 @@ class OnboardingWindow(ThemedWidget):
         self.color_mode_dropdown.addItems([_("Auto"), _("Light"), _("Dark")])
 
         # Set current selection based on saved setting (preserve existing values)
-        current_mode = self.app.settings_manager.color_mode or "auto"
+        current_mode = self.app.settings_manager.color_mode
         mode_index = {"auto": 0, "light": 1, "dark": 2}.get(current_mode, 0)
         self.color_mode_dropdown.setCurrentIndex(mode_index)
 
@@ -297,21 +290,21 @@ class OnboardingWindow(ThemedWidget):
 
     def _get_content_style(self) -> str:
         """Get the content styling based on current theme (dark/light mode)."""
-        current_mode = self._get_effective_mode()
+        current_mode = self.app.settings_manager.color_mode
         color = "#ffffff" if current_mode == "dark" else "#333333"
         style = f"font-size: 16px; color: {color};"
         return style
 
     def _get_info_style(self) -> str:
         """Get the info text styling based on current theme (dark/light mode)."""
-        current_mode = self._get_effective_mode()
+        current_mode = self.app.settings_manager.color_mode
         color = "#aaaaaa" if current_mode == "dark" else "#666666"
         style = f"font-size: 16px; color: {color}; font-style: italic; margin: 10px 0;"
         return style
 
     def _get_input_style(self) -> str:
         """Get the input field styling based on current theme."""
-        current_mode = self._get_effective_mode()
+        current_mode = self.app.settings_manager.color_mode
         return f"""
             font-size: 16px;
             padding: 5px;
@@ -322,14 +315,14 @@ class OnboardingWindow(ThemedWidget):
 
     def _get_radio_style(self) -> str:
         """Get the radio button styling based on current theme."""
-        current_mode = self._get_effective_mode()
+        current_mode = self.app.settings_manager.color_mode
         color = "#ffffff" if current_mode == "dark" else "#333333"
         style = f"color: {color};"
         return style
 
     def _get_dropdown_style(self) -> str:
         """Get the dropdown styling based on current theme."""
-        current_mode = self._get_effective_mode()
+        current_mode = self.app.settings_manager.color_mode
         if current_mode == "dark":
             return """
                 QComboBox {
@@ -422,18 +415,9 @@ class OnboardingWindow(ThemedWidget):
 
             # Save to settings manager (this preserves existing data in data.json)
             self.app.settings_manager.color_mode = color_mode
+            self.app.settings_manager.save()  # Auto-save to disk
 
-            # IMPORTANT: Explicitly save to file to ensure persistence
-            self.app.settings_manager.save()
-
-            # Update global colorMode variable
-            from ui.ui_utils import set_color_mode
-
-            set_color_mode(color_mode)
-
-            # Apply color mode change immediately via centralized theme manager
-            from ui.ThemeManager import theme_manager
-
+            # Apply theme change
             theme_manager.change_theme(color_mode)
 
             # Refresh UI styles with updated colorMode

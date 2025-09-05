@@ -2,11 +2,12 @@
 Centralized theme manager for the entire application.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from PySide6 import QtCore
 
-from ui.ui_utils import get_color_mode, set_color_mode
+if TYPE_CHECKING:
+    from WritingToolApp import WritingToolApp
 
 
 class ThemeManager(QtCore.QObject):
@@ -25,12 +26,13 @@ class ThemeManager(QtCore.QObject):
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self, app: "WritingToolApp"):
         if hasattr(self, "_initialized"):
             return
         super().__init__()
         self._initialized: bool = True
         self._registered_widgets = []
+        self.app = app
 
     def register_widget(self, widget: Any) -> None:
         """Register a widget to receive theme updates."""
@@ -44,9 +46,7 @@ class ThemeManager(QtCore.QObject):
 
     def change_theme(self, new_mode: str) -> None:
         """Change the theme and notify all registered widgets."""
-        set_color_mode(new_mode)
-        current_mode = get_color_mode()
-        self.theme_changed.emit(current_mode)
+        self.theme_changed.emit(new_mode)
 
         # Refresh all registered widgets
         for widget in self._registered_widgets[:]:  # Copy to avoid modifications during iteration
@@ -78,10 +78,10 @@ class ThemeManager(QtCore.QObject):
                 # Widget destroyed, remove it from the list
                 self._registered_widgets.remove(widget)
 
-    @staticmethod
-    def get_styles() -> dict[str, str]:
+
+    def get_styles(self) -> dict[str, str]:
         """Return all standardized styles based on the current theme."""
-        current_mode = get_color_mode()
+        current_mode = self.app.settings_manager.color_mode
         is_dark = current_mode == "dark"
 
         return {
@@ -155,4 +155,4 @@ class ThemeManager(QtCore.QObject):
 
 
 # Global instance
-theme_manager = ThemeManager()
+theme_manager = ThemeManager(app)

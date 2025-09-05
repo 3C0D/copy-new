@@ -6,7 +6,8 @@ This guide explains how to set up the development environment and best practices
 
 ## Tips
 
-The best way is to use the VSC `Code Runner` extension to run the scripts. It's easy and fast. And there's a configuration directly integrated into the repository. No need to navigate through subfolders, just open the project. And run it. You can also use `exe Runner` to directly execute the build without having to go into the file's folder and click on it. (From VSC explorer)
+The best way is to use the VSC `Code Runner` extension to run the scripts. It's easy and fast. And there's a configuration directly integrated into the repository. No need to navigate through subfolders, just open the project. And run it. You can also use `exe Runner` to directly execute the build without having to go into the file's folder and click on it. (From VSC explorer).
+Important note: When the Virtual Environment is not yet installed, if you press the Code Runner triangle button, you'll get an error that makes you think the script doesn't work. Actually, with the script open in the editor, there's a small dropdown arrow next to the Code Runner button to open additional options - select "Run Python File in Terminal". The difference is that in the first case, you're using the path to Python in the virtual environment (which doesn't exist yet), and in the second case, you're using the general Python installation. This will first install the virtual environment in your project, then install the dependencies from requirements.txt. Obviously, afterwards, you'll use the direct button instead.
 
 ## 🚀 Quick Development Setup
 
