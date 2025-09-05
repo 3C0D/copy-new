@@ -137,7 +137,7 @@ class WritingToolApp(QApplication):
 
     def _setup_settings(self) -> None:
         """Initialize settings manager and load configuration."""
-        mode = self._detect_mode()
+        mode = self._detect_running_mode()
         self._logger.debug(f"Running mode: {mode}")
         self.settings_manager = SettingsManager(mode=mode)
         self.load_settings()
@@ -163,7 +163,7 @@ class WritingToolApp(QApplication):
     def _setup_ai_providers(self) -> None:
         """Initialize available AI providers."""
         self._ = gettext.gettext
-        self.providers = [
+        self.providers: list[AIProvider] = [
             GeminiProvider(self),
             OpenAICompatibleProvider(self),
             OllamaProvider(self),
@@ -194,29 +194,30 @@ class WritingToolApp(QApplication):
         except Exception as e:
             self._handle_initialization_error(e)
 
-    def _initialize_ai_provider(self) -> None:
-        """Initialize and configure the current AI provider."""
-        provider_internal_name = self.settings_manager.provider or "gemini"
-        self._logger.debug(f"Selected provider: {provider_internal_name}")
+    def _set_current_provider(self) -> None:
+        """Set the current provider and save settings."""
+        provider_name: str = self.settings_manager.provider or "gemini"
 
         self.current_provider = next(
-            (
-                provider
-                for provider in self.providers
-                if provider.internal_name == provider_internal_name
-            ),
-            None,
+            (provider for provider in self.providers if provider.internal_name == provider_name),
+            self.providers[0],  # Fallback to first provider
         )
 
+        self.settings_manager.provider = self.current_provider.internal_name
+        self.settings_manager.save()
+
+        self._logger.debug(f"Selected provider: {provider_name}")
         if not self.current_provider:
-            self._logger.warning(
-                f"Provider {provider_internal_name} not found. Using default provider."
-            )
-            self.current_provider = self.providers[0]
+            self._logger.warning("No provider found. Using default provider.")
+
+
+    def _initialize_ai_provider(self) -> None:
+        """Initialize and configure the current AI provider."""
+        self._set_current_provider()
 
         if self.current_provider:
             self._logger.debug(f"Current provider: {self.current_provider.provider_name}")
-            provider_config = self._get_provider_config(provider_internal_name)
+            provider_config = self._get_provider_config(self.settings_manager.provider)
             self._logger.debug(f"Provider config: {provider_config}")
             self.current_provider.load_config(provider_config)
             self._logger.debug("Provider config loaded successfully")
@@ -285,7 +286,7 @@ class WritingToolApp(QApplication):
     # CONFIGURATION AND SETUP METHODS
     # ============================================================================
 
-    def _detect_mode(self) -> str:
+    def _detect_running_mode(self) -> str:
         """
         Detect the operating mode based on the environment.
 
@@ -355,10 +356,6 @@ class WritingToolApp(QApplication):
         """Load unified settings using the SettingsManager."""
         self.settings_manager.load_settings()
         self._logger.debug("Unified settings loaded successfully")
-
-    def save_settings(self) -> None:
-        """Save the current unified settings."""
-        self.settings_manager.save()
 
     # ============================================================================
     # HOTKEY AND INPUT HANDLING METHODS
@@ -444,22 +441,11 @@ class WritingToolApp(QApplication):
         """
         self._logger.debug("Onboarding window closed, continuing with app initialization")
 
-        # Initialize the current provider with default settings
-        provider_name = self.settings_manager.provider or "gemini"
-
-        if not provider_name.strip():
-            # Default to Gemini if no provider is set
-            provider_name = "gemini"
-            self.settings_manager.provider = provider_name
-
-        self.current_provider = next(
-            (provider for provider in self.providers if provider.internal_name == provider_name),
-            self.providers[0],  # Default to first provider
-        )
+        self._set_current_provider()
 
         # Load provider-specific config from system settings
         if self.current_provider:
-            provider_config = self._get_provider_config(provider_name)
+            provider_config = self._get_provider_config(self.settings_manager.provider)
             self.current_provider.load_config(provider_config)
 
         self._sync_autostart_settings()
@@ -1233,7 +1219,7 @@ class WritingToolApp(QApplication):
         """
         try:
             # Determine execution mode
-            mode = self._detect_mode()
+            mode = self._detect_running_mode()
 
             if mode == "dev":
                 # Development mode: use project directory

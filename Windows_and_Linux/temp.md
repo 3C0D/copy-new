@@ -4,6 +4,8 @@ Appel des fenêtres, fermeture, voire dans le module principal...
 
 Mise à jour download sur github.
 
+Des signaux de changement de thème sur toutes les fenêtres?
+
 
 Vérifier le focus
 dans settingsWindow.py Système de gestion du Focus avancé    
