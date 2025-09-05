@@ -581,8 +581,6 @@ class WritingToolApp(QApplication):
         """
         Show the popup window when the hotkey is pressed.
         """
-        self._logger.debug("🪟\u00a0 Showing popup window")
-
         # Check for image first
         if self.image is None:
             self.image = self.get_clipboard_image()

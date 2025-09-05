@@ -1,6 +1,11 @@
-saved_color_mode = self.settings_manager.color_mode or "auto"
+Is the current mode useful again?
+
+Appel des fenêtres, fermeture, voire dans le module principal...
+
+Mise à jour download sur github.
 
 
+Vérifier le focus
 dans settingsWindow.py Système de gestion du Focus avancé    
     
     def showEvent(self, event: QtGui.QShowEvent) -> None:
@@ -10,3 +15,5 @@ dans settingsWindow.py Système de gestion du Focus avancé
         self.raise_()
         self.activateWindow()
         self.setFocus()
+
+

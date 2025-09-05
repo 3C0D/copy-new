@@ -754,6 +754,8 @@ class GeminiProvider(AIProvider):
 
                 # Extract response text with proper error handling
                 response_text = self._extract_response_text(response, candidate)
+                self._logger.debug(f"Response text: {response_text}")
+
                 if not response_text:
                     error_detail = "🔥 Could not extract text from response"
                     self._logger.warning(f"🔥 Attempt {attempt_num}: {error_detail}")
