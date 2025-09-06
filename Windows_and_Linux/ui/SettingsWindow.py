@@ -93,11 +93,6 @@ class SettingsWindow(ThemedWidget):
         self.setMinimumWidth(700)
         self.setFixedWidth(700)
 
-        # # Show on top initially but allow user to move to background
-        # self.setWindowState(QtCore.Qt.WindowState.WindowActive)
-        # self.raise_()  # Bring window to the front
-        # self.activateWindow()  # Give focus to the window to make it active
-
         main_layout = QVBoxLayout(self.background)  # Set icon, margin, and spacing in ThemedWidget
 
         # Create scroll area

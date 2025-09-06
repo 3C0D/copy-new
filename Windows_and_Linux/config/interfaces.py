@@ -21,7 +21,8 @@ class SystemConfig(TypedDict, total=False):
 
     # API Configuration
     provider: str
-    model: str
+    default_provider: str
+    default_model: str
 
     # UI Configuration
     hotkey: str

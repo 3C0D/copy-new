@@ -1,3 +1,7 @@
+dans data model → default_model. et default provider? en cours...
+
+Voir focus
+
 Is the current mode useful again?
 
 Appel des fenêtres, fermeture, voire dans le module principal...

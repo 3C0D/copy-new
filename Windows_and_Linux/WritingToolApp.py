@@ -198,7 +198,7 @@ class WritingToolApp(QApplication):
 
     def _set_current_provider(self) -> None:
         """Set the current provider and save settings."""
-        provider_name: str = self.settings_manager.provider or "gemini"
+        provider_name: str = self.settings_manager.provider or self.settings_manager.default_provider
 
         self.current_provider = next(
             (provider for provider in self.providers if provider.internal_name == provider_name),
@@ -390,9 +390,9 @@ class WritingToolApp(QApplication):
         default_configs = {
             ("Gemini", "Gemini (Recommended)"): {
                 "api_key": "",
-                "model": self.settings_manager.model or "",
+                "model": self.settings_manager.default_model,
             },
-            ("Ollama", "Ollama (Local)", "Ollama (For Experts)"): {
+            ("Ollama", "Ollama (Local)", "Ollama"): {
                 "base_url": self.settings_manager.ollama_base_url or "http://localhost:11434",
                 "model": "",
                 "keep_alive": self.settings_manager.ollama_keep_alive or "5",

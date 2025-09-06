@@ -492,13 +492,6 @@ class ResponseWindow(ThemedWidget):
         self.resize(initial_width, initial_height)
 
     def init_ui(self) -> None:
-        # Window setup with enhanced flags
-        self.setWindowFlags(
-            QtCore.Qt.WindowType.Window
-            | QtCore.Qt.WindowType.WindowCloseButtonHint
-            | QtCore.Qt.WindowType.WindowMinimizeButtonHint
-            | QtCore.Qt.WindowType.WindowMaximizeButtonHint,
-        )
         self.setMinimumSize(600, 400)
 
         # Main layout setup
@@ -1049,7 +1042,7 @@ class ResponseWindow(ThemedWidget):
             if not self.app.settings_manager.settings.custom_data:
                 self.app.settings_manager.settings.custom_data = {}
             self.app.settings_manager.response_window_zoom = self.current_text_display.zoom_factor
-            self.app.save_settings()
+            self.app.settings_manager.save()
 
         self.chat_history = []
 

@@ -139,7 +139,7 @@ PROVIDER_DISPLAY_NAMES = {
     "openai": "OpenAI",
     "anthropic": "Anthropic (Claude)",
     "mistral": "Mistral AI",
-    "ollama": "Ollama (For Experts)",
+    "ollama": "Ollama",
 }
 
 # Default models for each provider
@@ -151,11 +151,13 @@ DEFAULT_MODELS = {
     "ollama": "",  # Empty because dynamically generated from ollama list
 }
 
+_DEFAULT_PROVIDER = "gemini"
 
 # Default system configuration VALUES - Raw data, not objects
 _DEFAULT_SYSTEM_VALUES_RAW = {
     "provider": "gemini",  # Internal provider name
-    "model": DEFAULT_MODELS["gemini"],  # Model corresponding to default provider
+    "default_provider": _DEFAULT_PROVIDER,
+    "default_model": DEFAULT_MODELS[_DEFAULT_PROVIDER],  # Model corresponding to default provider
     "hotkey": "ctrl+space",
     "theme": "gradient",
     "color_mode": "auto",  # Color mode: "auto", "light", or "dark"
