@@ -20,6 +20,8 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from pynput import keyboard as keyboard
 
+from ui.AutostartManager import AutostartManager
+
 os.environ["QT_LOGGING_RULES"] = (
     "qt.qpa.mime.warning=false;qt.qpa.mime.debug=false;qt.qpa.mime.info=false"  # Disable QMimeDatabase warnings
 )
@@ -210,7 +212,6 @@ class WritingToolApp(QApplication):
         if not self.current_provider:
             self._logger.warning("No provider found. Using default provider.")
 
-
     def _initialize_ai_provider(self) -> None:
         """Initialize and configure the current AI provider."""
         self._set_current_provider()
@@ -257,8 +258,6 @@ class WritingToolApp(QApplication):
     def _sync_autostart_settings(self) -> None:
         """Synchronize autostart settings between registry and configuration."""
         try:
-            from ui.AutostartManager import AutostartManager
-
             AutostartManager.sync_with_settings(self.settings_manager)
         except Exception as e:
             self._logger.warning(f"Could not sync autostart settings: {e}")
@@ -440,7 +439,8 @@ class WritingToolApp(QApplication):
         Instead of exiting, continue with normal app initialization.
         """
         self._logger.debug("Onboarding window closed, continuing with app initialization")
-
+        self.onboarding_window = None
+        # Initialize the current provider with default settings
         self._set_current_provider()
 
         # Load provider-specific config from system settings
@@ -879,7 +879,7 @@ class WritingToolApp(QApplication):
             self.current_response_window.chat_history = [
                 {"role": "user", "content": f"Image analysis request: {option.lower()}"}
             ]
-        elif is_custom and not selected_text:  # needed ???
+        elif is_custom and not selected_text:
             # Custom mode without text
             self.current_response_window.chat_history = [
                 {
@@ -1563,7 +1563,7 @@ class WritingToolApp(QApplication):
 
             # Create and show the modal window
             self.non_editable_modal = ui.NonEditableModal.NonEditableModal(self, transformed_text)
-            self.non_editable_modal.close_signal.connect(self.on_onboarding_closed)
+            self.non_editable_modal.close_signal.connect(self._on_non_editable_modal_closed)
             self.non_editable_modal.show()
 
         except Exception as e:
@@ -1738,8 +1738,9 @@ class WritingToolApp(QApplication):
                     # Get response from Mistral
                     response_text = self.current_provider.get_response(
                         system_instruction,
-                        messages,
+                        messages if isinstance(messages, str) else str(messages),
                         return_response=True,
+                        image_data=image_data,
                     )
 
                 elif self.current_provider:

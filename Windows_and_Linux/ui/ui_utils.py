@@ -157,8 +157,13 @@ class ThemedWidget(QWidget):
             self.windowFlags() & ~QtCore.Qt.WindowType.WindowSystemMenuHint
             | QtCore.Qt.WindowType.WindowCloseButtonHint
             | QtCore.Qt.WindowType.WindowMinimizeButtonHint
-            | QtCore.Qt.WindowType.WindowStaysOnTopHint
+            # | QtCore.Qt.WindowType.WindowStaysOnTopHint
         )
+
+        # Show on top initially but allow user to move to background
+        self.setWindowState(QtCore.Qt.WindowState.WindowActive)
+        self.raise_()  # Bring window to the front
+        self.activateWindow()  # Give focus to the window to make it active
 
         # Set window icon
         icon_path = get_icon_path(self.app, "app_icon", with_theme=False)

@@ -47,6 +47,7 @@ import subprocess
 import tempfile
 import webbrowser
 from abc import ABC, abstractmethod
+from concurrent.futures import CancelledError, ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any, Callable, Union, cast
 
 # Third-party imports (with fallbacks for optional dependencies)
@@ -399,6 +400,8 @@ class AIProvider(ABC):
         self.button_text = button_text
         self.button_action = button_action
         self.logo = logo
+        self.executor = ThreadPoolExecutor(max_workers=1)
+        self.current_future = None
 
         # Support for multiple buttons (for providers that need refresh functionality)
         self.additional_buttons = []
@@ -417,15 +420,48 @@ class AIProvider(ABC):
     # Suppression of the getter/setter for model_name, we use api_model directly
     # which will be created by setattr() in load_config()
 
-    @abstractmethod
     def get_response(
-        self,
-        system_instruction: str,
-        prompt: str,
-        return_response: bool = False,
-        image_data: str | None = None,
+        self, system_instruction: str, prompt: str, return_response: bool = False, **kwargs
     ) -> str:
         """
+        Public interface to get a response from the AI provider.
+
+        Automatically handles cancellation and threading for all providers.
+        """
+        # Cancel the previous request if it exists
+        if self.current_future and not self.current_future.done():
+            self.current_future.cancel()
+            logging.debug(f"Cancelled previous {self.provider_name} request")
+
+        # Launch the new query in a thread
+        self.current_future = self.executor.submit(
+            self._get_response_impl, system_instruction, prompt, return_response, **kwargs
+        )
+
+        try:
+            # Wait for the result
+            return self.current_future.result()
+        except CancelledError:
+            logging.debug(f"{self.provider_name} request was cancelled")
+            return ""
+        except Exception as e:
+            logging.error(f"Error in {self.provider_name} request: {e}")
+            if not return_response and not hasattr(self.app, "current_response_window"):
+                self.app.output_ready_signal.emit(
+                    "An error occurred while processing the response."
+                )
+            return ""
+
+    @abstractmethod
+    def _get_response_impl(
+        self, system_instruction: str, prompt: str, return_response: bool = False, **kwargs
+    ) -> str:
+        """
+        Concrete implementation of get_response for each provider.
+
+        This method runs in a separate thread and can be cancelled.
+        Providers implement this method instead of get_response.
+
         Send the given system instruction and prompt to the AI provider and return the full response text.
 
         This method must handle:
@@ -493,18 +529,27 @@ class AIProvider(ABC):
         before a new configuration is loaded.
         """
 
-    @abstractmethod
     def cancel(self) -> None:
         """
         Cancel any ongoing API request.
 
-        This method should set cancellation flags and interrupt
-        ongoing operations safely.
+        Default implementation that works for all providers.
         """
+        if self.current_future and not self.current_future.done():
+            cancelled = self.current_future.cancel()
+            if cancelled:
+                logging.debug(f"Successfully cancelled {self.provider_name} request")
+            else:
+                logging.debug(f"Could not cancel {self.provider_name} request (already started)")
+
+    def __del__(self):
+        """Cleanup of the ThreadPoolExecutor on destruction."""
+        if hasattr(self, "executor"):
+            self.executor.shutdown(wait=False)
 
     def validate_connection(self) -> bool:
         """
-        Validate the provider configuration before processing.
+        Validate the provider configuration before processing. Used from process_option().
 
         Returns:
             bool: True if the provider is properly configured, False otherwise
@@ -540,7 +585,6 @@ class GeminiProvider(AIProvider):
     """
 
     def __init__(self, app: "WritingToolApp"):
-        self.close_requested: bool = False
         self.model: Any = None
 
         settings = [
@@ -574,19 +618,18 @@ class GeminiProvider(AIProvider):
             "gemini",
         )
 
-    def get_response(
+    def _get_response_impl(
         self,
         system_instruction: str,
         prompt: str,
         return_response: bool = False,
-        image_data: str | None = None,
+        **kwargs,
     ) -> str:
         """
         Generate content using Gemini.
         Includes retry logic for safety filter blocks.
         """
-        self.close_requested = False
-
+        image_data: str | None = kwargs.get("image_data")
         # DEBUG: Log the incoming request
         self._logger.debug("🔥 GeminiProvider.get_response called")
         self._logger.debug(f"🔥 system_instruction length: {len(system_instruction)}")
@@ -858,8 +901,6 @@ class GeminiProvider(AIProvider):
                             f"An error occurred with the Gemini API:\n\n{error_str}\n\nPlease check your API key and settings.",
                         )
                         return ""
-            finally:
-                self.close_requested = False
 
         return ""
 
@@ -962,10 +1003,6 @@ class GeminiProvider(AIProvider):
         """Clean up model instance before reloading."""
         self.model = None
 
-    def cancel(self) -> None:
-        """Set cancellation flag to interrupt operations."""
-        self.close_requested = True
-
 
 class OpenAICompatibleProvider(AIProvider):
     """
@@ -977,7 +1014,6 @@ class OpenAICompatibleProvider(AIProvider):
     """
 
     def __init__(self, app: "WritingToolApp"):
-        self.close_requested: bool = False
         self.client: Any = None
 
         settings = [
@@ -1023,12 +1059,12 @@ class OpenAICompatibleProvider(AIProvider):
             "openai",
         )
 
-    def get_response(
+    def _get_response_impl(
         self,
         system_instruction: str,
         prompt: Union[str, list],
         return_response: bool = False,
-        image_data: str | None = None,
+        **kwargs,
     ) -> str:
         """
         Send a chat request to the OpenAI-compatible API.
@@ -1039,8 +1075,7 @@ class OpenAICompatibleProvider(AIProvider):
         Returns the response text if return_response is True,
         otherwise emits it via output_ready_signal.
         """
-        self.close_requested = False
-
+        image_data = kwargs.get("image_data")
         if isinstance(prompt, list):
             messages = prompt
         else:
@@ -1121,10 +1156,6 @@ class OpenAICompatibleProvider(AIProvider):
     def before_load(self) -> None:
         """Clean up client before reloading."""
         self.client = None
-
-    def cancel(self) -> None:
-        """Set cancellation flag."""
-        self.close_requested = True
 
 
 def find_ollama_executable() -> str | None:
@@ -1506,7 +1537,6 @@ class OllamaProvider(AIProvider):
 
     def __init__(self, app: "WritingToolApp"):
         self.app = app
-        self.close_requested: bool = False
         self.client: Any = None
 
         # Get available Ollama models
@@ -1758,12 +1788,12 @@ class OllamaProvider(AIProvider):
             else:
                 self.app.show_message_signal.emit("Deletion Failed", message)
 
-    def get_response(
+    def _get_response_impl(
         self,
         system_instruction: str,
         prompt: Union[str, list],
         return_response: bool = False,
-        image_data: str | None = None,
+        **kwargs,
     ) -> str:
         """
         Send a chat request to the Ollama server.
@@ -1772,8 +1802,7 @@ class OllamaProvider(AIProvider):
         Returns the response text if return_response is True,
         otherwise emits it via output_ready_signal.
         """
-        self.close_requested = False
-
+        image_data = kwargs.get("image_data")
         if isinstance(prompt, list):
             messages = prompt
         else:
@@ -1846,10 +1875,6 @@ class OllamaProvider(AIProvider):
         """Clean up client before reloading."""
         self.client = None
 
-    def cancel(self) -> None:
-        """Set cancellation flag."""
-        self.close_requested = True
-
 
 class AnthropicProvider(AIProvider):
     """
@@ -1860,7 +1885,6 @@ class AnthropicProvider(AIProvider):
     """
 
     def __init__(self, app: "WritingToolApp"):
-        self.close_requested: bool = False
         self.client: Any = None
         self.app: WritingToolApp = app
         self._logger = logging.getLogger(__name__)
@@ -1894,13 +1918,8 @@ class AnthropicProvider(AIProvider):
             "anthropic",
         )
 
-    def get_response(
-        self,
-        system_instruction: str,
-        prompt: str,
-        return_response: bool = False,
-        image_data: str | None = None,
-        conversation_history: list[dict[str, str]] | None = None,
+    def _get_response_impl(
+        self, system_instruction: str, prompt: str, return_response: bool = False, **kwargs
     ) -> str:
         """
         Generate response using Anthropic's Claude API.
@@ -1908,18 +1927,13 @@ class AnthropicProvider(AIProvider):
         Supports conversation history for multi-turn interactions.
         Uses Anthropic's OpenAI-compatible endpoint for simplicity.
         """
+        conversation_history = kwargs.get("conversation_history")
         self._logger.debug(
             f"AnthropicProvider.get_response called with return_response={return_response}"
         )
         self._logger.debug(
             f"AnthropicProvider current config - api_key: {self.api_key[:10] if self.api_key else 'None'}..., api_model: {self.api_model}"
         )
-
-        # Reset cancellation flag at start of new request (like other providers)
-        self.close_requested = False
-
-        if self.close_requested:
-            return ""
 
         try:
             # Initialize client if not already done
@@ -1974,9 +1988,6 @@ class AnthropicProvider(AIProvider):
                 max_tokens=4000,
                 temperature=0.4,
             )
-
-            if self.close_requested:
-                return ""
 
             response_text = response.choices[0].message.content.rstrip("\n")
             self._logger.debug(f"Anthropic API response: {response_text}")
@@ -2043,10 +2054,6 @@ class AnthropicProvider(AIProvider):
         """Clean up client before reloading."""
         self.client = None
 
-    def cancel(self) -> None:
-        """Set cancellation flag."""
-        self.close_requested = True
-
 
 class MistralProvider(AIProvider):
     """
@@ -2057,7 +2064,6 @@ class MistralProvider(AIProvider):
     """
 
     def __init__(self, app: "WritingToolApp"):
-        self.close_requested: bool = False
         self.client: Any = None
         self.app: WritingToolApp = app
         settings = [
@@ -2090,13 +2096,12 @@ class MistralProvider(AIProvider):
             "mistral",
         )
 
-    def get_response(
+    def _get_response_impl(
         self,
         system_instruction,
         prompt,
         return_response: bool = False,
-        image_data: str | None = None,
-        conversation_history: list[dict[str, str]] | None = None,
+        **kwargs,
     ) -> str:
         """
         Generate response using Mistral API.
@@ -2104,6 +2109,9 @@ class MistralProvider(AIProvider):
         Uses direct HTTP requests via requests library for maximum control
         over request format and error handling.
         """
+        image_data: str | None = kwargs.get("image_data")
+        conversation_history: list[dict[str, str]] | None = kwargs.get("conversation_history")
+
         self._logger.debug(
             f"MistralProvider.get_response called with return_response={return_response}"
         )
@@ -2118,12 +2126,6 @@ class MistralProvider(AIProvider):
         self._logger.debug(f"🔥 prompt preview:\n{prompt[:200]}...")
         self._logger.debug(f"🔥 return_response: {return_response}")
         self._logger.debug(f"🔥 image_data present: {image_data is not None}")
-
-        # Reset cancellation flag at start of new request (like other providers)
-        self.close_requested = False
-
-        if self.close_requested:
-            return ""
 
         try:
             # Check if requests library is available
@@ -2229,9 +2231,6 @@ class MistralProvider(AIProvider):
 
             self._logger.debug(f"Mistral API status code: {response.status_code}")
 
-            if self.close_requested:
-                return ""
-
             if response.status_code == 200:
                 result = response.json()
 
@@ -2309,7 +2308,3 @@ class MistralProvider(AIProvider):
     def before_load(self) -> None:
         """No client cleanup needed."""
         pass
-
-    def cancel(self) -> None:
-        """Set cancellation flag."""
-        self.close_requested = True

@@ -6,6 +6,14 @@ Mise à jour download sur github.
 
 Des signaux de changement de thème sur toutes les fenêtres?
 
+👉 Le plus léger que tu pourrais utiliser en local avec vision est typiquement :
+
+Qwen2.5-VL-3B | `ollama run qwen2.5vl:3b` ou 7b
+
+<!-- MiniCPM-V 2.6 (≈ 2B–4B de paramètres, conçu pour tourner sur machines modestes).
+
+Sinon BakLLaVA 7B (basé sur LLaMA + CLIP, plus lourd mais encore raisonnable). -->
+
 
 Vérifier le focus
 dans settingsWindow.py Système de gestion du Focus avancé    
