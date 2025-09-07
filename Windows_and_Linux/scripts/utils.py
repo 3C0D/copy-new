@@ -382,11 +382,12 @@ def terminate_existing_processes(
     """Terminate any existing Writing Tools processes (both exe and script)"""
     print("Checking for and terminating any existing Writing Tools processes...")
 
+    if script_name:
+        kill_python_script_process(script_name)
+
     if exe_name:
         kill_existing_exe_process(exe_name)
 
-    if script_name:
-        kill_python_script_process(script_name)
 
 
 def verify_requirements(required_files: list[Path]) -> bool:

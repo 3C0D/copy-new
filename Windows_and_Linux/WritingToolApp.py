@@ -41,7 +41,7 @@ from config.interfaces import ActionConfig
 from config.settings import SettingsManager
 from ui.ResponseWindow import ResponseWindow
 from ui.systray import SystrayManager
-from ui.ui_utils import get_icon_path
+from ui.ui_utils import existing_window_on_top, get_icon_path
 from update_checker import UpdateChecker
 
 if TYPE_CHECKING:
@@ -198,7 +198,9 @@ class WritingToolApp(QApplication):
 
     def _set_current_provider(self) -> None:
         """Set the current provider and save settings."""
-        provider_name: str = self.settings_manager.provider or self.settings_manager.default_provider
+        provider_name: str = (
+            self.settings_manager.provider or self.settings_manager.default_provider
+        )
 
         self.current_provider = next(
             (provider for provider in self.providers if provider.internal_name == provider_name),
@@ -209,8 +211,6 @@ class WritingToolApp(QApplication):
         self.settings_manager.save()
 
         self._logger.debug(f"Selected provider: {provider_name}")
-        if not self.current_provider:
-            self._logger.warning("No provider found. Using default provider.")
 
     def _initialize_ai_provider(self) -> None:
         """Initialize and configure the current AI provider."""
@@ -294,18 +294,20 @@ class WritingToolApp(QApplication):
         """
 
         base_dir = Path(sys.executable).parent
-        self._logger.debug(f"Base directory name in build detect_mode: {base_dir.name}")
 
         # dev
         if not getattr(sys, "frozen", False):
+            self._logger.debug("Detected dev mode")
             return "dev"
 
         # build-dev
         elif base_dir.name == "dev":
+            self._logger.debug("Detected build-dev mode")
             return "build-dev"
 
         # build-final
         else:
+            self._logger.debug("Detected build-final mode")
             return "build-final"
 
     def setup_translations(self, lang=None) -> None:
@@ -385,28 +387,29 @@ class WritingToolApp(QApplication):
         Returns:
             dict: Provider-specific configuration
         """
-
+        system = self.settings_manager.default_settings.system
         # Default configuration based on provider type
         default_configs = {
             ("Gemini", "Gemini (Recommended)"): {
                 "api_key": "",
-                "model": self.settings_manager.default_model,
+                "model": system.get("default_model", ""),
             },
             ("Ollama", "Ollama (Local)", "Ollama"): {
-                "base_url": self.settings_manager.ollama_base_url or "http://localhost:11434",
-                "model": "",
+                "base_url": system.get("ollama_base_url", "http://localhost:11434"),
+                "model": system.get("default_model", ""),
                 "keep_alive": self.settings_manager.ollama_keep_alive or "5",
             },
             ("Mistral", "Mistral AI"): {
                 "api_key": "",
-                "api_model": "",
-                "base_url": self.settings_manager.mistral_base_url or "https://api.mistral.ai/v1",
+                "api_model": system.get("default_model", ""),
+                "base_url": system.get("mistral_base_url", "https://api.mistral.ai/v1"),
             },
             ("Anthropic", "Anthropic (Claude)"): {"api_key": "", "model": ""},
             ("OpenAI", "OpenAI-Compatible"): {
                 "api_key": "",
-                "base_url": self.settings_manager.openai_base_url or "https://api.openai.com/v1",
-                "model": "",
+                # "base_url": self.settings_manager.openai_base_url or "https://api.openai.com/v1",
+                "base_url": system.get("openai_base_url", "https://api.openai.com/v1"),
+                "model": system.get("default_model", ""),
             },
         }
 
@@ -1832,6 +1835,10 @@ class WritingToolApp(QApplication):
         self.last_tray_click_time = current_time
 
         self._logger.debug("Showing settings window")
+
+        if self.settings_window:
+            self.settings_window.close()
+
         # Always create a new settings window to handle providers_only correctly
         self.settings_window = ui.SettingsWindow.SettingsWindow(self, providers_only=providers_only)
 
@@ -1851,7 +1858,9 @@ class WritingToolApp(QApplication):
         self._logger.debug("Showing about window")
         if not self.about_window:
             self.about_window = ui.AboutWindow.AboutWindow(self)
-        self.about_window.show()
+            self.about_window.show()
+        else:
+            existing_window_on_top(self.about_window)
 
     def show_help(self) -> None:
         """

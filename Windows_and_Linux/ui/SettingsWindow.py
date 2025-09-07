@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 from config.constants import PROVIDER_DISPLAY_NAMES
 from config.data_operations import get_provider_display_name
 from ui.AutostartManager import AutostartManager
-from ui.ui_utils import ThemedWidget, get_icon_path, ui_utils
+from ui.ui_utils import ThemedWidget, existing_window_on_top, get_icon_path, ui_utils
 
 
 def _(x):
@@ -814,14 +814,8 @@ class SettingsWindow(ThemedWidget):
         # Always save settings before closing
         self.save_settings_without_closing()
 
-        # Return to previous window if it exists and is still valid
-        if self.previous_window and hasattr(self.previous_window, "show"):
-            # Show the previous window and give it focus
-            self.previous_window.show()
-            self.previous_window.raise_()
-            self.previous_window.activateWindow()
-            if hasattr(self.previous_window, "setFocus"):
-                self.previous_window.setFocus()
+        # Return to previous window if it exists and is still valid (set from WritingToolApp.show_settings)
+        existing_window_on_top(self.previous_window)
 
         # Close this window
         self.close()
@@ -871,6 +865,7 @@ class SettingsWindow(ThemedWidget):
         if self.providers_only:
             self.close_signal.emit()
         super().closeEvent(event)
+        self.app.settings_window = None
 
     def refresh_theme(self) -> None:
         """Automatically called when theme changes via ThemeManager."""

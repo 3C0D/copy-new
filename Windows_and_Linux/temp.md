@@ -1,6 +1,13 @@
 dans data model → default_model. et default provider? en cours...
 
 Voir focus
+revoir previous_window
+
+debug files 3? rotation? 1 seule?
+
+Raccourci 3 touches.
+
+terminate_existing_processes marche pas??
 
 Is the current mode useful again?
 
@@ -31,3 +38,6 @@ dans settingsWindow.py Système de gestion du Focus avancé
         self.setFocus()
 
 
+parent dir executable
+    script_dir = Path(__file__).parent  # scripts/
+    windows_linux_dir = script_dir.parent  # Windows_and_Linux/

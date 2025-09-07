@@ -10,35 +10,6 @@ from PySide6.QtWidgets import QApplication, QLayout, QVBoxLayout, QWidget
 if TYPE_CHECKING:
     from WritingToolApp import WritingToolApp
 
-# colorMode = "dark" if darkdetect.isDark() else "light"
-
-
-# def get_color_mode() -> str:
-#     """
-#     Get the effective color mode based on current settings.
-#     This function provides the same logic as _get_effective_mode() in windows.
-#     """
-#     # Check if colorMode has been overridden by theme_override first
-#     global colorMode
-
-#     # Simple fallback to global colorMode to avoid creating multiple SettingsManager instances
-#     # The global colorMode is set by the main app and should be sufficient for UI styling
-#     return colorMode
-
-
-# def set_color_mode(theme: str) -> None:
-#     """
-#     Set the color mode globally, overriding auto-detection.
-
-#     Args:
-#         theme: "light", "dark", or "auto"
-#     """
-#     global colorMode
-#     if theme == "auto":
-#         colorMode = "dark" if darkdetect.isDark() else "light"
-#     else:
-#         colorMode = theme
-
 
 def get_icon_path(app: "WritingToolApp", icon_name: str, with_theme: bool = True) -> Path:
     """
@@ -59,11 +30,7 @@ def get_icon_path(app: "WritingToolApp", icon_name: str, with_theme: bool = True
             # Running with python -c or similar, use current working directory
             base_dir = Path.cwd()
         else:
-            # base_dir = Path(sys.argv[0]).parent.resolve()
             base_dir = Path(sys.argv[0]).parent
-        # # If we're in the Windows_and_Linux subdirectory, go up one level
-        # if base_dir.name == "Windows_and_Linux":
-        #     base_dir = base_dir.parent
 
     # Define possible extensions and filenames
     extensions = [".svg", ".png"]  # SVG takes precedence
@@ -100,6 +67,16 @@ def get_icon_path(app: "WritingToolApp", icon_name: str, with_theme: bool = True
                 return full_path
 
     return Path()
+
+
+def existing_window_on_top(window: "ThemedWidget | None"):
+    if window is None or not hasattr(window, "show"):
+        return
+    # window.show()
+    window.raise_()
+    window.activateWindow()
+    if hasattr(window, "setFocus"):
+        window.setFocus()
 
 
 class ui_utils:
@@ -157,7 +134,6 @@ class ThemedWidget(QWidget):
             self.windowFlags() & ~QtCore.Qt.WindowType.WindowSystemMenuHint
             | QtCore.Qt.WindowType.WindowCloseButtonHint
             | QtCore.Qt.WindowType.WindowMinimizeButtonHint
-            # | QtCore.Qt.WindowType.WindowStaysOnTopHint
         )
 
         # Show on top initially but allow user to move to background
@@ -364,7 +340,9 @@ class ThemeBackground(QWidget):
     A custom widget that creates a background for the application based on the selected theme.
     """
 
-    def __init__(self, app: "WritingToolApp", parent=None, theme="gradient", is_popup=False, border_radius=0):
+    def __init__(
+        self, app: "WritingToolApp", parent=None, theme="gradient", is_popup=False, border_radius=0
+    ):
         self.app = app
         super().__init__(parent)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_StyledBackground, True)

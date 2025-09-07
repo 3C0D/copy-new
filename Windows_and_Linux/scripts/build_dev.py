@@ -20,6 +20,7 @@ Standard Mode:
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -81,7 +82,7 @@ def run_dev_build(venv_path: str = "myvenv", console_mode: bool = False) -> bool
         python_cmd,
         "-m",
         "PyInstaller",
-        "--onefile",
+        "--onedir",
         "--console" if console_mode else "--windowed",
         f"--icon={icon_path}",
         "--name=Writing Tools",
@@ -303,6 +304,25 @@ def main():
         if not run_dev_build(console_mode=console_mode):
             print("\nBuild failed!")
             return 1
+
+        # Because onedir is creating a folder with the same name as the exe, we need to move it! that's silly right? distpath create a path and then onedir creates another folder inside it and no way to rename it. Except handling the spec file. Well, problem the spec is generated on a build final too...
+        print("Moving built application to 'dist/dev' directory...")
+        source_dir = Path("dist/dev/Writing Tools")
+        target_dir = Path("dist/dev")
+
+        for item in source_dir.iterdir():
+            target_path = target_dir / item.name
+
+            # Supprimer si existe déjà
+            if target_path.exists():
+                if target_path.is_dir():
+                    shutil.rmtree(target_path)
+                else:
+                    target_path.unlink()
+
+            shutil.move(str(item), str(target_path))
+
+        source_dir.rmdir()
 
         # Launch the built application with extra arguments
         print()

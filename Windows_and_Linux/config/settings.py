@@ -46,6 +46,10 @@ class SettingsManager:
         "settings",
         "_logger",
         "data_file",
+        "default_settings",
+        "actions",  # Handled by explicit property
+        "providers",  # Handled by explicit property
+        "color_mode",  # Handled by explicit property
         "DIST_DEV_PATH",
         "DATA_FILE",
         "DATA_DEV_FILE",
@@ -61,13 +65,56 @@ class SettingsManager:
         self._logger.debug(f"Set mode in settings: {self.mode}")
         self.base_dir: Path = self._get_base_directory()
         self._logger.debug(f"Base directory in settings: {self.base_dir.absolute().name}")
-        self.settings: UnifiedSettings = create_default_settings()  # Always initialized!
+        self.default_settings: UnifiedSettings = create_default_settings()  # Always initialized!
         self.data_file: Path = self._resolve_data_file_path()
+        self.settings: UnifiedSettings = self.load_settings()
 
         # Setup logging (with build context detection inside _setup_logging)
         self._setup_logging()
 
         self._log_initialization_info()
+
+    def __getattr__(self, name: str) -> Any:
+        """
+        Smart attribute access for system settings only.
+        Special cases (actions, providers) are handled by explicit properties.
+
+        Example:
+            settings_manager.hotkey  # -> settings.system["hotkey"]
+        """
+        # Don't intercept internal attributes or handled properties
+        if name in self._INTERNAL_ATTRS:
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+
+        # System settings only - special cases handled by properties
+        try:
+            settings = object.__getattribute__(self, "settings")
+            if name in settings.system:
+                return settings.system[name]
+        except AttributeError:
+            # settings n'existe pas encore (pendant __init__)
+            pass
+
+        # Not found - raise standard AttributeError
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """
+        Smart attribute assignment for settings.
+
+        Example:
+            settings_manager.hotkey = "ctrl+space"  # -> settings.system["hotkey"]
+        """
+        # Internal class attributes and private attributes
+        if name in self._INTERNAL_ATTRS or name.startswith("_"):
+            super().__setattr__(name, value)
+            return
+
+        # During __init__, settings doesn't exist yet
+        if hasattr(self, "settings"):
+            self.settings.system[name] = value
+        else:
+            super().__setattr__(name, value)
 
     @property
     def actions(self) -> dict[str, ActionConfig]:
@@ -97,52 +144,17 @@ class SettingsManager:
         """Current color theme mode ('auto', 'dark', or 'light')."""
         if "color_mode" not in self.settings.system:
             self.settings.system["color_mode"] = "auto"
-        colorMode = self.settings.system["color_mode"]
-        if colorMode == "auto":
-            colorMode = "dark" if darkdetect.isDark() else "light"
-            self.settings.system["color_mode"] = colorMode
-        return colorMode
+
+        current_mode = self.settings.system["color_mode"]
+        if current_mode == "auto":
+            return "dark" if darkdetect.isDark() else "light"
+
+        return current_mode
 
     @color_mode.setter
     def color_mode(self, value: str) -> None:
         """Set the color theme mode."""
         self.settings.system["color_mode"] = value
-
-    def __getattr__(self, name: str) -> Any:
-        """
-        Smart attribute access for system settings only.
-        Special cases (actions, providers) are handled by explicit properties.
-
-        Example:
-            settings_manager.hotkey  # -> settings.system["hotkey"]
-        """
-        # System settings only - special cases handled by properties
-        if name in self.settings.system:
-            return self.settings.system[name]
-
-        # Not found - raise standard AttributeError
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        """
-        Smart attribute assignment for settings.
-
-        Example:
-            settings_manager.hotkey = "ctrl+space"  # -> settings.system["hotkey"]
-        """
-        # Internal class attributes and private attributes
-        if name in self._INTERNAL_ATTRS or name.startswith("_"):
-            super().__setattr__(name, value)
-            return
-
-        # During __init__, settings doesn't exist yet
-        if not hasattr(self, "settings"):
-            super().__setattr__(name, value)
-            return
-
-        # Special cases are now handled by properties, so we can remove them here
-        # Default: assign to system settings
-        self.settings.system[name] = value
 
     #
     # CORE SETTINGS OPERATIONS
@@ -158,6 +170,7 @@ class SettingsManager:
                 self.settings = create_unified_settings_from_data(user_data)
         else:
             self._logger.debug(f"No settings file found at {self.data_file}, using defaults")
+            self.settings = self.default_settings
 
         # Update run_mode to match current execution mode
         self.settings.system["run_mode"] = self.mode
