@@ -4,18 +4,18 @@ Writing Tools - Development Build Script
 Cross-platform development build with environment setup
 
 Usage:
-    python scripts/dev_build.py                    # Standard windowed build
-    python scripts/dev_build.py --console          # Console mode build (for debugging)
-    python scripts/dev_build.py --console --arg    # Console build with extra args
+    python scripts/build_dev.py                    # Build with default mode (see CONSOLE_MODE_DEFAULT)
+    python scripts/build_dev.py --console          # Force console mode (visible logs)
+    python scripts/build_dev.py --windowed         # Force windowed mode (logs to file)
+    python scripts/build_dev.py --console --arg    # Console build with extra args
 
 Console Mode:
-    Use --console when you need to see real-time logs and debug output.
-    The executable will show a console window with live application logs.
-    Useful for debugging startup issues, systray problems, or provider errors.
+    Console window stays visible with real-time logs.
+    Very useful for debugging startup issues, systray problems, or provider errors.
 
-Standard Mode:
-    Default windowed mode hides the console. Logs are written to build_dev_debug.log.
-    Use this for normal development and testing.
+Windowed Mode:
+    Hides console window. Logs are written to build_dev_debug.log.
+    Use for normal testing in production-like mode.
 """
 
 import argparse
@@ -25,10 +25,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Configuration
+# ===== GLOBAL CONFIGURATION =====
 DEFAULT_VENV_NAME = "myvenv"
 DEFAULT_SCRIPT_NAME = "main.py"
 MODE = "build-dev"
+
+# 🔧 DEFAULT CONSOLE MODE - Change this value to modify default behavior
+CONSOLE_MODE_DEFAULT = True  # True = console visible by default, False = windowed by default
 
 # Import utilities based on platform
 if os.name == "nt":  # Windows
@@ -256,11 +259,20 @@ def main():
     """Main function"""
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Writing Tools - Development Build")
-    parser.add_argument(
+
+    # Create mutually exclusive group for console/windowed modes
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
         "--console",
         action="store_true",
-        help="Build with console visible (useful for debugging and seeing logs in real-time)",
+        help="Force console mode (logs visible in real-time, useful for debugging)",
     )
+    mode_group.add_argument(
+        "--windowed",
+        action="store_true",
+        help="Force windowed mode (logs written to file, production-like)",
+    )
+
     parser.add_argument(
         "extra_args", nargs="*", help="Extra arguments to pass to the built executable"
     )
@@ -270,7 +282,18 @@ def main():
     print("===== Writing Tools - Development Build =====")
     print()
 
-    console_mode = args.console
+    # Determine console mode based on arguments or default
+    if args.console:
+        console_mode = True
+        print("🖥️  Console mode forced via --console argument")
+    elif args.windowed:
+        console_mode = False
+        print("🪟  Windowed mode forced via --windowed argument")
+    else:
+        console_mode = CONSOLE_MODE_DEFAULT
+        default_text = "console" if CONSOLE_MODE_DEFAULT else "windowed"
+        print(f"⚙️  Using default mode: {default_text} (CONSOLE_MODE_DEFAULT = {CONSOLE_MODE_DEFAULT})")
+
     extra_args = args.extra_args or None
 
     try:
@@ -305,7 +328,7 @@ def main():
             print("\nBuild failed!")
             return 1
 
-        # Because onedir is creating a folder with the same name as the exe, we need to move it! that's silly right? distpath create a path and then onedir creates another folder inside it and no way to rename it. Except handling the spec file. Well, problem the spec is generated on a build final too...
+        # Move built application files from nested folder to dist/dev
         print("Moving built application to 'dist/dev' directory...")
         source_dir = Path("dist/dev/Writing Tools")
         target_dir = Path("dist/dev")
@@ -313,7 +336,7 @@ def main():
         for item in source_dir.iterdir():
             target_path = target_dir / item.name
 
-            # Supprimer si existe déjà
+            # Remove if already exists
             if target_path.exists():
                 if target_path.is_dir():
                     shutil.rmtree(target_path)
@@ -333,9 +356,7 @@ def main():
         print("\n===== Development build completed and launched =====")
         print("The executable and required files are in the 'dist/dev' directory.")
         if console_mode:
-            print(
-                "Console mode was enabled - you should see logs directly in the terminal when the exe runs."
-            )
+            print("Console mode enabled - you should see logs directly in the terminal when the exe runs.")
         else:
             print("Windowed mode - check dist/dev/build_dev_debug.log for detailed logs.")
 
