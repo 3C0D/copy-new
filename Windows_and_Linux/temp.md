@@ -4,6 +4,7 @@ Voir focus
 revoir previous_window
 
 debug files 3? rotation? 1 seule?
+log date namefile... partout
 
 Raccourci 3 touches.
 

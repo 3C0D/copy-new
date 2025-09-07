@@ -9,6 +9,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
@@ -309,29 +310,41 @@ def kill_existing_exe_process(process_name: str) -> None:
             command = ["taskkill", "/F", "/IM", process_name]
             result = subprocess.run(command, check=False, capture_output=True, text=True)
 
-            # A return code of 0 means success
-            # A return code of 128 means the process was not found, which is okay
+            # Check result and provide appropriate feedback
             if result.returncode == 0:
                 print(f"Successfully terminated existing process: {process_name}")
             elif result.returncode == 128:
+                # Process not found - this is normal
                 print(f"No existing process found for: {process_name}")
             else:
-                # For other errors, print the details
-                print(
-                    f"Warning: Could not terminate {process_name}. Exit code: {result.returncode}",
-                )
-                if result.stderr:
-                    print(f"Stderr: {result.stderr.strip()}")
+                # Check if the error message indicates "not found"
+                if "not found" in result.stderr.lower() or "cannot find" in result.stderr.lower():
+                    print(f"No existing process found for: {process_name}")
+                else:
+                    # Actual error
+                    print(
+                        f"Warning: Could not terminate {process_name}. Exit code: {result.returncode}"
+                    )
+                    if result.stderr:
+                        print(f"Error: {result.stderr.strip()}")
 
         else:
-            # For Linux/macOS, use pkill
-            command = ["pkill", "-f", process_name]
+            # For Linux/macOS, use pkill with exact process name matching
+            # First try exact match
+            command = ["pkill", "-x", process_name]
             result = subprocess.run(command, check=False, capture_output=True, text=True)
-            # pkill returns 1 if no process is found, which is normal
+
             if result.returncode == 0:
                 print(f"Successfully terminated existing process: {process_name}")
             else:
-                print(f"No existing process found for: {process_name}")
+                # Try fuzzy match as fallback
+                command = ["pkill", "-f", process_name]
+                result = subprocess.run(command, check=False, capture_output=True, text=True)
+
+                if result.returncode == 0:
+                    print(f"Successfully terminated existing process (fuzzy match): {process_name}")
+                else:
+                    print(f"No existing process found for: {process_name}")
 
     except Exception as e:
         print(f"Warning: Error while trying to kill process {process_name}: {e}")
@@ -341,32 +354,78 @@ def kill_python_script_process(script_name: str) -> None:
     """Terminate a Python script process by its command line."""
     try:
         if sys.platform.startswith("win"):
-            # Use WMIC to find and terminate the specific Python script
-            command = f"wmic process where \"name='python.exe' and commandline like '%%{script_name}%%'\" call terminate"
-            result = subprocess.run(
-                command, check=False, capture_output=True, text=True, shell=True
-            )
+            # Method 1: Use tasklist + taskkill for more reliable process detection
+            # First, get the list of processes with command lines
+            list_command = [
+                "wmic",
+                "process",
+                "where",
+                f"name='python.exe' and commandline like '%{script_name}%'",
+                "get",
+                "processid",
+                "/format:value",
+            ]
 
-            if "No instance(s) available" in result.stdout:
-                print(f"No existing Python process found for: {script_name}")
-            elif "Terminating" in result.stdout:
-                print(f"Successfully terminated existing Python process: {script_name}")
+            result = subprocess.run(list_command, check=False, capture_output=True, text=True)
+
+            if result.returncode == 0 and result.stdout:
+                # Extract process IDs
+                pids = []
+                for line in result.stdout.split("\n"):
+                    if line.startswith("ProcessId=") and line.strip() != "ProcessId=":
+                        pid = line.split("=")[1].strip()
+                        if pid:
+                            pids.append(pid)
+
+                if pids:
+                    # Kill each process by PID
+                    killed_count = 0
+                    for pid in pids:
+                        kill_cmd = ["taskkill", "/F", "/PID", pid]
+                        kill_result = subprocess.run(
+                            kill_cmd, check=False, capture_output=True, text=True
+                        )
+                        if kill_result.returncode == 0:
+                            killed_count += 1
+
+                    if killed_count > 0:
+                        print(
+                            f"Successfully terminated {killed_count} Python process(es) running: {script_name}"
+                        )
+                    else:
+                        print(
+                            f"Found Python processes for {script_name} but failed to terminate them"
+                        )
+                else:
+                    print(f"No existing Python process found for: {script_name}")
             else:
-                print(f"Finished checking for Python process: {script_name}")
+                print(f"No existing Python process found for: {script_name}")
 
         else:
-            # For macOS and Linux, use pkill with a pattern that matches the script name
-            command = ["pkill", "-f", f"python.*{script_name}"]
-            result = subprocess.run(command, check=False, capture_output=True, text=True)
-            if result.returncode == 0:
-                print(f"Successfully terminated existing Python process: {script_name}")
+            # For macOS and Linux, use more precise matching
+            # Use pgrep to find processes first, then pkill
+            grep_command = ["pgrep", "-f", f"python.*{script_name}"]
+            result = subprocess.run(grep_command, check=False, capture_output=True, text=True)
+
+            if result.returncode == 0 and result.stdout.strip():
+                # Found processes, now kill them
+                kill_command = ["pkill", "-f", f"python.*{script_name}"]
+                kill_result = subprocess.run(
+                    kill_command, check=False, capture_output=True, text=True
+                )
+
+                if kill_result.returncode == 0:
+                    pids = result.stdout.strip().split("\n")
+                    print(
+                        f"Successfully terminated {len(pids)} Python process(es) running: {script_name}"
+                    )
+                else:
+                    print(f"Found Python processes for {script_name} but failed to terminate them")
             else:
                 print(f"No existing Python process found for: {script_name}")
 
     except Exception as e:
-        print(
-            f"Warning: Error while trying to kill Python script process {script_name}: {e}",
-        )
+        print(f"Warning: Error while trying to kill Python script process {script_name}: {e}")
 
 
 def get_executable_name(base_name: str = "Writing Tools") -> str:
@@ -382,12 +441,19 @@ def terminate_existing_processes(
     """Terminate any existing Writing Tools processes (both exe and script)"""
     print("Checking for and terminating any existing Writing Tools processes...")
 
+    # Kill Python script first (to avoid conflicts)
     if script_name:
+        print(f"Looking for Python script processes: {script_name}")
         kill_python_script_process(script_name)
 
+    # Then kill executable processes
     if exe_name:
+        print(f"Looking for executable processes: {exe_name}")
         kill_existing_exe_process(exe_name)
 
+    # Small delay to ensure processes are fully terminated
+    time.sleep(0.5)
+    print("Process termination check completed.")
 
 
 def verify_requirements(required_files: list[Path]) -> bool:
