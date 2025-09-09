@@ -31,19 +31,15 @@ class HelpWindow(ThemedWidget):
 
     def init_ui(self) -> None:
         """Initialize the user interface for the help window."""
-        self.configure_window()
+        self._setup_window()
         self.create_layout()
         self.load_help_content()
 
-    def configure_window(self) -> None:
+    def _setup_window(self) -> None:
         """Configure window properties and positioning."""
-        self.setWindowTitle(" ")  # Hidden title for clean look
+        self.clean_TitleBar()  # Hidden title for clean look
         self.setMinimumSize(self.min_width, self.min_height)
-
         self.center_on_screen()
-        self.set_transparent_icon()
-
-        # Note: Window flags and icon are handled by ThemedWidget
 
     def create_layout(self) -> None:
         """Create the main layout structure."""

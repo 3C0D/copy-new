@@ -292,7 +292,9 @@ def main():
     else:
         console_mode = CONSOLE_MODE_DEFAULT
         default_text = "console" if CONSOLE_MODE_DEFAULT else "windowed"
-        print(f"⚙️  Using default mode: {default_text} (CONSOLE_MODE_DEFAULT = {CONSOLE_MODE_DEFAULT})")
+        print(
+            f"⚙️  Using default mode: {default_text} (CONSOLE_MODE_DEFAULT = {CONSOLE_MODE_DEFAULT})"
+        )
 
     extra_args = args.extra_args or None
 
@@ -356,7 +358,9 @@ def main():
         print("\n===== Development build completed and launched =====")
         print("The executable and required files are in the 'dist/dev' directory.")
         if console_mode:
-            print("Console mode enabled - you should see logs directly in the terminal when the exe runs.")
+            print(
+                "Console mode enabled - you should see logs directly in the terminal when the exe runs."
+            )
         else:
             print("Windowed mode - check dist/dev/build_dev_debug.log for detailed logs.")
 

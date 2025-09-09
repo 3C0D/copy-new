@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ui.ui_utils import ThemedWidget
+from ui.ui_utils import ThemedWidget, ui_utils
 
 if TYPE_CHECKING:
     from WritingToolApp import WritingToolApp
@@ -178,7 +178,9 @@ class MarkdownTextBrowser(QTextBrowser):
 class MessageContainer(QWidget):
     """Container for individual messages with copy functionality"""
 
-    def __init__(self, app: "WritingToolApp", parent=None, is_user=False, text="", text_display=None):
+    def __init__(
+        self, app: "WritingToolApp", parent=None, is_user=False, text="", text_display=None
+    ):
         super().__init__(parent)
         self.app = app
         self.markdown_text = text
@@ -200,9 +202,8 @@ class MessageContainer(QWidget):
         if not is_user:
             self.copy_btn = QToolButton(self)
             # Use the copy_md icon (SVG format with theme support)
-            from ui.ui_utils import get_icon_path
 
-            icon_path = get_icon_path(self.app, "copy_md", with_theme=True)
+            icon_path = ui_utils.get_icon_path(self.app, "copy_md", with_theme=True)
             if icon_path.exists():
                 self.copy_btn.setIcon(QtGui.QIcon(icon_path.as_posix()))
 
@@ -546,9 +547,8 @@ class ResponseWindow(ThemedWidget):
 
         for icon, tooltip, action in zoom_controls:
             btn = QPushButton()
-            from ui.ui_utils import get_icon_path
 
-            btn.setIcon(QtGui.QIcon(get_icon_path(self.app, icon, with_theme=True).as_posix()))
+            btn.setIcon(QtGui.QIcon(ui_utils.get_icon_path(self.app, icon, with_theme=True).as_posix()))
             btn.setStyleSheet(self.get_button_style())
             btn.setToolTip(tooltip)
             btn.clicked.connect(action)
@@ -637,9 +637,10 @@ class ResponseWindow(ThemedWidget):
         bottom_bar.addWidget(self.input_field)
 
         send_button = QPushButton()
-        from ui.ui_utils import get_icon_path
 
-        send_button.setIcon(QtGui.QIcon(get_icon_path(self.app, "send", with_theme=True).as_posix()))
+        send_button.setIcon(
+            QtGui.QIcon(ui_utils.get_icon_path(self.app, "send", with_theme=True).as_posix())
+        )
         send_button.setStyleSheet(
             f"""
             QPushButton {{
@@ -668,9 +669,10 @@ class ResponseWindow(ThemedWidget):
     def set_input_focus(self) -> None:
         """Force focus on input field when window opens"""
         if self.input_field:
-            self.input_field.setFocus(Qt.FocusReason.OtherFocusReason)
-            self.raise_()
-            self.activateWindow()
+            ui_utils.existing_window_on_top(self)
+            # self.input_field.setFocus(Qt.FocusReason.OtherFocusReason)
+            # self.raise_()
+            # self.activateWindow()
             self.input_field.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def _create_image_preview_section(self) -> None:
@@ -1039,10 +1041,7 @@ class ResponseWindow(ThemedWidget):
         """Handle window close event"""
         # Save zoom factor to settings
         if hasattr(self, "current_text_display") and self.current_text_display:
-            if not self.app.settings_manager.settings.custom_data:
-                self.app.settings_manager.settings.custom_data = {}
             self.app.settings_manager.response_window_zoom = self.current_text_display.zoom_factor
-            self.app.settings_manager.save()
 
         self.chat_history = []
 

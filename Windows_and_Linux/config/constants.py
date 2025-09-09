@@ -151,13 +151,19 @@ DEFAULT_MODELS = {
     "ollama": "",  # Empty because dynamically generated from ollama list
 }
 
-_DEFAULT_PROVIDER = "gemini"
+DEFAULT_BASE_URLS = {
+    "gemini": "https://generativelanguage.googleapis.com/v1beta",
+    "ollama": "http://localhost:11434",
+    "mistral": "https://api.mistral.ai/v1",
+    "anthropic": "https://api.anthropic.com/v1",
+    "openai": "https://api.openai.com/v1",
+}
+
+DEFAULT_PROVIDER = "gemini"
 
 # Default system configuration VALUES - Raw data, not objects
 _DEFAULT_SYSTEM_VALUES_RAW = {
     "provider": "gemini",  # Internal provider name
-    "default_provider": _DEFAULT_PROVIDER,
-    "default_model": DEFAULT_MODELS[_DEFAULT_PROVIDER],  # Model corresponding to default provider
     "hotkey": "ctrl+space",
     "theme": "gradient",
     "color_mode": "auto",  # Color mode: "auto", "light", or "dark"
@@ -165,10 +171,12 @@ _DEFAULT_SYSTEM_VALUES_RAW = {
     "run_mode": "dev",
     "update_available": False,
     "start_on_boot": False,  # Whether the application should start on system boot
-    "ollama_base_url": "http://localhost:11434",
+    "ollama_base_url": DEFAULT_BASE_URLS["ollama"],
     "ollama_keep_alive": "5",
-    "mistral_base_url": "https://api.mistral.ai/v1",
-    "openai_base_url": "https://api.openai.com/v1",
+    "mistral_base_url": DEFAULT_BASE_URLS["mistral"],
+    "openai_base_url": DEFAULT_BASE_URLS["openai"],
+    "gemini_base_url": DEFAULT_BASE_URLS["gemini"],
+    "anthropic_base_url": DEFAULT_BASE_URLS["anthropic"],
 }
 
 

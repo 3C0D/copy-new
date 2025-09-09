@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 from config.constants import PROVIDER_DISPLAY_NAMES
 from config.data_operations import get_provider_display_name
 from ui.AutostartManager import AutostartManager
-from ui.ui_utils import ThemedWidget, existing_window_on_top, get_icon_path, ui_utils
+from ui.ui_utils import ThemedWidget, ui_utils
 
 
 def _(x):
@@ -59,6 +59,7 @@ class SettingsWindow(ThemedWidget):
     def __init__(self, app: "WritingToolApp", providers_only: bool = False):
         super().__init__(app)
         self.app = app
+        self._logger = logging.getLogger(__name__)
         self.current_provider_layout = None
         # Special mode to show only provider settings (during first setup)
         self.providers_only = providers_only
@@ -374,8 +375,9 @@ class SettingsWindow(ThemedWidget):
 
         # Load and display provider logo if available
         if provider.logo:
-            # Use get_icon_path for proper path resolution in all modes (dev, build, etc.)
-            logo_path = get_icon_path(self.app, f"provider_{provider.logo}", with_theme=False)
+            logo_path = ui_utils.get_icon_path(
+                self.app, f"provider_{provider.logo}", with_theme=False
+            )
             if logo_path.exists():
                 targetPixmap = ui_utils.resize_and_round_image(
                     QImage(logo_path),
@@ -387,7 +389,9 @@ class SettingsWindow(ThemedWidget):
                 logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
                 provider_header_layout.addWidget(logo_label)
             else:
-                logging.debug(f"Provider logo not found: {logo_path} for provider {provider.logo}")
+                self._logger.debug(
+                    f"Provider logo not found: {logo_path} for provider {provider.logo}"
+                )
 
         # Provider name display
         provider_name_label = QLabel(provider.provider_name)
@@ -531,9 +535,7 @@ class SettingsWindow(ThemedWidget):
         """Handle window show event to ensure focus."""
         super().showEvent(event)
         # Force focus to this window when shown (important for hotkey workflow)
-        self.raise_()
-        self.activateWindow()
-        self.setFocus()
+        ui_utils.existing_window_on_top(self)
 
     def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
         """
@@ -662,7 +664,6 @@ class SettingsWindow(ThemedWidget):
             print(f"🎨 SettingsWindow color mode change: {theme_icon} Color={color_mode}")
 
             self.app.settings_manager.color_mode = color_mode
-            self.app.settings_manager.save()  # Auto-save to disk
 
             # Apply theme change
             self.app.theme_manager.change_theme(color_mode)
@@ -764,9 +765,9 @@ class SettingsWindow(ThemedWidget):
         Auto-save provider selection when it changes.
         """
         if self.provider_dropdown is not None:
-            provider_internal_name = self.provider_dropdown.currentData()
-            if provider_internal_name:
-                self.app.settings_manager.provider = provider_internal_name
+            provider_name = self.provider_dropdown.currentData()
+            if provider_name:
+                self.app.settings_manager.provider = provider_name
                 # Save provider-specific settings as well
                 self.save_provider_settings()
 
@@ -775,18 +776,21 @@ class SettingsWindow(ThemedWidget):
         Save current provider-specific settings.
         """
         if self.provider_dropdown is not None:
-            provider_internal_name = self.provider_dropdown.currentData()
-            if provider_internal_name:
+            provider_name = self.provider_dropdown.currentData()
+            if provider_name:
                 # Find the corresponding provider instance
                 selected_provider = next(
                     (
                         provider
                         for provider in self.app.providers
-                        if provider.internal_name == provider_internal_name
+                        if provider.internal_name == provider_name
                     ),
                     None,
                 )
                 if selected_provider:
+                    self._logger.debug(
+                        f"Saving settings for provider: {provider_name}$$$$$$$$$$$$$$$$$$$$$$$$$$"
+                    )
                     selected_provider.save_config()
 
     def toggle_autostart(self, state: int) -> None:
@@ -815,7 +819,7 @@ class SettingsWindow(ThemedWidget):
         self.save_settings_without_closing()
 
         # Return to previous window if it exists and is still valid (set from WritingToolApp.show_settings)
-        existing_window_on_top(self.previous_window)
+        ui_utils.existing_window_on_top(self.previous_window)
 
         # Close this window
         self.close()

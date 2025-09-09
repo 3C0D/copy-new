@@ -1,12 +1,30 @@
+ICI → response_window L970
+
+voir commit récent aiprovider load_config
+
+gemini n'a pas détecté une clé api invalide
+
 dans data model → default_model. et default provider? en cours...
 
 Voir focus
 revoir previous_window
 
+ajout d'un, bouton sur l'image pour la supprimer. effacement image après fermeture response window
+
 debug files 3? rotation? 1 seule?
 log date namefile... partout
 
+vsc setttings searchexclude marche qu'à la racine. revoir settings
+
 Raccourci 3 touches.
+
+def _get_base_directory(self) -> Path:
+    """Get the base directory based on execution context."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).parent
+    return Path(sys.argv[0]).parent
+
+thread, threadpoolexecutor → asyncio?
 
 terminate_existing_processes marche pas??
 

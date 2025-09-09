@@ -20,6 +20,12 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from pynput import keyboard as keyboard
 
+from config.constants import (
+    _DEFAULT_SYSTEM_VALUES_RAW,
+    DEFAULT_BASE_URLS,
+    DEFAULT_MODELS,
+    DEFAULT_PROVIDER,
+)
 from ui.AutostartManager import AutostartManager
 
 os.environ["QT_LOGGING_RULES"] = (
@@ -37,11 +43,11 @@ import ui.NonEditableModal
 import ui.OnboardingWindow
 import ui.ResponseWindow
 import ui.SettingsWindow
-from config.interfaces import ActionConfig
+from config.interfaces import ActionConfig, ProviderConfig
 from config.settings import SettingsManager
 from ui.ResponseWindow import ResponseWindow
 from ui.systray import SystrayManager
-from ui.ui_utils import existing_window_on_top, get_icon_path
+from ui.ui_utils import ui_utils
 from update_checker import UpdateChecker
 
 if TYPE_CHECKING:
@@ -198,19 +204,14 @@ class WritingToolApp(QApplication):
 
     def _set_current_provider(self) -> None:
         """Set the current provider and save settings."""
-        provider_name: str = (
-            self.settings_manager.provider or self.settings_manager.default_provider
-        )
+        provider_name: str = self.settings_manager.provider or DEFAULT_PROVIDER
 
         self.current_provider = next(
             (provider for provider in self.providers if provider.internal_name == provider_name),
             self.providers[0],  # Fallback to first provider
         )
 
-        self.settings_manager.provider = self.current_provider.internal_name
-        self.settings_manager.save()
-
-        self._logger.debug(f"Selected provider: {provider_name}")
+        self._logger.debug(f"current_provider set to : {self.current_provider.provider_name}")
 
     def _initialize_ai_provider(self) -> None:
         """Initialize and configure the current AI provider."""
@@ -377,7 +378,7 @@ class WritingToolApp(QApplication):
 
         return len(self.recent_triggers) >= self.MAX_TRIGGERS
 
-    def _get_provider_config(self, provider_name: str) -> dict:
+    def _get_provider_config(self, provider_name: str) -> ProviderConfig:
         """
         Extract provider-specific configuration from custom_data.
 
@@ -387,41 +388,45 @@ class WritingToolApp(QApplication):
         Returns:
             dict: Provider-specific configuration
         """
-        system = self.settings_manager.default_settings.system
         # Default configuration based on provider type
-        default_configs = {
+        default_configs: dict[tuple[str, ...], ProviderConfig] = {
             ("Gemini", "Gemini (Recommended)"): {
                 "api_key": "",
-                "model": system.get("default_model", ""),
+                "api_model": DEFAULT_MODELS["gemini"],
+                "base_url": DEFAULT_BASE_URLS["gemini"],
             },
             ("Ollama", "Ollama (Local)", "Ollama"): {
-                "base_url": system.get("ollama_base_url", "http://localhost:11434"),
-                "model": system.get("default_model", ""),
-                "keep_alive": self.settings_manager.ollama_keep_alive or "5",
+                "api_key": "",
+                "api_model": DEFAULT_MODELS["ollama"],  # ""
+                "base_url": DEFAULT_BASE_URLS["ollama"],
+                "keep_alive": _DEFAULT_SYSTEM_VALUES_RAW["ollama_keep_alive"],
             },
             ("Mistral", "Mistral AI"): {
                 "api_key": "",
-                "api_model": system.get("default_model", ""),
-                "base_url": system.get("mistral_base_url", "https://api.mistral.ai/v1"),
+                "api_model": DEFAULT_MODELS["mistral"],
+                "base_url": DEFAULT_BASE_URLS["mistral"],
             },
-            ("Anthropic", "Anthropic (Claude)"): {"api_key": "", "model": ""},
+            ("Anthropic", "Anthropic (Claude)"): {
+                "api_key": "",
+                "api_model": DEFAULT_MODELS["anthropic"],
+                "base_url": DEFAULT_BASE_URLS["anthropic"],
+            },
             ("OpenAI", "OpenAI-Compatible"): {
                 "api_key": "",
-                # "base_url": self.settings_manager.openai_base_url or "https://api.openai.com/v1",
-                "base_url": system.get("openai_base_url", "https://api.openai.com/v1"),
-                "model": system.get("default_model", ""),
+                "base_url": DEFAULT_BASE_URLS["openai"],
+                "api_model": DEFAULT_MODELS["openai"],
             },
         }
 
-        # Find the default config
-        config = {}
+        #
+        config: ProviderConfig = {}
         for provider_names, default_config in default_configs.items():
             if provider_name in provider_names:
                 config = default_config.copy()
                 break
 
         # Override with saved config
-        saved_config = self.settings_manager.providers.get(provider_name, {})
+        saved_config: ProviderConfig = self.settings_manager.providers.get(provider_name, {})
         config.update(saved_config)
 
         return config
@@ -462,6 +467,10 @@ class WritingToolApp(QApplication):
         # Initialize update checker
         self.update_checker = UpdateChecker(self)
         self.update_checker.check_updates_async()
+
+    def get_current_model(self, provider_name: str) -> str:
+        provider = self.settings_manager.providers.get(provider_name, {})
+        return provider.get("api_model", "")
 
     # ============================================================================
     # HOTKEY MANAGEMENT METHODS
@@ -608,7 +617,7 @@ class WritingToolApp(QApplication):
             return
 
         # Set the window icon
-        icon_path = get_icon_path(
+        icon_path = ui_utils.get_icon_path(
             self,
             "app_icon",
             with_theme=False,
@@ -1856,20 +1865,26 @@ class WritingToolApp(QApplication):
         Show the about window.
         """
         self._logger.debug("Showing about window")
+        if self.help_window:
+            self.help_window.close()
         if not self.about_window:
             self.about_window = ui.AboutWindow.AboutWindow(self)
             self.about_window.show()
         else:
-            existing_window_on_top(self.about_window)
+            ui_utils.existing_window_on_top(self.about_window)
 
     def show_help(self) -> None:
         """
         Show the help window.
         """
         self._logger.debug("Showing help window")
+        if self.about_window:
+            self.about_window.close()
         if not self.help_window:
             self.help_window = ui.HelpWindow.HelpWindow(self)
-        self.help_window.show()
+            self.help_window.show()
+        else:
+            ui_utils.existing_window_on_top(self.help_window)
 
     # ============================================================================
     # APPLICATION LIFECYCLE METHODS

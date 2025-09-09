@@ -415,7 +415,6 @@ class OnboardingWindow(ThemedWidget):
 
             # Save to settings manager (this preserves existing data in data.json)
             self.app.settings_manager.color_mode = color_mode
-            self.app.settings_manager.save()  # Auto-save to disk
 
             # Apply theme change
             self.app.theme_manager.change_theme(color_mode)

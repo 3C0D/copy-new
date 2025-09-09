@@ -472,7 +472,7 @@ class AIProvider(ABC):
         - Processing images if image_data is provided
         """
 
-    def load_config(self, config: dict) -> None:
+    def load_config(self, config: "ProviderConfig") -> None:
         """
         Load configuration settings into the provider.
 
@@ -502,14 +502,10 @@ class AIProvider(ABC):
                 value = value.strip()
             config[setting.name] = value
 
-        # Store provider config in custom_data
-        if not self.app.settings_manager.settings.custom_data:
-            self.app.settings_manager.settings.custom_data = {}
-        if "providers" not in self.app.settings_manager.settings.custom_data:
-            self.app.settings_manager.providers = {}
-
         self.app.settings_manager.providers[self.internal_name] = cast("ProviderConfig", config)
-        self.app.settings_manager.save()
+        success = self.app.settings_manager.save()
+        if not success:
+            self._logger.error("Failed to save provider configuration")
 
     @abstractmethod
     def after_load(self) -> None:

@@ -48,7 +48,7 @@ class NonEditableModal(ThemedWidget):
         """Configure window properties and positioning."""
         self.clean_TitleBar()
         # Fixed size
-        self.setFixedSize(600, 400)  # or self.setMinimumSize(600, 400) ???
+        self.setMinimumSize(600, 300)
         self.center_on_screen()
 
     def setup_ui(self) -> None:
@@ -93,7 +93,7 @@ class NonEditableModal(ThemedWidget):
         if is_dark:
             self.setStyleSheet(
                 """
-                QDialog {
+                QWidget {
                     background-color: #2a2a2a;
                     border: 1px solid #404040;
                     border-radius: 8px;
@@ -120,7 +120,7 @@ class NonEditableModal(ThemedWidget):
         else:
             self.setStyleSheet(
                 """
-                QDialog {
+                QWidget {
                     background-color: #ffffff;
                     border: 1px solid #d0d0d0;
                     border-radius: 8px;

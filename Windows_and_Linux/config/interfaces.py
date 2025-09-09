@@ -40,11 +40,15 @@ class SystemConfig(TypedDict, total=False):
     ollama_keep_alive: str
     mistral_base_url: str
     openai_base_url: str
+    anthropic_base_url: str
+    gemini_base_url: str
 
 
 class ProviderConfig(TypedDict, total=False):
     api_key: str
     api_model: str
+    base_url: str
+    keep_alive: str
 
 
 class CustomDataStructure(TypedDict, total=False):

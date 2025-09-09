@@ -22,6 +22,13 @@
     "[jsonc]": {
         "editor.defaultFormatter": "vscode.json-language-features"
     },
+        "search.exclude": {
+        "**/build": true,
+        "**/__pycache__": true,
+        "**/myvenv": true,
+        "**/.git": true,
+        "**/target": true
+    },
     "basedpyright.disableLanguageServices": true,
     // "basedpyright.disableLanguageServices": true
 }

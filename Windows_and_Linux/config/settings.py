@@ -28,6 +28,14 @@ class SettingsManager:
     - Direct assignment: settings_manager.hotkey = "new_value"
     - Automatic defaults: never returns None
     - Extensible: add new properties dynamically without modifying the class
+
+    IMPORTANT: Auto-save limitations
+    - ✅ settings_manager.provider = "openai"           # Auto-saves
+    - ✅ settings_manager.actions = {...}               # Auto-saves
+    - ❌ settings_manager.providers[key] = value        # Requires manual save()
+    - ❌ settings_manager.actions[key] = value          # Requires manual save()
+
+    For dict modifications, call save() manually or use helper methods.
     """
 
     # File system constants
@@ -64,7 +72,7 @@ class SettingsManager:
         self.mode: str = mode
         self._logger.debug(f"Set mode in settings: {self.mode}")
         self.base_dir: Path = self._get_base_directory()
-        self._logger.debug(f"Base directory in settings: {self.base_dir.absolute().name}")
+        self._logger.debug(f"Base directory in settings: {self.base_dir.name}ùùùùùùùùùùùùùùù")
         self.default_settings: UnifiedSettings = create_default_settings()  # Always initialized!
         self.data_file: Path = self._resolve_data_file_path()
         self.settings: UnifiedSettings = self.load_settings()
@@ -113,6 +121,7 @@ class SettingsManager:
         # During __init__, settings doesn't exist yet
         if hasattr(self, "settings"):
             self.settings.system[name] = value
+            self.save() # Save immediately
         else:
             super().__setattr__(name, value)
 
@@ -125,6 +134,7 @@ class SettingsManager:
     def actions(self, value: dict[str, ActionConfig]) -> None:
         """Set action configurations."""
         self.settings.actions = value
+        self.save()
 
     @property
     def providers(self) -> dict[str, ProviderConfig]:
@@ -138,6 +148,7 @@ class SettingsManager:
     def providers(self, value: dict[str, ProviderConfig]) -> None:
         """Set provider configurations."""
         self.settings.custom_data["providers"] = value
+        self.save()
 
     @property
     def color_mode(self) -> str:
@@ -155,6 +166,7 @@ class SettingsManager:
     def color_mode(self, value: str) -> None:
         """Set the color theme mode."""
         self.settings.system["color_mode"] = value
+        self.save()
 
     #
     # CORE SETTINGS OPERATIONS
@@ -183,12 +195,7 @@ class SettingsManager:
             return False
 
         self._ensure_directories_exist()
-
-        try:
-            return self._write_settings_to_file()
-        except Exception as e:
-            self._logger.error(f"Error saving settings to {self.data_file}: {e}")
-            return False
+        return self._write_settings_to_file()
 
     #
     # PROVIDER-SPECIFIC OPERATIONS
@@ -305,18 +312,19 @@ class SettingsManager:
 
     def _write_settings_to_file(self) -> bool:
         """Write settings data to the file."""
-        self._logger.debug("Saving settings:")
-        self._logger.debug(f"  data_file: {self.data_file}")
+        try:
+            self._logger.debug("Saving settings:")
+            self._logger.debug(f"  data_file: {self.data_file}")
 
-        # Ensure the directory exists
-        self.data_file.parent.mkdir(parents=True, exist_ok=True)
+            data = self._serialize_settings()
+            with open(self.data_file, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
 
-        data = self._serialize_settings()
-        with open(self.data_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-
-        self._logger.debug(f"Settings saved to {self.data_file}")
-        return True
+            self._logger.debug(f"Settings saved to {self.data_file}")
+            return True
+        except Exception as e:
+            self._logger.error(f"Failed to write settings: {e}")
+            return False
 
     def _serialize_settings(self) -> dict[str, Any]:
         """Convert settings to dictionary for JSON serialization."""
@@ -390,20 +398,20 @@ class SettingsManager:
         """Get the appropriate log file path based on mode."""
         base_dir_name = Path(self.base_dir.absolute().name)
         if self.mode == "build-dev":
-            # For build-dev, log file goes in the same directory as the executable
-            self._logger.debug(f"build-dev logging path: {base_dir_name / 'build_dev_debug.log'}")
+            # same directory as the executable
+            self._logger.debug(f"'build-dev' logging path: {base_dir_name / 'build_dev_debug.log'}")
             return self.base_dir / "build_dev_debug.log"
-        else:
-            # For dev mode, log file goes in dist/dev/
+        else:  # dev
+            # in dist/dev/
             self._logger.debug(
-                f"dev logging path: {base_dir_name / self.DIST_DEV_PATH / 'dev_debug.log'}"
+                f"'dev' logging path: {base_dir_name / self.DIST_DEV_PATH / 'dev_debug.log'}"
             )
             return self.base_dir / self.DIST_DEV_PATH / "dev_debug.log"
 
     def _log_initialization_info(self) -> None:
         """Log debug information about initialization."""
         self._logger.debug("SettingsManager initialized:")
-        self._logger.debug(f"  base_dir: {self.base_dir.absolute().name}")
+        self._logger.debug(f"  base_dir: {self.base_dir.name}")
         self._logger.debug(f"  mode: {self.mode}")
         self._logger.debug(f"  data_file: {self.data_file}")
 

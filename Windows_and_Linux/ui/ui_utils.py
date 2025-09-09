@@ -1,82 +1,14 @@
-import os
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6 import QtCore, QtGui
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtWidgets import QApplication, QLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QLayout, QMessageBox, QVBoxLayout, QWidget
 
 if TYPE_CHECKING:
     from WritingToolApp import WritingToolApp
-
-
-def get_icon_path(app: "WritingToolApp", icon_name: str, with_theme: bool = True) -> Path:
-    """
-    Get the correct path for an icon, handling both dev and build modes.
-    Supports both PNG and SVG formats, with SVG taking precedence.
-    Args:
-        icon_name: Name of the icon without extension (e.g., "send", "app_icon", "copy_md")
-        with_theme: Whether to append theme suffix (_dark/_light)
-    Returns:
-        Path to the icon file
-    """
-    # Use sys.executable for frozen apps, sys.argv[0] for scripts
-    if getattr(sys, "frozen", False):
-        base_dir = Path(sys.executable).parent
-    else:
-        # Handle different script execution contexts
-        if sys.argv[0] in ["-c", ""]:
-            # Running with python -c or similar, use current working directory
-            base_dir = Path.cwd()
-        else:
-            base_dir = Path(sys.argv[0]).parent
-
-    # Define possible extensions and filenames
-    extensions = [".svg", ".png"]  # SVG takes precedence
-    if with_theme:
-        current_mode = app.settings_manager.color_mode
-        theme_suffix = "_dark" if current_mode == "dark" else "_light"
-        filenames = [f"{icon_name}{theme_suffix}{ext}" for ext in extensions]
-        # Fallback to non-themed version if themed version doesn't exist
-        filenames.extend([f"{icon_name}{ext}" for ext in extensions])
-    else:
-        filenames = [f"{icon_name}{ext}" for ext in extensions]
-
-    # Try multiple locations
-    if getattr(sys, "frozen", False):
-        # For frozen builds
-        base_paths = [
-            base_dir / "icons",  # Next to exe
-            base_dir / "config" / "icons",  # Config next to exe
-        ]
-    else:
-        # For dev mode
-        base_paths = [
-            base_dir / "icons",  # Build location (dist/dev/icons/)
-            base_dir / "config" / "icons",  # Dev location
-            base_dir / "Windows_and_Linux" / "config" / "icons",  # Root project location
-            base_dir / "Windows_and_Linux" / "dist" / "dev" / "icons",  # Dev build location
-        ]
-
-    # Check all combinations of paths and filenames
-    for base_path in base_paths:
-        for filename in filenames:
-            full_path = base_path / filename
-            if full_path.exists():
-                return full_path
-
-    return Path()
-
-
-def existing_window_on_top(window: "ThemedWidget | None"):
-    if window is None or not hasattr(window, "show"):
-        return
-    # window.show()
-    window.raise_()
-    window.activateWindow()
-    if hasattr(window, "setFocus"):
-        window.setFocus()
 
 
 class ui_utils:
@@ -93,9 +25,9 @@ class ui_utils:
             else:
                 child.widget().deleteLater()
 
-    @classmethod
+    @staticmethod
     def resize_and_round_image(
-        cls, image: QImage, image_size: int = 100, rounding_amount: int = 50
+        image: QImage, image_size: int = 100, rounding_amount: int = 50
     ) -> QPixmap:
         image = image.scaledToWidth(image_size)
         clipPath = QtGui.QPainterPath()
@@ -117,6 +49,95 @@ class ui_utils:
         targetPixmap = QPixmap.fromImage(target)
         return targetPixmap
 
+    @staticmethod
+    def show_confirmation_dialog(title: str, message: str, parent=None) -> bool:
+        """Show a confirmation dialog and return True if user confirms."""
+        confirm = QMessageBox(parent)
+        confirm.setWindowFlags(confirm.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
+        confirm.setWindowTitle(title)
+        confirm.setText(message)
+        confirm.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        confirm.setDefaultButton(QMessageBox.StandardButton.No)
+
+        return confirm.exec_() == QMessageBox.StandardButton.Yes
+
+    @staticmethod
+    def existing_window_on_top(window: "QWidget | None", is_creation: bool = False):
+        if window is None or not hasattr(window, "show"):
+            return
+
+        # Temporarily "always on top"
+        window.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
+
+        if not is_creation:
+            window.show()  # ← Usefull after hide
+
+        window.raise_()
+        window.activateWindow()  # ← "Try" to activate
+
+        # Remove "always on top" after a delay
+        QTimer.singleShot(
+            100, lambda: window.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, False)
+        )
+
+    @staticmethod
+    def get_icon_path(app: "WritingToolApp", icon_name: str, with_theme: bool = True) -> Path:
+        """
+        Get the correct path for an icon, handling both dev and build modes.
+        Supports both PNG and SVG formats, with SVG taking precedence.
+        Args:
+            icon_name: Name of the icon without extension (e.g., "send", "app_icon", "copy_md")
+            with_theme: Whether to append theme suffix (_dark/_light)
+        Returns:
+            Path to the icon file
+        """
+        # Use sys.executable for frozen apps, sys.argv[0] for scripts
+        if getattr(sys, "frozen", False):
+            base_dir = Path(sys.executable).parent
+        else:
+            # Handle different script execution contexts
+            if sys.argv[0] in ["-c", ""]:
+                # Running with python -c or similar, use current working directory
+                base_dir = Path.cwd()
+            else:
+                base_dir = Path(sys.argv[0]).parent
+
+        # Define possible extensions and filenames
+        extensions = [".svg", ".png"]  # SVG takes precedence
+        if with_theme:
+            current_mode = app.settings_manager.color_mode
+            theme_suffix = "_dark" if current_mode == "dark" else "_light"
+            filenames = [f"{icon_name}{theme_suffix}{ext}" for ext in extensions]
+            # Fallback to non-themed version if themed version doesn't exist
+            filenames.extend([f"{icon_name}{ext}" for ext in extensions])
+        else:
+            filenames = [f"{icon_name}{ext}" for ext in extensions]
+
+        # Try multiple locations
+        if getattr(sys, "frozen", False):
+            # For frozen builds
+            base_paths = [
+                base_dir / "icons",  # Next to exe
+                base_dir / "config" / "icons",  # Config next to exe
+            ]
+        else:
+            # For dev mode
+            base_paths = [
+                base_dir / "icons",  # Build location (dist/dev/icons/)
+                base_dir / "config" / "icons",  # Dev location
+                base_dir / "Windows_and_Linux" / "config" / "icons",  # Root project location
+                base_dir / "Windows_and_Linux" / "dist" / "dev" / "icons",  # Dev build location
+            ]
+
+        # Check all combinations of paths and filenames
+        for base_path in base_paths:
+            for filename in filenames:
+                full_path = base_path / filename
+                if full_path.exists():
+                    return full_path
+
+        return Path()
+
 
 class ThemedWidget(QWidget):
     def __init__(self, app: "WritingToolApp"):  # Type hint using forward reference
@@ -137,12 +158,10 @@ class ThemedWidget(QWidget):
         )
 
         # Show on top initially but allow user to move to background
-        self.setWindowState(QtCore.Qt.WindowState.WindowActive)
-        self.raise_()  # Bring window to the front
-        self.activateWindow()  # Give focus to the window to make it active
+        ui_utils.existing_window_on_top(self, is_creation=True)
 
         # Set window icon
-        icon_path = get_icon_path(self.app, "app_icon", with_theme=False)
+        icon_path = ui_utils.get_icon_path(self.app, "app_icon", with_theme=False)
         if icon_path.exists():
             self.setWindowIcon(QtGui.QIcon(icon_path.as_posix()))
 
@@ -158,15 +177,6 @@ class ThemedWidget(QWidget):
         """Get the current background theme from settings."""
         return self.app.settings_manager.theme or "gradient"
 
-    def change_background_theme(self, theme: str) -> None:
-        """
-        Change the background theme (gradient/plain).
-        This method can be called by child classes or externally.
-        """
-        if self.background is not None:
-            self.background.theme = theme
-            self.background.update()
-
     def auto_save_theme(self, theme: str) -> None:
         """
         Auto-save and apply theme changes.
@@ -177,13 +187,21 @@ class ThemedWidget(QWidget):
 
         # Save to settings
         self.app.settings_manager.theme = theme
-        self.app.settings_manager.save()
 
         # Notify ThemeManager of background theme change
         try:
             self.app.theme_manager.change_background_theme(theme)
         except ImportError:
             pass  # Silently handle missing ThemeManager
+
+    def change_background_theme(self, theme: str) -> None:
+        """
+        Change the background theme (gradient/plain).
+        This method can be called by child classes or externally.
+        """
+        if self.background is not None:
+            self.background.theme = theme
+            self.background.update()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Handle key press events with common shortcuts for all windows."""
@@ -357,23 +375,22 @@ class ThemeBackground(QWidget):
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, True)
         painter.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform, True)
+
         if self.theme == "gradient":
-            # Determine background file paths (check multiple locations)
+            # Determine base directory using Path
             if getattr(sys, "frozen", False):
-                base_dir = os.path.dirname(sys.executable)
+                base_dir = Path(sys.executable).parent
             else:
                 # Handle different script execution contexts
                 if sys.argv[0] in ["-c", ""]:
                     # Running with python -c or similar, use current working directory
-                    base_dir = os.getcwd()
+                    base_dir = Path.cwd()
                 else:
-                    base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-
-                # If we're in the Windows_and_Linux subdirectory, go up one level
-                if os.path.basename(base_dir) == "Windows_and_Linux":
-                    base_dir = os.path.dirname(base_dir)
+                    base_dir = Path(sys.argv[0]).resolve().parent
 
             current_mode = self.app.settings_manager.color_mode
+
+            # Determine background filename
             if self.is_popup:
                 bg_file = (
                     "background_popup_dark.png"
@@ -383,35 +400,30 @@ class ThemeBackground(QWidget):
             else:
                 bg_file = "background_dark.png" if current_mode == "dark" else "background.png"
 
-            # Try multiple locations for background files
+            # Define possible paths using Path objects
             possible_paths = [
-                os.path.join(base_dir, bg_file),  # Build location (dist/)
-                os.path.join(base_dir, "config", "backgrounds", bg_file),  # Dev location
-                os.path.join(
-                    base_dir, "Windows_and_Linux", "config", "backgrounds", bg_file
-                ),  # Root project location
-                os.path.join(
-                    base_dir, "Windows_and_Linux", "dist", "dev", bg_file
-                ),  # Dev build location
-                os.path.join("config", "backgrounds", bg_file),  # Relative dev location
+                base_dir / bg_file,  # Build location (dist/dev or dist/production)
+                base_dir / "config" / "backgrounds" / bg_file,  # Dev location
             ]
 
+            # Find the first existing background image
             background_image = None
             for path in possible_paths:
-                if os.path.exists(path):
-                    background_image = QtGui.QPixmap(path)
+                if path.exists():
+                    background_image = QtGui.QPixmap(str(path))
                     break
 
+            # Fallback to solid color if no background found
             if background_image is None:
-                # Fallback to a solid color if no background found
                 background_image = QtGui.QPixmap(self.width(), self.height())
-                current_mode = self.app.settings_manager.color_mode
-                background_image.fill(
+                fallback_color = (
                     QtGui.QColor(50, 50, 50)
                     if current_mode == "dark"
-                    else QtGui.QColor(240, 240, 240),
+                    else QtGui.QColor(240, 240, 240)
                 )
-            # Adds a path/border using which the border radius would be drawn
+                background_image.fill(fallback_color)
+
+            # Create rounded rectangle path for clipping
             path = QtGui.QPainterPath()
             path.addRoundedRect(
                 0,
@@ -422,21 +434,27 @@ class ThemeBackground(QWidget):
                 self.border_radius,
             )
             painter.setClipPath(path)
-
             painter.drawPixmap(self.rect(), background_image)
+
         else:
+            # Solid color theme
             current_mode = self.app.settings_manager.color_mode
-            if current_mode == "dark":
-                color = QtGui.QColor(35, 35, 35)  # Dark mode color
-            else:
-                color = QtGui.QColor(
+            color = (
+                QtGui.QColor(35, 35, 35)
+                if current_mode == "dark"  # Dark mode color
+                else QtGui.QColor(
                     255, 255, 255
                 )  # Light mode color - pure white for better contrast
+            )
+
             brush = QtGui.QBrush(color)
             painter.setBrush(brush)
+
+            # Transparent pen
             pen = QtGui.QPen(QtGui.QColor(0, 0, 0, 0))
             pen.setWidth(0)
             painter.setPen(pen)
+
             painter.drawRoundedRect(
                 QtCore.QRect(0, 0, self.width(), self.height()),
                 self.border_radius,
