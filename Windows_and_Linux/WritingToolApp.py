@@ -203,13 +203,20 @@ class WritingToolApp(QApplication):
     def _set_current_provider(self) -> None:
         """Set the current provider and save settings."""
         provider_name: str = self.settings_manager.provider or DEFAULT_PROVIDER
+        self._logger.debug(f"Selected provider: {provider_name}!!!!!")
 
         self.current_provider = next(
             (provider for provider in self.providers if provider.internal_name == provider_name),
             self.providers[0],  # Fallback to first provider
         )
 
-        self._logger.debug(f"current_provider set to : {self.current_provider.provider_name}")
+        self.settings_manager.provider = self.current_provider.internal_name
+        self.settings_manager.save() # I let it for the moment!!!!!
+        self._logger.debug(f"Current provider: {self.current_provider.provider_name}!!!!!")
+
+        if not self.current_provider:
+            self._logger.warning("No provider found. Using default provider.")
+
 
     def _initialize_ai_provider(self) -> None:
         """Initialize and configure the current AI provider."""

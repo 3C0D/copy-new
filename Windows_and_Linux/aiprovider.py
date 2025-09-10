@@ -509,12 +509,12 @@ class AIProvider(ABC):
             self._logger.error("Failed to save provider configuration")
             return
 
-        if hasattr(self.app, "current_provider") and self.app.current_provider is self:
-            self._logger.debug(
-                f"Reloading the current provider's config after saving: {self.internal_name}"
-            )
-            self.load_config(config)
-            # self.app.current_provider = self
+        # if hasattr(self.app, "current_provider") and self.app.current_provider is self:
+        #     self._logger.debug(
+        #         f"Reloading the current provider's config after saving: {self.internal_name}"
+        #     )
+        #     self.load_config(config)
+        #     # self.app.current_provider = self
 
     @abstractmethod
     def after_load(self) -> None:
