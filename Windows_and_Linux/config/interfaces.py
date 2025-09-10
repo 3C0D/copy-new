@@ -4,7 +4,7 @@ Defines the data structures for unified settings management
 """
 
 from dataclasses import dataclass, field
-from typing import TypedDict
+from typing import Optional, TypedDict
 
 
 class ActionConfig(TypedDict, total=False):
@@ -22,7 +22,6 @@ class SystemConfig(TypedDict, total=False):
     # API Configuration
     provider: str
     default_provider: str
-    default_model: str
 
     # UI Configuration
     hotkey: str
@@ -38,13 +37,15 @@ class SystemConfig(TypedDict, total=False):
     # Provider-specific settings
     ollama_base_url: str
     ollama_keep_alive: str
-    mistral_base_url: str
+    # mistral_base_url: str
     openai_base_url: str
 
 
 class ProviderConfig(TypedDict, total=False):
     api_key: str
     api_model: str
+    base_url: Optional[str]
+    keep_alive: Optional[str]
 
 
 class CustomDataStructure(TypedDict, total=False):

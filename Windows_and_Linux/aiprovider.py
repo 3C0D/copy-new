@@ -502,14 +502,19 @@ class AIProvider(ABC):
                 value = value.strip()
             config[setting.name] = value
 
-        # Store provider config in custom_data
-        if not self.app.settings_manager.settings.custom_data:
-            self.app.settings_manager.settings.custom_data = {}
-        if "providers" not in self.app.settings_manager.settings.custom_data:
-            self.app.settings_manager.providers = {}
-
         self.app.settings_manager.providers[self.internal_name] = cast("ProviderConfig", config)
-        self.app.settings_manager.save()
+
+        success = self.app.settings_manager.save()
+        if not success:
+            self._logger.error("Failed to save provider configuration")
+            return
+
+        if hasattr(self.app, "current_provider") and self.app.current_provider is self:
+            self._logger.debug(
+                f"Reloading the current provider's config after saving: {self.internal_name}"
+            )
+            self.load_config(config)
+            # self.app.current_provider = self
 
     @abstractmethod
     def after_load(self) -> None:
@@ -2213,16 +2218,15 @@ class MistralProvider(AIProvider):
             # to avoid very long logs because of image urls
             data_for_logs = copy.deepcopy(data)
             for message in data_for_logs["messages"]:
-                # Check if content is a list (with images) or a string (text only)
                 if isinstance(message["content"], list):
                     for content_item in message["content"]:
-                        if (
-                            isinstance(content_item, dict)
-                            and content_item.get("type") == "image_url"
-                        ):
+                        if isinstance(content_item, dict) and content_item.get("type") == "image_url":
                             image_url = content_item["image_url"]
                             truncated = image_url[:60] + "..."
                             content_item["image_url"] = truncated
+                elif isinstance(message["content"], str):
+                    text = message["content"]
+                    message["content"] = (text[:100] + "...") if len(text) > 100 else text
 
             self._logger.debug(f"Mistral request data: {data_for_logs}")
 

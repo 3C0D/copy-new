@@ -7,7 +7,7 @@ import logging
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
-from PySide6 import QtCore, QtGui
+from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication,
@@ -32,8 +32,8 @@ from config.constants import (
     OPENAI_MODELS,
 )
 from config.data_operations import create_default_actions_config
-from config.interfaces import ActionConfig, ProviderConfig
-from ui.ui_utils import ThemeBackground, get_icon_path
+from config.interfaces import ActionConfig
+from ui.ui_utils import ThemeBackground, ui_utils
 
 if TYPE_CHECKING:
     from WritingToolApp import WritingToolApp
@@ -43,6 +43,7 @@ def _(x):
     return x
 
 
+# ActionConfigWithName type
 class ActionConfigWithName(ActionConfig, total=False):
     name: str
 
@@ -501,6 +502,7 @@ class CustomPopupWindow(QWidget):
         self.force_chat_lock: QPushButton | None = None
         self.force_chat_area: QWidget | None = None
         self.top_bar_widget: QWidget | None = None
+        self.remove_image_button: QPushButton | None = None
 
     def init_ui(self):
         """Initialize the main UI structure."""
@@ -519,14 +521,9 @@ class CustomPopupWindow(QWidget):
 
     def _setup_window_properties(self) -> None:
         """Configure window flags and properties."""
-        self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowTitle("Writing Tools")
-
-        # Set the window icon
-        icon_path = get_icon_path(self.app, "app_icon", with_theme=False)
-        if icon_path.exists():
-            self.setWindowIcon(QtGui.QIcon(icon_path.as_posix()))
 
     def _create_main_layout(self) -> QVBoxLayout:
         """Create and configure the main layout."""
@@ -570,7 +567,9 @@ class CustomPopupWindow(QWidget):
     def _create_reset_button(self, layout: QHBoxLayout) -> None:
         """Create the reset button for edit mode."""
         self.reset_button = QPushButton()
-        reset_icon_path = get_icon_path(self.app, "restore", with_theme=True)
+        reset_icon_path = ui_utils.get_icon_path(
+            self.app, "restore", with_theme=True
+        )
         if reset_icon_path.exists():
             self.reset_button.setIcon(QtGui.QIcon(reset_icon_path.as_posix()))
 
@@ -616,7 +615,9 @@ class CustomPopupWindow(QWidget):
 
         # Edit button (shown in normal mode)
         self.edit_button = QPushButton()
-        pencil_icon = get_icon_path(self.app, "pencil", with_theme=True)
+        pencil_icon = ui_utils.get_icon_path(
+            self.app, "pencil", with_theme=True
+        )
         if pencil_icon.exists():
             self.edit_button.setIcon(QtGui.QIcon(pencil_icon.as_posix()))
 
@@ -710,6 +711,12 @@ class CustomPopupWindow(QWidget):
         preview_layout.setContentsMargins(8, 8, 8, 8)
         preview_layout.setSpacing(5)
 
+        # Header row with label and remove button
+        header_row = QWidget()
+        header_layout = QHBoxLayout(header_row)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(5)
+
         # Image preview label
         image_label = QLabel("📷 Image from Clipboard:")
         image_label.setStyleSheet(
@@ -722,7 +729,42 @@ class CustomPopupWindow(QWidget):
             }}
             """
         )
-        preview_layout.addWidget(image_label)
+        header_layout.addWidget(image_label)
+
+        # Spacer to push button to the right
+        header_layout.addStretch()
+
+        # Remove image button (X)
+        self.remove_image_button = QPushButton("×")
+        self.remove_image_button.setFixedSize(20, 20)
+        self.remove_image_button.setStyleSheet(
+            f"""
+            QPushButton {{
+                background-color: {"#ff4444" if self.app.settings_manager.color_mode == "dark" else "#dc3545"};
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 0px;
+            }}
+            QPushButton:hover {{
+                background-color: {"#ff6666" if self.app.settings_manager.color_mode == "dark" else "#c82333"};
+            }}
+            QPushButton:pressed {{
+                background-color: {"#cc3333" if self.app.settings_manager.color_mode == "dark" else "#a71e2a"};
+            }}
+            """
+        )
+        self.remove_image_button.clicked.connect(self._remove_image_from_clipboard)
+        self.remove_image_button.setToolTip(
+            "Remove image from clipboard\n"
+            "This will close the application and clear the clipboard.\n"
+            "Restart with hotkey to continue without the image."
+        )
+
+        header_layout.addWidget(self.remove_image_button)
+        preview_layout.addWidget(header_row)
 
         # Actual image display
         self.image_display = QLabel()
@@ -756,6 +798,31 @@ class CustomPopupWindow(QWidget):
         preview_layout.addWidget(self.image_display)
         layout.addWidget(preview_container)
 
+    def _remove_image_from_clipboard(self) -> None:
+        """Remove image from clipboard and close application."""
+        try:
+            # Clear the clipboard
+            clipboard = QtWidgets.QApplication.clipboard()
+            clipboard.clear()
+
+            # Show a brief message to the user
+            self.app.show_message_signal.emit(
+                "Image Removed",
+                f"Image has been removed from clipboard.\n"
+                f"Application will close.\n"
+                f"Restart with {self.app.settings_manager.hotkey} to continue.",
+            )
+
+            # Close the popup window
+            self.close()
+
+            # Schedule application quit after a brief delay to allow message to be shown
+            # QtCore.QTimer.singleShot(2000, self.app.quit)
+
+        except Exception:
+            # In case of error, just close the popup
+            self.close()
+
     def _create_custom_input(self, layout: QHBoxLayout) -> None:
         """Create the custom input text field."""
         self.custom_input = QLineEdit()
@@ -774,7 +841,9 @@ class CustomPopupWindow(QWidget):
     def _create_send_button(self, layout: QHBoxLayout) -> None:
         """Create the send button for the input area."""
         send_btn = QPushButton()
-        send_icon = get_icon_path(self.app, "send", with_theme=True)
+        send_icon = ui_utils.get_icon_path(
+            self.app, "send", with_theme=True
+        )
         if send_icon.exists():
             send_btn.setIcon(QtGui.QIcon(send_icon.as_posix()))
 
@@ -821,12 +890,11 @@ class CustomPopupWindow(QWidget):
         if self.has_sel_text:
             self.build_buttons_list()
             self.rebuild_grid_layout(content_layout)
+            self.initialize_button_visibility()
         else:
             # Only custom instructions input if no selected text
             if self.custom_input is not None:
                 self.custom_input.setMinimumWidth(300)
-
-        self.initialize_button_visibility()
 
     def _show_update_notice_if_available(self, content_layout: QVBoxLayout) -> None:
         """Show update notice if an update is available."""
@@ -923,7 +991,13 @@ class CustomPopupWindow(QWidget):
                     if self.top_bar_widget:
                         self.top_bar_widget.setCursor(Qt.CursorShape.ArrowCursor)
 
-        # Removed auto-hide on deactivate to allow settings window to open over it
+        # Removed auto-hide on deactivate to allow settings window to open over it.
+        # # Hide on deactivate only if NOT in edit mode
+        # if event.type() == QtCore.QEvent.Type.WindowDeactivate:
+        #     if not self.edit_mode:
+        #         self.hide()
+        #         return True
+
         # The window will now stay open when clicking outside
         return super().eventFilter(watched, event)
 
@@ -1007,7 +1081,6 @@ class CustomPopupWindow(QWidget):
         # If locked, save the state
         if self.force_chat_lock and self.force_chat_lock.isChecked():
             self.app.settings_manager.force_chat_enabled = checked
-            self.app.settings_manager.save()
 
     def on_force_chat_lock_toggled(self, checked: bool) -> None:
         """Handle Force Chat lock state change."""
@@ -1028,8 +1101,6 @@ class CustomPopupWindow(QWidget):
             self.force_chat_toggle.setChecked(False)
             self.app.settings_manager.force_chat_enabled = False
 
-        self.app.settings_manager.save()
-
     def is_force_chat_enabled(self) -> bool:
         """Check if Force Chat is currently enabled."""
         return bool(self.force_chat_toggle and self.force_chat_toggle.isChecked())
@@ -1039,11 +1110,7 @@ class CustomPopupWindow(QWidget):
         Get actions directly from the unified settings system.
         Returns ActionConfig objects, no conversion needed.
         """
-        if not hasattr(self.app, "settings_manager") or not self.app.settings_manager.settings:
-            self._logger.warning("Settings manager not available, using default actions")
-            return create_default_actions_config()
-
-        return self.app.settings_manager.settings.actions
+        return self.app.settings_manager.actions
 
     @staticmethod
     def action_config_to_dict(action_config: ActionConfig) -> dict:
@@ -1080,7 +1147,9 @@ class CustomPopupWindow(QWidget):
             if name == "Custom":
                 continue
             b = DraggableButton(self.app, self, name, name)
-            icon_path = get_icon_path(self.app, action_config.get("icon", "Not Found"), with_theme=True)
+            icon_path = ui_utils.get_icon_path(
+                self.app, action_config.get("icon", "Not Found"), with_theme=True
+            )
             if icon_path.exists():
                 b.setIcon(QtGui.QIcon(icon_path.as_posix()))
 
@@ -1209,7 +1278,7 @@ class CustomPopupWindow(QWidget):
         edit_btn = QPushButton(btn.icon_container)
         edit_btn.setGeometry(3, 3, 16, 16)
 
-        pencil_icon = get_icon_path(self.app, "pencil", with_theme=True)
+        pencil_icon = ui_utils.get_icon_path(self.app, "pencil", with_theme=True)
         if pencil_icon.exists():
             edit_btn.setIcon(QtGui.QIcon(pencil_icon.as_posix()))
         edit_btn.setStyleSheet(circle_style)
@@ -1219,7 +1288,7 @@ class CustomPopupWindow(QWidget):
         # Create delete icon (top-right)
         delete_btn = QPushButton(btn.icon_container)
         delete_btn.setGeometry(btn.width() - 23, 3, 16, 16)
-        del_icon = get_icon_path(self.app, "trash", with_theme=True)
+        del_icon = ui_utils.get_icon_path(self.app, "trash", with_theme=True)
         if del_icon.exists():
             delete_btn.setIcon(QtGui.QIcon(del_icon.as_posix()))
         delete_btn.setStyleSheet(circle_style)
@@ -1314,8 +1383,7 @@ class CustomPopupWindow(QWidget):
                 # Reset actions to defaults in unified settings
                 if hasattr(self.app, "settings_manager") and self.app.settings_manager.settings:
                     # Reset actions to defaults
-                    self.app.settings_manager.settings.actions = create_default_actions_config()
-                    self.app.settings_manager.save()
+                    self.app.settings_manager.actions = create_default_actions_config()
                 else:
                     self._logger.error("Settings manager not available for reset")
 
@@ -1343,24 +1411,29 @@ class CustomPopupWindow(QWidget):
         if dialog.exec_():
             bd = dialog.get_button_data()
 
+            # Check if the name already exists
+            if bd.get("name", "") in self.get_actions():
+                if not ui_utils.show_confirmation_dialog(
+                    "Overwrite Existing Action",
+                    f"An action named '{bd.get('name', '')}' already exists. Do you want to overwrite it?",
+                ):
+                    return  # The user canceled
+
             action_config = ActionConfig(
                 prefix=bd.get("prefix", ""),
                 instruction=bd.get("instruction", ""),
                 icon=bd.get("icon", ""),
                 open_in_window=bd.get("open_in_window", False),
             )
-            self.app.settings_manager.update_action(bd.get("name", ""), action_config)
 
-            # Show success message
-            msg = QMessageBox()
-            msg.setWindowFlags(msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
-            msg.setWindowTitle("Button Added")
-            msg.setText("Your new button has been saved and is now available in the tools list.")
-            msg.setStandardButtons(QMessageBox.StandardButton.Ok)
-            msg.exec_()
+            success = self.app.settings_manager.update_action(bd.get("name", ""), action_config)
 
-            # Reload the window instead of closing it
-            self.reload_window()
+            if success:
+                self.reload_window()
+            else:
+                self.app.show_message_signal.emit(
+                    "Error", "Failed to save the button. Please try again."
+                )
 
     def edit_button_clicked(self, btn: QPushButton) -> None:
         """User clicked the small pencil icon over a button."""
@@ -1380,31 +1453,42 @@ class CustomPopupWindow(QWidget):
         dialog = ButtonEditDialog(self.app, self, bd)
         if dialog.exec_():
             new_data = dialog.get_button_data()
+
+            success = True
+
             # Remove old action if name changed
             if new_data.get("name", "") != key:
-                self.app.settings_manager.remove_action(key)
+                if new_data.get("name", "") in self.get_actions():
+                    if not ui_utils.show_confirmation_dialog(
+                        "Overwrite Existing Action",
+                        f"An action named '{new_data.get('name', '')}' already exists. Do you want to overwrite it?",
+                    ):
+                        return  # The user cancelled
 
-            # Create and save new ActionConfig
-            from config.interfaces import ActionConfig
+                # Delete the old action
+                success = self.app.settings_manager.remove_action(key)
 
-            action_config = ActionConfig(
-                prefix=new_data.get("prefix", ""),
-                instruction=new_data.get("instruction", ""),
-                icon=new_data.get("icon", ""),
-                open_in_window=new_data.get("open_in_window", False),
-            )
-            self.app.settings_manager.update_action(new_data.get("name", ""), action_config)
+            # Create and save new ActionConfig (only if previous operation succeeded)
+            if success:
+                action_config = ActionConfig(
+                    prefix=new_data.get("prefix", ""),
+                    instruction=new_data.get("instruction", ""),
+                    icon=new_data.get("icon", ""),
+                    open_in_window=new_data.get("open_in_window", False),
+                )
+                success = self.app.settings_manager.update_action(
+                    new_data.get("name", ""), action_config
+                )
 
-            # Show success message
-            msg = QMessageBox()
-            msg.setWindowFlags(msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
-            msg.setWindowTitle("Button Updated")
-            msg.setText("Your button changes have been saved and are now active.")
-            msg.setStandardButtons(QMessageBox.StandardButton.Ok)
-            msg.exec_()
-
-            # Reload the window instead of closing it
-            self.reload_window()
+            if success:
+                self.reload_window()
+                self.app.show_message_signal.emit(
+                    "Button Updated", "Your button changes have been saved and are now active."
+                )
+            else:
+                self.app.show_message_signal.emit(
+                    "Error", "Failed to save button changes. Please try again."
+                )
 
     def delete_button_clicked(self, btn: QPushButton) -> None:
         """Handle deletion of a button."""
@@ -1412,6 +1496,7 @@ class CustomPopupWindow(QWidget):
         if key is None:
             self._logger.error("Button does not have a 'key' attribute.")
             return
+
         confirm = QMessageBox()
         confirm.setWindowFlags(confirm.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
         confirm.setWindowTitle("Confirm Delete?")
@@ -1420,10 +1505,10 @@ class CustomPopupWindow(QWidget):
         confirm.setDefaultButton(QMessageBox.StandardButton.No)
 
         if confirm.exec_() == QMessageBox.StandardButton.Yes:
-            try:
-                # Remove action using SettingsManager
-                self.app.settings_manager.remove_action(key)
+            # Remove action using SettingsManager
+            success = self.app.settings_manager.remove_action(key)
 
+            if success:
                 # Clean up UI elements
                 for btn_ in self.button_widgets[:]:
                     if btn_.key == key:
@@ -1432,14 +1517,10 @@ class CustomPopupWindow(QWidget):
                         btn_.deleteLater()
                         self.button_widgets.remove(btn_)
 
-                # Reload settings and reload window
-                self.app.settings_manager.load_settings()
                 self.reload_window()
-
-            except Exception as e:
-                self._logger.exception(f"Error deleting button: {e}")
+            else:
                 self.app.show_message_signal.emit(
-                    "Error", f"An error occurred while deleting the button: {e!s}"
+                    "Error", "Failed to delete the button. Please try again."
                 )
 
     def update_json_from_grid(self) -> None:
@@ -1447,12 +1528,8 @@ class CustomPopupWindow(QWidget):
         Called after a drop reorder. Reflect the new order in unified settings,
         so that user's custom arrangement persists.
         """
-        if not hasattr(self.app, "settings_manager") or not self.app.settings_manager.settings:
-            self._logger.error("Settings manager not available, cannot update order")
-            return
-
         # Get current actions
-        current_actions = self.app.settings_manager.settings.actions
+        current_actions = self.app.settings_manager.actions
 
         # Create new ordered dict based on button order
         new_actions = {}
@@ -1466,9 +1543,8 @@ class CustomPopupWindow(QWidget):
             if b.key in current_actions:
                 new_actions[b.key] = current_actions[b.key]
 
-        # Update settings and save
-        self.app.settings_manager.settings.actions = new_actions
-        self.app.settings_manager.save()
+        # Update settings (auto-saves)
+        self.app.settings_manager.actions = new_actions
         self._logger.debug("Button order updated in unified settings")
 
     def reload_window(self) -> None:
@@ -1486,9 +1562,7 @@ class CustomPopupWindow(QWidget):
         # Create and show new popup window
         new_popup = CustomPopupWindow(self.app, selected_text)
         new_popup.move(current_pos)
-        new_popup.show()
-        new_popup.raise_()
-        new_popup.activateWindow()
+        ui_utils.existing_window_on_top(new_popup)
 
     def on_custom_change(self) -> None:
         """
@@ -1498,7 +1572,7 @@ class CustomPopupWindow(QWidget):
         if self.has_image and not self._check_vision_support():
             self.app.show_message_signal.emit(
                 "Vision Not Supported",
-                "The current AI model does not support image analysis. Please select a model that supports vision capabilities.",
+                f"The current AI model {self.app.get_current_model(self.app.settings_manager.provider) or 'Unknown'} does not support image analysis. Please select a model that supports vision capabilities.",
             )
             return
 
@@ -1528,8 +1602,7 @@ class CustomPopupWindow(QWidget):
             bool: True if the current model supports vision, False otherwise
         """
         provider_name = self.app.settings_manager.provider
-        provider: ProviderConfig = self.app.settings_manager.providers.get(provider_name, {})
-        api_model = provider.get("api_model", "")
+        api_model = self.app.get_current_model(provider_name)
 
         return self._has_vision_support(provider_name, api_model)
 
@@ -1548,7 +1621,7 @@ class CustomPopupWindow(QWidget):
             f"Checking vision support for provider: {provider_name}, model: {api_model}"
         )
 
-        if not api_model:
+        if not provider_name or not api_model:
             return False
 
         # Map providers to their model lists
@@ -1568,7 +1641,7 @@ class CustomPopupWindow(QWidget):
 
         # Special case for Ollama
         if provider_name == "ollama":
-            vision_indicators = ["llava", "bakllava", "moondream", "minicpm-v"]
+            vision_indicators = ["llava", "bakllava", "moondream", "minicpm-v", "qwen2.5vl"]
             return any(indicator in api_model.lower() for indicator in vision_indicators)
 
         return False

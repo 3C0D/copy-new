@@ -5,78 +5,10 @@ from typing import TYPE_CHECKING
 
 from PySide6 import QtCore, QtGui
 from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtWidgets import QApplication, QLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QLayout, QMessageBox, QVBoxLayout, QWidget
 
 if TYPE_CHECKING:
     from WritingToolApp import WritingToolApp
-
-
-def get_icon_path(app: "WritingToolApp", icon_name: str, with_theme: bool = True) -> Path:
-    """
-    Get the correct path for an icon, handling both dev and build modes.
-    Supports both PNG and SVG formats, with SVG taking precedence.
-    Args:
-        icon_name: Name of the icon without extension (e.g., "send", "app_icon", "copy_md")
-        with_theme: Whether to append theme suffix (_dark/_light)
-    Returns:
-        Path to the icon file
-    """
-    # Use sys.executable for frozen apps, sys.argv[0] for scripts
-    if getattr(sys, "frozen", False):
-        base_dir = Path(sys.executable).parent
-    else:
-        # Handle different script execution contexts
-        if sys.argv[0] in ["-c", ""]:
-            # Running with python -c or similar, use current working directory
-            base_dir = Path.cwd()
-        else:
-            base_dir = Path(sys.argv[0]).parent
-
-    # Define possible extensions and filenames
-    extensions = [".svg", ".png"]  # SVG takes precedence
-    if with_theme:
-        current_mode = app.settings_manager.color_mode
-        theme_suffix = "_dark" if current_mode == "dark" else "_light"
-        filenames = [f"{icon_name}{theme_suffix}{ext}" for ext in extensions]
-        # Fallback to non-themed version if themed version doesn't exist
-        filenames.extend([f"{icon_name}{ext}" for ext in extensions])
-    else:
-        filenames = [f"{icon_name}{ext}" for ext in extensions]
-
-    # Try multiple locations
-    if getattr(sys, "frozen", False):
-        # For frozen builds
-        base_paths = [
-            base_dir / "icons",  # Next to exe
-            base_dir / "config" / "icons",  # Config next to exe
-        ]
-    else:
-        # For dev mode
-        base_paths = [
-            base_dir / "icons",  # Build location (dist/dev/icons/)
-            base_dir / "config" / "icons",  # Dev location
-            base_dir / "Windows_and_Linux" / "config" / "icons",  # Root project location
-            base_dir / "Windows_and_Linux" / "dist" / "dev" / "icons",  # Dev build location
-        ]
-
-    # Check all combinations of paths and filenames
-    for base_path in base_paths:
-        for filename in filenames:
-            full_path = base_path / filename
-            if full_path.exists():
-                return full_path
-
-    return Path()
-
-
-def existing_window_on_top(window: "ThemedWidget | None"):
-    if window is None or not hasattr(window, "show"):
-        return
-    # window.show()
-    window.raise_()
-    window.activateWindow()
-    if hasattr(window, "setFocus"):
-        window.setFocus()
 
 
 class ui_utils:
@@ -117,6 +49,105 @@ class ui_utils:
         targetPixmap = QPixmap.fromImage(target)
         return targetPixmap
 
+    @staticmethod
+    def show_confirmation_dialog(title: str, message: str, parent=None) -> bool:
+        """Show a confirmation dialog and return True if user confirms."""
+        confirm = QMessageBox(parent)
+        confirm.setWindowFlags(confirm.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
+        confirm.setWindowTitle(title)
+        confirm.setText(message)
+        confirm.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        confirm.setDefaultButton(QMessageBox.StandardButton.No)
+
+        return confirm.exec_() == QMessageBox.StandardButton.Yes
+
+    # @staticmethod
+    # def existing_window_on_top(window: "QWidget | None", is_creation: bool = False):
+    #     if window is None or not hasattr(window, "show"):
+    #         return
+
+    #     # Temporarily "always on top"
+    #     window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, True)
+
+    #     if not is_creation:
+    #         window.show()  # ← Usefull after hide
+
+    #     window.raise_()
+    #     window.activateWindow()  # ← "Try" to activate
+
+    #     # Remove "always on top" after a delay
+    #     QtCore.QTimer.singleShot(
+    #         100, lambda: window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, False)
+    #     )
+
+    @staticmethod
+    def existing_window_on_top(window: QWidget | None):
+        if window is None or not hasattr(window, "show"):
+            return
+        # window.show()
+        window.raise_()
+        window.activateWindow()
+        if hasattr(window, "setFocus"):
+            window.setFocus()
+
+    @staticmethod
+    def get_icon_path(app: "WritingToolApp", icon_name: str, with_theme: bool = True) -> Path:
+        """
+        Get the correct path for an icon, handling both dev and build modes.
+        Supports both PNG and SVG formats, with SVG taking precedence.
+        Args:
+            icon_name: Name of the icon without extension (e.g., "send", "app_icon", "copy_md")
+            with_theme: Whether to append theme suffix (_dark/_light)
+        Returns:
+            Path to the icon file
+        """
+        # Use sys.executable for frozen apps, sys.argv[0] for scripts
+        if getattr(sys, "frozen", False):
+            base_dir = Path(sys.executable).parent
+        else:
+            # Handle different script execution contexts
+            if sys.argv[0] in ["-c", ""]:
+                # Running with python -c or similar, use current working directory
+                base_dir = Path.cwd()
+            else:
+                base_dir = Path(sys.argv[0]).parent
+
+        # Define possible extensions and filenames
+        extensions = [".svg", ".png"]  # SVG takes precedence
+        if with_theme:
+            current_mode = app.settings_manager.color_mode
+            theme_suffix = "_dark" if current_mode == "dark" else "_light"
+            filenames = [f"{icon_name}{theme_suffix}{ext}" for ext in extensions]
+            # Fallback to non-themed version if themed version doesn't exist
+            filenames.extend([f"{icon_name}{ext}" for ext in extensions])
+        else:
+            filenames = [f"{icon_name}{ext}" for ext in extensions]
+
+        # Try multiple locations
+        if getattr(sys, "frozen", False):
+            # For frozen builds
+            base_paths = [
+                base_dir / "icons",  # Next to exe
+                base_dir / "config" / "icons",  # Config next to exe
+            ]
+        else:
+            # For dev mode
+            base_paths = [
+                base_dir / "icons",  # Build location (dist/dev/icons/)
+                base_dir / "config" / "icons",  # Dev location
+                base_dir / "Windows_and_Linux" / "config" / "icons",  # Root project location
+                base_dir / "Windows_and_Linux" / "dist" / "dev" / "icons",  # Dev build location
+            ]
+
+        # Check all combinations of paths and filenames
+        for base_path in base_paths:
+            for filename in filenames:
+                full_path = base_path / filename
+                if full_path.exists():
+                    return full_path
+
+        return Path()
+
 
 class ThemedWidget(QWidget):
     def __init__(self, app: "WritingToolApp"):  # Type hint using forward reference
@@ -142,7 +173,7 @@ class ThemedWidget(QWidget):
         self.activateWindow()  # Give focus to the window to make it active
 
         # Set window icon
-        icon_path = get_icon_path(self.app, "app_icon", with_theme=False)
+        icon_path = ui_utils.get_icon_path(self.app, "app_icon", with_theme=False)
         if icon_path.exists():
             self.setWindowIcon(QtGui.QIcon(icon_path.as_posix()))
 

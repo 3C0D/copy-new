@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from PySide6 import QtCore, QtGui
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
-from ui.ui_utils import get_icon_path
+from ui.ui_utils import ui_utils
 
 if TYPE_CHECKING:
     from WritingToolApp import WritingToolApp
@@ -41,7 +41,7 @@ class SystrayManager:
             self._logger.error("System tray is not available on this system after retries")
             return
 
-        icon_path = get_icon_path(self.app, "app_icon", with_theme=False)
+        icon_path = ui_utils.get_icon_path(self.app, "app_icon", with_theme=False)
         self._logger.debug(f"Icon path resolved to: {icon_path}")
 
         if not icon_path.exists():

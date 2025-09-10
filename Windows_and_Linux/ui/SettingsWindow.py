@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 from config.constants import PROVIDER_DISPLAY_NAMES
 from config.data_operations import get_provider_display_name
 from ui.AutostartManager import AutostartManager
-from ui.ui_utils import ThemedWidget, existing_window_on_top, get_icon_path, ui_utils
+from ui.ui_utils import ThemedWidget, ui_utils
 
 
 def _(x):
@@ -59,6 +59,7 @@ class SettingsWindow(ThemedWidget):
     def __init__(self, app: "WritingToolApp", providers_only: bool = False):
         super().__init__(app)
         self.app = app
+        self._logger = logging.getLogger(__name__)
         self.current_provider_layout = None
         # Special mode to show only provider settings (during first setup)
         self.providers_only = providers_only
@@ -275,11 +276,14 @@ class SettingsWindow(ThemedWidget):
 
         # Set current selection based on internal name
         current_display_name = get_provider_display_name(current_provider)
+        self._logger.debug(f"Current provider: {current_provider}, Display name: {current_display_name}")
         current_index = self.provider_dropdown.findText(current_display_name)
+        self._logger.debug(f"Current provider dropdown index: {current_index}")
         if current_index != -1:
             self.provider_dropdown.setCurrentIndex(current_index)
         else:
             self.provider_dropdown.setCurrentIndex(0)  # Default to first item
+            self._logger.warning("Current provider not found in dropdown, defaulting to first item.")
         content_layout.addWidget(self.provider_dropdown)
 
         # Visual separator between provider selection and configuration
@@ -327,7 +331,7 @@ class SettingsWindow(ThemedWidget):
         desired_height = min(
             550,
             max_height,
-        )  # Cap at 600px or 85% of screen height (reduced by 100px from 700px to force scroll bars)
+        )  # Cap at 600px or 85% of screen height (reduced by 100px to force scroll bars)
         self.resize(
             700,
             desired_height,
@@ -343,6 +347,7 @@ class SettingsWindow(ThemedWidget):
         self.setWindowTitle(_("Settings"))
 
     def init_provider_ui(self, provider: "AIProvider", layout) -> None:
+        self._logger.debug(f"init_provider_ui started for provider: {provider.internal_name}")
         """
         Initialize the user interface for the provider, including logo, name, description and all settings.
         Dynamically builds UI based on provider configuration.
@@ -350,6 +355,7 @@ class SettingsWindow(ThemedWidget):
         # Refresh provider configuration before building UI (for dynamic providers like Ollama)
         if hasattr(provider, "refresh_configuration"):
             provider.refresh_configuration()
+            self._logger.debug(f"Refreshed configuration for {provider.internal_name}")
         # Clean up previous provider UI to prevent memory leaks and layout conflicts
         if self.current_provider_layout:
             # Remove the old layout from its parent container first
@@ -374,8 +380,7 @@ class SettingsWindow(ThemedWidget):
 
         # Load and display provider logo if available
         if provider.logo:
-            # Use get_icon_path for proper path resolution in all modes (dev, build, etc.)
-            logo_path = get_icon_path(self.app, f"provider_{provider.logo}", with_theme=False)
+            logo_path = ui_utils.get_icon_path(self.app, f"provider_{provider.logo}", with_theme=False)
             if logo_path.exists():
                 targetPixmap = ui_utils.resize_and_round_image(
                     QImage(logo_path),
@@ -387,7 +392,9 @@ class SettingsWindow(ThemedWidget):
                 logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
                 provider_header_layout.addWidget(logo_label)
             else:
-                logging.debug(f"Provider logo not found: {logo_path} for provider {provider.logo}")
+                self._logger.debug(
+                    f"Provider logo not found: {logo_path} for provider {provider.logo}"
+                )
 
         # Provider name display
         provider_name_label = QLabel(provider.provider_name)
@@ -494,6 +501,7 @@ class SettingsWindow(ThemedWidget):
         for setting in provider.settings:
             # Load saved value or use default
             saved_value = provider_config.get(setting.name, setting.default_value)
+            self._logger.debug(f"Loading setting: {setting.name}, Saved value: {saved_value}")
             setting.set_value(saved_value)
             # Set auto-save callback for immediate saving
             setting.set_auto_save_callback(lambda: self.save_provider_settings())
@@ -510,6 +518,7 @@ class SettingsWindow(ThemedWidget):
         vision_comment = QLabel(_("* Models with vision support"))
         vision_comment.setStyleSheet(f"{self.get_label_style()} font-style: italic;")
         layout.addWidget(vision_comment)
+        self._logger.debug(f"init_provider_ui finished for provider: {provider.internal_name}")
 
     def disable_dropdown_scroll(self, layout: QLayout) -> None:
         """
@@ -531,9 +540,7 @@ class SettingsWindow(ThemedWidget):
         """Handle window show event to ensure focus."""
         super().showEvent(event)
         # Force focus to this window when shown (important for hotkey workflow)
-        self.raise_()
-        self.activateWindow()
-        self.setFocus()
+        ui_utils.existing_window_on_top(self)
 
     def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
         """
@@ -662,7 +669,6 @@ class SettingsWindow(ThemedWidget):
             print(f"🎨 SettingsWindow color mode change: {theme_icon} Color={color_mode}")
 
             self.app.settings_manager.color_mode = color_mode
-            self.app.settings_manager.save()  # Auto-save to disk
 
             # Apply theme change
             self.app.theme_manager.change_theme(color_mode)
@@ -764,9 +770,9 @@ class SettingsWindow(ThemedWidget):
         Auto-save provider selection when it changes.
         """
         if self.provider_dropdown is not None:
-            provider_internal_name = self.provider_dropdown.currentData()
-            if provider_internal_name:
-                self.app.settings_manager.provider = provider_internal_name
+            provider_name = self.provider_dropdown.currentData()
+            if provider_name:
+                self.app.settings_manager.provider = provider_name
                 # Save provider-specific settings as well
                 self.save_provider_settings()
 
@@ -775,18 +781,20 @@ class SettingsWindow(ThemedWidget):
         Save current provider-specific settings.
         """
         if self.provider_dropdown is not None:
-            provider_internal_name = self.provider_dropdown.currentData()
-            if provider_internal_name:
-                # Find the corresponding provider instance
+            provider_name = self.provider_dropdown.currentData()
+            if provider_name:
                 selected_provider = next(
                     (
                         provider
                         for provider in self.app.providers
-                        if provider.internal_name == provider_internal_name
+                        if provider.internal_name == provider_name
                     ),
                     None,
                 )
                 if selected_provider:
+                    self._logger.debug(
+                        f"Saving settings for provider: {provider_name}"
+                    )
                     selected_provider.save_config()
 
     def toggle_autostart(self, state: int) -> None:
@@ -815,7 +823,7 @@ class SettingsWindow(ThemedWidget):
         self.save_settings_without_closing()
 
         # Return to previous window if it exists and is still valid (set from WritingToolApp.show_settings)
-        existing_window_on_top(self.previous_window)
+        ui_utils.existing_window_on_top(self.previous_window)
 
         # Close this window
         self.close()
@@ -862,10 +870,13 @@ class SettingsWindow(ThemedWidget):
         Handle window close event.
         Emits close signal for providers_only mode to notify parent about setup completion.
         """
+        self._logger.debug(f"SettingsWindow closeEvent called, providers_only={self.providers_only}")
         if self.providers_only:
+            self._logger.debug("Emitting close_signal in providers_only mode")
             self.close_signal.emit()
         super().closeEvent(event)
         self.app.settings_window = None
+        self._logger.debug("SettingsWindow closeEvent finished")
 
     def refresh_theme(self) -> None:
         """Automatically called when theme changes via ThemeManager."""

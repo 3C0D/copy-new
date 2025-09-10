@@ -292,7 +292,9 @@ def main():
     else:
         console_mode = CONSOLE_MODE_DEFAULT
         default_text = "console" if CONSOLE_MODE_DEFAULT else "windowed"
-        print(f"⚙️  Using default mode: {default_text} (CONSOLE_MODE_DEFAULT = {CONSOLE_MODE_DEFAULT})")
+        print(
+            f"⚙️  Using default mode: {default_text} (CONSOLE_MODE_DEFAULT = {CONSOLE_MODE_DEFAULT})"
+        )
 
     extra_args = args.extra_args or None
 
