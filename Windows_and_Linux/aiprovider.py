@@ -37,6 +37,7 @@ Response Flow:
 # pyright: reportPrivateImportUsage=false
 
 # Standard library imports
+import asyncio
 import copy
 import io
 import logging
@@ -47,9 +48,9 @@ import subprocess
 import tempfile
 import webbrowser
 from abc import ABC, abstractmethod
-from concurrent.futures import CancelledError, ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any, Callable, Union, cast
 
+# Standard library imports
 # Third-party imports (with fallbacks for optional dependencies)
 import requests
 from ollama import Client as OllamaClient
@@ -400,8 +401,8 @@ class AIProvider(ABC):
         self.button_text = button_text
         self.button_action = button_action
         self.logo = logo
-        self.executor = ThreadPoolExecutor(max_workers=1)
-        self.current_future = None
+        self.executor = None
+        self.current_task = None
 
         # Support for multiple buttons (for providers that need refresh functionality)
         self.additional_buttons = []
@@ -420,7 +421,7 @@ class AIProvider(ABC):
     # Suppression of the getter/setter for model_name, we use api_model directly
     # which will be created by setattr() in load_config()
 
-    def get_response(
+    async def get_response(
         self, system_instruction: str, prompt: str, return_response: bool = False, **kwargs
     ) -> str:
         """
@@ -429,19 +430,19 @@ class AIProvider(ABC):
         Automatically handles cancellation and threading for all providers.
         """
         # Cancel the previous request if it exists
-        if self.current_future and not self.current_future.done():
-            self.current_future.cancel()
+        if self.current_task and not self.current_task.done():
+            self.current_task.cancel()
             logging.debug(f"Cancelled previous {self.provider_name} request")
 
         # Launch the new query in a thread
-        self.current_future = self.executor.submit(
-            self._get_response_impl, system_instruction, prompt, return_response, **kwargs
+        self.current_task = asyncio.create_task(
+            self._get_response_impl(system_instruction, prompt, return_response, **kwargs)
         )
 
         try:
             # Wait for the result
-            return self.current_future.result()
-        except CancelledError:
+            return await self.current_task
+        except asyncio.CancelledError:
             logging.debug(f"{self.provider_name} request was cancelled")
             return ""
         except Exception as e:
@@ -453,7 +454,7 @@ class AIProvider(ABC):
             return ""
 
     @abstractmethod
-    def _get_response_impl(
+    async def _get_response_impl(
         self, system_instruction: str, prompt: str, return_response: bool = False, **kwargs
     ) -> str:
         """
@@ -540,8 +541,8 @@ class AIProvider(ABC):
 
         Default implementation that works for all providers.
         """
-        if self.current_future and not self.current_future.done():
-            cancelled = self.current_future.cancel()
+        if self.current_task and not self.current_task.done():
+            cancelled = self.current_task.cancel()
             if cancelled:
                 logging.debug(f"Successfully cancelled {self.provider_name} request")
             else:
@@ -549,7 +550,7 @@ class AIProvider(ABC):
 
     def __del__(self):
         """Cleanup of the ThreadPoolExecutor on destruction."""
-        if hasattr(self, "executor"):
+        if hasattr(self, "executor") and self.executor is not None:
             self.executor.shutdown(wait=False)
 
     def validate_connection(self) -> bool:
@@ -623,7 +624,7 @@ class GeminiProvider(AIProvider):
             "gemini",
         )
 
-    def _get_response_impl(
+    async def _get_response_impl(
         self,
         system_instruction: str,
         prompt: str,
@@ -727,7 +728,6 @@ class GeminiProvider(AIProvider):
                             "Your request has been blocked by Gemini's safety filters. Please try rephrasing your request to be more neutral.",
                         )
                         return ""
-
                 # Check the finish reason of the first candidate
                 candidate = response.candidates[0]
 
@@ -1064,7 +1064,7 @@ class OpenAICompatibleProvider(AIProvider):
             "openai",
         )
 
-    def _get_response_impl(
+    async def _get_response_impl(
         self,
         system_instruction: str,
         prompt: Union[str, list],
@@ -1793,7 +1793,7 @@ class OllamaProvider(AIProvider):
             else:
                 self.app.show_message_signal.emit("Deletion Failed", message)
 
-    def _get_response_impl(
+    async def _get_response_impl(
         self,
         system_instruction: str,
         prompt: Union[str, list],
@@ -1923,7 +1923,7 @@ class AnthropicProvider(AIProvider):
             "anthropic",
         )
 
-    def _get_response_impl(
+    async def _get_response_impl(
         self, system_instruction: str, prompt: str, return_response: bool = False, **kwargs
     ) -> str:
         """
@@ -2101,7 +2101,7 @@ class MistralProvider(AIProvider):
             "mistral",
         )
 
-    def _get_response_impl(
+    async def _get_response_impl(
         self,
         system_instruction,
         prompt,
@@ -2146,7 +2146,6 @@ class MistralProvider(AIProvider):
                     error_msg,
                 )
                 return ""
-
             if not self.api_model or self.api_model.strip() == "":
                 error_msg = "Mistral model not selected. Please select a model in settings."
                 self._logger.error(error_msg)
@@ -2220,7 +2219,10 @@ class MistralProvider(AIProvider):
             for message in data_for_logs["messages"]:
                 if isinstance(message["content"], list):
                     for content_item in message["content"]:
-                        if isinstance(content_item, dict) and content_item.get("type") == "image_url":
+                        if (
+                            isinstance(content_item, dict)
+                            and content_item.get("type") == "image_url"
+                        ):
                             image_url = content_item["image_url"]
                             truncated = image_url[:60] + "..."
                             content_item["image_url"] = truncated
