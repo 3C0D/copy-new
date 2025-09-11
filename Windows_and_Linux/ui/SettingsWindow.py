@@ -276,14 +276,18 @@ class SettingsWindow(ThemedWidget):
 
         # Set current selection based on internal name
         current_display_name = get_provider_display_name(current_provider)
-        self._logger.debug(f"Current provider: {current_provider}, Display name: {current_display_name}")
+        self._logger.debug(
+            f"Current provider: {current_provider}, Display name: {current_display_name}"
+        )
         current_index = self.provider_dropdown.findText(current_display_name)
         self._logger.debug(f"Current provider dropdown index: {current_index}")
         if current_index != -1:
             self.provider_dropdown.setCurrentIndex(current_index)
         else:
             self.provider_dropdown.setCurrentIndex(0)  # Default to first item
-            self._logger.warning("Current provider not found in dropdown, defaulting to first item.")
+            self._logger.warning(
+                "Current provider not found in dropdown, defaulting to first item."
+            )
         content_layout.addWidget(self.provider_dropdown)
 
         # Visual separator between provider selection and configuration
@@ -380,7 +384,9 @@ class SettingsWindow(ThemedWidget):
 
         # Load and display provider logo if available
         if provider.logo:
-            logo_path = ui_utils.get_icon_path(self.app, f"provider_{provider.logo}", with_theme=False)
+            logo_path = ui_utils.get_icon_path(
+                self.app, f"provider_{provider.logo}", with_theme=False
+            )
             if logo_path.exists():
                 targetPixmap = ui_utils.resize_and_round_image(
                     QImage(logo_path),
@@ -504,7 +510,7 @@ class SettingsWindow(ThemedWidget):
             self._logger.debug(f"Loading setting: {setting.name}, Saved value: {saved_value}")
             setting.set_value(saved_value)
             # Set auto-save callback for immediate saving
-            setting.set_auto_save_callback(lambda: self.save_provider_settings())
+            setting.set_auto_save_callback(lambda: self.save_provider_settings(provider.internal_name))
             # Each setting knows how to render itself to the layout
             setting.render_to_layout(self.current_provider_layout)
 
@@ -769,33 +775,38 @@ class SettingsWindow(ThemedWidget):
         """
         Auto-save provider selection when it changes.
         """
-        if self.provider_dropdown is not None:
-            provider_name = self.provider_dropdown.currentData()
-            if provider_name:
-                self.app.settings_manager.provider = provider_name
-                # Save provider-specific settings as well
-                self.save_provider_settings()
+        provider_name = self.provider_dropdown and self.provider_dropdown.currentData() or "gemini"
+        self.app.settings_manager.provider = provider_name
+        # Save provider-specific settings as well
+        self.save_provider_settings(provider_name)
 
-    def save_provider_settings(self) -> None:
+    def save_provider_settings(self, provider_name: str) -> None:
         """
         Save current provider-specific settings.
         """
-        if self.provider_dropdown is not None:
-            provider_name = self.provider_dropdown.currentData()
-            if provider_name:
-                selected_provider = next(
-                    (
-                        provider
-                        for provider in self.app.providers
-                        if provider.internal_name == provider_name
-                    ),
-                    None,
-                )
-                if selected_provider:
-                    self._logger.debug(
-                        f"Saving settings for provider: {provider_name}"
-                    )
-                    selected_provider.save_config()
+        # # Find the corresponding provider instance
+        selected_provider = next(
+            (
+                provider
+                for provider in self.app.providers
+                if provider.internal_name == provider_name
+            ),
+            self.app.providers[0],
+        )
+
+        # Save provider-specific configuration
+        self._logger.debug(f"Saving settings for provider: {provider_name}")
+        selected_provider.save_config()
+
+        # # Update application's current provider
+        self.app.current_provider = selected_provider
+
+        # Load the saved configuration into the provider
+        provider_config = self.app._get_provider_config(provider_name)
+        if self.app.current_provider:
+            self.app.current_provider.load_config(provider_config)
+        else:
+            logging.error("Current provider not set after save")
 
     def toggle_autostart(self, state: int) -> None:
         """Toggle the autostart setting based on checkbox state."""
@@ -841,6 +852,8 @@ class SettingsWindow(ThemedWidget):
         if self.shortcut_input is not None:
             self.app.settings_manager.hotkey = self.shortcut_input.text() or "ctrl+space"
 
+        self.auto_save_provider()
+
         # Re-register hotkey with new settings
         self.app.register_hotkey()
         # Exit providers_only mode after first save
@@ -870,7 +883,9 @@ class SettingsWindow(ThemedWidget):
         Handle window close event.
         Emits close signal for providers_only mode to notify parent about setup completion.
         """
-        self._logger.debug(f"SettingsWindow closeEvent called, providers_only={self.providers_only}")
+        self._logger.debug(
+            f"SettingsWindow closeEvent called, providers_only={self.providers_only}"
+        )
         if self.providers_only:
             self._logger.debug("Emitting close_signal in providers_only mode")
             self.close_signal.emit()
