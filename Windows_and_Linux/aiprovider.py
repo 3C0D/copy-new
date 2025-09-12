@@ -473,7 +473,7 @@ class AIProvider(ABC):
         - Processing images if image_data is provided
         """
 
-    def load_config(self, config: dict) -> None:
+    def load_config(self, config: ProviderConfig) -> None:
         """
         Load configuration settings into the provider.
 

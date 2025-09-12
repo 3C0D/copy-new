@@ -1041,6 +1041,7 @@ class ResponseWindow(ThemedWidget):
             if not self.app.settings_manager.settings.custom_data:
                 self.app.settings_manager.settings.custom_data = {}
             self.app.settings_manager.response_window_zoom = self.current_text_display.zoom_factor
+            # self.app.settings_manager.save() ??
 
         self.chat_history = []
 

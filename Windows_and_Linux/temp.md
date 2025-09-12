@@ -1,5 +1,7 @@
 ICI → response_window L970
 
+sauvegarde du zoom?? ds response window
+
 QBackingStore::endPaint() called with active painter; did you forget to destroy it or call QPainter::end() on it?
 
 voir commit récent aiprovider load_config

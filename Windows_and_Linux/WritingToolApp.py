@@ -44,7 +44,7 @@ import ui.NonEditableModal
 import ui.OnboardingWindow
 import ui.ResponseWindow
 import ui.SettingsWindow
-from config.interfaces import ActionConfig
+from config.interfaces import ActionConfig, ProviderConfig
 from config.settings import SettingsManager
 from ui.ResponseWindow import ResponseWindow
 from ui.systray import SystrayManager
@@ -381,7 +381,7 @@ class WritingToolApp(QApplication):
 
         return len(self.recent_triggers) >= self.MAX_TRIGGERS
 
-    def _get_provider_config(self, provider_name: str) -> dict:
+    def _get_provider_config(self, provider_name: str) -> ProviderConfig:
         """
         Extract provider-specific configuration from custom_data.
 
@@ -392,7 +392,7 @@ class WritingToolApp(QApplication):
             dict: Provider-specific configuration
         """
         # Default configuration based on provider type
-        default_configs = {
+        default_configs: dict[tuple[str, ...], ProviderConfig] = {
             ("Gemini", "Gemini (Recommended)"): {
                 "api_key": "",
                 "api_model": DEFAULT_MODELS["gemini"],
@@ -422,14 +422,14 @@ class WritingToolApp(QApplication):
         }
 
         # Find the default config
-        config = {}
+        config: ProviderConfig = {}
         for provider_names, default_config in default_configs.items():
             if provider_name in provider_names:
                 config = default_config.copy()
                 break
 
         # Override with saved config
-        saved_config = self.settings_manager.providers.get(provider_name, {})
+        saved_config: ProviderConfig = self.settings_manager.providers.get(provider_name, {})
         config.update(saved_config)
 
         return config

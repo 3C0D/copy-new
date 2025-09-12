@@ -1,4 +1,3 @@
-import os
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -61,34 +60,25 @@ class ui_utils:
 
         return confirm.exec_() == QMessageBox.StandardButton.Yes
 
-    # @staticmethod
-    # def existing_window_on_top(window: "QWidget | None", is_creation: bool = False):
-    #     if window is None or not hasattr(window, "show"):
-    #         return
-
-    #     # Temporarily "always on top"
-    #     window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, True)
-
-    #     if not is_creation:
-    #         window.show()  # ← Usefull after hide
-
-    #     window.raise_()
-    #     window.activateWindow()  # ← "Try" to activate
-
-    #     # Remove "always on top" after a delay
-    #     QtCore.QTimer.singleShot(
-    #         100, lambda: window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, False)
-    #     )
-
     @staticmethod
-    def existing_window_on_top(window: QWidget | None):
+    def existing_window_on_top(window: "QWidget | None", show: bool = False):
         if window is None or not hasattr(window, "show"):
             return
-        # window.show()
+
+        # Temporarily "always on top"
+        window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, True)
+
+        if show:
+            window.show()  # ← Usefull after hide
+
         window.raise_()
-        window.activateWindow()
-        if hasattr(window, "setFocus"):
-            window.setFocus()
+        window.activateWindow()  # ← "Try" to activate
+        #     if hasattr(window, "setFocus"):
+        #         window.setFocus()
+        # Remove "always on top" after a delay
+        QtCore.QTimer.singleShot(
+            100, lambda: window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, False)
+        )
 
     @staticmethod
     def get_icon_path(app: "WritingToolApp", icon_name: str, with_theme: bool = True) -> Path:
@@ -168,9 +158,7 @@ class ThemedWidget(QWidget):
         )
 
         # Show on top initially but allow user to move to background
-        self.setWindowState(QtCore.Qt.WindowState.WindowActive)
-        self.raise_()  # Bring window to the front
-        self.activateWindow()  # Give focus to the window to make it active
+        ui_utils.existing_window_on_top(self)
 
         # Set window icon
         icon_path = ui_utils.get_icon_path(self.app, "app_icon", with_theme=False)
@@ -208,7 +196,6 @@ class ThemedWidget(QWidget):
 
         # Save to settings
         self.app.settings_manager.theme = theme
-        self.app.settings_manager.save()
 
         # Notify ThemeManager of background theme change
         try:
@@ -391,20 +378,18 @@ class ThemeBackground(QWidget):
         if self.theme == "gradient":
             # Determine background file paths (check multiple locations)
             if getattr(sys, "frozen", False):
-                base_dir = os.path.dirname(sys.executable)
+                base_dir = Path(sys.executable).parent
             else:
                 # Handle different script execution contexts
                 if sys.argv[0] in ["-c", ""]:
                     # Running with python -c or similar, use current working directory
-                    base_dir = os.getcwd()
+                    base_dir = Path.cwd()
                 else:
-                    base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-
-                # If we're in the Windows_and_Linux subdirectory, go up one level
-                if os.path.basename(base_dir) == "Windows_and_Linux":
-                    base_dir = os.path.dirname(base_dir)
+                    base_dir = Path(sys.argv[0]).resolve().parent
 
             current_mode = self.app.settings_manager.color_mode
+
+            # Determine background filename
             if self.is_popup:
                 bg_file = (
                     "background_popup_dark.png"
@@ -414,35 +399,29 @@ class ThemeBackground(QWidget):
             else:
                 bg_file = "background_dark.png" if current_mode == "dark" else "background.png"
 
-            # Try multiple locations for background files
+            # Define possible paths using Path objects
             possible_paths = [
-                os.path.join(base_dir, bg_file),  # Build location (dist/)
-                os.path.join(base_dir, "config", "backgrounds", bg_file),  # Dev location
-                os.path.join(
-                    base_dir, "Windows_and_Linux", "config", "backgrounds", bg_file
-                ),  # Root project location
-                os.path.join(
-                    base_dir, "Windows_and_Linux", "dist", "dev", bg_file
-                ),  # Dev build location
-                os.path.join("config", "backgrounds", bg_file),  # Relative dev location
+                base_dir / bg_file,  # Build location (dist/dev or dist/production)
+                base_dir / "config" / "backgrounds" / bg_file,  # Dev location
             ]
 
             background_image = None
             for path in possible_paths:
-                if os.path.exists(path):
-                    background_image = QtGui.QPixmap(path)
+                if path.exists():
+                    background_image = QtGui.QPixmap(str(path))
                     break
 
+            # Fallback to solid color if no background found
             if background_image is None:
-                # Fallback to a solid color if no background found
                 background_image = QtGui.QPixmap(self.width(), self.height())
-                current_mode = self.app.settings_manager.color_mode
-                background_image.fill(
+                fallback_color = (
                     QtGui.QColor(50, 50, 50)
                     if current_mode == "dark"
-                    else QtGui.QColor(240, 240, 240),
+                    else QtGui.QColor(240, 240, 240)
                 )
-            # Adds a path/border using which the border radius would be drawn
+                background_image.fill(fallback_color)
+
+            # Create rounded rectangle path for clipping
             path = QtGui.QPainterPath()
             path.addRoundedRect(
                 0,
@@ -453,21 +432,27 @@ class ThemeBackground(QWidget):
                 self.border_radius,
             )
             painter.setClipPath(path)
-
             painter.drawPixmap(self.rect(), background_image)
+
         else:
+            # Solid color theme
             current_mode = self.app.settings_manager.color_mode
-            if current_mode == "dark":
-                color = QtGui.QColor(35, 35, 35)  # Dark mode color
-            else:
-                color = QtGui.QColor(
+            color = (
+                QtGui.QColor(35, 35, 35)
+                if current_mode == "dark"  # Dark mode color
+                else QtGui.QColor(
                     255, 255, 255
                 )  # Light mode color - pure white for better contrast
+            )
+
             brush = QtGui.QBrush(color)
             painter.setBrush(brush)
+
+            # Transparent pen
             pen = QtGui.QPen(QtGui.QColor(0, 0, 0, 0))
             pen.setWidth(0)
             painter.setPen(pen)
+
             painter.drawRoundedRect(
                 QtCore.QRect(0, 0, self.width(), self.height()),
                 self.border_radius,
