@@ -6,7 +6,7 @@ Contains all default values for the application settings
 # Model options for different providers
 from typing import cast
 
-from config.interfaces import ActionConfig, SystemConfig
+from config.interfaces import ActionConfig, ProviderConfig, SystemConfig
 
 # * indicates vision support
 GEMINI_MODELS = [
@@ -174,9 +174,7 @@ _DEFAULT_SYSTEM_VALUES_RAW = {
     "ollama_base_url": DEFAULT_BASE_URLS["ollama"],
     "ollama_keep_alive": "5",
     "openai_base_url": DEFAULT_BASE_URLS["openai"],
-
 }
-
 
 # Default actions configuration
 _DEFAULT_ACTIONS_VALUES_RAW = {
@@ -299,4 +297,34 @@ DEFAULT_SYSTEM_VALUES: SystemConfig = cast("SystemConfig", _DEFAULT_SYSTEM_VALUE
 
 DEFAULT_ACTIONS_VALUES: dict[str, ActionConfig] = {
     name: cast("ActionConfig", values) for name, values in _DEFAULT_ACTIONS_VALUES_RAW.items()
+}
+
+# Default provider configurations
+DEFAULT_PROVIDER_CONFIGS: dict[tuple[str, ...], ProviderConfig] = {
+    ("Gemini", "Gemini (Recommended)"): {
+        "api_key": "",
+        "api_model": DEFAULT_MODELS["gemini"],
+        "base_url": DEFAULT_BASE_URLS["gemini"],
+    },
+    ("Ollama", "Ollama (Local)", "Ollama"): {
+        "api_key": "",
+        "api_model": DEFAULT_MODELS["ollama"],  # ""
+        "base_url": DEFAULT_BASE_URLS["ollama"],
+        "keep_alive": _DEFAULT_SYSTEM_VALUES_RAW["ollama_keep_alive"],
+    },
+    ("Mistral", "Mistral AI"): {
+        "api_key": "",
+        "api_model": DEFAULT_MODELS["mistral"],
+        "base_url": DEFAULT_BASE_URLS["mistral"],
+    },
+    ("Anthropic", "Anthropic (Claude)"): {
+        "api_key": "",
+        "api_model": DEFAULT_MODELS["anthropic"],
+        "base_url": DEFAULT_BASE_URLS["anthropic"],
+    },
+    ("OpenAI", "OpenAI-Compatible"): {
+        "api_key": "",
+        "base_url": DEFAULT_BASE_URLS["openai"],
+        "api_model": DEFAULT_MODELS["openai"],
+    },
 }

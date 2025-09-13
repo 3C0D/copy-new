@@ -22,10 +22,8 @@ from typing import TYPE_CHECKING, Any, Optional
 from pynput import keyboard as keyboard
 
 from config.constants import (
-    _DEFAULT_SYSTEM_VALUES_RAW,
-    DEFAULT_BASE_URLS,
-    DEFAULT_MODELS,
     DEFAULT_PROVIDER,
+    DEFAULT_PROVIDER_CONFIGS,
 )
 from ui.AutostartManager import AutostartManager
 
@@ -210,11 +208,7 @@ class WritingToolApp(QApplication):
             self.providers[0],  # Fallback to first provider
         )
 
-        # self.settings_manager.provider = self.current_provider.internal_name
-        # self._logger.debug(f"Current provider: {self.current_provider.provider_name}")
-
-        # if not self.current_provider:
-        #     self._logger.warning("No provider found. Using default provider.")
+        self.settings_manager.provider = self.current_provider.internal_name
 
     def _initialize_ai_provider(self) -> None:
         """Initialize and configure the current AI provider."""
@@ -315,17 +309,17 @@ class WritingToolApp(QApplication):
             return "build-final"
 
     # Another way to detect mode
-        # import inspect
+    # import inspect
 
-        # stack = inspect.stack()
-        # for frame_info in stack:
-        #     filename = frame_info.filename
+    # stack = inspect.stack()
+    # for frame_info in stack:
+    #     filename = frame_info.filename
 
-        #     if (
-        #         "build_dev.py" in filename
-        #         or "build_final.py" in filename
-        #         or "PyInstaller" in filename
-        #     ): build...
+    #     if (
+    #         "build_dev.py" in filename
+    #         or "build_final.py" in filename
+    #         or "PyInstaller" in filename
+    #     ): build...
 
     def setup_translations(self, lang=None) -> None:
         """Setup application translations for the specified language."""
@@ -404,35 +398,11 @@ class WritingToolApp(QApplication):
         Returns:
             dict: Provider-specific configuration
         """
+        if not provider_name:
+            raise ValueError("Provider name cannot be empty or None")
+
         # Default configuration based on provider type
-        default_configs: dict[tuple[str, ...], ProviderConfig] = {
-            ("Gemini", "Gemini (Recommended)"): {
-                "api_key": "",
-                "api_model": DEFAULT_MODELS["gemini"],
-                "base_url": DEFAULT_BASE_URLS["gemini"],
-            },
-            ("Ollama", "Ollama (Local)", "Ollama"): {
-                "api_key": "",
-                "api_model": DEFAULT_MODELS["ollama"],  # ""
-                "base_url": DEFAULT_BASE_URLS["ollama"],
-                "keep_alive": _DEFAULT_SYSTEM_VALUES_RAW["ollama_keep_alive"],
-            },
-            ("Mistral", "Mistral AI"): {
-                "api_key": "",
-                "api_model": DEFAULT_MODELS["mistral"],
-                "base_url": DEFAULT_BASE_URLS["mistral"],
-            },
-            ("Anthropic", "Anthropic (Claude)"): {
-                "api_key": "",
-                "api_model": DEFAULT_MODELS["anthropic"],
-                "base_url": DEFAULT_BASE_URLS["anthropic"],
-            },
-            ("OpenAI", "OpenAI-Compatible"): {
-                "api_key": "",
-                "base_url": DEFAULT_BASE_URLS["openai"],
-                "api_model": DEFAULT_MODELS["openai"],
-            },
-        }
+        default_configs = DEFAULT_PROVIDER_CONFIGS
 
         # Find the default config
         config: ProviderConfig = {}
@@ -442,8 +412,9 @@ class WritingToolApp(QApplication):
                 break
 
         # Override with saved config
-        saved_config: ProviderConfig = self.settings_manager.providers.get(provider_name, {})
-        config.update(saved_config)
+        saved_config = self.settings_manager.providers.get(provider_name, {})
+        if saved_config:
+            config.update(saved_config)
 
         return config
 

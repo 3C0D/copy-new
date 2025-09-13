@@ -344,6 +344,7 @@ Hidden=false
             logging.exception(f"Error setting autostart with sync: {e}")
             return False
 
+    # not used. used for testing?
     @staticmethod
     def get_platform_info() -> dict:
         """

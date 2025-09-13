@@ -208,45 +208,24 @@ class AboutWindow(ThemedWidget):
     def _get_button_style(self) -> str:
         """Get the button styling with theme awareness (Qt stylesheets only)."""
 
-        mode = self.app.settings_manager.color_mode
-        if mode == "dark":
-            return """
-                QPushButton {
-                    background-color: #4CAF50;
-                    color: #ffffff;
-                    padding: 10px 20px;
-                    font-size: 16px;
-                    font-weight: bold;
-                    border: 1px solid #2e7d32; /* darker green border for contrast */
-                    border-radius: 8px;
-                }
-                QPushButton:hover { background-color: #43a047; }
-                QPushButton:pressed { background-color: #388e3c; }
-                QPushButton:disabled {
-                    background-color: #2e7d32;
-                    color: #bdbdbd;
-                    border-color: #255d27;
-                }
-            """
-        else:
-            return """
-                QPushButton {
-                    background-color: #4CAF50;
-                    color: #ffffff;
-                    padding: 10px 20px;
-                    font-size: 16px;
-                    font-weight: bold;
-                    border: 1px solid #3d8b40;
-                    border-radius: 8px;
-                }
-                QPushButton:hover { background-color: #45a049; }
-                QPushButton:pressed { background-color: #3d8b40; }
-                QPushButton:disabled {
-                    background-color: #a5d6a7;
-                    color: #ffffff;
-                    border-color: #8bc34a;
-                }
-            """
+        return """
+            QPushButton {
+                background-color: #4CAF50;
+                color: #ffffff;
+                padding: 10px 20px;
+                font-size: 16px;
+                font-weight: bold;
+                border: 1px solid #2e7d32; /* darker green border for contrast */
+                border-radius: 8px;
+            }
+            QPushButton:hover { background-color: #43a047; }
+            QPushButton:pressed { background-color: #388e3c; }
+            QPushButton:disabled {
+                background-color: #2e7d32;
+                color: #bdbdbd;
+                border-color: #255d27;
+            }
+        """
 
     def check_for_updates(self) -> None:
         """Open the GitHub releases page to check for updates."""

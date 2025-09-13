@@ -1,3 +1,5 @@
+Normalement, après avoir fermé la fenêtre d'édition des settings, Windows Popup doit se rouvrir. Bug
+
 ICI → response_window L970
 
 sauvegarde du zoom?? ds response window
