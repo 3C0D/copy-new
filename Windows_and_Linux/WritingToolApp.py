@@ -314,6 +314,19 @@ class WritingToolApp(QApplication):
             self._logger.debug("Detected build-final mode")
             return "build-final"
 
+    # Another way to detect mode
+        # import inspect
+
+        # stack = inspect.stack()
+        # for frame_info in stack:
+        #     filename = frame_info.filename
+
+        #     if (
+        #         "build_dev.py" in filename
+        #         or "build_final.py" in filename
+        #         or "PyInstaller" in filename
+        #     ): build...
+
     def setup_translations(self, lang=None) -> None:
         """Setup application translations for the specified language."""
         if not lang:
@@ -1755,12 +1768,14 @@ class WritingToolApp(QApplication):
                     messages.append({"role": "user", "content": question})
 
                     # Get response from Mistral
-                    response_text = asyncio.run(self.current_provider.get_response(
-                        system_instruction,
-                        messages if isinstance(messages, str) else str(messages),
-                        return_response=True,
-                        image_data=image_data,
-                    ))
+                    response_text = asyncio.run(
+                        self.current_provider.get_response(
+                            system_instruction,
+                            messages if isinstance(messages, str) else str(messages),
+                            return_response=True,
+                            image_data=image_data,
+                        )
+                    )
 
                 elif self.current_provider:
                     # For OpenAI/compatible providers, prepare messages array
@@ -1794,11 +1809,13 @@ class WritingToolApp(QApplication):
                             messages.append({"role": role, "content": msg["content"]})
 
                     # Get response by passing the full messages array
-                    response_text = asyncio.run(self.current_provider.get_response(
-                        system_instruction,
-                        messages if isinstance(messages, str) else str(messages),
-                        return_response=True,
-                    ))
+                    response_text = asyncio.run(
+                        self.current_provider.get_response(
+                            system_instruction,
+                            messages if isinstance(messages, str) else str(messages),
+                            return_response=True,
+                        )
+                    )
                 else:
                     response_text = "Error: No provider available"
 

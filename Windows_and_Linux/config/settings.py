@@ -45,7 +45,7 @@ class SettingsManager:
 
     # Logging constants
     LOG_MAX_BYTES = 1024 * 1024  # 1MB
-    LOG_BACKUP_COUNT = 2
+    LOG_BACKUP_COUNT = 1
 
     # Internal attributes that shouldn't be proxied to settings
     _INTERNAL_ATTRS = {
@@ -174,7 +174,7 @@ class SettingsManager:
 
     def load_settings(self) -> UnifiedSettings:
         """Load settings from file and merge with defaults."""
-        self._ensure_directories_exist()
+        # self._ensure_directories_exist() redundant
 
         if self.data_file.exists():
             user_data = self._load_user_data()
@@ -350,24 +350,10 @@ class SettingsManager:
     # LOGGING SETUP
     #
 
-    def _setup_logging(self) -> None:  # A revoir !!!!!!!!!!!!!!!!!
+    def _setup_logging(self) -> None:
         """Setup file logging for dev and build-dev modes."""
         if not self._is_development_mode():
             return
-
-        # Additional check: don't setup logging if we're in a build script context
-        import inspect
-
-        stack = inspect.stack()
-        for frame_info in stack:
-            filename = frame_info.filename
-
-            if (
-                "build_dev.py" in filename
-                or "build_final.py" in filename
-                or "PyInstaller" in filename
-            ):
-                return  # Skip logging setup in build contexts
 
         try:
             self._configure_file_handler()

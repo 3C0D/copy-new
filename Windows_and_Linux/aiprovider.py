@@ -48,6 +48,7 @@ import subprocess
 import tempfile
 import webbrowser
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Union, cast
 
 # Standard library imports
@@ -473,7 +474,7 @@ class AIProvider(ABC):
         - Processing images if image_data is provided
         """
 
-    def load_config(self, config: ProviderConfig) -> None:
+    def load_config(self, config: "ProviderConfig") -> None:
         """
         Load configuration settings into the provider.
 
@@ -1162,36 +1163,36 @@ def find_ollama_executable() -> str | None:
     Returns the path to ollama executable or None if not found.
     Compatible with Windows and Linux platforms.
     """
-    # First try to find ollama in PATH
+    # First try to find ollama in env PATH
     ollama_path = shutil.which("ollama")
     if ollama_path:
         return ollama_path
 
     # If not found in PATH, check standard installation locations
     system = platform.system().lower()
+    possible_paths = []
 
     if system == "windows":
         # Standard Windows installation locations
         possible_paths = [
-            os.path.expanduser("~\\AppData\\Local\\Programs\\Ollama\\ollama.exe"),
-            "C:\\Program Files\\Ollama\\ollama.exe",
-            "C:\\Program Files (x86)\\Ollama\\ollama.exe",
+            Path.home() / "AppData" / "Local" / "Programs" / "Ollama" / "ollama.exe",
+            Path("C:") / "Program Files" / "Ollama" / "ollama.exe",
+            Path("C:") / "Program Files (x86)" / "Ollama" / "ollama.exe",
         ]
     elif system == "linux":
         # Standard Linux installation locations
         possible_paths = [
-            "/usr/local/bin/ollama",
-            "/usr/bin/ollama",
-            os.path.expanduser("~/.local/bin/ollama"),
+            Path("/usr/local/bin/ollama"),
+            Path("/usr/bin/ollama"),
+            Path.home() / ".local" / "bin" / "ollama",
         ]
     else:
         return None
 
     # Check each possible path if exists and is executable
-    # os.X_OK mode checks for execute permissions
     for path in possible_paths:
-        if os.path.isfile(path) and os.access(path, os.X_OK):
-            return path
+        if path.is_file() and os.access(path, os.X_OK):
+            return str(path)
 
     return None
 
