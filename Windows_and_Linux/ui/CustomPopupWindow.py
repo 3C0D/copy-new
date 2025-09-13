@@ -1330,7 +1330,7 @@ class CustomPopupWindow(QWidget):
     def exit_edit_mode(self) -> None:
         """Exit edit mode - called when user clicks the close button in edit mode."""
         self.edit_mode = False
-        self._logger.debug("Exiting edit mode")
+        self._logger.debug("Exiting edit mode!!!!!!!!!!!!")
 
         # Reload the window to ensure clean state and proper layout
         self.reload_window()
@@ -1565,6 +1565,7 @@ class CustomPopupWindow(QWidget):
         new_popup = CustomPopupWindow(self.app, selected_text)
         new_popup.move(current_pos)
         ui_utils.existing_window_on_top(new_popup)
+        new_popup.show()
 
     def on_custom_change(self) -> None:
         """
