@@ -61,24 +61,13 @@ class ui_utils:
         return confirm.exec_() == QMessageBox.StandardButton.Yes
 
     @staticmethod
-    def existing_window_on_top(window: "QWidget | None", show: bool = False):
-        if window is None or not hasattr(window, "show"):
+    def existing_window_on_top(window: "QWidget | None"):
+        if window is None:
             return
 
-        # Temporarily "always on top"
-        window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, True)
-
-        if show:
-            window.show()  # ← Usefull after hide
-
+        # window.setWindowState(QtCore.Qt.WindowState.WindowActive) redundant
         window.raise_()
-        window.activateWindow()  # ← "Try" to activate
-        #     if hasattr(window, "setFocus"):
-        #         window.setFocus()
-        # Remove "always on top" after a delay
-        QtCore.QTimer.singleShot(
-            100, lambda: window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, False)
-        )
+        window.activateWindow()
 
     @staticmethod
     def get_icon_path(app: "WritingToolApp", icon_name: str, with_theme: bool = True) -> Path:
