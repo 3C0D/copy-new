@@ -813,8 +813,10 @@ class CustomPopupWindow(QWidget):
                 f"Restart with {self.app.settings_manager.hotkey} to continue.",
             )
 
-            # Close the popup window
+            #  Clean the image and close
+            self.app.clean_image()
             self.close()
+
 
             # Schedule application quit after a brief delay to allow message to be shown
             # QtCore.QTimer.singleShot(2000, self.app.quit)
