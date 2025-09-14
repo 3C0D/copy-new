@@ -307,7 +307,7 @@ class DraggableButton(QPushButton):
         self.setProperty("hover", False)
 
         # Set fixed size (adjust as needed)
-        self.setFixedSize(120, 35)
+        self.setFixedSize(120, 40)
 
         # Define base style using the dynamic property instead of the :hover pseudo-class
         self.base_style = f"""
@@ -1198,73 +1198,85 @@ class CustomPopupWindow(QWidget):
         if not parent_layout:
             parent_layout = self.background.layout()
 
-        # Use force_edit_mode if provided, otherwise use current edit_mode
         edit_mode_to_use = force_edit_mode if force_edit_mode is not None else self.edit_mode
 
-        # Remove existing grid and Add New button - PROPERLY DELETE WIDGETS
+        # Find or create the scroll area
+        buttons_scroll = None
+        scroll_index = -1
+
+        # Look for existing scroll area
+        for i in range(parent_layout.count()):
+            item = parent_layout.itemAt(i)
+            if item and item.widget() and isinstance(item.widget(), QScrollArea):
+                buttons_scroll = item.widget()
+                scroll_index = i
+                break
+
+        # If no scroll area exists, create one (for normal mode)
+        if not buttons_scroll and self.has_sel_text:
+            buttons_scroll = QScrollArea()
+            buttons_scroll.setWidgetResizable(True)
+            buttons_scroll.setFrameShape(QFrame.Shape.NoFrame)
+            buttons_scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+            buttons_scroll.setMaximumHeight(250)
+
+            buttons_widget = QWidget()
+            buttons_widget.setStyleSheet("background: transparent;")
+            buttons_layout = QVBoxLayout(buttons_widget)
+            buttons_layout.setContentsMargins(0, 0, 0, 0)
+            buttons_layout.setSpacing(5)
+
+            buttons_scroll.setWidget(buttons_widget)
+            parent_layout.addWidget(buttons_scroll)
+            scroll_index = parent_layout.count() - 1
+
+        # Clean up existing content in scroll area
+        if buttons_scroll and isinstance(buttons_scroll, QScrollArea):
+            buttons_widget = buttons_scroll.widget()
+            if buttons_widget:
+                buttons_layout = buttons_widget.layout()
+                if buttons_layout:
+                    self.clear_layout(buttons_layout)
+
+                    # Create and populate grid
+                    grid = QGridLayout()
+                    grid.setSpacing(10)
+                    grid.setColumnMinimumWidth(0, 120)
+                    grid.setColumnMinimumWidth(1, 120)
+
+                    # Add buttons to grid
+                    row = 0
+                    col = 0
+                    for b in self.button_widgets:
+                        grid.addWidget(b, row, col)
+                        col += 1
+                        if col > 1:
+                            col = 0
+                            row += 1
+
+                    if isinstance(buttons_layout, (QVBoxLayout, QHBoxLayout)):
+                        buttons_layout.addLayout(grid)
+
+        # Remove existing "Add New" button from main layout
         for i in reversed(range(parent_layout.count())):
             item = parent_layout.itemAt(i)
-            if isinstance(item, QGridLayout):
-                grid = item
-                # First, properly delete all widgets in the grid
-                for j in reversed(range(grid.count())):
-                    grid_item = grid.itemAt(j)
-                    if grid_item and grid_item.widget():
-                        widget = grid_item.widget()
-                        grid.removeWidget(widget)
-                        # Don't delete button_widgets here - they'll be re-added
-                        if widget not in self.button_widgets:
-                            widget.deleteLater()
-                parent_layout.removeItem(grid)
-                # Delete the grid layout itself
-                grid.deleteLater()
-            elif item.widget():
+            if item and item.widget():
                 widget = item.widget()
                 if isinstance(widget, QPushButton) and widget.text() == "+ Add New":
                     parent_layout.removeWidget(widget)
                     widget.deleteLater()
 
-        # Create new grid with fixed column width
-        grid = QGridLayout()
-        grid.setSpacing(10)
-        grid.setColumnMinimumWidth(0, 120)
-        grid.setColumnMinimumWidth(1, 120)
-
-        # Add buttons to grid
-        row = 0
-        col = 0
-        for b in self.button_widgets:
-            grid.addWidget(b, row, col)
-            col += 1
-            if col > 1:
-                col = 0
-                row += 1
-
-        if isinstance(parent_layout, (QVBoxLayout, QHBoxLayout)):
-            parent_layout.addLayout(grid)
-
-        # Add New button (only in edit mode & only if we have text)
+        # Add "Add New" button outside scroll area (only in edit mode & only if we have text)
         if edit_mode_to_use and self.has_sel_text:
             add_btn = QPushButton("+ Add New")
-            add_btn.setStyleSheet(
-                f"""
-                QPushButton {{
-                    background-color: {"#333" if self.app.settings_manager.color_mode == "dark" else "#e0e0e0"};
-                    border: 1px solid {"#666" if self.app.settings_manager.color_mode == "dark" else "#ccc"};
-                    border-radius: 8px;
-                    padding: 10px;
-                    font-size: 14px;
-                    text-align: center;
-                    color: {"#fff" if self.app.settings_manager.color_mode == "dark" else "#000"};
-                    margin-top: 10px;
-                }}
-                QPushButton:hover {{
-                    background-color: {"#444" if self.app.settings_manager.color_mode == "dark" else "#d0d0d0"};
-                }}
-            """,
-            )
+            add_btn.setStyleSheet(self._get_add_button_style())
             add_btn.clicked.connect(self.add_new_button_clicked)
-            parent_layout.addWidget(add_btn)
+
+            if isinstance(parent_layout, (QVBoxLayout, QHBoxLayout)):
+                if scroll_index >= 0:
+                    parent_layout.insertWidget(scroll_index + 1, add_btn)
+                else:
+                    parent_layout.addWidget(add_btn)
 
     def add_edit_delete_icons(self, btn) -> None:
         """Add edit/delete icons as overlays with proper spacing."""
@@ -1342,6 +1354,8 @@ class CustomPopupWindow(QWidget):
         if self.update_label is not None:
             self.update_label.setVisible(False)
 
+        self.rebuild_grid_layout(force_edit_mode=True)
+
         # Add edit overlays to buttons
         self.add_edit_overlays_to_buttons()
 
@@ -1352,6 +1366,97 @@ class CustomPopupWindow(QWidget):
 
         # Reload the window to ensure clean state and proper layout
         self.reload_window()
+
+    def rebuild_edit_mode_with_scroll(self) -> None:
+        """Rebuild layout for edit mode while preserving scroll functionality."""
+        main_layout = self.background.layout()
+
+        # Look for existing scroll area more precisely
+        buttons_scroll = None
+        scroll_index = -1
+        for i in range(main_layout.count()):
+            item = main_layout.itemAt(i)
+            if item and item.widget():
+                widget = item.widget()
+                if isinstance(widget, QScrollArea):
+                    buttons_scroll = widget
+                    scroll_index = i
+                    break
+
+        if buttons_scroll:
+            buttons_widget = buttons_scroll.widget()
+            if buttons_widget:
+                buttons_layout = buttons_widget.layout()
+                if buttons_layout and isinstance(buttons_layout, (QVBoxLayout, QHBoxLayout)):
+                    # Clear existing grid
+                    self.clear_layout(buttons_layout)
+
+                    # Rebuild grid in edit mode (WITHOUT the Add New button)
+                    grid = QGridLayout()
+                    grid.setSpacing(10)
+                    grid.setColumnMinimumWidth(0, 120)
+                    grid.setColumnMinimumWidth(1, 120)
+
+                    # Add buttons to grid
+                    row = 0
+                    col = 0
+                    for b in self.button_widgets:
+                        grid.addWidget(b, row, col)
+                        col += 1
+                        if col > 1:
+                            col = 0
+                            row += 1
+
+                    buttons_layout.addLayout(grid)
+
+        # Remove existing "Add New" button if it exists
+        for i in reversed(range(main_layout.count())):
+            item = main_layout.itemAt(i)
+            if item and item.widget():
+                widget = item.widget()
+                if isinstance(widget, QPushButton) and widget.text() == "+ Add New":
+                    main_layout.removeWidget(widget)
+                    widget.deleteLater()
+
+        # Add "Add New" button AFTER the scroll area, in the main layout
+        add_btn = QPushButton("+ Add New")
+        add_btn.setStyleSheet(self._get_add_button_style())
+        add_btn.clicked.connect(self.add_new_button_clicked)
+        if isinstance(main_layout, (QVBoxLayout, QHBoxLayout)):
+            main_layout.insertWidget(scroll_index + 1, add_btn)  # Just after the scroll area
+        else:
+            # Fallback: just add at the end
+            main_layout.addWidget(add_btn)
+
+    def clear_layout(self, layout) -> None:
+        """Clear all items from a layout."""
+        while layout.count():
+            item = layout.takeAt(0)
+            if item.widget():
+                # Don't delete button widgets, just remove them
+                if item.widget() not in self.button_widgets:
+                    item.widget().deleteLater()
+            elif item.layout():
+                self.clear_layout(item.layout())
+                item.layout().deleteLater()
+
+    def _get_add_button_style(self) -> str:
+        """Get stylesheet for Add New button."""
+        return f"""
+            QPushButton {{
+                background-color: {"#333" if self.app.settings_manager.color_mode == "dark" else "#e0e0e0"};
+                border: 1px solid {"#666" if self.app.settings_manager.color_mode == "dark" else "#ccc"};
+                border-radius: 8px;
+                padding: 10px;
+                font-size: 14px;
+                text-align: center;
+                color: {"#fff" if self.app.settings_manager.color_mode == "dark" else "#000"};
+                margin-top: 10px;
+            }}
+            QPushButton:hover {{
+                background-color: {"#444" if self.app.settings_manager.color_mode == "dark" else "#d0d0d0"};
+            }}
+        """
 
     def add_edit_overlays_to_buttons(self) -> None:
         """Add edit overlays to all buttons when entering edit mode."""
