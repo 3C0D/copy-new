@@ -527,8 +527,8 @@ class CustomPopupWindow(QWidget):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowTitle("Writing Tools")
-        self.min_width = 300
-        self.min_height = 300
+        self.min_width = 300 # be sure to see action buttons and scrollbar
+        self.min_height = 150 # when no selected text or image
         self.setMinimumSize(self.min_width, self.min_height)
 
     def _create_main_layout(self) -> QVBoxLayout:
@@ -889,8 +889,8 @@ class CustomPopupWindow(QWidget):
     def _create_buttons_scroll_layout(self, parent_layout: QVBoxLayout) -> QVBoxLayout:
         """Create a scrollable layout specifically for buttons."""
         buttons_scroll = QScrollArea()
-        buttons_scroll.setWidgetResizable(True)  # vertical scroll when many buttons
-        buttons_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        buttons_scroll.setWidgetResizable(True)  # vertical scroll when more action buttons
+        buttons_scroll.setFrameShape(QFrame.Shape.NoFrame) # No border
         buttons_scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
         buttons_scroll.setMaximumHeight(250)
 
@@ -914,7 +914,7 @@ class CustomPopupWindow(QWidget):
         else:
             # Only custom instructions input if no selected text
             if self.custom_input is not None:
-                self.custom_input.setMinimumWidth(500)
+                self.custom_input.setMinimumWidth(400)
 
     def _show_update_notice_if_available(self, content_layout: QVBoxLayout) -> None:
         """Show update notice if an update is available."""

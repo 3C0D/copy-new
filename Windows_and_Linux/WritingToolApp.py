@@ -601,7 +601,7 @@ class WritingToolApp(QApplication):
                 self.setWindowIcon(QtGui.QIcon(icon_path.as_posix()))
 
             self.popup_window.show()
-            self.position_popup_window(self.popup_window)
+            self.position_popup_window(self.popup_window, selected_text)
             ui_utils.existing_window_on_top(self.popup_window)
 
             # # Position the popup window near the cursor
@@ -609,7 +609,15 @@ class WritingToolApp(QApplication):
         except Exception as e:
             self._logger.error(f"Error showing popup window: {e}", exc_info=True)
 
-    def position_popup_window(self, popup_window, width=300, height=450, offset_x=0, offset_y=20):
+    def position_popup_window(
+        self,
+        popup_window,
+        selected_text: str | None,
+        width=300,
+        height=450,
+        offset_x=0,
+        offset_y=20,
+    ):
         """
         Position popup window to stay within screen bounds
 
@@ -620,7 +628,10 @@ class WritingToolApp(QApplication):
             offset_x: Horizontal offset from cursor
             offset_y: Vertical offset from cursor
         """
+        if not self.has_image and (selected_text is None or selected_text.strip() == ""):
+            height = 150  # smaller window
         # Get cursor position
+
         cursor_pos = QCursor.pos()
         x = cursor_pos.x() + offset_x
         y = cursor_pos.y() + offset_y
