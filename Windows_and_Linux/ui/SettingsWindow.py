@@ -314,7 +314,6 @@ class SettingsWindow(ThemedWidget):
 
         # React to provider changes by rebuilding the UI and auto-saving
         self.provider_dropdown.currentIndexChanged.connect(self._on_provider_changed)
-        self.provider_dropdown.currentIndexChanged.connect(self.auto_save_provider)
 
         # Another visual separator before buttons
         line = QFrame()
@@ -351,7 +350,6 @@ class SettingsWindow(ThemedWidget):
         self.setWindowTitle(_("Settings"))
 
     def init_provider_ui(self, provider: "AIProvider", layout) -> None:
-        self._logger.debug(f"init_provider_ui started for provider: {provider.internal_name}")
         """
         Initialize the user interface for the provider, including logo, name, description and all settings.
         Dynamically builds UI based on provider configuration.
@@ -507,10 +505,11 @@ class SettingsWindow(ThemedWidget):
         for setting in provider.settings:
             # Load saved value or use default
             saved_value = provider_config.get(setting.name, setting.default_value)
-            self._logger.debug(f"Loading setting: {setting.name}, Saved value: {saved_value}")
             setting.set_value(saved_value)
-            # Set auto-save callback for immediate saving
-            setting.set_auto_save_callback(lambda: self.save_provider_settings(provider.internal_name))
+
+            # immediate saving
+            setting.set_auto_save_callback(self.save_current_provider_settings)
+
             # Each setting knows how to render itself to the layout
             setting.render_to_layout(self.current_provider_layout)
 
@@ -525,6 +524,18 @@ class SettingsWindow(ThemedWidget):
         vision_comment.setStyleSheet(f"{self.get_label_style()} font-style: italic;")
         layout.addWidget(vision_comment)
         self._logger.debug(f"init_provider_ui finished for provider: {provider.internal_name}")
+
+    def save_current_provider_settings(self) -> None:
+        """
+        Save settings for the currently selected provider.
+        Called when individual settings change.
+        """
+        if not self.app.current_provider:
+            return
+
+        # Save current provider's config
+        self.app.current_provider.save_config()
+        self._logger.debug(f"Saved settings for: {self.app.current_provider.internal_name}")
 
     def disable_dropdown_scroll(self, layout: QLayout) -> None:
         """
@@ -771,42 +782,42 @@ class SettingsWindow(ThemedWidget):
         if self.background:
             self.background.update()
 
-    def auto_save_provider(self) -> None:
-        """
-        Auto-save provider selection when it changes.
-        """
-        provider_name = self.provider_dropdown and self.provider_dropdown.currentData() or "gemini"
-        self.app.settings_manager.provider = provider_name
-        # Save provider-specific settings as well
-        self.save_provider_settings(provider_name)
+    # def auto_save_provider(self) -> None:
+    #     """
+    #     Auto-save provider selection when it changes.
+    #     """
+    #     provider_name = self.provider_dropdown and self.provider_dropdown.currentData() or "gemini"
+    #     self.app.settings_manager.provider = provider_name
+    #     # Save provider-specific settings as well
+    #     self.save_provider_settings(provider_name)
 
-    def save_provider_settings(self, provider_name: str) -> None:
-        """
-        Save current provider-specific settings.
-        """
-        # # Find the corresponding provider instance
-        selected_provider = next(
-            (
-                provider
-                for provider in self.app.providers
-                if provider.internal_name == provider_name
-            ),
-            self.app.providers[0],
-        )
+    # def save_provider_settings(self, provider_name: str) -> None:
+    #     """
+    #     Save current provider-specific settings.
+    #     """
+    #     # # Find the corresponding provider instance
+    #     selected_provider = next(
+    #         (
+    #             provider
+    #             for provider in self.app.providers
+    #             if provider.internal_name == provider_name
+    #         ),
+    #         self.app.providers[0],
+    #     )
 
-        # Save provider-specific configuration
-        self._logger.debug(f"Saving settings for provider: {provider_name}")
-        selected_provider.save_config()
+    #     # Save provider-specific configuration
+    #     self._logger.debug(f"Saving settings for provider: {provider_name}")
+    #     selected_provider.save_config()
 
-        # # Update application's current provider
-        self.app.current_provider = selected_provider
+    #     # # Update application's current provider
+    #     self.app.current_provider = selected_provider
 
-        # Load the saved configuration into the provider
-        provider_config = self.app._get_provider_config(provider_name)
-        if self.app.current_provider:
-            self.app.current_provider.load_config(provider_config)
-        else:
-            logging.error("Current provider not set after save")
+    #     # Load the saved configuration into the provider
+    #     provider_config = self.app._get_provider_config(provider_name)
+    #     if self.app.current_provider:
+    #         self.app.current_provider.load_config(provider_config)
+    #     else:
+    #         logging.error("Current provider not set after save")
 
     def toggle_autostart(self, state: int) -> None:
         """Toggle the autostart setting based on checkbox state."""
@@ -852,7 +863,7 @@ class SettingsWindow(ThemedWidget):
         if self.shortcut_input is not None:
             self.app.settings_manager.hotkey = self.shortcut_input.text() or "ctrl+space"
 
-        self.auto_save_provider()
+        self.save_current_provider_settings()
 
         # Re-register hotkey with new settings
         self.app.register_hotkey()
@@ -861,22 +872,44 @@ class SettingsWindow(ThemedWidget):
 
     def _on_provider_changed(self) -> None:
         """
-        Handle provider dropdown change by rebuilding the provider-specific UI.
-        This ensures the settings interface matches the selected provider's requirements.
+        Handle provider change: update UI and save automatically.
         """
-        current_internal_name = (
-            self.provider_dropdown.currentData() if self.provider_dropdown else None
-        )
+        if not self.provider_dropdown:
+            return
 
-        provider_instance = next(
+        current_internal_name = self.provider_dropdown.currentData()
+        if not current_internal_name:
+            return
+
+        # Find the new provider
+        new_provider = self._find_provider_by_name(current_internal_name)
+        if not new_provider:
+            self._logger.warning(f"Provider {current_internal_name} not found")
+            return
+
+        # Update the application
+        self.app.current_provider = new_provider
+        self.app.settings_manager.provider = current_internal_name
+
+        # Reload config for the new provider
+        provider_config = self.app.settings_manager.providers.get(current_internal_name, {})
+        new_provider.load_config(provider_config)
+
+        # Rebuild UI for the new provider
+        self.init_provider_ui(new_provider, self.provider_container)
+
+        self._logger.debug(f"Switched to provider: {current_internal_name}")
+
+    def _find_provider_by_name(self, internal_name: str) -> "AIProvider | None":
+        """Find a provider by its internal name."""
+        return next(
             (
                 provider
                 for provider in self.app.providers
-                if provider.internal_name == current_internal_name
+                if provider.internal_name == internal_name
             ),
-            self.app.providers[0],
+            None,
         )
-        self.init_provider_ui(provider_instance, self.provider_container)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """

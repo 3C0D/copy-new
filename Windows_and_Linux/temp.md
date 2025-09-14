@@ -1,4 +1,4 @@
-
+Quand on change de modèle Directement Dans costum pop up. Apparemment, le modèle n'est pas bien mis à jour.
 
 sauvegarde du zoom?? ds response window
 
