@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QDialog,
+    QFrame,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -21,6 +22,7 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QPushButton,
     QRadioButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -305,7 +307,7 @@ class DraggableButton(QPushButton):
         self.setProperty("hover", False)
 
         # Set fixed size (adjust as needed)
-        self.setFixedSize(120, 40)
+        self.setFixedSize(120, 35)
 
         # Define base style using the dynamic property instead of the :hover pseudo-class
         self.base_style = f"""
@@ -514,7 +516,8 @@ class CustomPopupWindow(QWidget):
         self._create_input_area(content_layout)
         if self.has_sel_text:
             self.create_force_chat_toggle(content_layout)
-        self._setup_buttons_and_content(content_layout)
+            buttons_layout = self._create_buttons_scroll_layout(content_layout)
+            self._setup_buttons_and_content(buttons_layout)
         self._show_update_notice_if_available(content_layout)
 
         self._finalize_ui_setup()
@@ -524,6 +527,9 @@ class CustomPopupWindow(QWidget):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowTitle("Writing Tools")
+        self.min_width = 300
+        self.min_height = 300
+        self.setMinimumSize(self.min_width, self.min_height)
 
     def _create_main_layout(self) -> QVBoxLayout:
         """Create and configure the main layout."""
@@ -567,9 +573,7 @@ class CustomPopupWindow(QWidget):
     def _create_reset_button(self, layout: QHBoxLayout) -> None:
         """Create the reset button for edit mode."""
         self.reset_button = QPushButton()
-        reset_icon_path = ui_utils.get_icon_path(
-            self.app, "restore", with_theme=True
-        )
+        reset_icon_path = ui_utils.get_icon_path(self.app, "restore", with_theme=True)
         if reset_icon_path.exists():
             self.reset_button.setIcon(QtGui.QIcon(reset_icon_path.as_posix()))
 
@@ -615,9 +619,7 @@ class CustomPopupWindow(QWidget):
 
         # Edit button (shown in normal mode)
         self.edit_button = QPushButton()
-        pencil_icon = ui_utils.get_icon_path(
-            self.app, "pencil", with_theme=True
-        )
+        pencil_icon = ui_utils.get_icon_path(self.app, "pencil", with_theme=True)
         if pencil_icon.exists():
             self.edit_button.setIcon(QtGui.QIcon(pencil_icon.as_posix()))
 
@@ -817,7 +819,6 @@ class CustomPopupWindow(QWidget):
             self.app.clean_image()
             self.close()
 
-
             # Schedule application quit after a brief delay to allow message to be shown
             # QtCore.QTimer.singleShot(2000, self.app.quit)
 
@@ -843,9 +844,7 @@ class CustomPopupWindow(QWidget):
     def _create_send_button(self, layout: QHBoxLayout) -> None:
         """Create the send button for the input area."""
         send_btn = QPushButton()
-        send_icon = ui_utils.get_icon_path(
-            self.app, "send", with_theme=True
-        )
+        send_icon = ui_utils.get_icon_path(self.app, "send", with_theme=True)
         if send_icon.exists():
             send_btn.setIcon(QtGui.QIcon(send_icon.as_posix()))
 
@@ -887,6 +886,25 @@ class CustomPopupWindow(QWidget):
             }}
         """
 
+    def _create_buttons_scroll_layout(self, parent_layout: QVBoxLayout) -> QVBoxLayout:
+        """Create a scrollable layout specifically for buttons."""
+        buttons_scroll = QScrollArea()
+        buttons_scroll.setWidgetResizable(True)  # vertical scroll when many buttons
+        buttons_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        buttons_scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+        buttons_scroll.setMaximumHeight(250)
+
+        buttons_widget = QWidget()
+        buttons_widget.setStyleSheet("background: transparent;")
+        buttons_layout = QVBoxLayout(buttons_widget)
+        buttons_layout.setContentsMargins(0, 0, 0, 0)
+        buttons_layout.setSpacing(5)
+
+        buttons_scroll.setWidget(buttons_widget)
+        parent_layout.addWidget(buttons_scroll)
+
+        return buttons_layout
+
     def _setup_buttons_and_content(self, content_layout: QVBoxLayout) -> None:
         """Setup buttons and main content based on available input."""
         if self.has_sel_text:
@@ -896,7 +914,7 @@ class CustomPopupWindow(QWidget):
         else:
             # Only custom instructions input if no selected text
             if self.custom_input is not None:
-                self.custom_input.setMinimumWidth(300)
+                self.custom_input.setMinimumWidth(500)
 
     def _show_update_notice_if_available(self, content_layout: QVBoxLayout) -> None:
         """Show update notice if an update is available."""
@@ -1330,7 +1348,7 @@ class CustomPopupWindow(QWidget):
     def exit_edit_mode(self) -> None:
         """Exit edit mode - called when user clicks the close button in edit mode."""
         self.edit_mode = False
-        self._logger.debug("Exiting edit mode!!!!!!!!!!!!")
+        self._logger.debug("Exiting edit mode")
 
         # Reload the window to ensure clean state and proper layout
         self.reload_window()

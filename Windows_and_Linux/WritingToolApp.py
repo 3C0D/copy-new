@@ -30,9 +30,10 @@ from ui.AutostartManager import AutostartManager
 os.environ["QT_LOGGING_RULES"] = (
     "qt.qpa.mime.warning=false;qt.qpa.mime.debug=false;qt.qpa.mime.info=false"  # Disable QMimeDatabase warnings
 )
+
 from PySide6 import QtCore, QtGui
 from PySide6.QtCore import QLocale, Signal, Slot
-from PySide6.QtGui import QCursor, QGuiApplication, QImage
+from PySide6.QtGui import QCursor, QImage
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 import ui.AboutWindow
@@ -590,62 +591,57 @@ class WritingToolApp(QApplication):
                 self, selected_text, self.image
             )
 
-            # Position the popup window near the cursor
-            self._position_popup_near_cursor()
+            # Set the window icon
+            icon_path = ui_utils.get_icon_path(
+                self,
+                "app_icon",
+                with_theme=False,
+            )
+            if icon_path.exists():
+                self.setWindowIcon(QtGui.QIcon(icon_path.as_posix()))
+
+            self.popup_window.show()
+            self.position_popup_window(self.popup_window)
+            ui_utils.existing_window_on_top(self.popup_window)
+
+            # # Position the popup window near the cursor
+            # self._position_popup_near_cursor()
         except Exception as e:
             self._logger.error(f"Error showing popup window: {e}", exc_info=True)
 
-    def _position_popup_near_cursor(self) -> None:
+    def position_popup_window(self, popup_window, width=300, height=450, offset_x=0, offset_y=20):
         """
-        Position the popup window near the cursor, handling screen boundaries and visibility.
+        Position popup window to stay within screen bounds
+
+        Args:
+            popup_window: The popup window to position
+            width: Window width in pixels
+            height: Window height in pixels
+            offset_x: Horizontal offset from cursor
+            offset_y: Vertical offset from cursor
         """
-        if not self.popup_window:
-            self._logger.error("Popup window not initialized")
-            return
-
-        # Set the window icon
-        icon_path = ui_utils.get_icon_path(
-            self,
-            "app_icon",
-            with_theme=False,
-        )
-        if icon_path.exists():
-            self.setWindowIcon(QtGui.QIcon(icon_path.as_posix()))
-
-        # Get the screen containing the cursor
+        # Get cursor position
         cursor_pos = QCursor.pos()
-        screen = QGuiApplication.screenAt(cursor_pos)
-        if screen is None:
-            screen = QGuiApplication.primaryScreen()
-        screen_geometry = screen.geometry()
-        self._logger.debug(f"Cursor is on screen: {screen.name()}")
-        self._logger.debug(f"Screen geometry: {screen_geometry}")
+        x = cursor_pos.x() + offset_x
+        y = cursor_pos.y() + offset_y
 
-        # Show the popup to get its size
-        self.popup_window.show()
-        self.popup_window.adjustSize()
-        # Ensure the popup it's focused, even on lower-end machines
-        self.popup_window.activateWindow()
-        if self.popup_window.custom_input:
-            QtCore.QTimer.singleShot(100, self.popup_window.custom_input.setFocus)
+        # Get screen dimensions
+        screen = QApplication.primaryScreen().availableGeometry()
 
-        popup_width = self.popup_window.width()
-        popup_height = self.popup_window.height()
+        # Adjust if too far right
+        if x + width > screen.right():
+            x = cursor_pos.x() - width
 
-        # Calculate position
-        x = cursor_pos.x()
-        y = cursor_pos.y() + 20  # 20 pixels below cursor
+        # Adjust if too far down - place above cursor
+        if y + height > screen.bottom():
+            y = cursor_pos.y() - height - 20
 
-        # Adjust if the popup would go off the right edge of the screen
-        if x + popup_width > screen_geometry.right():
-            x = screen_geometry.right() - popup_width
+        # Keep within screen bounds
+        x = max(screen.left(), min(x, screen.right() - width))
+        y = max(screen.top(), min(y, screen.bottom() - height))
 
-        # Adjust if the popup would go off the bottom edge of the screen
-        if y + popup_height > screen_geometry.bottom():
-            y = cursor_pos.y() - popup_height - 10  # 10 pixels above cursor
-
-        self.popup_window.move(x, y)
-        self._logger.debug(f"Popup window moved to position: ({x}, {y})")
+        # Position the window
+        popup_window.move(x, y)
 
     def get_clipboard_image(self) -> QImage | None:
         """

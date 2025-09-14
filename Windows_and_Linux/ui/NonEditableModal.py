@@ -50,16 +50,6 @@ class NonEditableModal(ThemedWidget):
         # Fixed size
         self.setMinimumSize(600, 300)
         self.center_on_screen()
-        # self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
-        # self.installEventFilter(self)
-
-    # def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:
-    #     """Handle window events."""
-    #     if event.type() == QtCore.QEvent.Type.WindowDeactivate and watched == self:
-    #         self._logger.debug("Window disabled - closing")
-    #         self.close()
-    #         return True
-    #     return super().eventFilter(watched, event)
 
     def setup_ui(self) -> None:
         """Setup the user interface"""
