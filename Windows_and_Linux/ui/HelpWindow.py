@@ -1,4 +1,6 @@
-from PySide6 import QtCore
+import logging
+
+from PySide6 import QtCore, QtGui
 from PySide6.QtWidgets import (
     QFrame,
     QLabel,
@@ -25,6 +27,7 @@ class HelpWindow(ThemedWidget):
 
     def __init__(self, app=None) -> None:
         super().__init__(app)
+        self._logger = logging.getLogger(__name__)
         self.min_width = 600
         self.min_height = 750
         self.init_ui()
@@ -230,3 +233,11 @@ class HelpWindow(ThemedWidget):
 
         # Force repaint to update background (gradient)
         self.update()
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        """
+        Handle window close event.
+        """
+        super().closeEvent(event)
+        self.app.help_window = None
+        self._logger.info("Help window closed.")

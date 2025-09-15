@@ -669,7 +669,6 @@ class ResponseWindow(ThemedWidget):
     def set_input_focus(self) -> None:
         """Force focus on input field when window opens"""
         if self.input_field:
-            ui_utils.existing_window_on_top(self)
             self.input_field.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def _create_image_preview_section(self) -> None:

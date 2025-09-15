@@ -2,6 +2,8 @@ Quand on change de modèle Directement Dans costum pop up. Apparemment, le modè
 
 sauvegarde du zoom?? ds response window
 
+question à 2 balles:             self.app.theme_manager.change_theme(color_mode) n'agit pas sur custom pop up?
+
 QBackingStore::endPaint() called with active painter; did you forget to destroy it or call QPainter::end() on it?
 
 voir commit récent aiprovider load_config

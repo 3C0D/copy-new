@@ -68,75 +68,235 @@ class ThemeManager(QtCore.QObject):
                 self._registered_widgets.remove(widget)
 
     def get_styles(self) -> dict[str, str]:
-        """Return all standardized styles based on the current theme."""
-        current_mode = self.app.settings_manager.color_mode
-        is_dark = current_mode == "dark"
+        """
+        Return a single dictionary that contains every standard stylesheet
+        used across the application. The CSS is built once per theme change
+        so every consumer can simply do: self.styles = app.theme_manager.get_styles()
+        """
+        mode = self.app.settings_manager.color_mode
+        dark = mode == "dark"
+
+        # Base colours
+        bg_primary   = "#2d2d2d" if dark else "#ffffff"
+        fg_primary   = "#ffffff" if dark else "#000000"
+        bg_control   = "#444444" if dark else "#ffffff"
+        fg_control   = "#ffffff" if dark else "#000000"
+        border       = "#666666" if dark else "#cccccc"
+        border_light = "#555555" if dark else "#cccccc"
+        selection    = "#404040" if dark else "#e6e6e6"
+
+        # Button colours
+        primary_default = "#4CAF50" if dark else "#008CBA"
+        primary_hover   = "#45a049" if dark else "#007095"
+        primary_pressed = "#3d8b40" if dark else "#005f7a"
+
+        secondary_default = "#666666" if dark else "#cccccc"
+        secondary_hover   = "#555555" if dark else "#bbbbbb"
+        secondary_pressed = "#444444" if dark else "#aaaaaa"
+
+        close_default = "#106ebe" if dark else "#0078d4"
+        close_hover   = "#1e88e5" if dark else "#106ebe"
+        close_pressed = "#0d47a1" if dark else "#005a9e"
 
         return {
-            "label": f"font-size: 16px; color: {'#ffffff' if is_dark else '#333333'};",
-            "title": f"font-size: 24px; font-weight: bold; color: {'#ffffff' if is_dark else '#000000'};",
-            "provider_title": f"font-size: 18px; font-weight: bold; color: {'#ffffff' if is_dark else '#000000'};",
+            # ----------  MENUS  ----------
+            "tray_menu": f"""
+                QMenu {{
+                    background-color: {bg_primary};
+                    color: {fg_primary};
+                    border: 1px solid {border_light};
+                    border-radius: 8px;
+                    padding: 2px;
+                    selection-background-color: {selection};
+                }}
+                QMenu::item {{
+                    padding: 4px 20px;
+                    border-radius: 4px;
+                }}
+                QMenu::item:selected {{
+                    background-color: {selection};
+                }}
+                QMenu::separator {{
+                    height: 1px;
+                    background: {border_light};
+                    margin: 2px 10px;
+                }}
+            """,
+
+            # ----------  DROPDOWNS  ----------
+            "dropdown": f"""
+                QComboBox {{
+                    background-color: {bg_control};
+                    color: {fg_control};
+                    border: 1px solid {border};
+                    padding: 5px;
+                    font-size: 16px;
+                }}
+                QComboBox QAbstractItemView {{
+                    background-color: {bg_control};
+                    color: {fg_control};
+                    selection-background-color: {selection};
+                }}
+            """,
+
+            # ----------  LINE EDITS  ----------
             "input": f"""
                 font-size: 16px;
                 padding: 5px;
-                background-color: {"#444" if is_dark else "white"};
-                color: {"#ffffff" if is_dark else "#000000"};
-                border: 1px solid {"#666" if is_dark else "#ccc"};
+                background-color: {bg_control};
+                color: {fg_control};
+                border: 1px solid {border};
             """,
-            "dropdown": f"""
+
+            # ----------  LABELS  ----------
+            "label": f"""
                 font-size: 16px;
-                padding: 5px;
-                background-color: {"#444" if is_dark else "white"};
-                color: {"#ffffff" if is_dark else "#000000"};
-                border: 1px solid {"#666" if is_dark else "#ccc"};
+                color: {fg_control};
             """,
-            "radio": f"color: {'#ffffff' if is_dark else '#333333'};",
-            "button": f"""
+
+            # ----------  RADIO BUTTONS  ----------
+            "radio": f"""
+                color: {fg_control};
+                font-size: 16px;
+            """,
+
+            # ----------  CHECKBOXES  ----------
+            "checkbox": f"""
+                QCheckBox {{
+                    color: {fg_control};
+                    font-size: 16px;
+                    spacing: 8px;
+                }}
+                QCheckBox::indicator {{
+                    width: 13px;
+                    height: 13px;
+                    border-radius: 2px;
+                }}
+                QCheckBox::indicator:unchecked {{
+                    border: 2px solid {border};
+                    background-color: {bg_primary};
+                }}
+                QCheckBox::indicator:checked {{
+                    border: 2px solid {border};
+                    background-color: {border};
+                    image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOSIgaGVpZ2h0PSI5IiB2aWV3Qm94PSIwIDAgOSA5IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNNy41IDIuNUwzLjc1IDYuMjVMMi41IDUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==);
+                }}
+            """ if not dark else f"""
+                QCheckBox {{
+                    color: {fg_control};
+                    font-size: 16px;
+                }}
+            """,
+
+            # ----------  PRIMARY BUTTONS  ----------
+            "primary_button": f"""
                 QPushButton {{
-                    background-color: {"#444" if is_dark else "#f0f0f0"};
-                    color: {"#ffffff" if is_dark else "#000000"};
-                    border: 1px solid {"#666" if is_dark else "#ccc"};
-                    border-radius: 5px;
-                    padding: 8px;
-                    font-size: 14px;
-                }}
-                QPushButton:hover {{
-                    background-color: {"#555" if is_dark else "#e0e0e0"};
-                }}
-            """,
-            "action_button": """
-                QPushButton {
-                    background-color: #4CAF50;
+                    background-color: {primary_default};
                     color: white;
                     padding: 10px;
                     font-size: 16px;
                     border: none;
                     border-radius: 5px;
-                }
-                QPushButton:hover {
-                    background-color: #45a049;
-                }
+                }}
+                QPushButton:hover {{
+                    background-color: {primary_hover};
+                }}
+                QPushButton:pressed {{
+                    background-color: {primary_pressed};
+                }}
             """,
-            "tray_menu": f"""
-            QMenu {{
-                background-color: {"#2d2d2d" if is_dark else "#ffffff"};
-                color: {"#ffffff" if is_dark else "#000000"};
-                border: 1px solid {"#555555" if is_dark else "#cccccc"};
-                border-radius: 8px;
-                padding: 2px;
-                selection-background-color: {"#404040" if is_dark else "#e6e6e6"};
-            }}
-            QMenu::item {{
-                padding: 4px 20px;
-                border-radius: 4px;
-            }}
-            QMenu::item:selected {{
-                background-color: {"#404040" if is_dark else "#e6e6e6"};
-            }}
-            QMenu::separator {{
-                height: 1px;
-                background: {"#555555" if is_dark else "#cccccc"};
-                margin: 2px 10px;
-            }}
+
+            # ----------  SECONDARY BUTTONS  ----------
+            "secondary_button": f"""
+                QPushButton {{
+                    background-color: {secondary_default};
+                    color: {fg_primary if dark else "#333333"};
+                    padding: 8px 12px;
+                    font-size: 14px;
+                    border: none;
+                    border-radius: 4px;
+                }}
+                QPushButton:hover {{
+                    background-color: {secondary_hover};
+                }}
+                QPushButton:pressed {{
+                    background-color: {secondary_pressed};
+                }}
+            """,
+
+            # ----------  CLOSE BUTTONS  ----------
+            "close_button": f"""
+                QPushButton {{
+                    background-color: {close_default};
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    font-weight: bold;
+                    padding: 8px 16px;
+                }}
+                QPushButton:hover {{
+                    background-color: {close_hover};
+                }}
+                QPushButton:pressed {{
+                    background-color: {close_pressed};
+                }}
+            """,
+
+            # ----------  SCROLL AREAS  ----------
+            "scroll_area": """
+                QScrollArea {
+                    background: transparent;
+                    border: none;
+                }
+                QScrollArea > QWidget > QWidget {
+                    background: transparent;
+                }
+                QScrollBar:vertical {
+                    background-color: rgba(0, 0, 0, 0.1);
+                    width: 12px;
+                    margin: 0px;
+                    border-radius: 6px;
+                }
+                QScrollBar::handle:vertical {
+                    background-color: rgba(128, 128, 128, 0.6);
+                    min-height: 20px;
+                    border-radius: 6px;
+                    margin: 2px;
+                }
+                QScrollBar::handle:vertical:hover {
+                    background-color: rgba(128, 128, 128, 0.8);
+                }
+                QScrollBar::handle:vertical:pressed {
+                    background-color: rgba(128, 128, 128, 1.0);
+                }
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                    height: 0px;
+                }
+                QScrollBar:horizontal {
+                    background-color: rgba(0, 0, 0, 0.1);
+                    height: 12px;
+                    margin: 0px;
+                    border-radius: 6px;
+                }
+                QScrollBar::handle:horizontal {
+                    background-color: rgba(128, 128, 128, 0.6);
+                    min-width: 20px;
+                    border-radius: 6px;
+                    margin: 2px;
+                }
+                QScrollBar::handle:horizontal:hover {
+                    background-color: rgba(128, 128, 128, 0.8);
+                }
+                QScrollBar::handle:horizontal:pressed {
+                    background-color: rgba(128, 128, 128, 1.0);
+                }
+                QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                    width: 0px;
+                    background: transparent;
+                }
+                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                    background: transparent;
+                }
             """,
         }

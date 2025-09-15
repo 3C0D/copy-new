@@ -87,84 +87,22 @@ class SettingsWindow(ThemedWidget):
     def init_ui(self) -> None:
         """
         Initialize the user interface for the settings window.
+        Window size: 700px width (fixed), height calculated as min(550px, 85% screen height).
         Now includes a scroll area for better handling of content on smaller screens.
         """
         self.setWindowTitle(_("Settings"))
         # Fixed width to maintain consistent layout and provide space for dropdowns
-        self.setMinimumWidth(700)
-        self.setFixedWidth(700)
+        self._calculate_window_size()
 
         main_layout = QVBoxLayout(self.background)  # Set icon, margin, and spacing in ThemedWidget
 
         # Create scroll area
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        scroll_area.setHorizontalScrollBarPolicy(
-            QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded,
-        )
-        scroll_area.setVerticalScrollBarPolicy(
-            QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded,
-        )
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)  # No border/frame
 
         # Custom styling for transparent and aesthetic scroll bars
-        scroll_area.setStyleSheet(
-            """
-            QScrollArea {
-                background: transparent;
-                border: none;
-            }
-            QScrollArea > QWidget > QWidget {
-                background: transparent;
-            }
-            QScrollBar:vertical {
-                background-color: rgba(0, 0, 0, 0.1);
-                width: 12px;
-                margin: 0px;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: rgba(128, 128, 128, 0.6);
-                min-height: 20px;
-                border-radius: 6px;
-                margin: 2px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: rgba(128, 128, 128, 0.8);
-            }
-            QScrollBar::handle:vertical:pressed {
-                background-color: rgba(128, 128, 128, 1.0);
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                height: 0px;
-            }
-            QScrollBar:horizontal {
-                background-color: rgba(0, 0, 0, 0.1);
-                height: 12px;
-                margin: 0px;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:horizontal {
-                background-color: rgba(128, 128, 128, 0.6);
-                min-width: 20px;
-                border-radius: 6px;
-                margin: 2px;
-            }
-            QScrollBar::handle:horizontal:hover {
-                background-color: rgba(128, 128, 128, 0.8);
-            }
-            QScrollBar::handle:horizontal:pressed {
-                background-color: rgba(128, 128, 128, 1.0);
-            }
-            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
-                width: 0px;
-                background: transparent;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                background: transparent;
-            }
-        """,
-        )
+        scroll_area.setStyleSheet(self.get_scroll_area_style())
 
         # Create scrollable content widget with transparent background
         scroll_content = QWidget()
@@ -207,8 +145,9 @@ class SettingsWindow(ThemedWidget):
 
             self.shortcut_input = QLineEdit(self.app.settings_manager.hotkey or "ctrl+space")
             self.shortcut_input.setStyleSheet(self.get_input_style())
-            # Auto-save when shortcut changes
-            self.shortcut_input.textChanged.connect(self.auto_save_shortcut)
+            self.shortcut_input.setPlaceholderText("e.g., ctrl+space, ctrl+shift+a")
+            # Auto-save when shortcut changed and focus lost
+            self.shortcut_input.editingFinished.connect(self.auto_save_shortcut)
             content_layout.addWidget(self.shortcut_input)
 
             # Background theme selection
@@ -261,9 +200,6 @@ class SettingsWindow(ThemedWidget):
 
         self.provider_dropdown = QComboBox()
         self.provider_dropdown.setStyleSheet(self.get_dropdown_style())
-        self.provider_dropdown.setInsertPolicy(
-            QComboBox.InsertPolicy.NoInsert,
-        )
         # Prevent wheel scroll from interfering with main scroll area
         self.provider_dropdown.wheelEvent = lambda e: e.ignore()
 
@@ -279,8 +215,12 @@ class SettingsWindow(ThemedWidget):
         self._logger.debug(
             f"Current provider: {current_provider}, Display name: {current_display_name}"
         )
+
+        # Find index of current provider in dropdown
         current_index = self.provider_dropdown.findText(current_display_name)
         self._logger.debug(f"Current provider dropdown index: {current_index}")
+
+        # Restore previously selected provider from settings
         if current_index != -1:
             self.provider_dropdown.setCurrentIndex(current_index)
         else:
@@ -300,8 +240,10 @@ class SettingsWindow(ThemedWidget):
         self.provider_container = QVBoxLayout()
         content_layout.addLayout(self.provider_container)
 
-        # Initialize provider UI
+        # Retrieves the data from the selected element.
         current_internal_name = self.provider_dropdown.currentData()
+
+        # Find the corresponding provider instance
         provider_instance = next(
             (
                 provider
@@ -310,6 +252,8 @@ class SettingsWindow(ThemedWidget):
             ),
             self.app.providers[0],
         )
+
+        # Initial UI setup for the selected provider
         self.init_provider_ui(provider_instance, self.provider_container)
 
         # React to provider changes by rebuilding the UI and auto-saving
@@ -328,23 +272,16 @@ class SettingsWindow(ThemedWidget):
         # Add close button (especially important for providers_only mode)
         self.add_close_button(main_layout)
 
-        # Set appropriate window height based on screen size
-        screen = QApplication.primaryScreen().geometry()
-        max_height = int(screen.height() * 0.85)  # 85% of screen height
-        desired_height = min(
-            550,
-            max_height,
-        )  # Cap at 600px or 85% of screen height (reduced by 100px to force scroll bars)
-        self.resize(
-            700,
-            desired_height,
-        )  # Use an exact width of 700px to provide space for dropdowns
-
-        # No custom close button needed - use standard window controls
-
         # Ensure window can receive keyboard events and maintain focus
         self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.setFocus()
+
+    def _calculate_window_size(self):
+        """Calculate and set window size: 700px width (fixed), height=min(550px, 85% screen height)."""
+        screen = QApplication.primaryScreen().geometry()
+        max_height = int(screen.height() * 0.85)
+        desired_height = min(550, max_height)
+        self.setFixedSize(700, desired_height)
 
     def retranslate_ui(self) -> None:
         self.setWindowTitle(_("Settings"))
@@ -358,6 +295,7 @@ class SettingsWindow(ThemedWidget):
         if hasattr(provider, "refresh_configuration"):
             provider.refresh_configuration()
             self._logger.debug(f"Refreshed configuration for {provider.internal_name}")
+
         # Clean up previous provider UI to prevent memory leaks and layout conflicts
         if self.current_provider_layout:
             # Remove the old layout from its parent container first
@@ -431,22 +369,7 @@ class SettingsWindow(ThemedWidget):
             # Main button
             if provider.button_text:
                 main_button = QPushButton(provider.button_text)
-                current_mode = self.app.settings_manager.color_mode
-                main_button.setStyleSheet(
-                    f"""
-                        QPushButton {{
-                            background-color: {"#4CAF50" if current_mode == "dark" else "#008CBA"};
-                            color: white;
-                            padding: 10px;
-                            font-size: 16px;
-                            border: none;
-                            border-radius: 5px;
-                        }}
-                        QPushButton:hover {{
-                            background-color: {"#45a049" if current_mode == "dark" else "#007095"};
-                        }}
-                    """,
-                )
+                main_button.setStyleSheet(self.get_primary_button_style())
                 main_button.clicked.connect(provider.button_action)
                 button_container.addWidget(main_button)
 
@@ -454,33 +377,13 @@ class SettingsWindow(ThemedWidget):
             if hasattr(provider, "additional_buttons"):
                 for button_config in provider.additional_buttons:
                     additional_button = QPushButton(button_config["text"])
-                    current_mode = self.app.settings_manager.color_mode
 
-                    # Different style for secondary buttons
+                    # Use appropriate style based on button type
                     if button_config.get("style") == "secondary":
-                        bg_color = "#666666" if current_mode == "dark" else "#cccccc"
-                        hover_color = "#555555" if current_mode == "dark" else "#bbbbbb"
-                        text_color = "#ffffff" if current_mode == "dark" else "#333333"
+                        additional_button.setStyleSheet(self.get_secondary_button_style())
                     else:
-                        bg_color = "#4CAF50" if current_mode == "dark" else "#008CBA"
-                        hover_color = "#45a049" if current_mode == "dark" else "#007095"
-                        text_color = "white"
+                        additional_button.setStyleSheet(self.get_primary_button_style())
 
-                    additional_button.setStyleSheet(
-                        f"""
-                            QPushButton {{
-                                background-color: {bg_color};
-                                color: {text_color};
-                                padding: 8px 12px;
-                                font-size: 14px;
-                                border: none;
-                                border-radius: 4px;
-                            }}
-                            QPushButton:hover {{
-                                background-color: {hover_color};
-                            }}
-                        """,
-                    )
                     additional_button.clicked.connect(button_config["action"])
                     button_container.addWidget(additional_button)
 
@@ -492,7 +395,6 @@ class SettingsWindow(ThemedWidget):
                 alignment=QtCore.Qt.AlignmentFlag.AlignCenter,
             )
 
-        # Initialize provider config if needed
         # Initialize providers if necessary
         if not self.app.settings_manager.providers:
             self.app.settings_manager.providers = {}
@@ -552,12 +454,6 @@ class SettingsWindow(ThemedWidget):
             elif item.layout():
                 # Recursively check nested layouts
                 self.disable_dropdown_scroll(item.layout())
-
-    def showEvent(self, event: QtGui.QShowEvent) -> None:
-        """Handle window show event to ensure focus."""
-        super().showEvent(event)
-        # Force focus to this window when shown (important for hotkey workflow)
-        ui_utils.existing_window_on_top(self)
 
     def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
         """
@@ -620,35 +516,12 @@ class SettingsWindow(ThemedWidget):
         self.close_button = QPushButton(button_text)
         self.close_button.setFixedSize(150, 40)
         # Use effective mode based on user settings
-        current_mode = self.app.settings_manager.color_mode
-        self.close_button.setStyleSheet(
-            f"""
-            QPushButton {{
-                background-color: {"#0078d4" if current_mode == "light" else "#106ebe"};
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 14px;
-                font-weight: bold;
-                padding: 8px 16px;
-            }}
-            QPushButton:hover {{
-                background-color: {"#106ebe" if current_mode == "light" else "#1e88e5"};
-            }}
-            QPushButton:pressed {{
-                background-color: {"#005a9e" if current_mode == "light" else "#0d47a1"};
-            }}
-        """,
-        )
+        self.close_button.setStyleSheet(self.get_close_button_style())
 
         # Connect button click to save_settings method for final processing and window closing
         self.close_button.clicked.connect(self.save_settings)
         button_layout.addWidget(self.close_button)
         main_layout.addWidget(button_container)
-
-    def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
-        """Handle window resize events."""
-        super().resizeEvent(event)
 
     def auto_save_shortcut(self) -> None:
         """
@@ -768,56 +641,60 @@ class SettingsWindow(ThemedWidget):
             self.shortcut_input.setStyleSheet(self.get_input_style())
 
         # Update radio buttons if they exist
-        if self.gradient_radio:
+        if self.gradient_radio and self.plain_radio:
             radio_style = self.get_radio_style()
             self.gradient_radio.setStyleSheet(radio_style)
-            if self.plain_radio:
-                self.plain_radio.setStyleSheet(radio_style)
+            self.plain_radio.setStyleSheet(radio_style)
 
         # Update checkbox if it exists
         if self.autostart_checkbox:
             self.autostart_checkbox.setStyleSheet(self.get_checkbox_style())
 
+        # Update provider buttons
+        self._update_provider_buttons()
+
+        # Update close button
+        if hasattr(self, "close_button") and self.close_button:
+            self.close_button.setStyleSheet(self.get_close_button_style())
+
+        if self.app.systray_manager.tray_menu:
+            self.app.systray_manager.apply_tray_menu_styles(self.app.systray_manager.tray_menu)
+
         # Force background update
         if self.background:
             self.background.update()
 
-    # def auto_save_provider(self) -> None:
-    #     """
-    #     Auto-save provider selection when it changes.
-    #     """
-    #     provider_name = self.provider_dropdown and self.provider_dropdown.currentData() or "gemini"
-    #     self.app.settings_manager.provider = provider_name
-    #     # Save provider-specific settings as well
-    #     self.save_provider_settings(provider_name)
+    def _update_provider_buttons(self) -> None:
+        """Update styles for all provider buttons when theme changes."""
+        if not self.current_provider_layout:
+            return
 
-    # def save_provider_settings(self, provider_name: str) -> None:
-    #     """
-    #     Save current provider-specific settings.
-    #     """
-    #     # # Find the corresponding provider instance
-    #     selected_provider = next(
-    #         (
-    #             provider
-    #             for provider in self.app.providers
-    #             if provider.internal_name == provider_name
-    #         ),
-    #         self.app.providers[0],
-    #     )
+        def update_buttons_in_layout(layout):
+            for i in range(layout.count()):
+                item = layout.itemAt(i)
+                if item.widget() and isinstance(item.widget(), QPushButton):
+                    button = item.widget()
+                    # Skip close button
+                    if button == getattr(self, "close_button", None):
+                        continue
 
-    #     # Save provider-specific configuration
-    #     self._logger.debug(f"Saving settings for provider: {provider_name}")
-    #     selected_provider.save_config()
+                    # Determine button type and apply appropriate style
+                    button_text = button.text().lower() if button.text() else ""
 
-    #     # # Update application's current provider
-    #     self.app.current_provider = selected_provider
+                    # Check if it's a secondary button (based on common patterns)
+                    if any(
+                        keyword in button_text
+                        for keyword in ["cancel", "reset", "clear", "remove", "delete"]
+                    ):
+                        button.setStyleSheet(self.get_secondary_button_style())
+                    else:
+                        # Default to primary button style
+                        button.setStyleSheet(self.get_primary_button_style())
 
-    #     # Load the saved configuration into the provider
-    #     provider_config = self.app._get_provider_config(provider_name)
-    #     if self.app.current_provider:
-    #         self.app.current_provider.load_config(provider_config)
-    #     else:
-    #         logging.error("Current provider not set after save")
+                elif item.layout():
+                    update_buttons_in_layout(item.layout())
+
+        update_buttons_in_layout(self.current_provider_layout)
 
     def toggle_autostart(self, state: int) -> None:
         """Toggle the autostart setting based on checkbox state."""

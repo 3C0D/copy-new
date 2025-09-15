@@ -75,7 +75,6 @@ class WritingToolApp(QApplication):
     show_message_signal = Signal(str, str)  # a signal for showing message boxes
     hotkey_triggered_signal = Signal()
     followup_response_signal = Signal(str)
-    theme_changed_signal = Signal(str)  # signal for theme changes from systray
 
     def __init__(self, argv):
         super().__init__(argv)
@@ -133,13 +132,6 @@ class WritingToolApp(QApplication):
         self.output_ready_signal.connect(self.replace_text)
         self.show_message_signal.connect(self.show_message_box)
         self.hotkey_triggered_signal.connect(self.on_hotkey_pressed)
-        self.theme_changed_signal.connect(self.on_theme_changed)
-
-    @Slot(str)
-    def on_theme_changed(self, new_mode: str) -> None:
-        """Handle theme changes from ThemeManager."""
-        if self.systray_manager.tray_menu:
-            self.systray_manager.apply_tray_menu_styles(self.systray_manager.tray_menu)
 
     def _setup_settings(self) -> None:
         """Initialize settings manager and load configuration."""
@@ -158,10 +150,10 @@ class WritingToolApp(QApplication):
         self.help_window = None
         self.non_editable_modal = None
         self.theme_manager = ThemeManager(self)
+        self.styles = self.theme_manager.get_styles()
 
     def _setup_hotkey_system(self) -> None:
         """Initialize hotkey and keyboard listener system."""
-        self.registered_hotkey = None
         self.hotkey_listener = None
         self.ctrl_c_timer = None
         self.setup_ctrl_c_listener()
@@ -471,12 +463,8 @@ class WritingToolApp(QApplication):
         orig_shortcut = self.settings_manager.hotkey or "ctrl+space"
 
         # Parse the shortcut string, for example ctrl+alt+h -> <ctrl>+<alt>+<h>. Space are removed.
-        shortcut = "+".join(
-            [
-                f"{t}" if len(t) <= 1 else f"<{t}>"
-                for t in [part.strip() for part in orig_shortcut.split("+")]
-            ],
-        )
+        shortcut = "+".join([f"<{t.strip()}>" for t in orig_shortcut.split("+")])
+
         self._logger.debug(f"Registering global hotkey for shortcut: {shortcut}")
 
         try:
@@ -492,7 +480,6 @@ class WritingToolApp(QApplication):
 
             # Define the hotkey combination
             hotkey = keyboard.HotKey(keyboard.HotKey.parse(shortcut), on_activate)
-            self.registered_hotkey = orig_shortcut
 
             # Helper function to standardize key event
             def for_canonical(f):

@@ -72,11 +72,6 @@ class SystrayManager:
         # Verify if it's actually visible with retry
         self._verify_tray_icon_visibility()
 
-        # Handle theme changes through theme manager
-        self.app.theme_manager.theme_changed.connect(
-            lambda new_mode: self.app.theme_changed_signal.emit(new_mode)
-        )
-
         self._logger.debug("Tray icon setup completed")
 
     def update_tray_menu(self) -> None:

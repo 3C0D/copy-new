@@ -261,3 +261,11 @@ class AboutWindow(ThemedWidget):
     def original_app(self) -> None:
         """Open the original app GitHub page."""
         webbrowser.open("https://github.com/TheJayTea/WritingTools")
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        """
+        Handle window close event.
+        """
+        super().closeEvent(event)
+        self.app.about_window = None
+        self._logger.debug("AboutWindow closeEvent finished")
