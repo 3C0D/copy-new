@@ -166,7 +166,6 @@ class OnboardingWindow(ThemedWidget):
         title_label.setStyleSheet(self._get_title_style())
         return title_label
 
-
     def _get_title_style(self) -> str:
         """Get the title styling based on current color mode."""
         current_mode = self.app.settings_manager.color_mode
@@ -420,9 +419,9 @@ class OnboardingWindow(ThemedWidget):
             self.app.theme_manager.change_background_theme(color_mode)
 
             # Refresh UI styles with updated colorMode
-            self._refresh_ui_styles()
+            self.refresh_theme()
 
-    def _refresh_ui_styles(self) -> None:
+    def refresh_theme(self) -> None:
         """Refresh all UI element styles to reflect the current color mode."""
         # Update color mode dropdown style
         if hasattr(self, "color_mode_dropdown") and self.color_mode_dropdown:
@@ -458,9 +457,9 @@ class OnboardingWindow(ThemedWidget):
             ):  # Skip background widgets but apply content style to others
                 widget.setStyleSheet(self._get_content_style())
 
-        # Force background update
-        if hasattr(self, "background") and self.background:
-            self.background.update()
+        # Refresh background theme
+        super().refresh_theme()
+
 
     def _save_shortcut_setting(self) -> None:
         """Save only the shortcut setting to persistent storage."""
@@ -509,8 +508,3 @@ class OnboardingWindow(ThemedWidget):
         if not self.self_close:
             self.close_signal.emit()
         super().closeEvent(event)
-
-    def refresh_theme(self) -> None:
-        """Appelé automatiquement quand le thème change via ThemeManager."""
-        # Utiliser l'ancienne méthode pour l'instant, sera refactorisée plus tard
-        self._refresh_ui_styles()

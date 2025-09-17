@@ -548,15 +548,17 @@ class SettingsWindow(ThemedWidget):
             theme_icon = (
                 "🌙" if color_mode == "dark" else ("☀️\u00a0" if color_mode == "light" else "🔄")
             )
-            self._logger.debug(f"🎨 SettingsWindow color mode change: {theme_icon} Color={color_mode}")
+            self._logger.debug(
+                f"🎨 SettingsWindow color mode change: {theme_icon} Color={color_mode}"
+            )
 
             # Apply theme change
             self.app.theme_manager.change_color_mode(color_mode)
 
             # Refresh UI styles with updated colorMode
-            self._refresh_ui_styles()
+            self.refresh_theme()
 
-    def _refresh_ui_styles(self) -> None:
+    def refresh_theme(self) -> None:
         """Refresh all UI element styles to reflect the current color mode."""
         # Update color mode dropdown style
         if self.color_mode_dropdown:
@@ -657,9 +659,9 @@ class SettingsWindow(ThemedWidget):
         if self.app.current_provider:
             self.app.current_provider.refresh_styles()
 
-        # Force background update
-        if self.background:
-            self.background.update()
+        # Refresh background theme
+        super().refresh_theme()
+
 
     def _update_provider_buttons(self) -> None:
         """Update styles for all provider buttons when theme changes."""
@@ -800,7 +802,3 @@ class SettingsWindow(ThemedWidget):
         self.app.settings_window = None
         self._logger.debug("SettingsWindow closeEvent finished")
 
-    def refresh_theme(self) -> None:
-        """Automatically called when theme changes via ThemeManager."""
-        # Use the old method for now, will be refactored later
-        self._refresh_ui_styles()
