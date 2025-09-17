@@ -146,8 +146,6 @@ class WritingToolApp(QApplication):
         self.popup_window = None
         self.tray_icon = None
         self.settings_window = None
-        self.about_window = None
-        self.help_window = None
         self.non_editable_modal = None
         self.theme_manager = ThemeManager(self)
         self.styles = self.theme_manager.get_styles()
@@ -1845,32 +1843,6 @@ class WritingToolApp(QApplication):
         self.settings_window.close_signal.connect(self.exit_app)
         self.settings_window.retranslate_ui()
         self.settings_window.show()
-
-    def show_about(self) -> None:
-        """
-        Show the about window.
-        """
-        self._logger.debug("Showing about window")
-        if self.help_window:
-            self.help_window.close()
-        if not self.about_window:
-            self.about_window = ui.AboutWindow.AboutWindow(self)
-            self.about_window.show()
-        else:
-            ui_utils.existing_window_on_top(self.about_window)
-
-    def show_help(self) -> None:
-        """
-        Show the help window.
-        """
-        self._logger.debug("Showing help window")
-        if self.about_window:
-            self.about_window.close()
-        if not self.help_window:
-            self.help_window = ui.HelpWindow.HelpWindow(self)
-            self.help_window.show()
-        else:
-            ui_utils.existing_window_on_top(self.help_window)
 
     # ============================================================================
     # APPLICATION LIFECYCLE METHODS

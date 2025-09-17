@@ -1,3 +1,7 @@
+
+Reproduire la même barre, scroll dans Settings window Que dans help window
+description_label.setStyleSheet(f"{self.app.styles['label']} text-align: center;")
+
 Arranger dans WTA non editable modal close, show... comme pour help invoqué dans replace_text
 
 Quand on change de modèle Directement Dans costum pop up. Apparemment, le modèle n'est pas bien mis à jour.

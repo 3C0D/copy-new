@@ -134,6 +134,8 @@ class ThemedWidget(QWidget):
         self.app = app
         self.setup_window_and_layout()
         self._theme_aware = False
+        self.min_width = 150
+        self.min_height = 150
 
         # Theme management integration
         self._register_for_theme_changes()
@@ -163,6 +165,11 @@ class ThemedWidget(QWidget):
         """Handle window show event to ensure focus."""
         super().showEvent(event)
         ui_utils.existing_window_on_top(self)
+
+    def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
+        """Handle window resize events to maintain minimum size."""
+        if self.width() < self.min_width or self.height() < self.min_height:
+            self.resize(max(self.width(), self.min_width), max(self.height(), self.min_height))
 
     def get_current_background_theme(self) -> str:
         """Get the current background theme from settings."""

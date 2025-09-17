@@ -6,6 +6,8 @@ from PySide6 import QtCore, QtGui
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
 from ui.ui_utils import ui_utils
+import ui.AboutWindow
+import ui.HelpWindow
 
 if TYPE_CHECKING:
     from WritingToolApp import WritingToolApp
@@ -25,6 +27,8 @@ class SystrayManager:
         self.tray_click_debounce_ms = 300
         self.toggle_action = None
         self.paused = False
+        self.about_window = None
+        self.help_window = None
 
     def create_tray_icon(self) -> None:
         """
@@ -97,14 +101,40 @@ class SystrayManager:
 
         # About menu item
         about_action = self.tray_menu.addAction(_("About"))
-        about_action.triggered.connect(self.app.show_about)
+        about_action.triggered.connect(self.show_about)
 
         help_action = self.tray_menu.addAction(_("Help"))
-        help_action.triggered.connect(self.app.show_help)
+        help_action.triggered.connect(self.show_help)
 
         # Exit menu item
         exit_action = self.tray_menu.addAction(_("Exit"))
         exit_action.triggered.connect(self.app.exit_app)
+
+    def show_about(self) -> None:
+        """
+        Show the about window.
+        """
+        self._logger.debug("Showing about window")
+        if self.help_window:
+            self.help_window.close()
+        if not self.about_window:
+            self.about_window = ui.AboutWindow.AboutWindow(self.app)
+            self.about_window.show()
+        else:
+            ui_utils.existing_window_on_top(self.about_window)
+
+    def show_help(self) -> None:
+        """
+        Show the help window.
+        """
+        self._logger.debug("Showing help window")
+        if self.about_window:
+            self.about_window.close()
+        if not self.help_window:
+            self.help_window = ui.HelpWindow.HelpWindow(self.app)
+            self.help_window.show()
+        else:
+            ui_utils.existing_window_on_top(self.help_window)
 
     def toggle_paused(self) -> None:
         """Toggle the paused state of the application."""

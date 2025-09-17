@@ -21,58 +21,52 @@ class HelpWindow(ThemedWidget):
     The help window for the application.
     """
 
-    min_width: int
-    min_height: int
     content_layout: QVBoxLayout
 
     def __init__(self, app=None) -> None:
         super().__init__(app)
         self._logger = logging.getLogger(__name__)
         self.min_width = 600
-        self.min_height = 750
+        self.min_height = 650  # Same as AboutWindow
         self.init_ui()
 
     def init_ui(self) -> None:
         """Initialize the user interface for the help window."""
         self._setup_window()
-        self.create_layout()
-        self.load_help_content()
+        self._create_layout()
+        self._load_content()
 
     def _setup_window(self) -> None:
         """Configure window properties and positioning."""
-        self.clean_TitleBar()  # Hidden title for clean look
-        self.setMinimumSize(self.min_width, self.min_height)
+        self.clean_TitleBar()
+        self.setMinimumSize(self.min_width, self.min_height)  # resizeable with minimum size
+        # Center window on screen
         self.center_on_screen()
 
-    def create_layout(self) -> None:
+    def _create_layout(self) -> None:
         """Create the main layout structure."""
         self.content_layout = QVBoxLayout(self.background)
         self.content_layout.setContentsMargins(30, 30, 30, 30)
         self.content_layout.setSpacing(20)
 
-    def load_help_content(self) -> None:
+    def _load_content(self) -> None:
         """Load and display the help content."""
         # Title
-        self.title_label: QLabel = self._create_title_label()
+        self._title_label: QLabel = self._create_title_label()
         self.content_layout.addWidget(
-            self.title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter
+            self._title_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter
         )
 
         # Scrollable main content
         help_content: str = self._get_help_content()
-        self.scroll_area: QScrollArea = self._create_scrollable_content(help_content)
-        self.content_layout.addWidget(self.scroll_area)
+        content_widget: QScrollArea = self._create_scrollable_content(help_content)
+        self.content_layout.addWidget(content_widget)
 
     def _create_title_label(self) -> QLabel:
         """Create the main title label."""
         title_label = QLabel(_("Writing Tools Help"))
-        title_label.setStyleSheet(self._get_title_style())
+        title_label.setStyleSheet(self.app.styles["label_title"])
         return title_label
-
-    def _get_title_style(self) -> str:
-        """Get the title styling based on current theme."""
-        base_label_style = self.get_label_style()
-        return f"{base_label_style} font-size: 24px; font-weight: bold; margin-bottom: 10px;"
 
     def _get_help_content(self) -> str:
         """Get the formatted help content HTML."""
@@ -88,7 +82,7 @@ class HelpWindow(ThemedWidget):
         <div style='text-align: left; line-height: 1.6; color: {text_color}; background-color: {bg_color};'>
             <h2 style='color: {text_color};'>🎯 {_("How to Use Writing Tools")}</h2>
 
-            <h3 style='color: {text_color};'> 🖼️\u00a0 {_("Image Processing Priority")}</h3>
+            <h3 style='color: {text_color};'> 🖼️  {_("Image Processing Priority")}</h3>
             <p><strong>{_("Clipboard Images:")}</strong> {_("When an image is in your clipboard, it takes priority over selected text. Press Ctrl+Space to open a prompt window for image analysis (OCR, translation, description, etc.).")}</p>
             <p><strong>{_("Screenshot Workflow:")}</strong> {_("Take a screenshot (Ctrl+Shift+S or Print Screen) → Image copied to clipboard → Ctrl+Space → Enter prompt → Chat window opens with AI response → Continue discussion about the image.")}</p>
             <p><strong>{_("Clipboard Management:")}</strong> <b>{_("Once you validate the prompt and enter chat mode, the image is cleared from clipboard to prevent accidental reuse. If you cancel the prompt, the image remains in clipboard.")}</b></p>
@@ -138,7 +132,7 @@ class HelpWindow(ThemedWidget):
             <p><strong>{_("Model Testing:")}</strong> {_("Click models in chat interface to test and install directly")}</p>
             <p><strong>{_("Model Management:")}</strong> {_("Installed models appear immediately in settings dropdown")}</p>
 
-            <h3 style='color: {text_color};'>🎛️\u00a0 {_("Systray/Settings")}</h3>
+            <h3 style='color: {text_color};'>🎛️  {_("Systray/Settings")}</h3>
             <p><strong>{_("System Tray Menu:")}</strong> {_("Right-click icon for quick access to settings, help, and mode toggles")}</p>
 
             <div style='margin-top: 30px; padding: 15px; background: {highlight_bg}; border: 1px solid {border_color}; border-radius: 8px;'>
@@ -146,7 +140,7 @@ class HelpWindow(ThemedWidget):
                 <div style='display: flex; justify-content: space-between; margin-top: 10px; color: {text_color};'>
                     <div>
                         <strong>{_("Flow:")}</strong><br>
-                         🖼️\u00a0 Image → Ctrl+Space → Prompt → Chat<br>
+                         🖼️  Image → Ctrl+Space → Prompt → Chat<br>
                         📝 Text → Ctrl+Space → Manual/Action → Chat/Replace<br>
                         ❌ Cancel → Clipboard preserved<br>
                         ✅ Validate → Clipboard cleared
@@ -162,39 +156,17 @@ class HelpWindow(ThemedWidget):
         </div>
         """
 
-    def _get_scroll_style(self) -> str:
-        """Get the scrollbar styling based on current theme."""
-        current_mode = self.app.settings_manager.color_mode
-        if current_mode == "dark":
-            handle_color = "rgba(255, 255, 255, 0.3)"
-        else:
-            handle_color = "rgba(0, 0, 0, 0.3)"
-
-        return f"""
-        QScrollArea {{
-            background: transparent;
-            border: none;
-        }}
-        QScrollBar:vertical {{
-            background: transparent;
-            width: 10px;
-        }}
-        QScrollBar::handle:vertical {{
-            background: {handle_color};
-            border-radius: 5px;
-        }}
-        """
-
     def _create_scrollable_content(self, content: str) -> QScrollArea:
         """Create a scrollable area for the content."""
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        scroll_area.setStyleSheet(self._get_scroll_style())
+        scroll_area.setStyleSheet("QScrollArea { background: transparent; border: none; }")
 
         self.content_widget = QLabel(content)
         self.content_widget.setWordWrap(True)
         self.content_widget.setOpenExternalLinks(True)
+        self.content_widget.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
         self.content_widget.setStyleSheet("""
             QLabel {
                 background: transparent;
@@ -206,19 +178,20 @@ class HelpWindow(ThemedWidget):
         scroll_area.setWidget(self.content_widget)
         return scroll_area
 
+
+
     def refresh_theme(self) -> None:
         """Refresh all theme-dependent styles in the help window."""
         super().refresh_theme()
 
-        # Log theme change with distinctive icon
-        current_bg_theme = self.get_current_background_theme()
-        current_color_mode = self.app.settings_manager.color_mode
+        background_theme = self.get_current_background_theme()
+        color_mode = self.app.settings_manager.color_mode
 
-        theme_icon = "🌙" if current_color_mode == "dark" else "☀️\u00a0"
-        bg_icon = "⚽" if current_bg_theme == "plain" else "🌈"
+        theme_icon = "🌙" if color_mode == "dark" else "☀️ "
+        bg_icon = "⚽" if background_theme == "plain" else "🌈"
 
-        print(
-            f"🎯 HelpWindow theme update: {theme_icon} Color={current_color_mode} {bg_icon} BG={current_bg_theme}"
+        self._logger.debug(
+            f"🎯 HelpWindow theme update: {theme_icon} Color={color_mode} {bg_icon} BG={background_theme}"
         )
 
         # Update HTML content with new colors
@@ -226,18 +199,13 @@ class HelpWindow(ThemedWidget):
         self.content_widget.setText(help_content)
 
         # Update title style
-        self.title_label.setStyleSheet(self._get_title_style())
-
-        # Update scrollbar style
-        self.scroll_area.setStyleSheet(self._get_scroll_style())
-
-        # Force repaint to update background (gradient)
-        self.update()
+        if hasattr(self, "_title_label"):
+            self._title_label.setStyleSheet(self.app.styles["label_title"])
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """
         Handle window close event.
         """
         super().closeEvent(event)
-        self.app.help_window = None
-        self._logger.info("Help window closed.")
+        self.app.systray_manager.help_window = None
+        self._logger.debug("HelpWindow closeEvent finished")

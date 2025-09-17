@@ -23,8 +23,6 @@ class AboutWindow(ThemedWidget):
     The about window for the application.
     """
 
-    min_width: int
-    min_height: int
     content_layout: QVBoxLayout
 
     def __init__(self, app) -> None:
@@ -43,7 +41,7 @@ class AboutWindow(ThemedWidget):
     def _setup_window(self) -> None:
         """Configure window properties and positioning."""
         self.clean_TitleBar()
-        self.setMinimumSize(self.min_width, self.min_height)
+        self.setMinimumSize(self.min_width, self.min_height)  # resizeable with minimum size
         # Center window on screen
         self.center_on_screen()
 
@@ -73,14 +71,8 @@ class AboutWindow(ThemedWidget):
     def _create_title_label(self) -> QLabel:
         """Create the main title label."""
         title_label = QLabel(_("About Writing Tools"))
-        title_label.setStyleSheet(self._get_title_style())
+        title_label.setStyleSheet(self.app.styles["label_title"])
         return title_label
-
-    def _get_title_style(self) -> str:
-        """Get the title styling based on current theme."""
-        current_mode = self.app.settings_manager.color_mode
-        color = "#ffffff" if current_mode == "dark" else "#333333"
-        return f"font-size: 24px; font-weight: bold; color: {color};"
 
     def _get_about_content(self) -> str:
         """Get the formatted about content HTML."""
@@ -194,38 +186,23 @@ class AboutWindow(ThemedWidget):
     def _create_update_button(self) -> QPushButton:
         """Create the update check button with modern styling."""
         update_button = QPushButton(_("Check for updates"))
-        update_button.setStyleSheet(self._get_button_style())
+        self.apply_update_button_style(update_button)
         update_button.clicked.connect(self.check_for_updates)
         update_button.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         return update_button
+
+    def apply_update_button_style(self, button: QPushButton) -> None:
+        """Apply modern styling to a button."""
+        dark = self.app.settings_manager.color_mode == "dark"
+        button.setStyleSheet(
+            f"{self.app.styles['primary_button']} font-weight: bold; padding: 10px 20px;border-radius: 8px;border: 1px solid {'#3d8b40' if dark else 'none'};"
+        )
 
     def _get_content_style(self) -> str:
         """Get the content styling with fixed dark colors for better readability."""
         color = "#e8dcc0"
         background = "rgba(45, 45, 45, 0.95)"
         return f"font-size: 14px; color: {color}; background-color: {background}; padding: 10px; border-radius: 8px;"
-
-    def _get_button_style(self) -> str:
-        """Get the button styling with theme awareness (Qt stylesheets only)."""
-
-        return """
-            QPushButton {
-                background-color: #4CAF50;
-                color: #ffffff;
-                padding: 10px 20px;
-                font-size: 16px;
-                font-weight: bold;
-                border: 1px solid #2e7d32; /* darker green border for contrast */
-                border-radius: 8px;
-            }
-            QPushButton:hover { background-color: #43a047; }
-            QPushButton:pressed { background-color: #388e3c; }
-            QPushButton:disabled {
-                background-color: #2e7d32;
-                color: #bdbdbd;
-                border-color: #255d27;
-            }
-        """
 
     def check_for_updates(self) -> None:
         """Open the GitHub releases page to check for updates."""
@@ -247,16 +224,9 @@ class AboutWindow(ThemedWidget):
 
         # Update title and button styles
         if hasattr(self, "_title_label"):
-            self._title_label.setStyleSheet(self._get_title_style())
+            self._title_label.setStyleSheet(self.app.styles["label_title"])
         if hasattr(self, "_update_button"):
-            self._update_button.setStyleSheet(self._get_button_style())
-
-    def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
-        """Handle window resize events to maintain minimum size."""
-        super().resizeEvent(event)
-        # Enforce minimum dimensions
-        if self.width() < self.min_width or self.height() < self.min_height:
-            self.resize(max(self.width(), self.min_width), max(self.height(), self.min_height))
+            self.apply_update_button_style(self._update_button)
 
     def original_app(self) -> None:
         """Open the original app GitHub page."""
@@ -267,5 +237,5 @@ class AboutWindow(ThemedWidget):
         Handle window close event.
         """
         super().closeEvent(event)
-        self.app.about_window = None
+        self.app.systray_manager.about_window = None
         self._logger.debug("AboutWindow closeEvent finished")

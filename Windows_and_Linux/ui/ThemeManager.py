@@ -180,10 +180,10 @@ class ThemeManager(QtCore.QObject):
             "primary_button": f"""
                 QPushButton {{
                     background-color: {primary_default};
+                    border: none;
                     color: white;
                     padding: 10px;
                     font-size: 16px;
-                    border: none;
                     border-radius: 5px;
                 }}
                 QPushButton:hover {{
@@ -191,6 +191,11 @@ class ThemeManager(QtCore.QObject):
                 }}
                 QPushButton:pressed {{
                     background-color: {primary_pressed};
+                }}
+                QPushButton:disabled {{
+                    background-color: {primary_pressed};
+                    color: #bdbdbd;
+                    border-color: {primary_pressed};
                 }}
             """,
             "secondary_button": f"""
