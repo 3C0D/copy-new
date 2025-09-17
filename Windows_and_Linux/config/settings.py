@@ -152,7 +152,7 @@ class SettingsManager:
 
     @property
     def color_mode(self) -> str:
-        """Current color theme mode ('auto', 'dark', or 'light')."""
+        """Current color mode ('auto', 'dark', or 'light')."""
         if "color_mode" not in self.settings.system:
             self.settings.system["color_mode"] = "auto"
 
@@ -164,7 +164,7 @@ class SettingsManager:
 
     @color_mode.setter
     def color_mode(self, value: str) -> None:
-        """Set the color theme mode."""
+        """Set the color mode."""
         self.settings.system["color_mode"] = value
         self.save()
 

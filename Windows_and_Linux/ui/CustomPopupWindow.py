@@ -98,7 +98,7 @@ class ToggleSwitch(QCheckBox):
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
 
-        # Colors based on theme
+        # Colors based on color mode
         dark_mode = self.app.settings_manager.color_mode == "dark"
 
         if self.isChecked():
@@ -542,7 +542,7 @@ class CustomPopupWindow(QWidget):
         self.background = ThemeBackground(
             self.app,
             self,
-            self.app.settings_manager.theme or "gradient",
+            self.app.settings_manager.background_theme or "gradient",
             is_popup=True,
             border_radius=10,
         )

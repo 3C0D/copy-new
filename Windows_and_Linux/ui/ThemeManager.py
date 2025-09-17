@@ -2,6 +2,7 @@
 Centralized theme manager for the entire application.
 """
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 from PySide6 import QtCore
@@ -13,15 +14,14 @@ if TYPE_CHECKING:
 class ThemeManager(QtCore.QObject):
     """Centralized theme manager with signals to notify changes."""
 
-    # Signal emitted when the theme changes
-    theme_changed = QtCore.Signal(str)  # Emits the new mode (dark/light)
+    color_mode_changed = QtCore.Signal(str)  # Emits the new mode (dark/light)
 
-    # Signal emitted when the background theme changes
     background_theme_changed = QtCore.Signal(str)  # Emits the new background theme (gradient/plain)
 
     def __init__(self, app: "WritingToolApp"):
         super().__init__()
         self.app = app
+        self._logger = logging.getLogger(__name__)
         self._registered_widgets = []
 
     def register_widget(self, widget: Any) -> None:
@@ -34,9 +34,15 @@ class ThemeManager(QtCore.QObject):
         if widget in self._registered_widgets:
             self._registered_widgets.remove(widget)
 
-    def change_theme(self, new_mode: str) -> None:
-        """Change the theme and notify all registered widgets."""
-        self.theme_changed.emit(new_mode)
+    def change_color_mode(self, new_mode: str) -> None:
+        """Change the color mode and notify all registered widgets."""
+        # Save to settings
+        self.app.settings_manager.color_mode = new_mode
+
+        # Update styles
+        self.app.styles = self.get_styles()
+        # Emit signal
+        self.color_mode_changed.emit(new_mode)
 
         # Refresh all registered widgets
         for widget in self._registered_widgets[:]:  # Copy to avoid modifications during iteration
@@ -51,22 +57,13 @@ class ThemeManager(QtCore.QObject):
         """Change the background theme (gradient/plain) and notify all registered widgets."""
         # Log background theme change with distinctive icon
         bg_icon = "🌈" if new_theme == "gradient" else "⚽"
-        print(f"🎨 ThemeManager background theme: {bg_icon} BG={new_theme}")
+        self._logger.debug(f"🎨 ThemeManager background theme: {bg_icon} BG={new_theme}")
 
+        # Save to settings
+        self.app.settings_manager.background_theme = new_theme
+
+        # Emit signal and update all registered widgets with the new theme
         self.background_theme_changed.emit(new_theme)
-
-        # Update background for all registered widgets
-        for widget in self._registered_widgets[:]:  # Copy to avoid modifications during iteration
-            try:
-                if hasattr(widget, "change_background_theme"):
-                    widget.change_background_theme(new_theme)
-                elif hasattr(widget, "background") and widget.background:
-                    # Direct update if widget has background but no method
-                    widget.background.theme = new_theme
-                    widget.background.update()
-            except RuntimeError:
-                # Widget destroyed, remove it from the list
-                self._registered_widgets.remove(widget)
 
     def get_styles(self) -> dict[str, str]:
         """

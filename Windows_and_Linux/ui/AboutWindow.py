@@ -41,8 +41,7 @@ class AboutWindow(ThemedWidget):
     def _setup_window(self) -> None:
         """Configure window properties and positioning."""
         self.clean_TitleBar()
-        self.setMinimumSize(self.min_width, self.min_height)  # resizeable with minimum size
-        # Center window on screen
+        self._calculate_window_size()
         self.center_on_screen()
 
     def _create_layout(self) -> None:

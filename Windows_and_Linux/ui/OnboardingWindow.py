@@ -41,7 +41,7 @@ class OnboardingWindow(ThemedWidget):
 
         # Default configuration values
         self.shortcut = "ctrl+space"
-        self.theme = "gradient"
+        self.background_theme = "gradient"
 
         # UI components that will be referenced later
         self.content_layout: QVBoxLayout
@@ -168,7 +168,7 @@ class OnboardingWindow(ThemedWidget):
 
 
     def _get_title_style(self) -> str:
-        """Get the title styling based on current theme (dark/light mode)."""
+        """Get the title styling based on current color mode."""
         current_mode = self.app.settings_manager.color_mode
         color = "#ffffff" if current_mode == "dark" else "#333333"
         return f"font-size: 24px; font-weight: bold; color: {color};"
@@ -250,7 +250,7 @@ class OnboardingWindow(ThemedWidget):
         theme_layout = QVBoxLayout()
 
         # Label for theme selection
-        theme_label = QLabel(_("Choose your theme:"))
+        theme_label = QLabel(_("Choose your background theme:"))
         theme_label.setStyleSheet(self._get_content_style())
         theme_layout.addWidget(theme_label)
 
@@ -266,11 +266,11 @@ class OnboardingWindow(ThemedWidget):
         self.gradient_radio.setStyleSheet(radio_style)
         self.plain_radio.setStyleSheet(radio_style)
 
-        # Set default selection based on current theme
-        self.gradient_radio.setChecked(self.theme == "gradient")
-        self.plain_radio.setChecked(self.theme == "plain")
+        # Set default selection based on current background_theme
+        self.gradient_radio.setChecked(self.background_theme == "gradient")
+        self.plain_radio.setChecked(self.background_theme == "plain")
 
-        # Connect signals for immediate theme change and auto-save
+        # Connect signals for immediate background_theme change and auto-save
         self.gradient_radio.toggled.connect(self._on_theme_changed)
         self.plain_radio.toggled.connect(self._on_theme_changed)
 
@@ -289,21 +289,21 @@ class OnboardingWindow(ThemedWidget):
         return next_button
 
     def _get_content_style(self) -> str:
-        """Get the content styling based on current theme (dark/light mode)."""
+        """Get the content styling based on current color mode."""
         current_mode = self.app.settings_manager.color_mode
         color = "#ffffff" if current_mode == "dark" else "#333333"
         style = f"font-size: 16px; color: {color};"
         return style
 
     def _get_info_style(self) -> str:
-        """Get the info text styling based on current theme (dark/light mode)."""
+        """Get the info text styling based on current color mode."""
         current_mode = self.app.settings_manager.color_mode
         color = "#aaaaaa" if current_mode == "dark" else "#666666"
         style = f"font-size: 16px; color: {color}; font-style: italic; margin: 10px 0;"
         return style
 
     def _get_input_style(self) -> str:
-        """Get the input field styling based on current theme."""
+        """Get the input field styling based on current color mode."""
         current_mode = self.app.settings_manager.color_mode
         return f"""
             font-size: 16px;
@@ -314,14 +314,14 @@ class OnboardingWindow(ThemedWidget):
         """
 
     def _get_radio_style(self) -> str:
-        """Get the radio button styling based on current theme."""
+        """Get the radio button styling based on current color mode."""
         current_mode = self.app.settings_manager.color_mode
         color = "#ffffff" if current_mode == "dark" else "#333333"
         style = f"color: {color};"
         return style
 
     def _get_dropdown_style(self) -> str:
-        """Get the dropdown styling based on current theme."""
+        """Get the dropdown styling based on current color mode."""
         current_mode = self.app.settings_manager.color_mode
         if current_mode == "dark":
             return """
@@ -386,8 +386,8 @@ class OnboardingWindow(ThemedWidget):
         # Determine the newly selected theme
         new_theme = "gradient" if self.gradient_radio.isChecked() else "plain"
 
-        if new_theme != self.theme:
-            self.theme = new_theme
+        if new_theme != self.background_theme:
+            self.background_theme = new_theme
 
             # Auto-save theme setting immediately
             self._save_theme_setting()
@@ -398,7 +398,7 @@ class OnboardingWindow(ThemedWidget):
     def _apply_theme_change(self) -> None:
         """Apply the theme change immediately to the background for live preview."""
         # Update the background theme
-        self.background.theme = self.theme
+        self.background.background_theme = self.background_theme
         # Force background redraw to show new theme
         self.background.update()
 
@@ -417,7 +417,7 @@ class OnboardingWindow(ThemedWidget):
             self.app.settings_manager.color_mode = color_mode
 
             # Apply theme change
-            self.app.theme_manager.change_theme(color_mode)
+            self.app.theme_manager.change_background_theme(color_mode)
 
             # Refresh UI styles with updated colorMode
             self._refresh_ui_styles()
@@ -473,9 +473,9 @@ class OnboardingWindow(ThemedWidget):
     def _save_theme_setting(self) -> None:
         """Save only the theme setting to persistent storage."""
         try:
-            self.app.settings_manager.theme = self.theme
+            self.app.settings_manager.background_theme = self.background_theme
         except Exception as e:
-            self._logger.error(f"Failed to save theme setting: {e}")
+            self._logger.error(f"Failed to save background_theme setting: {e}")
 
     def _on_next_clicked(self) -> None:
         """Handle 'Next' button click - navigate to API configuration step."""
@@ -489,7 +489,7 @@ class OnboardingWindow(ThemedWidget):
         """Save the user's selected settings (legacy method - kept for compatibility)."""
         try:
             self.app.settings_manager.hotkey = self.shortcut
-            self.app.settings_manager.theme = self.theme
+            self.app.settings_manager.background_theme = self.background_theme
             self._logger.debug("Settings saved successfully")
         except Exception as e:
             self._logger.error(f"Failed to save settings: {e}")

@@ -25,7 +25,7 @@ class SystemConfig(TypedDict, total=False):
 
     # UI Configuration
     hotkey: str
-    theme: str
+    background_theme: str
     color_mode: str  # "auto", "light", or "dark"
 
     # Application Settings

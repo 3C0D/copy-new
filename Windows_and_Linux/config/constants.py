@@ -165,7 +165,7 @@ DEFAULT_PROVIDER = "gemini"
 _DEFAULT_SYSTEM_VALUES_RAW = {
     "provider": "gemini",  # Internal provider name
     "hotkey": "ctrl+space",
-    "theme": "gradient",
+    "background_theme": "gradient",
     "color_mode": "auto",  # Color mode: "auto", "light", or "dark"
     "language": "en",
     "run_mode": "dev",

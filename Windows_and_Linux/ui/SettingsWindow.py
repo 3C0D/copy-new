@@ -74,12 +74,12 @@ class SettingsWindow(ThemedWidget):
         # Reference to previous window to return to after closing
         self.previous_window = None
 
-        # Store current theme as instance variable for use throughout the class
-        self.current_theme = self.app.settings_manager.theme or "gradient"
+        # Store current background_theme as instance variable for use throughout the class
+        self.current_background_theme = self.app.settings_manager.background_theme or "gradient"
 
-        # Set the correct theme from saved settings
+        # Set the correct background_theme from saved settings
         if self.background is not None:
-            self.background.theme = self.current_theme
+            self.background.background_theme = self.current_background_theme
 
         self.init_ui()
         self.retranslate_ui()
@@ -91,7 +91,8 @@ class SettingsWindow(ThemedWidget):
         Now includes a scroll area for better handling of content on smaller screens.
         """
         self.setWindowTitle(_("Settings"))
-        # Fixed width to maintain consistent layout and provide space for dropdowns
+        self.min_width = 700
+        self.min_height = 550
         self._calculate_window_size()
 
         main_layout = QVBoxLayout(self.background)  # Set icon, margin, and spacing in ThemedWidget
@@ -159,9 +160,9 @@ class SettingsWindow(ThemedWidget):
             self.gradient_radio.setStyleSheet(self.app.styles["radio"])
             self.plain_radio.setStyleSheet(self.app.styles["radio"])
             # Use the instance variable instead of re-reading from settings
-            self.gradient_radio.setChecked(self.current_theme == "gradient")
-            self.plain_radio.setChecked(self.current_theme == "plain")
-            # Auto-save theme changes for immediate visual feedback
+            self.gradient_radio.setChecked(self.current_background_theme == "gradient")
+            self.plain_radio.setChecked(self.current_background_theme == "plain")
+            # Auto-save background_theme changes for immediate visual feedback
             self.gradient_radio.toggled.connect(self._on_theme_radio_changed)
             self.plain_radio.toggled.connect(self._on_theme_radio_changed)
             theme_layout.addWidget(self.gradient_radio)
@@ -273,13 +274,6 @@ class SettingsWindow(ThemedWidget):
         # Ensure window can receive keyboard events and maintain focus
         self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.setFocus()
-
-    def _calculate_window_size(self):
-        """Calculate and set window size: 700px width (fixed), height=min(550px, 85% screen height)."""
-        screen = QApplication.primaryScreen().geometry()
-        max_height = int(screen.height() * 0.85)
-        desired_height = min(550, max_height)
-        self.setFixedSize(700, desired_height)
 
     def retranslate_ui(self) -> None:
         self.setWindowTitle(_("Settings"))
@@ -536,9 +530,9 @@ class SettingsWindow(ThemedWidget):
             theme = "gradient" if self.gradient_radio.isChecked() else "plain"
             # Log theme change with distinctive icon
             bg_icon = "🌈" if theme == "gradient" else "⚽"
-            print(f"🎛️\u00a0 SettingsWindow theme change: {bg_icon} BG={theme}")
+            print(f"🎛️\u00a0 SettingsWindow background theme change: {bg_icon} BG={theme}")
             # Use parent class method for theme change
-            self.auto_save_theme(theme)
+            self.app.theme_manager.change_background_theme(theme)
 
     def auto_save_color_mode(self) -> None:
         """
@@ -554,14 +548,10 @@ class SettingsWindow(ThemedWidget):
             theme_icon = (
                 "🌙" if color_mode == "dark" else ("☀️\u00a0" if color_mode == "light" else "🔄")
             )
-            print(f"🎨 SettingsWindow color mode change: {theme_icon} Color={color_mode}")
-
-            self.app.settings_manager.color_mode = color_mode
-            # Update styles from ThemeManager
-            self.app.styles = self.app.theme_manager.get_styles()
+            self._logger.debug(f"🎨 SettingsWindow color mode change: {theme_icon} Color={color_mode}")
 
             # Apply theme change
-            self.app.theme_manager.change_theme(color_mode)
+            self.app.theme_manager.change_color_mode(color_mode)
 
             # Refresh UI styles with updated colorMode
             self._refresh_ui_styles()

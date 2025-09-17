@@ -140,6 +140,24 @@ class ThemedWidget(QWidget):
         # Theme management integration
         self._register_for_theme_changes()
 
+    def _calculate_window_size(self) -> None:
+        """
+        Calculate and set window size based on min_width and min_height.
+        Makes window resizable with minimum constraints.
+        Height is limited to 85% of screen height if needed.
+        """
+        screen = QApplication.primaryScreen().geometry()
+        max_height = int(screen.height() * 0.85)
+
+        # Use the smaller of desired height or 85% of screen height
+        final_height = min(self.min_height, max_height)
+
+        self.setMinimumSize(self.min_width, final_height)
+
+        # If window would be larger than screen, also set maximum size
+        if self.min_height > max_height:
+            self.setMaximumHeight(max_height)
+
     def setup_window_and_layout(self) -> None:
         # Configure window flags for standard minimize/close/title behavior
         self.setWindowFlags(
@@ -157,8 +175,8 @@ class ThemedWidget(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         # Get current theme from settings if available
-        current_theme = self.get_current_background_theme()
-        self.background = ThemeBackground(self.app, self, current_theme)
+        current_background_theme = self.get_current_background_theme()
+        self.background = ThemeBackground(self.app, self, current_background_theme)
         main_layout.addWidget(self.background)
 
     def showEvent(self, event: QtGui.QShowEvent) -> None:
@@ -173,33 +191,7 @@ class ThemedWidget(QWidget):
 
     def get_current_background_theme(self) -> str:
         """Get the current background theme from settings."""
-        return self.app.settings_manager.theme or "gradient"
-
-    def change_background_theme(self, theme: str) -> None:
-        """
-        Change the background theme (gradient/plain).
-        This method can be called by child classes or externally.
-        """
-        if self.background is not None:
-            self.background.theme = theme
-            self.background.update()
-
-    def auto_save_theme(self, theme: str) -> None:
-        """
-        Auto-save and apply theme changes.
-        This method should be overridden by child classes if they need custom save logic.
-        """
-        # Apply theme change immediately
-        self.change_background_theme(theme)
-
-        # Save to settings
-        self.app.settings_manager.theme = theme
-
-        # Notify ThemeManager of background theme change
-        try:
-            self.app.theme_manager.change_background_theme(theme)
-        except ImportError:
-            pass  # Silently handle missing ThemeManager
+        return self.app.settings_manager.background_theme or "gradient"
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Handle key press events with common shortcuts for all windows."""
@@ -441,19 +433,20 @@ class ThemedWidget(QWidget):
     def _register_for_theme_changes(self) -> None:
         """Register this widget for theme change notifications."""
         self.app.theme_manager.register_widget(self)
-        self.app.theme_manager.theme_changed.connect(self._on_theme_changed)
+        self.app.theme_manager.color_mode_changed.connect(self._on_color_mode_changed)
         self.app.theme_manager.background_theme_changed.connect(self._on_background_theme_changed)
 
-    def _on_theme_changed(self) -> None:
-        """Automatically called when the theme changes."""
+    def _on_color_mode_changed(self) -> None:
+        """Automatically called when the color mode changes."""
         self.refresh_theme()
 
-    def _on_background_theme_changed(self, theme: str) -> None:
-        """Automatically called when the background theme changes."""
-        if hasattr(self, "change_background_theme"):
-            self.change_background_theme(theme)
+    def _on_background_theme_changed(self, style: str) -> None:
+        """Automatically called when the background style changes."""
+        if self.background is not None:
+            self.background.background_theme = style
+            self.background.update()
 
-        self.refresh_theme()
+        self.refresh_theme()  # garder ???????
 
     def refresh_theme(self) -> None:
         """
@@ -475,27 +468,27 @@ class ThemedWidget(QWidget):
 
 class ThemeBackground(QWidget):
     """
-    A custom widget that creates a background for the application based on the selected theme.
+    A custom widget that creates a background for the application based on the selected background theme.
     """
 
     def __init__(
-        self, app: "WritingToolApp", parent=None, theme="gradient", is_popup=False, border_radius=0
+        self, app: "WritingToolApp", parent=None, background_theme="gradient", is_popup=False, border_radius=0
     ):
         self.app = app
         super().__init__(parent)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.theme = theme
+        self.background_theme = background_theme
         self.is_popup = is_popup
         self.border_radius = border_radius
 
     def paintEvent(self, event: QtGui.QPaintEvent) -> None:
         """
-        Override the paint event to draw the background based on the selected theme.
+        Override the paint event to draw the background based on the selected background theme.
         """
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, True)
         painter.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform, True)
-        if self.theme == "gradient":
+        if self.background_theme == "gradient":
             # Determine background file paths (check multiple locations)
             if getattr(sys, "frozen", False):
                 base_dir = Path(sys.executable).parent
