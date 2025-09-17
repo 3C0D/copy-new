@@ -9,6 +9,7 @@ from PySide6 import QtCore
 if TYPE_CHECKING:
     from WritingToolApp import WritingToolApp
 
+
 class ThemeManager(QtCore.QObject):
     """Centralized theme manager with signals to notify changes."""
 
@@ -76,53 +77,75 @@ class ThemeManager(QtCore.QObject):
         mode = self.app.settings_manager.color_mode
         dark = mode == "dark"
 
-        # Base colours
-        bg_primary   = "#2d2d2d" if dark else "#ffffff"
-        fg_primary   = "#ffffff" if dark else "#000000"
-        bg_control   = "#444444" if dark else "#ffffff"
-        fg_control   = "#ffffff" if dark else "#000000"
-        border       = "#666666" if dark else "#cccccc"
-        border_light = "#555555" if dark else "#cccccc"
-        selection    = "#404040" if dark else "#e6e6e6"
+        # Base colours (matching original functions exactly)
+        bg_primary = "#2d2d2d" if dark else "#ffffff"
+        fg_primary = "#ffffff" if dark else "#000000"
+        bg_control = "#444" if dark else "white"
+        fg_control = "#ffffff" if dark else "#000000"
+        fg_control_text = "#ffffff" if dark else "#333333"  # For labels/radios
+        border = "#666" if dark else "#ccc"
+        border_light = "#555555" if dark else "#dddddd"
+        border_checkbox = "#666666"  # Specific color for checkboxes
+        selection = "#666" if dark else "#e0e0e0"
 
         # Button colours
         primary_default = "#4CAF50" if dark else "#008CBA"
-        primary_hover   = "#45a049" if dark else "#007095"
+        primary_hover = "#45a049" if dark else "#007095"
         primary_pressed = "#3d8b40" if dark else "#005f7a"
 
         secondary_default = "#666666" if dark else "#cccccc"
-        secondary_hover   = "#555555" if dark else "#bbbbbb"
+        secondary_hover = "#555555" if dark else "#bbbbbb"
         secondary_pressed = "#444444" if dark else "#aaaaaa"
 
         close_default = "#106ebe" if dark else "#0078d4"
-        close_hover   = "#1e88e5" if dark else "#106ebe"
+        close_hover = "#1e88e5" if dark else "#106ebe"
         close_pressed = "#0d47a1" if dark else "#005a9e"
 
         return {
-            # ----------  MENUS  ----------
-            "tray_menu": f"""
-                QMenu {{
+            # ----------  CONTAINERS  ----------
+            "dialog": f"""
+                QDialog {{
                     background-color: {bg_primary};
                     color: {fg_primary};
-                    border: 1px solid {border_light};
-                    border-radius: 8px;
-                    padding: 2px;
-                    selection-background-color: {selection};
-                }}
-                QMenu::item {{
-                    padding: 4px 20px;
-                    border-radius: 4px;
-                }}
-                QMenu::item:selected {{
-                    background-color: {selection};
-                }}
-                QMenu::separator {{
-                    height: 1px;
-                    background: {border_light};
-                    margin: 2px 10px;
                 }}
             """,
-
+            # ----------  LABELS  ----------
+            "label": f"""
+                QLabel {{
+                    font-size: 16px;
+                    color: {fg_control_text};
+                }}
+            """,
+            "label_small": f"""
+                QLabel {{
+                    font-size: 14px;
+                    color: {fg_control_text};
+                }}
+            """,
+            "label_title": f"""
+                QLabel {{
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: {fg_primary};
+                }}
+            """,
+            "warning_label": """
+                QLabel {
+                    font-size: 14px;
+                    color: #ff6b6b;
+                    font-weight: bold;
+                }
+            """,
+            # ----------  INPUTS  ----------
+            "input": f"""
+                QLineEdit {{
+                    font-size: 16px;
+                    padding: 5px;
+                    background-color: {bg_control};
+                    color: {fg_control};
+                    border: 1px solid {border};
+                }}
+            """,
             # ----------  DROPDOWNS  ----------
             "dropdown": f"""
                 QComboBox {{
@@ -138,57 +161,22 @@ class ThemeManager(QtCore.QObject):
                     selection-background-color: {selection};
                 }}
             """,
-
-            # ----------  LINE EDITS  ----------
-            "input": f"""
-                font-size: 16px;
-                padding: 5px;
-                background-color: {bg_control};
-                color: {fg_control};
-                border: 1px solid {border};
-            """,
-
-            # ----------  LABELS  ----------
-            "label": f"""
-                font-size: 16px;
-                color: {fg_control};
-            """,
-
-            # ----------  RADIO BUTTONS  ----------
-            "radio": f"""
-                color: {fg_control};
-                font-size: 16px;
-            """,
-
-            # ----------  CHECKBOXES  ----------
-            "checkbox": f"""
-                QCheckBox {{
+            # ----------  BUTTONS  ----------
+            "button": f"""
+                QPushButton {{
+                    font-size: 14px;
+                    padding: 8px 16px;
+                    border: 1px solid {border};
+                    background-color: {bg_control};
                     color: {fg_control};
-                    font-size: 16px;
-                    spacing: 8px;
                 }}
-                QCheckBox::indicator {{
-                    width: 13px;
-                    height: 13px;
-                    border-radius: 2px;
+                QPushButton:hover {{
+                    background-color: {selection};
                 }}
-                QCheckBox::indicator:unchecked {{
-                    border: 2px solid {border};
-                    background-color: {bg_primary};
-                }}
-                QCheckBox::indicator:checked {{
-                    border: 2px solid {border};
-                    background-color: {border};
-                    image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOSIgaGVpZ2h0PSI5IiB2aWV3Qm94PSIwIDAgOSA5IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNNy41IDIuNUwzLjc1IDYuMjVMMi41IDUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==);
-                }}
-            """ if not dark else f"""
-                QCheckBox {{
-                    color: {fg_control};
-                    font-size: 16px;
+                QPushButton:pressed {{
+                    background-color: {border_light};
                 }}
             """,
-
-            # ----------  PRIMARY BUTTONS  ----------
             "primary_button": f"""
                 QPushButton {{
                     background-color: {primary_default};
@@ -205,8 +193,6 @@ class ThemeManager(QtCore.QObject):
                     background-color: {primary_pressed};
                 }}
             """,
-
-            # ----------  SECONDARY BUTTONS  ----------
             "secondary_button": f"""
                 QPushButton {{
                     background-color: {secondary_default};
@@ -223,8 +209,6 @@ class ThemeManager(QtCore.QObject):
                     background-color: {secondary_pressed};
                 }}
             """,
-
-            # ----------  CLOSE BUTTONS  ----------
             "close_button": f"""
                 QPushButton {{
                     background-color: {close_default};
@@ -242,8 +226,54 @@ class ThemeManager(QtCore.QObject):
                     background-color: {close_pressed};
                 }}
             """,
-
-            # ----------  SCROLL AREAS  ----------
+            "delete_button": """
+                QPushButton {
+                    background-color: #dc3545;
+                    color: white;
+                    border: 1px solid #dc3545;
+                    }
+                QPushButton:hover {
+                    background-color: #c82333;
+                    }
+                QPushButton:pressed {
+                    background-color: #bd2130;
+                    }
+            """,
+            # ----------  OTHER CONTROLS  ----------
+            "radio": f"""
+                QRadioButton {{
+                    color: {fg_control_text};
+                    font-size: 16px;
+                }}
+            """,
+            "checkbox": f"""
+                QCheckBox {{
+                    color: {fg_control_text};
+                    font-size: 16px;
+                    spacing: 8px;
+                }}
+                QCheckBox::indicator {{
+                    width: 13px;
+                    height: 13px;
+                    border-radius: 2px;
+                }}
+                QCheckBox::indicator:unchecked {{
+                    border: 2px solid {border_checkbox};
+                    background-color: {bg_control};
+                }}
+                QCheckBox::indicator:checked {{
+                    border: 2px solid {border_checkbox};
+                    background-color: {border_checkbox};
+                    image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOSIgaGVpZ2h0PSI5IiB2aWV3Qm94PSIwIDAgOSA5IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNNy41IDIuNUwzLjc1IDYuMjVMMi41IDUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==);
+                }}
+            """
+            if not dark
+            else f"""
+                QCheckBox {{
+                    color: {fg_control_text};
+                    font-size: 16px;
+                }}
+            """,
             "scroll_area": """
                 QScrollArea {
                     background: transparent;
@@ -298,5 +328,22 @@ class ThemeManager(QtCore.QObject):
                 QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
                     background: transparent;
                 }
+            """,
+            "tray_menu": f"""
+                QMenu {{
+                    background-color: {bg_primary};
+                    color: {fg_primary};
+                    border: 1px solid {border_light};
+                    border-radius: 8px;
+                    padding: 2px;
+                    selection-background-color: {selection};
+                }}
+                QMenu::item {{
+                    padding: 4px 20px;
+                    border-radius: 4px;
+                }}
+                QMenu::item:selected {{
+                    background-color: {selection};
+                }}
             """,
         }

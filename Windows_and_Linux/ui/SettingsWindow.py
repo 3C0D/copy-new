@@ -102,7 +102,7 @@ class SettingsWindow(ThemedWidget):
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)  # No border/frame
 
         # Custom styling for transparent and aesthetic scroll bars
-        scroll_area.setStyleSheet(self.get_scroll_area_style())
+        scroll_area.setStyleSheet(self.app.styles["scroll_area"])
 
         # Create scrollable content widget with transparent background
         scroll_content = QWidget()
@@ -115,9 +115,7 @@ class SettingsWindow(ThemedWidget):
         if not self.providers_only:
             title_label = QLabel(_("Settings"))
             title_label.setObjectName("title_label")  # For specific styling in refresh
-            title_label.setStyleSheet(
-                f"font-size: 24px; font-weight: bold; {self.get_label_style()}"
-            )
+            title_label.setStyleSheet(self.app.styles["label_title"])
             content_layout.addWidget(
                 title_label,
                 alignment=QtCore.Qt.AlignmentFlag.AlignCenter,
@@ -126,7 +124,7 @@ class SettingsWindow(ThemedWidget):
             # Autostart functionality only for Windows compiled version
             if AutostartManager.get_startup_path():
                 self.autostart_checkbox = QCheckBox(_("Start on Boot"))
-                self.autostart_checkbox.setStyleSheet(self.get_checkbox_style())
+                self.autostart_checkbox.setStyleSheet(self.app.styles["checkbox"])
 
                 # Synchronize settings with registry state on startup
                 AutostartManager.sync_with_settings(self.app.settings_manager)
@@ -140,11 +138,11 @@ class SettingsWindow(ThemedWidget):
 
             # Global hotkey configuration
             shortcut_label = QLabel(_("Shortcut Key:"))
-            shortcut_label.setStyleSheet(self.get_label_style())
+            shortcut_label.setStyleSheet(self.app.styles["label"])
             content_layout.addWidget(shortcut_label)
 
             self.shortcut_input = QLineEdit(self.app.settings_manager.hotkey or "ctrl+space")
-            self.shortcut_input.setStyleSheet(self.get_input_style())
+            self.shortcut_input.setStyleSheet(self.app.styles["input"])
             self.shortcut_input.setPlaceholderText("e.g., ctrl+space, ctrl+shift+a")
             # Auto-save when shortcut changed and focus lost
             self.shortcut_input.editingFinished.connect(self.auto_save_shortcut)
@@ -152,14 +150,14 @@ class SettingsWindow(ThemedWidget):
 
             # Background theme selection
             theme_label = QLabel(_("Background Theme:"))
-            theme_label.setStyleSheet(self.get_label_style())
+            theme_label.setStyleSheet(self.app.styles["label"])
             content_layout.addWidget(theme_label)
 
             theme_layout = QHBoxLayout()
             self.gradient_radio = QRadioButton(_("Blurry Gradient"))
             self.plain_radio = QRadioButton(_("Plain"))
-            self.gradient_radio.setStyleSheet(self.get_radio_style())
-            self.plain_radio.setStyleSheet(self.get_radio_style())
+            self.gradient_radio.setStyleSheet(self.app.styles["radio"])
+            self.plain_radio.setStyleSheet(self.app.styles["radio"])
             # Use the instance variable instead of re-reading from settings
             self.gradient_radio.setChecked(self.current_theme == "gradient")
             self.plain_radio.setChecked(self.current_theme == "plain")
@@ -172,7 +170,7 @@ class SettingsWindow(ThemedWidget):
 
             # Color mode selection
             color_mode_label = QLabel(_("Color Mode:"))
-            color_mode_label.setStyleSheet(self.get_label_style())
+            color_mode_label.setStyleSheet(self.app.styles["label"])
             content_layout.addWidget(color_mode_label)
 
             self.color_mode_dropdown = QComboBox()
@@ -183,7 +181,7 @@ class SettingsWindow(ThemedWidget):
             mode_index = {"auto": 0, "light": 1, "dark": 2}.get(current_mode, 0)
             self.color_mode_dropdown.setCurrentIndex(mode_index)
 
-            self.color_mode_dropdown.setStyleSheet(self.get_dropdown_style())
+            self.color_mode_dropdown.setStyleSheet(self.app.styles["dropdown"])
 
             # Auto-save color mode changes for immediate visual feedback
             self.color_mode_dropdown.currentTextChanged.connect(self.auto_save_color_mode)
@@ -195,11 +193,11 @@ class SettingsWindow(ThemedWidget):
 
         # AI Provider selection section
         provider_label = QLabel(_("Choose AI Provider:"))
-        provider_label.setStyleSheet(self.get_label_style())
+        provider_label.setStyleSheet(self.app.styles["label"])
         content_layout.addWidget(provider_label)
 
         self.provider_dropdown = QComboBox()
-        self.provider_dropdown.setStyleSheet(self.get_dropdown_style())
+        self.provider_dropdown.setStyleSheet(self.app.styles["dropdown"])
         # Prevent wheel scroll from interfering with main scroll area
         self.provider_dropdown.wheelEvent = lambda e: e.ignore()
 
@@ -355,7 +353,7 @@ class SettingsWindow(ThemedWidget):
         # Provider description if available
         if provider.description:
             description_label = QLabel(provider.description)
-            description_label.setStyleSheet(f"{self.get_label_style()} text-align: center;")
+            description_label.setStyleSheet(f"{self.app.styles['label']} text-align: center;")
             description_label.setWordWrap(True)
             self.current_provider_layout.addWidget(description_label)
 
@@ -369,7 +367,7 @@ class SettingsWindow(ThemedWidget):
             # Main button
             if provider.button_text:
                 main_button = QPushButton(provider.button_text)
-                main_button.setStyleSheet(self.get_primary_button_style())
+                main_button.setStyleSheet(self.app.styles["primary_button"])
                 main_button.clicked.connect(provider.button_action)
                 button_container.addWidget(main_button)
 
@@ -380,9 +378,9 @@ class SettingsWindow(ThemedWidget):
 
                     # Use appropriate style based on button type
                     if button_config.get("style") == "secondary":
-                        additional_button.setStyleSheet(self.get_secondary_button_style())
+                        additional_button.setStyleSheet(self.app.styles["secondary_button"])
                     else:
-                        additional_button.setStyleSheet(self.get_primary_button_style())
+                        additional_button.setStyleSheet(self.app.styles["primary_button"])
 
                     additional_button.clicked.connect(button_config["action"])
                     button_container.addWidget(additional_button)
@@ -423,7 +421,7 @@ class SettingsWindow(ThemedWidget):
         # Add italic comment about vision models
         # row_layout = QHBoxLayout()
         vision_comment = QLabel(_("* Models with vision support"))
-        vision_comment.setStyleSheet(f"{self.get_label_style()} font-style: italic;")
+        vision_comment.setStyleSheet(f"{self.app.styles['label']} font-style: italic;")
         layout.addWidget(vision_comment)
         self._logger.debug(f"init_provider_ui finished for provider: {provider.internal_name}")
 
@@ -516,7 +514,7 @@ class SettingsWindow(ThemedWidget):
         self.close_button = QPushButton(button_text)
         self.close_button.setFixedSize(150, 40)
         # Use effective mode based on user settings
-        self.close_button.setStyleSheet(self.get_close_button_style())
+        self.close_button.setStyleSheet(self.app.styles["close_button"])
 
         # Connect button click to save_settings method for final processing and window closing
         self.close_button.clicked.connect(self.save_settings)
@@ -559,6 +557,8 @@ class SettingsWindow(ThemedWidget):
             print(f"🎨 SettingsWindow color mode change: {theme_icon} Color={color_mode}")
 
             self.app.settings_manager.color_mode = color_mode
+            # Update styles from ThemeManager
+            self.app.styles = self.app.theme_manager.get_styles()
 
             # Apply theme change
             self.app.theme_manager.change_theme(color_mode)
@@ -570,27 +570,30 @@ class SettingsWindow(ThemedWidget):
         """Refresh all UI element styles to reflect the current color mode."""
         # Update color mode dropdown style
         if self.color_mode_dropdown:
-            self.color_mode_dropdown.setStyleSheet(self.get_dropdown_style())
+            self.color_mode_dropdown.setStyleSheet(self.app.styles["dropdown"])
 
         # Update provider dropdown style
         if self.provider_dropdown:
-            self.provider_dropdown.setStyleSheet(self.get_dropdown_style())
+            self.provider_dropdown.setStyleSheet(self.app.styles["dropdown"])
 
         # Update specific labels with their individual styles
         # Title label
+        title_label = self.findChild(QLabel, "title_label")
+        if title_label:
+            title_label.setStyleSheet(
+                f"font-size: 24px; font-weight: bold; {self.app.styles['label']}"
+            )
+
+        # Update other specific labels by text
         title_labels = self.findChildren(QLabel)
         for widget in title_labels:
-            if widget.text() == _("Settings"):
-                widget.setStyleSheet(
-                    f"font-size: 24px; font-weight: bold; {self.get_label_style()}"
-                )
-            elif widget.text() in [
+            if widget.text() in [
                 _("Shortcut Key:"),
                 _("Background Theme:"),
                 _("Color Mode:"),
                 _("Choose AI Provider:"),
             ]:
-                widget.setStyleSheet(self.get_label_style())
+                widget.setStyleSheet(self.app.styles["label"])
 
         # Update provider-specific labels by checking all labels
         for widget in title_labels:
@@ -612,7 +615,7 @@ class SettingsWindow(ThemedWidget):
                 )
             # Check if this is a description (longer text, not a simple label)
             elif hasattr(widget, "text") and widget.text() and len(widget.text()) > 50:
-                widget.setStyleSheet(f"{self.get_label_style()} text-align: center;")
+                widget.setStyleSheet(f"{self.app.styles['label']} text-align: center;")
             # Update all other labels (field labels like "API Base URL", "API Model", etc.)
             elif (
                 hasattr(widget, "text")
@@ -638,27 +641,31 @@ class SettingsWindow(ThemedWidget):
 
         # Update shortcut input if exists
         if self.shortcut_input:
-            self.shortcut_input.setStyleSheet(self.get_input_style())
+            self.shortcut_input.setStyleSheet(self.app.styles["input"])
 
         # Update radio buttons if they exist
         if self.gradient_radio and self.plain_radio:
-            radio_style = self.get_radio_style()
+            radio_style = self.app.styles["radio"]
             self.gradient_radio.setStyleSheet(radio_style)
             self.plain_radio.setStyleSheet(radio_style)
 
         # Update checkbox if it exists
         if self.autostart_checkbox:
-            self.autostart_checkbox.setStyleSheet(self.get_checkbox_style())
+            self.autostart_checkbox.setStyleSheet(self.app.styles["checkbox"])
 
         # Update provider buttons
         self._update_provider_buttons()
 
         # Update close button
         if hasattr(self, "close_button") and self.close_button:
-            self.close_button.setStyleSheet(self.get_close_button_style())
+            self.close_button.setStyleSheet(self.app.styles["close_button"])
 
         if self.app.systray_manager.tray_menu:
             self.app.systray_manager.apply_tray_menu_styles(self.app.systray_manager.tray_menu)
+
+        # Refresh styles in the current provider if applicable (in aiprovider.py)
+        if self.app.current_provider:
+            self.app.current_provider.refresh_styles()
 
         # Force background update
         if self.background:

@@ -1816,8 +1816,6 @@ class WritingToolApp(QApplication):
         """
         Show the settings window with debounce protection against rapid clicks.
         """
-        import time
-
         current_time = time.time() * 1000  # Convert to milliseconds
 
         # Prevent rapid successive clicks that could accidentally open Settings
@@ -1845,7 +1843,6 @@ class WritingToolApp(QApplication):
             self.settings_window.previous_window = previous_window
 
         self.settings_window.close_signal.connect(self.exit_app)
-
         self.settings_window.retranslate_ui()
         self.settings_window.show()
 

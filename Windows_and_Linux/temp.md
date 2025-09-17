@@ -1,3 +1,5 @@
+Arranger dans WTA non editable modal close, show... comme pour help invoqué dans replace_text
+
 Quand on change de modèle Directement Dans costum pop up. Apparemment, le modèle n'est pas bien mis à jour.
 
 sauvegarde du zoom?? ds response window

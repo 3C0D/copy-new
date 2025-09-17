@@ -141,6 +141,10 @@ class AIProviderSetting(ABC):
     def get_value(self) -> str:
         """Return the current value from the widget."""
 
+    def refresh_styles(self) -> None:
+        """Optional: reapply the styles if the widget exists."""
+        pass
+
     def set_auto_save_callback(self, callback: Callable) -> None:
         """Set callback function for auto-saving when value changes."""
         self.auto_save_callback = callback
@@ -171,27 +175,20 @@ class TextSetting(AIProviderSetting):
         """Create and add the QLineEdit with its label to the layout."""
         row_layout = QHBoxLayout()
         label = QLabel(self.display_name)
-        current_mode = self.app.settings_manager.color_mode
-        label.setStyleSheet(
-            f"font-size: 16px; color: {'#ffffff' if current_mode == 'dark' else '#333333'};"
-        )
+        label.setStyleSheet(self.app.styles["label"])
         row_layout.addWidget(label)
         self.input = QLineEdit(self.internal_value)
-        self.input.setStyleSheet(
-            f"""
-            font-size: 16px;
-            padding: 5px;
-            background-color: {"#444" if current_mode == "dark" else "white"};
-            color: {"#ffffff" if current_mode == "dark" else "#000000"};
-            border: 1px solid {"#666" if current_mode == "dark" else "#ccc"};
-        """,
-        )
+        self.input.setStyleSheet(self.app.styles["input"])
         self.input.setPlaceholderText(self.description)
         # Connect auto-save if callback is set
         if self.auto_save_callback:
             self.input.textChanged.connect(self.auto_save_callback)
         row_layout.addWidget(self.input)
         layout.addLayout(row_layout)
+
+    def refresh_styles(self):
+        if self.input:
+            self.input.setStyleSheet(self.app.styles["input"])
 
     def set_value(self, value: str) -> None:
         """Store value internally and update widget if it exists."""
@@ -243,24 +240,12 @@ class DropdownSetting(AIProviderSetting):
         """Create and configure the QComboBox with available options."""
         row_layout = QHBoxLayout()
         label = QLabel(self.display_name)
-        current_mode = self.app.settings_manager.color_mode
-        label.setStyleSheet(
-            f"font-size: 16px; color: {'#ffffff' if current_mode == 'dark' else '#333333'};"
-        )
+        label.setStyleSheet(self.app.styles["label"])
         row_layout.addWidget(label)
         self.dropdown = QComboBox()
         # Ensure dropdown can receive focus and clicks properly
         self.dropdown.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
-        self.dropdown.setStyleSheet(
-            f"""
-            font-size: 16px;
-            padding: 5px;
-            padding-right: 25px;
-            background-color: {"#444" if current_mode == "dark" else "white"};
-            color: {"#ffffff" if current_mode == "dark" else "#000000"};
-            border: 1px solid {"#666" if current_mode == "dark" else "#ccc"};
-        """,
-        )
+        self.dropdown.setStyleSheet(self.app.styles["dropdown"])
 
         for option_tuple in self.options:
             if len(option_tuple) == 2:
@@ -312,6 +297,10 @@ class DropdownSetting(AIProviderSetting):
             except RuntimeError:
                 # Widget has been deleted, just store the value
                 pass
+
+    def refresh_styles(self):
+        if self.dropdown:
+            self.dropdown.setStyleSheet(self.app.styles["dropdown"])
 
     def get_value(self) -> str:
         """Return selected value from the dropdown."""
@@ -402,7 +391,6 @@ class AIProvider(ABC):
         self.button_text = button_text
         self.button_action = button_action
         self.logo = logo
-        self.executor = None
         self.current_task = None
 
         # Support for multiple buttons (for providers that need refresh functionality)
@@ -418,6 +406,11 @@ class AIProvider(ABC):
         This method should be overridden by providers that need dynamic reconfiguration.
         """
         pass
+
+    def refresh_styles(self):
+        for setting in self.settings:
+            if hasattr(setting, "refresh_styles"):
+                setting.refresh_styles()
 
     # Suppression of the getter/setter for model_name, we use api_model directly
     # which will be created by setattr() in load_config()
@@ -541,11 +534,6 @@ class AIProvider(ABC):
                 logging.debug(f"Successfully cancelled {self.provider_name} request")
             else:
                 logging.debug(f"Could not cancel {self.provider_name} request (already started)")
-
-    def __del__(self):
-        """Cleanup of the ThreadPoolExecutor on destruction."""
-        if hasattr(self, "executor") and self.executor is not None:
-            self.executor.shutdown(wait=False)
 
     def validate_connection(self) -> bool:
         """
@@ -1679,35 +1667,11 @@ class OllamaProvider(AIProvider):
         dialog.resize(400, 200)
 
         # Apply theme styling
-        current_mode = self.app.settings_manager.color_mode
         dialog.setStyleSheet(
-            f"""
-            QDialog {{
-                background-color: {"#2b2b2b" if current_mode == "dark" else "#ffffff"};
-                color: {"#ffffff" if current_mode == "dark" else "#000000"};
-            }}
-            QLabel {{
-                color: {"#ffffff" if current_mode == "dark" else "#333333"};
-                font-size: 14px;
-            }}
-            QComboBox {{
-                font-size: 14px;
-                padding: 5px;
-                background-color: {"#444" if current_mode == "dark" else "white"};
-                color: {"#ffffff" if current_mode == "dark" else "#000000"};
-                border: 1px solid {"#666" if current_mode == "dark" else "#ccc"};
-            }}
-            QPushButton {{
-                font-size: 14px;
-                padding: 8px 16px;
-                border: 1px solid {"#666" if current_mode == "dark" else "#ccc"};
-                background-color: {"#444" if current_mode == "dark" else "#f0f0f0"};
-                color: {"#ffffff" if current_mode == "dark" else "#000000"};
-            }}
-            QPushButton:hover {{
-                background-color: {"#555" if current_mode == "dark" else "#e0e0e0"};
-            }}
-        """
+            self.app.theme_manager.get_styles()["dialog"]
+            + self.app.theme_manager.get_styles()["label_small"]
+            + self.app.theme_manager.get_styles()["dropdown"]
+            + self.app.theme_manager.get_styles()["button"]
         )
 
         layout = QVBoxLayout(dialog)
@@ -1716,7 +1680,7 @@ class OllamaProvider(AIProvider):
         warning_label = QLabel(
             "⚠️ Warning: This will permanently delete the selected model from your system."
         )
-        warning_label.setStyleSheet("color: #ff6b6b; font-weight: bold;")
+        warning_label.setStyleSheet(self.app.theme_manager.get_styles()["warning_label"])
         layout.addWidget(warning_label)
 
         # Model selection
@@ -1736,18 +1700,7 @@ class OllamaProvider(AIProvider):
         button_layout.addWidget(cancel_button)
 
         delete_button = QPushButton("Delete Model")
-        delete_button.setStyleSheet(
-            delete_button.styleSheet()
-            + """
-            QPushButton {
-                background-color: #dc3545;
-                color: white;
-                border: 1px solid #dc3545;
-            }
-            QPushButton:hover {
-                background-color: #c82333;
-            }
-        """
+        delete_button.setStyleSheet(self.app.theme_manager.get_styles()["delete_button"]
         )
         delete_button.clicked.connect(dialog.accept)
         button_layout.addWidget(delete_button)
