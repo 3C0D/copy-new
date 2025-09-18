@@ -428,7 +428,8 @@ class CustomPopupWindow(QWidget):
 
     def _setup_window_properties(self) -> None:
         """Configure window flags and properties."""
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+        flags = Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint
+        self.setWindowFlags(flags)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowTitle("Writing Tools")
         self.min_width = 300  # be sure to see action buttons and scrollbar
@@ -1445,7 +1446,6 @@ class CustomPopupWindow(QWidget):
         # Create and show new popup window
         new_popup = CustomPopupWindow(self.app, selected_text)
         new_popup.move(current_pos)
-        ui_utils.existing_window_on_top(new_popup)
         new_popup.show()
 
     def on_custom_change(self) -> None:
