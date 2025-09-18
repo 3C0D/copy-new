@@ -1138,7 +1138,7 @@ class OpenAICompatibleProvider(AIProvider):
                 base_url=self.api_base,
                 organization=self.api_organisation,
                 project=self.api_project,
-            )
+            )  # type: ignore[reportGeneralTypeIssues]
 
     def before_load(self) -> None:
         """Clean up client before reloading."""
@@ -1896,7 +1896,7 @@ class AnthropicProvider(AIProvider):
                     default_headers={
                         "anthropic-version": "2023-06-01",
                     },
-                )
+                )  # type: ignore[reportGeneralTypeIssues]
 
             # Prepare messages
             messages = []
@@ -1921,7 +1921,7 @@ class AnthropicProvider(AIProvider):
                     default_headers={
                         "anthropic-version": "2023-06-01",
                     },
-                )
+                )  # type: ignore[reportGeneralTypeIssues]
 
             if self.client is None:
                 error_msg = (
@@ -2000,7 +2000,7 @@ class AnthropicProvider(AIProvider):
                 default_headers={
                     "anthropic-version": "2023-06-01",
                 },
-            )
+            )  # type: ignore[reportGeneralTypeIssues]
 
     def before_load(self) -> None:
         """Clean up client before reloading."""

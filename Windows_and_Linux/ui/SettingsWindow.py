@@ -71,6 +71,12 @@ class SettingsWindow(ThemedWidget):
         self.provider_container = None
         self.autostart_checkbox = None
         self.shortcut_input = None
+        self.shortcut_label = None
+        self.theme_label = None
+        self.color_mode_label = None
+        self.provider_label = None
+        self.provider_name_label = None
+        self.description_label = None
         # Reference to previous window to return to after closing
         self.previous_window = None
 
@@ -138,9 +144,9 @@ class SettingsWindow(ThemedWidget):
                 content_layout.addWidget(self.autostart_checkbox)
 
             # Global hotkey configuration
-            shortcut_label = QLabel(_("Shortcut Key:"))
-            shortcut_label.setStyleSheet(self.app.styles["label"])
-            content_layout.addWidget(shortcut_label)
+            self.shortcut_label = QLabel(_("Shortcut Key:"))
+            self.shortcut_label.setStyleSheet(self.app.styles["label"])
+            content_layout.addWidget(self.shortcut_label)
 
             self.shortcut_input = QLineEdit(self.app.settings_manager.hotkey or "ctrl+space")
             self.shortcut_input.setStyleSheet(self.app.styles["input"])
@@ -150,9 +156,9 @@ class SettingsWindow(ThemedWidget):
             content_layout.addWidget(self.shortcut_input)
 
             # Background theme selection
-            theme_label = QLabel(_("Background Theme:"))
-            theme_label.setStyleSheet(self.app.styles["label"])
-            content_layout.addWidget(theme_label)
+            self.theme_label = QLabel(_("Background Theme:"))
+            self.theme_label.setStyleSheet(self.app.styles["label"])
+            content_layout.addWidget(self.theme_label)
 
             theme_layout = QHBoxLayout()
             self.gradient_radio = QRadioButton(_("Blurry Gradient"))
@@ -170,9 +176,9 @@ class SettingsWindow(ThemedWidget):
             content_layout.addLayout(theme_layout)
 
             # Color mode selection
-            color_mode_label = QLabel(_("Color Mode:"))
-            color_mode_label.setStyleSheet(self.app.styles["label"])
-            content_layout.addWidget(color_mode_label)
+            self.color_mode_label = QLabel(_("Color Mode:"))
+            self.color_mode_label.setStyleSheet(self.app.styles["label"])
+            content_layout.addWidget(self.color_mode_label)
 
             self.color_mode_dropdown = QComboBox()
             self.color_mode_dropdown.addItems([_("Auto"), _("Light"), _("Dark")])
@@ -193,9 +199,9 @@ class SettingsWindow(ThemedWidget):
             content_layout.addWidget(self.color_mode_dropdown)
 
         # AI Provider selection section
-        provider_label = QLabel(_("Choose AI Provider:"))
-        provider_label.setStyleSheet(self.app.styles["label"])
-        content_layout.addWidget(provider_label)
+        self.provider_label = QLabel(_("Choose AI Provider:"))
+        self.provider_label.setStyleSheet(self.app.styles["label"])
+        content_layout.addWidget(self.provider_label)
 
         self.provider_dropdown = QComboBox()
         self.provider_dropdown.setStyleSheet(self.app.styles["dropdown"])
@@ -331,25 +337,19 @@ class SettingsWindow(ThemedWidget):
                 )
 
         # Provider name display
-        provider_name_label = QLabel(provider.provider_name)
-        # Provider title needs high contrast - force pure white/black
-        # Use effective mode based on user settings
-        current_mode = self.app.settings_manager.color_mode
-        provider_color = "#ffffff" if current_mode == "dark" else "#000000"
-        provider_name_label.setStyleSheet(
-            f"font-size: 18px; font-weight: bold; color: {provider_color};"
-        )
-        provider_name_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
-        provider_header_layout.addWidget(provider_name_label)
+        self.provider_name_label = QLabel(provider.provider_name)
+        self.provider_name_label.setStyleSheet(f"{self.app.styles['label_title']}; font-size: 18px;")
+        self.provider_name_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
+        provider_header_layout.addWidget(self.provider_name_label)
 
         self.current_provider_layout.addLayout(provider_header_layout)
 
         # Provider description if available
         if provider.description:
-            description_label = QLabel(provider.description)
-            description_label.setStyleSheet(f"{self.app.styles['label']} text-align: center;")
-            description_label.setWordWrap(True)
-            self.current_provider_layout.addWidget(description_label)
+            self.description_label = QLabel(provider.description)
+            self.description_label.setStyleSheet(f"{self.app.styles['label']}; text-align: center;")
+            self.description_label.setWordWrap(True)
+            self.current_provider_layout.addWidget(self.description_label)
 
         # Button container for multiple buttons
         if provider.button_text or (
@@ -415,7 +415,7 @@ class SettingsWindow(ThemedWidget):
         # Add italic comment about vision models
         # row_layout = QHBoxLayout()
         vision_comment = QLabel(_("* Models with vision support"))
-        vision_comment.setStyleSheet(f"{self.app.styles['label']} font-style: italic;")
+        vision_comment.setStyleSheet(f"{self.app.styles['label']}; font-style: italic;")
         layout.addWidget(vision_comment)
         self._logger.debug(f"init_provider_ui finished for provider: {provider.internal_name}")
 
@@ -568,68 +568,41 @@ class SettingsWindow(ThemedWidget):
         if self.provider_dropdown:
             self.provider_dropdown.setStyleSheet(self.app.styles["dropdown"])
 
-        # Update specific labels with their individual styles
-        # Title label
+        # Update static labels directly
+        if hasattr(self, "shortcut_label") and self.shortcut_label:
+            self.shortcut_label.setStyleSheet(self.app.styles["label"])
+        if hasattr(self, "theme_label") and self.theme_label:
+            self.theme_label.setStyleSheet(self.app.styles["label"])
+        if hasattr(self, "color_mode_label") and self.color_mode_label:
+            self.color_mode_label.setStyleSheet(self.app.styles["label"])
+        if hasattr(self, "provider_label") and self.provider_label:
+            self.provider_label.setStyleSheet(self.app.styles["label"])
+
+        # Update title label
         title_label = self.findChild(QLabel, "title_label")
         if title_label:
-            title_label.setStyleSheet(
-                f"font-size: 24px; font-weight: bold; {self.app.styles['label']}"
-            )
+            title_label.setStyleSheet(self.app.styles["label_title"])
 
-        # Update other specific labels by text
-        title_labels = self.findChildren(QLabel)
-        for widget in title_labels:
-            if widget.text() in [
-                _("Shortcut Key:"),
-                _("Background Theme:"),
-                _("Color Mode:"),
-                _("Choose AI Provider:"),
-            ]:
-                widget.setStyleSheet(self.app.styles["label"])
+        # Update provider name and description labels directly if they exist
+        if hasattr(self, 'provider_name_label') and self.provider_name_label:
+            self.provider_name_label.setStyleSheet(f"{self.app.styles['label_title']}; font-size: 18px;")
 
-        # Update provider-specific labels by checking all labels
-        for widget in title_labels:
-            # Check if this is a provider name (contains provider name text)
-            if (
-                hasattr(widget, "text")
-                and widget.text()
-                and any(
-                    provider in widget.text()
-                    for provider in ["Ollama", "OpenAI", "Anthropic", "Groq"]
-                )
-            ):
-                # Provider title needs high contrast - force pure white/black
-                # Use effective mode based on user settings
-                current_mode = self.app.settings_manager.color_mode
-                provider_color = "#ffffff" if current_mode == "dark" else "#000000"
-                widget.setStyleSheet(
-                    f"font-size: 18px; font-weight: bold; color: {provider_color};"
-                )
-            # Check if this is a description (longer text, not a simple label)
-            elif hasattr(widget, "text") and widget.text() and len(widget.text()) > 50:
-                widget.setStyleSheet(f"{self.app.styles['label']} text-align: center;")
-            # Update all other labels (field labels like "API Base URL", "API Model", etc.)
-            elif (
-                hasattr(widget, "text")
-                and widget.text()
-                and widget.text()
-                not in [
-                    _("Settings"),
-                    _("Shortcut Key:"),
-                    _("Background Theme:"),
-                    _("Color Mode:"),
-                    _("Choose AI Provider:"),
-                ]
-                and len(widget.text()) <= 50
-                and not any(
-                    provider in widget.text()
-                    for provider in ["Ollama", "OpenAI", "Anthropic", "Groq"]
-                )
-            ):
-                # Apply standard label style for field labels
-                current_mode = self.app.settings_manager.color_mode
-                label_color = "#ffffff" if current_mode == "dark" else "#333333"
-                widget.setStyleSheet(f"font-size: 16px; color: {label_color};")
+        if hasattr(self, 'description_label') and self.description_label:
+            self.description_label.setStyleSheet(f"{self.app.styles['label']}; text-align: center;")
+            self.description_label.setWordWrap(True)
+
+        # Update other provider-specific labels by traversing the current provider layout only (avoids global search)
+        if self.current_provider_layout:
+            for i in range(self.current_provider_layout.count()):
+                item = self.current_provider_layout.itemAt(i)
+                if item and item.widget() and isinstance(item.widget(), QLabel):
+                    widget = item.widget()
+                    # Skip name and description
+                    if widget == getattr(self, 'provider_name_label', None) or widget == getattr(self, 'description_label', None):
+                        continue
+                    # Update field labels (e.g., "API Base URL")
+                    if isinstance(widget, QLabel) and widget.text() and len(widget.text()) <= 50:
+                        widget.setStyleSheet(self.app.styles["label"])
 
         # Update shortcut input if exists
         if self.shortcut_input:
@@ -685,10 +658,10 @@ class SettingsWindow(ThemedWidget):
                         keyword in button_text
                         for keyword in ["cancel", "reset", "clear", "remove", "delete"]
                     ):
-                        button.setStyleSheet(self.get_secondary_button_style())
+                        button.setStyleSheet(self.app.styles["secondary_button"])
                     else:
                         # Default to primary button style
-                        button.setStyleSheet(self.get_primary_button_style())
+                        button.setStyleSheet(self.app.styles["primary_button"])
 
                 elif item.layout():
                     update_buttons_in_layout(item.layout())
