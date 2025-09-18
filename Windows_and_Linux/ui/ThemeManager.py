@@ -77,10 +77,10 @@ class ThemeManager(QtCore.QObject):
         # Base colours (matching original functions exactly)
         bg_primary = "#2d2d2d" if dark else "#ffffff"
         fg_primary = "#ffffff" if dark else "#000000"
-        bg_control = "#444" if dark else "white"
+        bg_control = "#444444" if dark else "white"
         fg_control = "#ffffff" if dark else "#000000"
         fg_control_text = "#ffffff" if dark else "#333333"  # For labels/radios
-        border = "#666" if dark else "#ccc"
+        border = "#666666" if dark else "#cccccc"
         border_checkbox = "#666666"  # Specific color for checkboxes
         selection = "#666" if dark else "#e0e0e0"
 
@@ -235,29 +235,35 @@ class ThemeManager(QtCore.QObject):
                 QPushButton {
                     background-color: #dc3545;
                     color: white;
-                    border: 1px solid #dc3545;
-                    }
+                    border: none;
+                    border-radius: 50%;
+                    font-size: 14px;
+                    font-weight: bold;
+                    min-width: 20px;
+                    min-height: 20px;
+                    padding: 0;
+                }
                 QPushButton:hover {
                     background-color: #c82333;
-                    }
+                }
                 QPushButton:pressed {
                     background-color: #bd2130;
-                    }
+                }
             """,
             "container": f"""
                 QWidget {{
-                    background-color: {bg_primary if dark else "#f5f5f5"};
-                    border: 1px solid {border if dark else "#ddd"};
+                    background-color: transparent;
+                    border: 1px solid {'#666666' if dark else "#777777D2"};
                     border-radius: 8px;
                     padding: 8px;
                 }}
             """,
-            "image_preview": """
-                QLabel {
-                    border: 1px dashed #999;
+            "image_preview": f"""
+                QLabel {{
+                    border: 1px solid {'rgba(0, 140, 186, 0.8)' if not dark else 'rgba(76, 175, 80, 0.8)'};
                     border-radius: 4px;
-                    background-color: rgba(255, 255, 255, 0.1);
-                }
+                    {'background-color: rgba(248, 248, 248, 0.4);' if not dark else 'background-color: rgba(255, 255, 255, 0.1);'}
+                }}
             """,
             "icon_button": f"""
                 QPushButton {{

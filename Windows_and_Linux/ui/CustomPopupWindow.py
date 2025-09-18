@@ -574,13 +574,13 @@ class CustomPopupWindow(QWidget):
         preview_container = QWidget()
         preview_container.setStyleSheet(self.app.styles["container"])
         preview_layout = QVBoxLayout(preview_container)
-        preview_layout.setContentsMargins(8, 8, 8, 8)
+        preview_layout.setContentsMargins(4, 4, 4, 4)  # Reduced padding to fit button better
         preview_layout.setSpacing(5)
 
         # Header row with label and remove button
         header_row = QWidget()
         header_layout = QHBoxLayout(header_row)
-        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setContentsMargins(0, 0, -2, 0)  # Slight left shift for button
         header_layout.setSpacing(5)
 
         # Image preview label
