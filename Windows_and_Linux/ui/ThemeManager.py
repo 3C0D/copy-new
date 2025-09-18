@@ -94,9 +94,9 @@ class ThemeManager(QtCore.QObject):
         secondary_hover = "#555555" if dark else "#bbbbbb"
         secondary_pressed = "#444444" if dark else "#aaaaaa"
 
-        close_default = "#106ebe" if dark else "#0078d4"
-        close_hover = "#1e88e5" if dark else "#106ebe"
-        close_pressed = "#0d47a1" if dark else "#005a9e"
+        close_default = "#3d8b40" if dark else "#0277bd"
+        close_hover = "#2e7d32" if dark else "#01579b"
+        close_pressed = "#1b5e20" if dark else "#004d40"
 
         return {
             # ----------  CONTAINERS  ----------

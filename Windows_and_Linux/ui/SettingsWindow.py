@@ -338,7 +338,9 @@ class SettingsWindow(ThemedWidget):
 
         # Provider name display
         self.provider_name_label = QLabel(provider.provider_name)
-        self.provider_name_label.setStyleSheet(f"{self.app.styles['label_title']}; font-size: 18px;")
+        self.provider_name_label.setStyleSheet(
+            f"{self.app.styles['label_title']}; font-size: 18px;"
+        )
         self.provider_name_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
         provider_header_layout.addWidget(self.provider_name_label)
 
@@ -360,10 +362,10 @@ class SettingsWindow(ThemedWidget):
 
             # Main button
             if provider.button_text:
-                main_button = QPushButton(provider.button_text)
-                main_button.setStyleSheet(self.app.styles["primary_button"])
-                main_button.clicked.connect(provider.button_action)
-                button_container.addWidget(main_button)
+                self.main_button = QPushButton(provider.button_text)
+                self.main_button.setStyleSheet(self.app.styles["primary_button"])
+                self.main_button.clicked.connect(provider.button_action)
+                button_container.addWidget(self.main_button)
 
             # Additional buttons
             if hasattr(provider, "additional_buttons"):
@@ -584,10 +586,12 @@ class SettingsWindow(ThemedWidget):
             title_label.setStyleSheet(self.app.styles["label_title"])
 
         # Update provider name and description labels directly if they exist
-        if hasattr(self, 'provider_name_label') and self.provider_name_label:
-            self.provider_name_label.setStyleSheet(f"{self.app.styles['label_title']}; font-size: 18px;")
+        if hasattr(self, "provider_name_label") and self.provider_name_label:
+            self.provider_name_label.setStyleSheet(
+                f"{self.app.styles['label_title']}; font-size: 18px;"
+            )
 
-        if hasattr(self, 'description_label') and self.description_label:
+        if hasattr(self, "description_label") and self.description_label:
             self.description_label.setStyleSheet(f"{self.app.styles['label']}; text-align: center;")
             self.description_label.setWordWrap(True)
 
@@ -598,7 +602,9 @@ class SettingsWindow(ThemedWidget):
                 if item and item.widget() and isinstance(item.widget(), QLabel):
                     widget = item.widget()
                     # Skip name and description
-                    if widget == getattr(self, 'provider_name_label', None) or widget == getattr(self, 'description_label', None):
+                    if widget == getattr(self, "provider_name_label", None) or widget == getattr(
+                        self, "description_label", None
+                    ):
                         continue
                     # Update field labels (e.g., "API Base URL")
                     if isinstance(widget, QLabel) and widget.text() and len(widget.text()) <= 50:
@@ -618,6 +624,10 @@ class SettingsWindow(ThemedWidget):
         if self.autostart_checkbox:
             self.autostart_checkbox.setStyleSheet(self.app.styles["checkbox"])
 
+        # Update main button if exists
+        if hasattr(self, "main_button") and self.main_button:
+            self.main_button.setStyleSheet(self.app.styles["primary_button"])
+
         # Update provider buttons
         self._update_provider_buttons()
 
@@ -634,7 +644,6 @@ class SettingsWindow(ThemedWidget):
 
         # Refresh background theme
         super().refresh_theme()
-
 
     def _update_provider_buttons(self) -> None:
         """Update styles for all provider buttons when theme changes."""
@@ -774,4 +783,3 @@ class SettingsWindow(ThemedWidget):
         super().closeEvent(event)
         self.app.settings_window = None
         self._logger.debug("SettingsWindow closeEvent finished")
-

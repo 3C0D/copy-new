@@ -219,217 +219,6 @@ class ThemedWidget(QWidget):
         y = (screen.height() - window_rect.height()) // 2
         self.move(x, y)
 
-    def get_dropdown_style(self) -> str:
-        """Get standardized dropdown styling based on current theme."""
-        current_mode = self.app.settings_manager.color_mode
-        if current_mode == "dark":
-            return """
-                QComboBox {
-                    background-color: #444;
-                    color: #ffffff;
-                    border: 1px solid #666;
-                    padding: 5px;
-                    font-size: 16px;
-                }
-                QComboBox QAbstractItemView {
-                    background-color: #444;
-                    color: #ffffff;
-                    selection-background-color: #666;
-                }
-            """
-        else:
-            return """
-                QComboBox {
-                    background-color: white;
-                    color: #000000;
-                    border: 1px solid #ccc;
-                    padding: 5px;
-                    font-size: 16px;
-                }
-                QComboBox QAbstractItemView {
-                    background-color: white;
-                    color: #000000;
-                    selection-background-color: #e0e0e0;
-                }
-            """
-
-    def get_input_style(self) -> str:
-        """Get standardized input field styling based on current theme."""
-        current_mode = self.app.settings_manager.color_mode
-        return f"""
-            font-size: 16px;
-            padding: 5px;
-            background-color: {"#444" if current_mode == "dark" else "white"};
-            color: {"#ffffff" if current_mode == "dark" else "#000000"};
-            border: 1px solid {"#666" if current_mode == "dark" else "#ccc"};
-        """
-
-    def get_radio_style(self) -> str:
-        """Get standardized radio button styling based on current theme."""
-        current_mode = self.app.settings_manager.color_mode
-        return f"color: {'#ffffff' if current_mode == 'dark' else '#333333'}; font-size: 16px;"
-
-    def get_label_style(self) -> str:
-        """Get standardized label styling based on current theme."""
-        current_mode = self.app.settings_manager.color_mode
-        color = "#ffffff" if current_mode == "dark" else "#333333"
-        style = f"font-size: 16px; color: {color};"
-        return style
-
-    def get_checkbox_style(self) -> str:
-        """Get standardized checkbox styling based on current theme."""
-        current_mode = self.app.settings_manager.color_mode
-        if current_mode == "dark":
-            # In dark mode, keep the original style (just the text)
-            return "color: #ffffff; font-size: 16px;"
-        else:
-            # In light mode, improve the visibility of indicators
-            return """
-                QCheckBox {
-                    color: #333333;
-                    font-size: 16px;
-                    spacing: 8px;
-                }
-                QCheckBox::indicator {
-                    width: 13px;
-                    height: 13px;
-                    border-radius: 2px;
-                }
-                QCheckBox::indicator:unchecked {
-                    border: 2px solid #666666;
-                    background-color: white;
-                }
-                QCheckBox::indicator:checked {
-                    border: 2px solid #666666;
-                    background-color: #666666;
-                    image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOSIgaGVpZ2h0PSI5IiB2aWV3Qm94PSIwIDAgOSA5IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNNy41IDIuNUwzLjc1IDYuMjVMMi41IDUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==);
-                }
-            """
-
-    def get_primary_button_style(self) -> str:
-        """Get standardized primary button styling based on current theme."""
-        current_mode = self.app.settings_manager.color_mode
-        return f"""
-            QPushButton {{
-                background-color: {"#4CAF50" if current_mode == "dark" else "#008CBA"};
-                color: white;
-                padding: 10px;
-                font-size: 16px;
-                border: none;
-                border-radius: 5px;
-            }}
-            QPushButton:hover {{
-                background-color: {"#45a049" if current_mode == "dark" else "#007095"};
-            }}
-            QPushButton:pressed {{
-                background-color: {"#3d8b40" if current_mode == "dark" else "#005f7a"};
-            }}
-        """
-
-    def get_secondary_button_style(self) -> str:
-        """Get standardized secondary button styling based on current theme."""
-        current_mode = self.app.settings_manager.color_mode
-        bg_color = "#666666" if current_mode == "dark" else "#cccccc"
-        hover_color = "#555555" if current_mode == "dark" else "#bbbbbb"
-        pressed_color = "#444444" if current_mode == "dark" else "#aaaaaa"
-        text_color = "#ffffff" if current_mode == "dark" else "#333333"
-
-        return f"""
-            QPushButton {{
-                background-color: {bg_color};
-                color: {text_color};
-                padding: 8px 12px;
-                font-size: 14px;
-                border: none;
-                border-radius: 4px;
-            }}
-            QPushButton:hover {{
-                background-color: {hover_color};
-            }}
-            QPushButton:pressed {{
-                background-color: {pressed_color};
-            }}
-        """
-
-    def get_close_button_style(self) -> str:
-        """Get standardized close button styling based on current theme."""
-        current_mode = self.app.settings_manager.color_mode
-        return f"""
-            QPushButton {{
-                background-color: {"#0078d4" if current_mode == "light" else "#106ebe"};
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 14px;
-                font-weight: bold;
-                padding: 8px 16px;
-            }}
-            QPushButton:hover {{
-                background-color: {"#106ebe" if current_mode == "light" else "#1e88e5"};
-            }}
-            QPushButton:pressed {{
-                background-color: {"#005a9e" if current_mode == "light" else "#0d47a1"};
-            }}
-        """
-
-    def get_scroll_area_style(self) -> str:
-        """Get standardized scroll area styling based on current theme."""
-        return """
-            QScrollArea {
-                background: transparent;
-                border: none;
-            }
-            QScrollArea > QWidget > QWidget {
-                background: transparent;
-            }
-            QScrollBar:vertical {
-                background-color: rgba(0, 0, 0, 0.1);
-                width: 12px;
-                margin: 0px;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: rgba(128, 128, 128, 0.6);
-                min-height: 20px;
-                border-radius: 6px;
-                margin: 2px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: rgba(128, 128, 128, 0.8);
-            }
-            QScrollBar::handle:vertical:pressed {
-                background-color: rgba(128, 128, 128, 1.0);
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                height: 0px;
-            }
-            QScrollBar:horizontal {
-                background-color: rgba(0, 0, 0, 0.1);
-                height: 12px;
-                margin: 0px;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:horizontal {
-                background-color: rgba(128, 128, 128, 0.6);
-                min-width: 20px;
-                border-radius: 6px;
-                margin: 2px;
-            }
-            QScrollBar::handle:horizontal:hover {
-                background-color: rgba(128, 128, 128, 0.8);
-            }
-            QScrollBar::handle:horizontal:pressed {
-                background-color: rgba(128, 128, 128, 1.0);
-            }
-            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
-                width: 0px;
-                background: transparent;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                background: transparent;
-            }
-        """
-
     def _register_for_theme_changes(self) -> None:
         """Register this widget for theme change notifications."""
         self.app.theme_manager.register_widget(self)
@@ -446,7 +235,7 @@ class ThemedWidget(QWidget):
             self.background.background_theme = style
             self.background.update()
 
-        self.refresh_theme()  # garder ???????
+        self.refresh_theme()
 
     def refresh_theme(self) -> None:
         """
@@ -472,7 +261,12 @@ class ThemeBackground(QWidget):
     """
 
     def __init__(
-        self, app: "WritingToolApp", parent=None, background_theme="gradient", is_popup=False, border_radius=0
+        self,
+        app: "WritingToolApp",
+        parent=None,
+        background_theme="gradient",
+        is_popup=False,
+        border_radius=0,
     ):
         self.app = app
         super().__init__(parent)
