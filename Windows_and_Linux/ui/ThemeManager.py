@@ -81,7 +81,6 @@ class ThemeManager(QtCore.QObject):
         fg_control = "#ffffff" if dark else "#000000"
         fg_control_text = "#ffffff" if dark else "#333333"  # For labels/radios
         border = "#666" if dark else "#ccc"
-        border_light = "#555555" if dark else "#dddddd"
         border_checkbox = "#666666"  # Specific color for checkboxes
         selection = "#666" if dark else "#e0e0e0"
 
@@ -99,6 +98,10 @@ class ThemeManager(QtCore.QObject):
         close_pressed = "#1b5e20" if dark else "#004d40"
 
         return {
+            # ----------  COLORS  ----------
+            "color_primary": "#2196F3",
+            "color_secondary": "#444" if dark else "#ddd",
+            "color_background": "white",
             # ----------  CONTAINERS  ----------
             "dialog": f"""
                 QDialog {{
@@ -171,7 +174,7 @@ class ThemeManager(QtCore.QObject):
                     background-color: {selection};
                 }}
                 QPushButton:pressed {{
-                    background-color: {border_light};
+                    background-color: {border};
                 }}
             """,
             "primary_button": f"""
@@ -240,6 +243,134 @@ class ThemeManager(QtCore.QObject):
                 QPushButton:pressed {
                     background-color: #bd2130;
                     }
+            """,
+            "container": f"""
+                QWidget {{
+                    background-color: {bg_primary if dark else "#f5f5f5"};
+                    border: 1px solid {border if dark else "#ddd"};
+                    border-radius: 8px;
+                    padding: 8px;
+                }}
+            """,
+            "image_preview": """
+                QLabel {
+                    border: 1px dashed #999;
+                    border-radius: 4px;
+                    background-color: rgba(255, 255, 255, 0.1);
+                }
+            """,
+            "icon_button": f"""
+                QPushButton {{
+                    background-color: {"#666" if dark else "#999"};
+                    border-radius: 10px;
+                    min-width: 16px;
+                    min-height: 16px;
+                    max-width: 16px;
+                    max-height: 16px;
+                    padding: 1px;
+                    margin: 0px;
+                }}
+                QPushButton:hover {{
+                    background-color: {"#888" if dark else "#bbb"};
+                }}
+            """,
+            "lock_button": f"""
+                QPushButton {{
+                    background-color: transparent;
+                    border: 1px solid {border};
+                    border-radius: 4px;
+                    padding: 1px;
+                    font-size: 10px;
+                }}
+                QPushButton:hover {{
+                    background-color: {selection};
+                }}
+                QPushButton:checked {{
+                    background-color: #4CAF50;
+                    color: white;
+                    border: 1px solid #4CAF50;
+                }}
+            """,
+            "input_full": f"""
+                QLineEdit {{
+                    padding: 10px;
+                    border: 2px solid {border};
+                    border-radius: 8px;
+                    background-color: {bg_control};
+                    color: {fg_control};
+                    font-size: 14px;
+                }}
+                QLineEdit:focus {{
+                    border-color: {"#4CAF50" if dark else "#2196F3"};
+                }}
+            """,
+            "send_button": f"""
+                QPushButton {{
+                    background-color: {"#2e7d32" if dark else "#4CAF50"};
+                    border: none;
+                    border-radius: 8px;
+                    padding: 5px;
+                }}
+                QPushButton:hover {{
+                    background-color: {"#1b5e20" if dark else "#45a049"};
+                }}
+            """,
+            "icon_small_button": f"""
+                QPushButton {{
+                    background-color: transparent;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 0px;
+                    margin-top: 3px;
+                    color: {fg_control};
+                }}
+                QPushButton:hover {{
+                    background-color: {selection};
+                }}
+            """,
+            "close_small_button": f"""
+                QPushButton {{
+                    background-color: transparent;
+                    color: {fg_control};
+                    font-size: 20px;
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 0px;
+                }}
+                QPushButton:hover {{
+                    background-color: {selection};
+                }}
+            """,
+            "add_button": f"""
+                QPushButton {{
+                    background-color: {bg_control if dark else "#e0e0e0"};
+                    border: 1px solid {border};
+                    border-radius: 8px;
+                    padding: 10px;
+                    font-size: 14px;
+                    text-align: center;
+                    color: {fg_control};
+                    margin-top: 10px;
+                }}
+                QPushButton:hover {{
+                    background-color: {selection if dark else "#d0d0d0"};
+                }}
+            """,
+            "action_indicator": f"""
+                QLabel {{
+                    background-color: {secondary_default};
+                    color: {fg_primary};
+                    border-radius: 10px;
+                    font-size: 12px;
+                    font-weight: bold;
+                    padding: 2px;
+                    min-width: 16px;
+                    max-width: 16px;
+                    min-height: 16px;
+                    max-height: 16px;
+                    text-align: center;
+                }}
             """,
             # ----------  OTHER CONTROLS  ----------
             "radio": f"""
@@ -335,7 +466,7 @@ class ThemeManager(QtCore.QObject):
                 QMenu {{
                     background-color: {bg_primary};
                     color: {fg_primary};
-                    border: 1px solid {border_light};
+                    border: 1px solid {border};
                     border-radius: 8px;
                     padding: 2px;
                     selection-background-color: {selection};

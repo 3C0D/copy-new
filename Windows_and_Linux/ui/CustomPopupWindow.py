@@ -98,15 +98,13 @@ class ToggleSwitch(QCheckBox):
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
 
-        # Colors based on color mode
-        dark_mode = self.app.settings_manager.color_mode == "dark"
-
+        # Colors from styles
         if self.isChecked():
-            bg_color = QtGui.QColor("#2196F3")  # Blue when ON
+            bg_color = QtGui.QColor(self.app.styles["color_primary"])
         else:
-            bg_color = QtGui.QColor("#444" if dark_mode else "#ddd")  # Gray when OFF
+            bg_color = QtGui.QColor(self.app.styles["color_secondary"])
 
-        circle_color = QtGui.QColor("white")
+        circle_color = QtGui.QColor(self.app.styles["color_background"])
 
         # Draw background
         painter.setBrush(QtGui.QBrush(bg_color))
@@ -151,21 +149,9 @@ class ButtonEditDialog(QDialog):
 
         # Name
         name_label = QLabel("Button Name:")
-        name_label.setStyleSheet(
-            f"color: {'#fff' if self.app.settings_manager.color_mode == 'dark' else '#333'}; font-weight: bold;"
-        )
+        name_label.setStyleSheet(self.app.styles["label"])
         self.name_input = QLineEdit()
-        self.name_input.setStyleSheet(
-            f"""
-            QLineEdit {{
-                padding: 8px;
-                border: 1px solid {"#777" if self.app.settings_manager.color_mode == "dark" else "#ccc"};
-                border-radius: 8px;
-                background-color: {"#333" if self.app.settings_manager.color_mode == "dark" else "white"};
-                color: {"#fff" if self.app.settings_manager.color_mode == "dark" else "#000"};
-            }}
-        """,
-        )
+        self.name_input.setStyleSheet(self.app.styles["input"])
         if "name" in self.button_data:
             self.name_input.setText(self.button_data["name"])
         layout.addWidget(name_label)
@@ -175,21 +161,9 @@ class ButtonEditDialog(QDialog):
         instruction_label = QLabel(
             "What should your AI do with your selected text? (System Instruction)"
         )
-        instruction_label.setStyleSheet(
-            f"color: {'#fff' if self.app.settings_manager.color_mode == 'dark' else '#333'}; font-weight: bold;"
-        )
+        instruction_label.setStyleSheet(self.app.styles["label"])
         self.instruction_input = QPlainTextEdit()
-        self.instruction_input.setStyleSheet(
-            f"""
-            QPlainTextEdit {{
-                padding: 8px;
-                border: 1px solid {"#777" if self.app.settings_manager.color_mode == "dark" else "#ccc"};
-                border-radius: 8px;
-                background-color: {"#333" if self.app.settings_manager.color_mode == "dark" else "white"};
-                color: {"#fff" if self.app.settings_manager.color_mode == "dark" else "#000"};
-            }}
-        """,
-        )
+        self.instruction_input.setStyleSheet(self.app.styles["input"])
         self.instruction_input.setPlainText(self.button_data.get("instruction", ""))
         self.instruction_input.setMinimumHeight(100)
         self.instruction_input.setPlaceholderText(
@@ -209,18 +183,14 @@ class ButtonEditDialog(QDialog):
 
         # open_in_window
         display_label = QLabel("How should your AI response be shown?")
-        display_label.setStyleSheet(
-            f"color: {'#fff' if self.app.settings_manager.color_mode == 'dark' else '#333'}; font-weight: bold;"
-        )
+        display_label.setStyleSheet(self.app.styles["label"])
         layout.addWidget(display_label)
 
         radio_layout = QHBoxLayout()
         self.replace_radio = QRadioButton("Replace the selected text")
         self.window_radio = QRadioButton("In a chat pop-up window")
         for r in (self.replace_radio, self.window_radio):
-            r.setStyleSheet(
-                f"color: {'#fff' if self.app.settings_manager.color_mode == 'dark' else '#333'};"
-            )
+            r.setStyleSheet(self.app.styles["radio"])
 
         self.replace_radio.setChecked(not self.button_data.get("open_in_window", False))
         self.window_radio.setChecked(self.button_data.get("open_in_window", False))
@@ -233,9 +203,7 @@ class ButtonEditDialog(QDialog):
         indicator_label = QLabel(
             "<i>A small indicator will be shown on the button: Ⓡ for replace, Ⓒ for chat</i>"
         )
-        indicator_label.setStyleSheet(
-            f"color: {'#aaa' if self.app.settings_manager.color_mode == 'dark' else '#666'}; font-size: 11px; font-style: italic;"
-        )
+        indicator_label.setStyleSheet(self.app.styles["label_small"])
         layout.addWidget(indicator_label)
 
         # OK & Cancel
@@ -243,21 +211,8 @@ class ButtonEditDialog(QDialog):
         ok_button = QPushButton("OK")
         cancel_button = QPushButton("Cancel")
         for btn in (ok_button, cancel_button):
-            btn.setStyleSheet(
-                f"""
-                QPushButton {{
-                    background-color: {"#444" if self.app.settings_manager.color_mode == "dark" else "#f0f0f0"};
-                    color: {"#fff" if self.app.settings_manager.color_mode == "dark" else "#000"};
-                    border: 1px solid {"#666" if self.app.settings_manager.color_mode == "dark" else "#ccc"};
-                    border-radius: 5px;
-                    padding: 8px;
-                    min-width: 100px;
-                }}
-                QPushButton:hover {{
-                    background-color: {"#555" if self.app.settings_manager.color_mode == "dark" else "#e0e0e0"};
-                }}
-            """,
-            )
+            btn.setStyleSheet(self.app.styles["button"])
+
         btn_layout.addWidget(ok_button)
         btn_layout.addWidget(cancel_button)
         layout.addLayout(btn_layout)
@@ -265,14 +220,7 @@ class ButtonEditDialog(QDialog):
         ok_button.clicked.connect(self.accept)
         cancel_button.clicked.connect(self.reject)
 
-        self.setStyleSheet(
-            f"""
-            QDialog {{
-                background-color: {"#222" if self.app.settings_manager.color_mode == "dark" else "#f5f5f5"};
-                border-radius: 10px;
-            }}
-        """,
-        )
+        self.setStyleSheet(self.app.styles["dialog"])
 
     def get_button_data(self) -> ActionConfigWithName:
         return {
@@ -310,39 +258,11 @@ class DraggableButton(QPushButton):
         self.setFixedSize(120, 40)
 
         # Define base style using the dynamic property instead of the :hover pseudo-class
-        self.base_style = f"""
-            QPushButton {{
-                background-color: {"#444" if self.app.settings_manager.color_mode == "dark" else "white"};
-                border: 1px solid {"#666" if self.app.settings_manager.color_mode == "dark" else "#ccc"};
-                border-radius: 8px;
-                padding: 10px;
-                font-size: 14px;
-                text-align: left;
-                color: {"#fff" if self.app.settings_manager.color_mode == "dark" else "#000"};
-            }}
-            QPushButton[hover="true"] {{
-                background-color: {"#555" if self.app.settings_manager.color_mode == "dark" else "#f0f0f0"};
-            }}
-        """
-        self.setStyleSheet(self.base_style)
+        self.setStyleSheet(self.app.styles["button"])
 
     def refresh_button_style(self) -> None:
         """Refresh the button style when color mode changes."""
-        self.base_style = f"""
-            QPushButton {{
-                background-color: {"#444" if self.app.settings_manager.color_mode == "dark" else "white"};
-                border: 1px solid {"#666" if self.app.settings_manager.color_mode == "dark" else "#ccc"};
-                border-radius: 8px;
-                padding: 10px;
-                font-size: 14px;
-                text-align: left;
-                color: {"#fff" if self.app.settings_manager.color_mode == "dark" else "#000"};
-            }}
-            QPushButton[hover="true"] {{
-                background-color: {"#555" if self.app.settings_manager.color_mode == "dark" else "#f0f0f0"};
-            }}
-        """
-        self.setStyleSheet(self.base_style)
+        self.setStyleSheet(self.app.styles["button"])
 
     def enterEvent(self, event: QtGui.QEnterEvent) -> None:
         # Only update the hover property if NOT in edit mode.
@@ -393,18 +313,18 @@ class DraggableButton(QPushButton):
         if self.popup.edit_mode and event.mimeData().hasFormat("application/x-button-index"):
             event.acceptProposedAction()
             self.setStyleSheet(
-                self.base_style
+                self.app.styles["button"]
                 + """
                 QPushButton {
                     border: 2px dashed #666;
                 }
-            """,
+                """,
             )
         else:
             event.ignore()
 
     def dragLeaveEvent(self, event: QtGui.QDragLeaveEvent) -> None:
-        self.setStyleSheet(self.base_style)
+        self.setStyleSheet(self.app.styles["button"])
         event.accept()
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
@@ -422,7 +342,7 @@ class DraggableButton(QPushButton):
             self.popup.rebuild_grid_layout()
             self.popup.update_json_from_grid()
 
-        self.setStyleSheet(self.base_style)
+        self.setStyleSheet(self.app.styles["button"])
         event.setDropAction(Qt.DropAction.MoveAction)
         event.acceptProposedAction()
 
@@ -442,23 +362,7 @@ class DraggableButton(QPushButton):
         self.action_indicator = QLabel(self)
         indicator_text = "Ⓒ" if open_in_window else "Ⓡ"
         self.action_indicator.setText(indicator_text)
-        self.action_indicator.setStyleSheet(
-            f"""
-            QLabel {{
-                background-color: {"#666" if self.app.settings_manager.color_mode == "dark" else "#ddd"};
-                color: {"#fff" if self.app.settings_manager.color_mode == "dark" else "#000"};
-                border-radius: 10px;
-                font-size: 12px;
-                font-weight: bold;
-                padding: 2px;
-                min-width: 16px;
-                max-width: 16px;
-                min-height: 16px;
-                max-height: 16px;
-                text-align: center;
-            }}
-        """
-        )
+        self.action_indicator.setStyleSheet(self.app.styles["action_indicator"])
         self.action_indicator.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.action_indicator.setGeometry(self.width() - 20, 4, 16, 16)
         self.action_indicator.show()
@@ -589,13 +493,7 @@ class CustomPopupWindow(QWidget):
     def _create_drag_label(self, layout: QHBoxLayout) -> None:
         """Create the drag instruction label for edit mode."""
         self.drag_label = QLabel("Drag to rearrange")
-        self.drag_label.setStyleSheet(
-            f"""
-            color: {"#fff" if self.app.settings_manager.color_mode == "dark" else "#333"};
-            font-size: 14px;
-            font-weight: bold;
-        """,
-        )
+        self.drag_label.setStyleSheet(self.app.styles["label"])
         self.drag_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.drag_label.hide()
 
@@ -641,36 +539,11 @@ class CustomPopupWindow(QWidget):
 
     def _get_icon_button_style(self) -> str:
         """Get stylesheet for icon buttons."""
-        return f"""
-            QPushButton {{
-                background-color: transparent;
-                border: none;
-                border-radius: 6px;
-                padding: 0px;
-                margin-top: 3px;
-                color: {"#fff" if self.app.settings_manager.color_mode == "dark" else "#333"};
-            }}
-            QPushButton:hover {{
-                background-color: {"#333" if self.app.settings_manager.color_mode == "dark" else "#ebebeb"};
-            }}
-        """
+        return self.app.styles["icon_small_button"]
 
     def _get_close_button_style(self) -> str:
         """Get stylesheet for close buttons."""
-        return f"""
-            QPushButton {{
-                background-color: transparent;
-                color: {"#fff" if self.app.settings_manager.color_mode == "dark" else "#333"};
-                font-size: 20px;
-                font-weight: bold;
-                border: none;
-                border-radius: 6px;
-                padding: 0px;
-            }}
-            QPushButton:hover {{
-                background-color: {"#333" if self.app.settings_manager.color_mode == "dark" else "#ebebeb"};
-            }}
-        """
+        return self.app.styles["close_small_button"]
 
     def _create_input_area(self, content_layout: QVBoxLayout) -> None:
         """Create the input area with text field, send button, and image preview if applicable."""
@@ -699,16 +572,7 @@ class CustomPopupWindow(QWidget):
         """Create an image preview widget below the input field."""
         # Image preview container
         preview_container = QWidget()
-        preview_container.setStyleSheet(
-            f"""
-            QWidget {{
-                background-color: {"#2a2a2a" if self.app.settings_manager.color_mode == "dark" else "#f5f5f5"};
-                border: 1px solid {"#555" if self.app.settings_manager.color_mode == "dark" else "#ddd"};
-                border-radius: 8px;
-                padding: 8px;
-            }}
-            """
-        )
+        preview_container.setStyleSheet(self.app.styles["container"])
         preview_layout = QVBoxLayout(preview_container)
         preview_layout.setContentsMargins(8, 8, 8, 8)
         preview_layout.setSpacing(5)
@@ -721,16 +585,7 @@ class CustomPopupWindow(QWidget):
 
         # Image preview label
         image_label = QLabel("📷 Image from Clipboard:")
-        image_label.setStyleSheet(
-            f"""
-            QLabel {{
-                color: {"#fff" if self.app.settings_manager.color_mode == "dark" else "#666"};
-                font-size: 12px;
-                font-weight: bold;
-                margin-bottom: 5px;
-            }}
-            """
-        )
+        image_label.setStyleSheet(self.app.styles["label_small"])
         header_layout.addWidget(image_label)
 
         # Spacer to push button to the right
@@ -739,25 +594,7 @@ class CustomPopupWindow(QWidget):
         # Remove image button (X)
         self.remove_image_button = QPushButton("×")
         self.remove_image_button.setFixedSize(20, 20)
-        self.remove_image_button.setStyleSheet(
-            f"""
-            QPushButton {{
-                background-color: {"#ff4444" if self.app.settings_manager.color_mode == "dark" else "#dc3545"};
-                color: white;
-                border: none;
-                border-radius: 10px;
-                font-size: 14px;
-                font-weight: bold;
-                padding: 0px;
-            }}
-            QPushButton:hover {{
-                background-color: {"#ff6666" if self.app.settings_manager.color_mode == "dark" else "#c82333"};
-            }}
-            QPushButton:pressed {{
-                background-color: {"#cc3333" if self.app.settings_manager.color_mode == "dark" else "#a71e2a"};
-            }}
-            """
-        )
+        self.remove_image_button.setStyleSheet(self.app.styles["delete_button"])
         self.remove_image_button.clicked.connect(self._remove_image_from_clipboard)
         self.remove_image_button.setToolTip(
             "Remove image from clipboard\n"
@@ -773,15 +610,7 @@ class CustomPopupWindow(QWidget):
         self.image_display.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.image_display.setMinimumHeight(120)
         self.image_display.setMaximumHeight(200)
-        self.image_display.setStyleSheet(
-            """
-            QLabel {
-                border: 1px dashed #999;
-                border-radius: 4px;
-                background-color: rgba(255, 255, 255, 0.1);
-            }
-            """
-        )
+        self.image_display.setStyleSheet(self.app.styles["image_preview"])
 
         # Scale and display the image
         if self.image:
@@ -857,41 +686,18 @@ class CustomPopupWindow(QWidget):
 
     def _get_input_style(self) -> str:
         """Get the styling for input elements."""
-        current_mode = self.app.settings_manager.color_mode
-        return f"""
-            QLineEdit {{
-                padding: 10px;
-                border: 2px solid {"#555" if current_mode == "dark" else "#ddd"};
-                border-radius: 8px;
-                background-color: {"#333" if current_mode == "dark" else "#fff"};
-                color: {"#fff" if current_mode == "dark" else "#333"};
-                font-size: 14px;
-            }}
-            QLineEdit:focus {{
-                border-color: {"#4CAF50" if current_mode == "dark" else "#2196F3"};
-            }}
-        """
+        return self.app.styles["input_full"]
 
     def _get_send_button_style(self) -> str:
         """Get stylesheet for send button."""
-        return f"""
-            QPushButton {{
-                background-color: {"#2e7d32" if self.app.settings_manager.color_mode == "dark" else "#4CAF50"};
-                border: none;
-                border-radius: 8px;
-                padding: 5px;
-            }}
-            QPushButton:hover {{
-                background-color: {"#1b5e20" if self.app.settings_manager.color_mode == "dark" else "#45a049"};
-            }}
-        """
+        return self.app.styles["send_button"]
 
     def _create_buttons_scroll_layout(self, parent_layout: QVBoxLayout) -> QVBoxLayout:
         """Create a scrollable layout specifically for buttons."""
         buttons_scroll = QScrollArea()
         buttons_scroll.setWidgetResizable(True)  # vertical scroll when more action buttons
         buttons_scroll.setFrameShape(QFrame.Shape.NoFrame)  # No border
-        buttons_scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+        buttons_scroll.setStyleSheet(self.app.styles["scroll_area"])
         buttons_scroll.setMaximumHeight(250)
 
         buttons_widget = QWidget()
@@ -1030,9 +836,7 @@ class CustomPopupWindow(QWidget):
 
         # Label
         label = QLabel("Force Chat:")
-        label.setStyleSheet(
-            f"color: {'#fff' if self.app.settings_manager.color_mode == 'dark' else '#333'}; font-size: 11px;"
-        )
+        label.setStyleSheet(self.app.styles["label_small"])
 
         # Check if we should restore the locked state
         force_chat_locked = getattr(self.app.settings_manager, "force_chat_locked", False)
@@ -1054,25 +858,7 @@ class CustomPopupWindow(QWidget):
         # Update lock icon based on state
         self.update_lock_icon()
 
-        self.force_chat_lock.setStyleSheet(
-            f"""
-            QPushButton {{
-                background-color: transparent;
-                border: 1px solid {"#666" if self.app.settings_manager.color_mode == "dark" else "#555"};
-                border-radius: 4px;
-                padding: 1px;
-                font-size: 10px;
-            }}
-            QPushButton:hover {{
-                background-color: {"#555" if self.app.settings_manager.color_mode == "dark" else "#e0e0e0"};
-            }}
-            QPushButton:checked {{
-                background-color: {"#4CAF50" if self.app.settings_manager.color_mode == "dark" else "#4CAF50"};
-                color: white;
-                border: 1px solid {"#4CAF50" if self.app.settings_manager.color_mode == "dark" else "#4CAF50"};
-            }}
-        """
-        )
+        self.force_chat_lock.setStyleSheet(self.app.styles["lock_button"])
 
         # Connect signals
         self.force_chat_toggle.toggled.connect(self.on_force_chat_toggled)
@@ -1217,7 +1003,7 @@ class CustomPopupWindow(QWidget):
             buttons_scroll = QScrollArea()
             buttons_scroll.setWidgetResizable(True)
             buttons_scroll.setFrameShape(QFrame.Shape.NoFrame)
-            buttons_scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+            buttons_scroll.setStyleSheet(self.app.styles["scroll_area"])
             buttons_scroll.setMaximumHeight(250)
 
             buttons_widget = QWidget()
@@ -1290,21 +1076,7 @@ class CustomPopupWindow(QWidget):
 
         btn.icon_container.setGeometry(0, 0, btn.width(), btn.height())
 
-        circle_style = f"""
-            QPushButton {{
-                background-color: {"#666" if self.app.settings_manager.color_mode == "dark" else "#999"};
-                border-radius: 10px;
-                min-width: 16px;
-                min-height: 16px;
-                max-width: 16px;
-                max-height: 16px;
-                padding: 1px;
-                margin: 0px;
-            }}
-            QPushButton:hover {{
-                background-color: {"#888" if self.app.settings_manager.color_mode == "dark" else "#bbb"};
-            }}
-        """
+        circle_style = self.app.styles["icon_button"]
 
         # Create edit icon (top-left)
         edit_btn = QPushButton(btn.icon_container)
@@ -1442,21 +1214,7 @@ class CustomPopupWindow(QWidget):
 
     def _get_add_button_style(self) -> str:
         """Get stylesheet for Add New button."""
-        return f"""
-            QPushButton {{
-                background-color: {"#333" if self.app.settings_manager.color_mode == "dark" else "#e0e0e0"};
-                border: 1px solid {"#666" if self.app.settings_manager.color_mode == "dark" else "#ccc"};
-                border-radius: 8px;
-                padding: 10px;
-                font-size: 14px;
-                text-align: center;
-                color: {"#fff" if self.app.settings_manager.color_mode == "dark" else "#000"};
-                margin-top: 10px;
-            }}
-            QPushButton:hover {{
-                background-color: {"#444" if self.app.settings_manager.color_mode == "dark" else "#d0d0d0"};
-            }}
-        """
+        return self.app.styles["add_button"]
 
     def add_edit_overlays_to_buttons(self) -> None:
         """Add edit overlays to all buttons when entering edit mode."""
