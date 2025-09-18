@@ -276,14 +276,17 @@ class ThemeManager(QtCore.QObject):
             """,
             "lock_button": f"""
                 QPushButton {{
-                    background-color: transparent;
-                    border: 1px solid {border};
+                    {'background-color: #f0f0f0; color: #333333;' if not dark else 'background-color: #555555; color: white;'}
+                    border: 1px solid {'#999999' if not dark else '#666666'};
                     border-radius: 4px;
-                    padding: 1px;
-                    font-size: 10px;
+                    padding: 2px;
+                    font-size: 14px;
+                    min-width: 20px;
+                    min-height: 20px;
                 }}
                 QPushButton:hover {{
                     background-color: {selection};
+                    border: 1px solid {'#777777' if not dark else '#888888'};
                 }}
                 QPushButton:checked {{
                     background-color: #4CAF50;
