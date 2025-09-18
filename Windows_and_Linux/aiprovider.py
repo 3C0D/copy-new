@@ -170,13 +170,14 @@ class TextSetting(AIProviderSetting):
         self.app = app
         self.internal_value: str | None = default_value
         self.input: QLineEdit | None = None
+        self.label: QLabel | None = None
 
     def render_to_layout(self, layout: QVBoxLayout) -> None:
         """Create and add the QLineEdit with its label to the layout."""
         row_layout = QHBoxLayout()
-        label = QLabel(self.display_name)
-        label.setStyleSheet(self.app.styles["label"])
-        row_layout.addWidget(label)
+        self.label = QLabel(self.display_name)
+        self.label.setStyleSheet(self.app.styles["label"])
+        row_layout.addWidget(self.label)
         self.input = QLineEdit(self.internal_value)
         self.input.setStyleSheet(self.app.styles["input"])
         self.input.setPlaceholderText(self.description)
@@ -187,8 +188,13 @@ class TextSetting(AIProviderSetting):
         layout.addLayout(row_layout)
 
     def refresh_styles(self):
+        # Update input style
         if self.input:
             self.input.setStyleSheet(self.app.styles["input"])
+
+        # Update label style
+        if hasattr(self, 'label') and self.label:
+            self.label.setStyleSheet(self.app.styles["label"])
 
     def set_value(self, value: str) -> None:
         """Store value internally and update widget if it exists."""
@@ -234,14 +240,15 @@ class DropdownSetting(AIProviderSetting):
         self.options = options or []
         self.internal_value = default_value
         self.dropdown: QComboBox | None = None
+        self.label: QLabel | None = None
         self.refresh_callback = refresh_callback
 
     def render_to_layout(self, layout: QVBoxLayout) -> None:
         """Create and configure the QComboBox with available options."""
         row_layout = QHBoxLayout()
-        label = QLabel(self.display_name)
-        label.setStyleSheet(self.app.styles["label"])
-        row_layout.addWidget(label)
+        self.label = QLabel(self.display_name)
+        self.label.setStyleSheet(self.app.styles["label"])
+        row_layout.addWidget(self.label)
         self.dropdown = QComboBox()
         # Ensure dropdown can receive focus and clicks properly
         self.dropdown.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
@@ -299,8 +306,13 @@ class DropdownSetting(AIProviderSetting):
                 pass
 
     def refresh_styles(self):
+        # Update dropdown style
         if self.dropdown:
             self.dropdown.setStyleSheet(self.app.styles["dropdown"])
+
+        # Update label style
+        if hasattr(self, 'label') and self.label:
+            self.label.setStyleSheet(self.app.styles["label"])
 
     def get_value(self) -> str:
         """Return selected value from the dropdown."""

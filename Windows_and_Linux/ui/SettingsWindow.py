@@ -416,9 +416,9 @@ class SettingsWindow(ThemedWidget):
 
         # Add italic comment about vision models
         # row_layout = QHBoxLayout()
-        vision_comment = QLabel(_("* Models with vision support"))
-        vision_comment.setStyleSheet(f"{self.app.styles['label']}; font-style: italic;")
-        layout.addWidget(vision_comment)
+        self.vision_comment = QLabel(_("* Models with vision support"))
+        self.vision_comment.setStyleSheet(f"{self.app.styles['label']}; font-style: italic;")
+        layout.addWidget(self.vision_comment)
         self._logger.debug(f"init_provider_ui finished for provider: {provider.internal_name}")
 
     def save_current_provider_settings(self) -> None:
@@ -627,6 +627,10 @@ class SettingsWindow(ThemedWidget):
         # Update main button if exists
         if hasattr(self, "main_button") and self.main_button:
             self.main_button.setStyleSheet(self.app.styles["primary_button"])
+
+        # Update vision comment if exists
+        if hasattr(self, 'vision_comment') and self.vision_comment:
+            self.vision_comment.setStyleSheet(f"{self.app.styles['label']}; font-style: italic;")
 
         # Update provider buttons
         self._update_provider_buttons()
