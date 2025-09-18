@@ -1,9 +1,14 @@
 import asyncio
 import logging
-import sys
-from aiprovider import AIProvider, GeminiProvider, OpenAICompatibleProvider, OllamaProvider, AnthropicProvider, MistralProvider
-from config.constants import GEMINI_MODELS, OPENAI_MODELS, ANTHROPIC_MODELS, MISTRAL_MODELS
-from PySide6.QtCore import Signal
+
+from aiprovider import (
+    AnthropicProvider,
+    GeminiProvider,
+    MistralProvider,
+    OpenAICompatibleProvider,
+)
+from config.constants import ANTHROPIC_MODELS, GEMINI_MODELS, MISTRAL_MODELS, OPENAI_MODELS
+
 
 class MockApp:
     def __init__(self):
@@ -35,6 +40,7 @@ class MockApp:
     def show_message_box(self, title, message):
         print(f"Show message box: {title} - {message}")
 
+
 class MockSettingsManager:
     def __init__(self):
         self.color_mode = "light"
@@ -52,6 +58,7 @@ class MockSettingsManager:
     def get(self, key, default=None):
         return self.actions.get(key, default)
 
+
 class MockSignal:
     def __init__(self):
         self.emitted = False
@@ -64,6 +71,7 @@ class MockSignal:
     def connect(self, slot):
         pass
 
+
 async def test_gemini_provider():
     app = MockApp()
     provider = GeminiProvider(app)
@@ -72,6 +80,7 @@ async def test_gemini_provider():
 
     response = await provider.get_response("Test system instruction", "Test prompt")
     print(f"Gemini response: {response}")
+
 
 async def test_openai_provider():
     app = MockApp()
@@ -82,6 +91,7 @@ async def test_openai_provider():
     response = await provider.get_response("Test system instruction", "Test prompt")
     print(f"OpenAI response: {response}")
 
+
 async def test_anthropic_provider():
     app = MockApp()
     provider = AnthropicProvider(app)
@@ -91,6 +101,7 @@ async def test_anthropic_provider():
     response = await provider.get_response("Test system instruction", "Test prompt")
     print(f"Anthropic response: {response}")
 
+
 async def test_mistral_provider():
     app = MockApp()
     provider = MistralProvider(app)
@@ -99,6 +110,7 @@ async def test_mistral_provider():
 
     response = await provider.get_response("Test system instruction", "Test prompt")
     print(f"Mistral response: {response}")
+
 
 if __name__ == "__main__":
     asyncio.run(test_gemini_provider())

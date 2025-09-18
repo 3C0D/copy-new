@@ -629,7 +629,7 @@ class SettingsWindow(ThemedWidget):
             self.main_button.setStyleSheet(self.app.styles["primary_button"])
 
         # Update vision comment if exists
-        if hasattr(self, 'vision_comment') and self.vision_comment:
+        if hasattr(self, "vision_comment") and self.vision_comment:
             self.vision_comment.setStyleSheet(f"{self.app.styles['label']}; font-style: italic;")
 
         # Update provider buttons

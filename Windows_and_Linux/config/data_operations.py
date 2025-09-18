@@ -21,6 +21,7 @@ def get_provider_display_name(provider: str) -> str:
     """Get the display name for a provider"""
     return PROVIDER_DISPLAY_NAMES.get(provider, provider)
 
+
 # Unused. Kept for reference
 def get_provider_internal_name(display_name: str) -> str:
     """Get the internal name from display name"""

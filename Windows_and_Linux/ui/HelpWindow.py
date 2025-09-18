@@ -177,8 +177,6 @@ class HelpWindow(ThemedWidget):
         scroll_area.setWidget(self.content_widget)
         return scroll_area
 
-
-
     def refresh_theme(self) -> None:
         """Refresh all theme-dependent styles in the help window."""
         super().refresh_theme()

@@ -460,7 +460,6 @@ class OnboardingWindow(ThemedWidget):
         # Refresh background theme
         super().refresh_theme()
 
-
     def _save_shortcut_setting(self) -> None:
         """Save only the shortcut setting to persistent storage."""
         try:

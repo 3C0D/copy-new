@@ -197,7 +197,6 @@ class SettingsManager:
         self._ensure_directories_exist()
         return self._write_settings_to_file()
 
-
     #
     # PROVIDER-SPECIFIC OPERATIONS
     #

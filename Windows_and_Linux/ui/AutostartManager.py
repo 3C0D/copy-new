@@ -19,7 +19,6 @@ Compatibility:
 - Linux: XDG autostart
 """
 
-
 import logging
 import os
 import sys

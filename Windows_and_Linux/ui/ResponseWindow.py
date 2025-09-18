@@ -548,7 +548,9 @@ class ResponseWindow(ThemedWidget):
         for icon, tooltip, action in zoom_controls:
             btn = QPushButton()
 
-            btn.setIcon(QtGui.QIcon(ui_utils.get_icon_path(self.app, icon, with_theme=True).as_posix()))
+            btn.setIcon(
+                QtGui.QIcon(ui_utils.get_icon_path(self.app, icon, with_theme=True).as_posix())
+            )
             btn.setStyleSheet(self.get_button_style())
             btn.setToolTip(tooltip)
             btn.clicked.connect(action)
@@ -1040,7 +1042,6 @@ class ResponseWindow(ThemedWidget):
             if not self.app.settings_manager.settings.custom_data:
                 self.app.settings_manager.settings.custom_data = {}
             self.app.settings_manager.response_window_zoom = self.current_text_display.zoom_factor
-            # self.app.settings_manager.save() ??
 
         self.chat_history = []
 

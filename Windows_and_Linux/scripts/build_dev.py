@@ -358,7 +358,9 @@ def main():
         print("\n===== Development build completed and launched =====")
         print("The executable and required files are in the 'dist/dev' directory.")
         if console_mode:
-            print("Console mode enabled - you should see logs directly in the terminal when the exe runs.")
+            print(
+                "Console mode enabled - you should see logs directly in the terminal when the exe runs."
+            )
         else:
             print("Windowed mode - check dist/dev/build_dev_debug.log for detailed logs.")
 

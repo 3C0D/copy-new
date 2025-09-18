@@ -193,7 +193,7 @@ class TextSetting(AIProviderSetting):
             self.input.setStyleSheet(self.app.styles["input"])
 
         # Update label style
-        if hasattr(self, 'label') and self.label:
+        if hasattr(self, "label") and self.label:
             self.label.setStyleSheet(self.app.styles["label"])
 
     def set_value(self, value: str) -> None:
@@ -311,7 +311,7 @@ class DropdownSetting(AIProviderSetting):
             self.dropdown.setStyleSheet(self.app.styles["dropdown"])
 
         # Update label style
-        if hasattr(self, 'label') and self.label:
+        if hasattr(self, "label") and self.label:
             self.label.setStyleSheet(self.app.styles["label"])
 
     def get_value(self) -> str:
@@ -1712,8 +1712,7 @@ class OllamaProvider(AIProvider):
         button_layout.addWidget(cancel_button)
 
         delete_button = QPushButton("Delete Model")
-        delete_button.setStyleSheet(self.app.theme_manager.get_styles()["delete_button"]
-        )
+        delete_button.setStyleSheet(self.app.theme_manager.get_styles()["delete_button"])
         delete_button.clicked.connect(dialog.accept)
         button_layout.addWidget(delete_button)
 

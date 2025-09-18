@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING
 from PySide6 import QtCore, QtGui
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
-from ui.ui_utils import ui_utils
 import ui.AboutWindow
 import ui.HelpWindow
+from ui.ui_utils import ui_utils
 
 if TYPE_CHECKING:
     from WritingToolApp import WritingToolApp
