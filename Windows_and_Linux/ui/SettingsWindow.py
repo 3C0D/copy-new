@@ -108,9 +108,6 @@ class SettingsWindow(ThemedWidget):
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)  # No border/frame
 
-        # Custom styling for transparent and aesthetic scroll bars
-        scroll_area.setStyleSheet(self.app.styles["scroll_area"])
-
         # Create scrollable content widget with transparent background
         scroll_content = QWidget()
         scroll_content.setStyleSheet("background: transparent;")

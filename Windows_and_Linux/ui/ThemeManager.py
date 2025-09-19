@@ -416,61 +416,6 @@ class ThemeManager(QtCore.QObject):
                     font-size: 16px;
                 }}
             """,
-            "scroll_area": """
-                QScrollArea {
-                    background: transparent;
-                    border: none;
-                }
-                QScrollArea > QWidget > QWidget {
-                    background: transparent;
-                }
-                QScrollBar:vertical {
-                    background-color: rgba(0, 0, 0, 0.1);
-                    width: 12px;
-                    margin: 0px;
-                    border-radius: 6px;
-                }
-                QScrollBar::handle:vertical {
-                    background-color: rgba(128, 128, 128, 0.6);
-                    min-height: 20px;
-                    border-radius: 6px;
-                    margin: 2px;
-                }
-                QScrollBar::handle:vertical:hover {
-                    background-color: rgba(128, 128, 128, 0.8);
-                }
-                QScrollBar::handle:vertical:pressed {
-                    background-color: rgba(128, 128, 128, 1.0);
-                }
-                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                    height: 0px;
-                }
-                QScrollBar:horizontal {
-                    background-color: rgba(0, 0, 0, 0.1);
-                    height: 12px;
-                    margin: 0px;
-                    border-radius: 6px;
-                }
-                QScrollBar::handle:horizontal {
-                    background-color: rgba(128, 128, 128, 0.6);
-                    min-width: 20px;
-                    border-radius: 6px;
-                    margin: 2px;
-                }
-                QScrollBar::handle:horizontal:hover {
-                    background-color: rgba(128, 128, 128, 0.8);
-                }
-                QScrollBar::handle:horizontal:pressed {
-                    background-color: rgba(128, 128, 128, 1.0);
-                }
-                QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
-                    width: 0px;
-                    background: transparent;
-                }
-                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                    background: transparent;
-                }
-            """,
             "tray_menu": f"""
                 QMenu {{
                     background-color: {bg_primary};

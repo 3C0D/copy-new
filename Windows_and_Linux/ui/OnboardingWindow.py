@@ -53,7 +53,7 @@ class OnboardingWindow(ThemedWidget):
         self.self_close = False  # Flag to distinguish self-closing from user closing
 
         # Window dimensions
-        self.min_width = 600
+        self.min_width = 950
         self.min_height = 550
 
         self.init_ui()
@@ -69,7 +69,7 @@ class OnboardingWindow(ThemedWidget):
     def _setup_window(self) -> None:
         """Configure window properties and positioning."""
         self.setWindowTitle(_("Welcome to Writing Tools"))
-        self.resize(950, 550)  # Reduced height by 50px to avoid taskbar overlap
+        self._calculate_window_size()
 
     def _create_layout(self) -> None:
         """Create the main layout structure with scroll area and margins."""
@@ -80,12 +80,6 @@ class OnboardingWindow(ThemedWidget):
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        scroll_area.setHorizontalScrollBarPolicy(
-            QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded,
-        )
-
-        # Custom styling for transparent and aesthetic scroll bars
-        scroll_area.setStyleSheet(self.app.styles["scroll_area"])
 
         # Create scrollable content widget with transparent background
         scroll_content = QWidget()

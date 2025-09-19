@@ -178,8 +178,6 @@ class AboutWindow(ThemedWidget):
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
 
-        scroll_area.setStyleSheet("QScrollArea { background: transparent; border: none; }")
-
         return scroll_area
 
     def _create_update_button(self) -> QPushButton:

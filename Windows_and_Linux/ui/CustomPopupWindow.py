@@ -698,7 +698,6 @@ class CustomPopupWindow(QWidget):
         buttons_scroll = QScrollArea()
         buttons_scroll.setWidgetResizable(True)  # vertical scroll when more action buttons
         buttons_scroll.setFrameShape(QFrame.Shape.NoFrame)  # No border
-        buttons_scroll.setStyleSheet(self.app.styles["scroll_area"])
         buttons_scroll.setMaximumHeight(250)
 
         buttons_widget = QWidget()
@@ -1004,7 +1003,6 @@ class CustomPopupWindow(QWidget):
             buttons_scroll = QScrollArea()
             buttons_scroll.setWidgetResizable(True)
             buttons_scroll.setFrameShape(QFrame.Shape.NoFrame)
-            buttons_scroll.setStyleSheet(self.app.styles["scroll_area"])
             buttons_scroll.setMaximumHeight(250)
 
             buttons_widget = QWidget()
