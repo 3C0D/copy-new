@@ -6,14 +6,11 @@ Install/uninstall dev_script.py to run at Windows startup with optional debug mo
 
 Usage:
     python install_startup_debug.py            # Toggle install/uninstall with normal debug
-    python install_startup_debug.py --verbose  # Toggle install/uninstall with verbose debug
 """
 
 import sys
 import winreg
 from pathlib import Path
-
-FORCE_VERBOSE = True  # Set to True to always enable verbose debug mode
 
 
 def get_paths() -> tuple[Path, Path, Path]:
@@ -41,7 +38,7 @@ def validate_paths(project_root: Path, venv_python: Path, dev_script: Path) -> b
     return True
 
 
-def install_startup_dev(verbose_debug: bool = False) -> bool:
+def install_startup_dev() -> bool:
     """Install dev script to run at Windows startup"""
     try:
         project_root, venv_python, dev_script = get_paths()
@@ -49,8 +46,8 @@ def install_startup_dev(verbose_debug: bool = False) -> bool:
         if not validate_paths(project_root, venv_python, dev_script):
             return False
 
-        # Build command with optional verbose debug - CORRECTION: utiliser dev_script complet
-        debug_args = "--console --debug-verbose" if verbose_debug else "--console"
+        # Build command
+        debug_args = "--console"
         command = f'cmd /k "cd /d "{project_root}" && "{venv_python}" "{dev_script}" {debug_args}"'
 
         # Add to Windows startup registry
@@ -62,8 +59,6 @@ def install_startup_dev(verbose_debug: bool = False) -> bool:
         ) as key:
             winreg.SetValueEx(key, "WritingToolsDevStartup", 0, winreg.REG_SZ, command)
 
-        debug_mode = "verbose debug" if verbose_debug else "normal debug"
-        print(f"Startup dev entry installed with {debug_mode} mode")
         return True
 
     except Exception as e:
@@ -112,14 +107,6 @@ def main():
     print("Writing Tools - Startup Dev Installer")
     print("=" * 40)
 
-    # Check for verbose flag or force verbose
-    verbose_debug = "--verbose" in sys.argv or FORCE_VERBOSE
-
-    if FORCE_VERBOSE and "--verbose" not in sys.argv:
-        print("FORCE_VERBOSE is enabled - verbose debug mode forced")
-    elif verbose_debug:
-        print("Verbose debug mode requested")
-
     if is_startup_dev_installed():
         print("Startup dev is currently INSTALLED")
         print("Uninstalling...")
@@ -131,9 +118,8 @@ def main():
     else:
         print("Startup dev is currently NOT installed")
         print("Installing...")
-        if install_startup_dev(verbose_debug):
-            debug_type = "verbose debug" if verbose_debug else "normal debug"
-            print(f"✓ Startup dev installed with {debug_type} mode!")
+        if install_startup_dev():
+            print("✓ Startup dev installed!")
             print("The dev script will run at next Windows boot in a console window.")
             print("The console will remain open for debugging systray issues.")
         else:

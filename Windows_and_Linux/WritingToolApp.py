@@ -180,17 +180,13 @@ class WritingToolApp(QApplication):
 
     def _handle_normal_launch(self) -> None:
         """Handle normal application launch with configured providers."""
-        self._logger.debug("Providers configured, starting _handle_normal_launch()")
+        self._logger.debug("Providers configured, setting up hotkey and tray icon")
 
         try:
-            self._logger.debug("Starting _initialize_ai_provider()")
             self._initialize_ai_provider()
-            self._logger.debug("Finished _initialize_ai_provider()")
             self._setup_user_interface()
             self._setup_language()
-            self._logger.debug("Starting _initialize_update_checker()")
             self._initialize_update_checker()
-            self._logger.debug("Finished _initialize_update_checker()")
         except Exception as e:
             self._handle_initialization_error(e)
 
@@ -218,15 +214,9 @@ class WritingToolApp(QApplication):
 
     def _setup_user_interface(self) -> None:
         """Setup user interface components."""
-        self._logger.debug("Starting _sync_autostart_settings()")
         self._sync_autostart_settings()
-        self._logger.debug("Finished _sync_autostart_settings()")
-        self._logger.debug("Starting _create_tray_icon_with_startup_delay()")
         self._create_tray_icon_with_startup_delay()
-        self._logger.debug("Finished _create_tray_icon_with_startup_delay() - tray creation scheduled")
-        self._logger.debug("Starting register_hotkey()")
         self.register_hotkey()
-        self._logger.debug("Finished register_hotkey() - listener started")
 
     def _create_tray_icon_with_startup_delay(self) -> None:
         """
@@ -468,7 +458,6 @@ class WritingToolApp(QApplication):
         """
         Create listener for hotkeys on Linux/Mac.
         """
-        self._logger.debug("start_hotkey_listener() called")
         orig_shortcut = self.settings_manager.hotkey or "ctrl+space"
 
         # Parse the shortcut string, for example ctrl+alt+h -> <ctrl>+<alt>+<h>. Space are removed.
@@ -477,7 +466,6 @@ class WritingToolApp(QApplication):
         self._logger.debug(f"Registering global hotkey for shortcut: {shortcut}")
 
         try:
-            self._logger.debug("Stopping existing hotkey listener if present")
             if self.hotkey_listener is not None:
                 self.hotkey_listener.stop()
                 self.hotkey_listener = None
@@ -509,7 +497,6 @@ class WritingToolApp(QApplication):
             self.hotkey_listener.start()
         except Exception as e:
             self._logger.error(f"Failed to register hotkey: {e}")
-            self._logger.debug("Hotkey registration failed, continuing without hotkeys")
 
     def register_hotkey(self) -> None:
         """
