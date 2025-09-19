@@ -1840,7 +1840,7 @@ class WritingToolApp(QApplication):
         if previous_window:
             self.settings_window.previous_window = previous_window
 
-        # self.settings_window.close_signal.connect(self.exit_app) #wtf???
+        self.settings_window.close_signal.connect(self.exit_app)
         self.settings_window.retranslate_ui()
         self.settings_window.show()
 
