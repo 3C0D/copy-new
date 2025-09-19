@@ -42,7 +42,7 @@ class NonEditableModal(ThemedWidget):
 
         self._setup_window()
         self.setup_ui()
-        self.apply_styles(self.app.settings_manager.color_mode)
+        self.setStyleSheet(self.app.styles["non_editable_modal"])
 
     def _setup_window(self) -> None:
         """Configure window properties and positioning."""
@@ -86,70 +86,10 @@ class NonEditableModal(ThemedWidget):
 
         self.copy_button.setFocus()
 
-    def apply_styles(self, current_mode: str) -> None:
-        """Apply theme styles"""
-        is_dark = current_mode == "dark"
-
-        if is_dark:
-            self.setStyleSheet(
-                """
-                QWidget {
-                    background-color: #2a2a2a;
-                    border: 1px solid #404040;
-                    border-radius: 8px;
-                }
-                QTextBrowser {
-                    background-color: #1e1e1e;
-                    color: #ffffff;
-                    border: 1px solid #404040;
-                    border-radius: 4px;
-                    padding: 8px;
-                }
-                QPushButton {
-                    background-color: #404040;
-                    border: none;
-                    border-radius: 4px;
-                    color: #ffffff;
-                    font-size: 16px;
-                }
-                QPushButton:hover {
-                    background-color: #4a9eff;
-                }
-            """,
-            )
-        else:
-            self.setStyleSheet(
-                """
-                QWidget {
-                    background-color: #ffffff;
-                    border: 1px solid #d0d0d0;
-                    border-radius: 8px;
-                }
-                QTextBrowser {
-                    background-color: #f5f5f5;
-                    color: #000000;
-                    border: 1px solid #d0d0d0;
-                    border-radius: 4px;
-                    padding: 8px;
-                }
-                QPushButton {
-                    background-color: #f0f0f0;
-                    border: none;
-                    border-radius: 4px;
-                    color: #000000;
-                    font-size: 16px;
-                }
-                QPushButton:hover {
-                    background-color: #4a9eff;
-                    color: #ffffff;
-                }
-            """,
-            )
 
     def refresh_theme(self) -> None:
         """Refresh the modal's theme when color mode changes."""
-        new_mode = self.app.settings_manager.color_mode
-        self.apply_styles(new_mode)
+        self.setStyleSheet(self.app.styles["non_editable_modal"])
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Handle window close event."""

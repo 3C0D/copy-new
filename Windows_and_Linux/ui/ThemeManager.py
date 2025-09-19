@@ -488,4 +488,29 @@ class ThemeManager(QtCore.QObject):
                     background-color: {selection};
                 }}
             """,
+            "non_editable_modal": f"""
+                QWidget {{
+                    background-color: {'#2a2a2a' if dark else '#ffffff'};
+                    border: 1px solid {'#404040' if dark else '#d0d0d0'};
+                    border-radius: 8px;
+                }}
+                QTextBrowser {{
+                    background-color: {'#1e1e1e' if dark else '#f5f5f5'};
+                    color: {'#ffffff' if dark else '#000000'};
+                    border: 1px solid {'#404040' if dark else '#d0d0d0'};
+                    border-radius: 4px;
+                    padding: 8px;
+                }}
+                QPushButton {{
+                    background-color: {'#404040' if dark else "#e8e8e8"};
+                    border: none;
+                    border-radius: 4px;
+                    color: {'#ffffff' if dark else '#000000'};
+                    font-size: 16px;
+                }}
+                QPushButton:hover {{
+                    background-color: #4a9eff;
+                    {'' if dark else 'color: #ffffff;'}
+                }}
+            """,
         }
