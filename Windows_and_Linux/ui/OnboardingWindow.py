@@ -41,7 +41,7 @@ class OnboardingWindow(ThemedWidget):
 
         # Default configuration values
         self.shortcut = "ctrl+space"
-        self.background_theme = "gradient"
+        self.background_theme = self.app.settings_manager.background_theme or "gradient"
 
         # UI components that will be referenced later
         self.content_layout: QVBoxLayout
@@ -64,6 +64,7 @@ class OnboardingWindow(ThemedWidget):
         self._setup_window()
         self._create_layout()
         self._show_welcome_screen()
+        # self.refresh_theme()
 
     def _setup_window(self) -> None:
         """Configure window properties and positioning."""
@@ -84,41 +85,7 @@ class OnboardingWindow(ThemedWidget):
         )
 
         # Custom styling for transparent and aesthetic scroll bars
-        scroll_area.setStyleSheet(
-            """
-            QScrollArea {
-                background: transparent;
-                border: none;
-            }
-            QScrollArea > QWidget > QWidget {
-                background: transparent;
-            }
-            QScrollBar:vertical {
-                background-color: rgba(0, 0, 0, 0.1);
-                width: 12px;
-                margin: 0px;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: rgba(128, 128, 128, 0.6);
-                min-height: 20px;
-                border-radius: 6px;
-                margin: 2px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: rgba(128, 128, 128, 0.8);
-            }
-            QScrollBar::handle:vertical:pressed {
-                background-color: rgba(128, 128, 128, 1.0);
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                height: 0px;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                background: transparent;
-            }
-            """
-        )
+        scroll_area.setStyleSheet(self.app.styles["scroll_area"])
 
         # Create scrollable content widget with transparent background
         scroll_content = QWidget()
@@ -156,28 +123,23 @@ class OnboardingWindow(ThemedWidget):
         self.content_layout.addLayout(theme_section)
 
         # Navigation button to proceed to next step (API configuration)
-        next_button = self._create_next_button()
-        self.content_layout.addWidget(next_button)
+        self._create_next_button()
+        self.content_layout.addWidget(self.next_button)
 
     def _create_title_label(self) -> QLabel:
         """Create the main title label with theme-appropriate styling."""
         title_label = QLabel(_("Welcome to Writing Tools") + "!")
         title_label.setObjectName("title_label")  # Set object name for style refresh
-        title_label.setStyleSheet(self._get_title_style())
+        title_label.setStyleSheet(self.app.styles["label_title"])
         return title_label
 
-    def _get_title_style(self) -> str:
-        """Get the title styling based on current color mode."""
-        current_mode = self.app.settings_manager.color_mode
-        color = "#ffffff" if current_mode == "dark" else "#333333"
-        return f"font-size: 24px; font-weight: bold; color: {color};"
 
     def _create_features_section(self) -> QWidget:
         """Create the features description section showing app capabilities."""
         features_content = self._get_features_content()
 
         features_label = QLabel(features_content)
-        features_label.setStyleSheet(self._get_content_style())
+        features_label.setStyleSheet(self.app.styles["label"])
         features_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         return features_label
 
@@ -201,12 +163,12 @@ class OnboardingWindow(ThemedWidget):
 
         # Label explaining the shortcut configuration
         shortcut_label = QLabel(_('Customize your shortcut key (default: "ctrl+space"):'))
-        shortcut_label.setStyleSheet(self._get_content_style())
+        shortcut_label.setStyleSheet(self.app.styles["label"])
         shortcut_layout.addWidget(shortcut_label)
 
         # Text input field for shortcut (auto-saves on change)
         self.shortcut_input = QLineEdit(self.shortcut)
-        self.shortcut_input.setStyleSheet(self._get_input_style())
+        self.shortcut_input.setStyleSheet(self.app.styles["input"])
         # Connect signal to auto-save when user types
         self.shortcut_input.textChanged.connect(self._on_shortcut_changed)
         shortcut_layout.addWidget(self.shortcut_input)
@@ -219,7 +181,7 @@ class OnboardingWindow(ThemedWidget):
 
         # Color mode selection title
         color_mode_title = QLabel(_("Color Mode:"))
-        color_mode_title.setStyleSheet(self._get_content_style())
+        color_mode_title.setStyleSheet(self.app.styles["label"])
         color_mode_layout.addWidget(color_mode_title)
 
         # Dropdown for color mode selection
@@ -232,7 +194,7 @@ class OnboardingWindow(ThemedWidget):
         self.color_mode_dropdown.setCurrentIndex(mode_index)
 
         # Apply styling to dropdown
-        self.color_mode_dropdown.setStyleSheet(self._get_dropdown_style())
+        self.color_mode_dropdown.setStyleSheet(self.app.styles["dropdown"])
 
         # Auto-save color mode changes for immediate visual feedback
         self.color_mode_dropdown.currentTextChanged.connect(self.auto_save_color_mode)
@@ -250,7 +212,7 @@ class OnboardingWindow(ThemedWidget):
 
         # Label for theme selection
         theme_label = QLabel(_("Choose your background theme:"))
-        theme_label.setStyleSheet(self._get_content_style())
+        theme_label.setStyleSheet(self.app.styles["label"])
         theme_layout.addWidget(theme_label)
 
         # Container for radio buttons (horizontal layout)
@@ -261,7 +223,7 @@ class OnboardingWindow(ThemedWidget):
         self.plain_radio = QRadioButton(_("Plain"))  # Plain background theme
 
         # Apply styling to radio buttons
-        radio_style = self._get_radio_style()
+        radio_style = self.app.styles["radio"]
         self.gradient_radio.setStyleSheet(radio_style)
         self.plain_radio.setStyleSheet(radio_style)
 
@@ -281,93 +243,17 @@ class OnboardingWindow(ThemedWidget):
 
     def _create_next_button(self) -> QPushButton:
         """Create the 'Next' button that proceeds to API configuration step."""
-        next_button = QPushButton(_("Next"))
-        next_button.setStyleSheet(self._get_button_style())
+        self.next_button = QPushButton(_("Next"))
+        self.next_button.setStyleSheet(self.app.styles["close_button"])
         # Connect to navigation handler (proceeds to API setup)
-        next_button.clicked.connect(self._on_next_clicked)
-        return next_button
+        self.next_button.clicked.connect(self._on_next_clicked)
+        return self.next_button
 
-    def _get_content_style(self) -> str:
-        """Get the content styling based on current color mode."""
-        current_mode = self.app.settings_manager.color_mode
-        color = "#ffffff" if current_mode == "dark" else "#333333"
-        style = f"font-size: 16px; color: {color};"
-        return style
 
-    def _get_info_style(self) -> str:
-        """Get the info text styling based on current color mode."""
-        current_mode = self.app.settings_manager.color_mode
-        color = "#aaaaaa" if current_mode == "dark" else "#666666"
-        style = f"font-size: 16px; color: {color}; font-style: italic; margin: 10px 0;"
-        return style
 
-    def _get_input_style(self) -> str:
-        """Get the input field styling based on current color mode."""
-        current_mode = self.app.settings_manager.color_mode
-        return f"""
-            font-size: 16px;
-            padding: 5px;
-            background-color: {"#444" if current_mode == "dark" else "white"};
-            color: {"#ffffff" if current_mode == "dark" else "#000000"};
-            border: 1px solid {"#666" if current_mode == "dark" else "#ccc"};
-        """
 
-    def _get_radio_style(self) -> str:
-        """Get the radio button styling based on current color mode."""
-        current_mode = self.app.settings_manager.color_mode
-        color = "#ffffff" if current_mode == "dark" else "#333333"
-        style = f"color: {color};"
-        return style
 
-    def _get_dropdown_style(self) -> str:
-        """Get the dropdown styling based on current color mode."""
-        current_mode = self.app.settings_manager.color_mode
-        if current_mode == "dark":
-            return """
-                QComboBox {
-                    background-color: #444;
-                    color: #ffffff;
-                    border: 1px solid #666;
-                    padding: 5px;
-                    font-size: 14px;
-                }
-                QComboBox QAbstractItemView {
-                    background-color: #444;
-                    color: #ffffff;
-                    selection-background-color: #666;
-                }
-            """
-        else:
-            return """
-                QComboBox {
-                    background-color: white;
-                    color: #000000;
-                    border: 1px solid #ccc;
-                    padding: 5px;
-                    font-size: 14px;
-                }
-                QComboBox QAbstractItemView {
-                    background-color: white;
-                    color: #000000;
-                    selection-background-color: #e0e0e0;
-                }
-            """
 
-    def _get_button_style(self) -> str:
-        """Get the button styling with hover effects."""
-        return """
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                padding: 10px;
-                font-size: 16px;
-                border: none;
-                border-radius: 5px;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-        """
 
     def _on_shortcut_changed(self) -> None:
         """Handle shortcut input changes and save automatically to settings."""
@@ -392,14 +278,8 @@ class OnboardingWindow(ThemedWidget):
             self._save_theme_setting()
 
             # Apply theme change to UI immediately (live preview)
-            self._apply_theme_change()
+            self.app.theme_manager.change_background_theme(new_theme)
 
-    def _apply_theme_change(self) -> None:
-        """Apply the theme change immediately to the background for live preview."""
-        # Update the background theme
-        self.background.background_theme = self.background_theme
-        # Force background redraw to show new theme
-        self.background.update()
 
     def auto_save_color_mode(self) -> None:
         """
@@ -416,7 +296,7 @@ class OnboardingWindow(ThemedWidget):
             self.app.settings_manager.color_mode = color_mode
 
             # Apply theme change
-            self.app.theme_manager.change_background_theme(color_mode)
+            self.app.theme_manager.change_color_mode(color_mode)
 
             # Refresh UI styles with updated colorMode
             self.refresh_theme()
@@ -425,15 +305,15 @@ class OnboardingWindow(ThemedWidget):
         """Refresh all UI element styles to reflect the current color mode."""
         # Update color mode dropdown style
         if hasattr(self, "color_mode_dropdown") and self.color_mode_dropdown:
-            self.color_mode_dropdown.setStyleSheet(self._get_dropdown_style())
+            self.color_mode_dropdown.setStyleSheet(self.app.styles["dropdown"])
 
         # Update other UI elements
         if hasattr(self, "shortcut_input") and self.shortcut_input:
-            self.shortcut_input.setStyleSheet(self._get_input_style())
+            self.shortcut_input.setStyleSheet(self.app.styles["input"])
 
         # Update radio buttons
         if hasattr(self, "gradient_radio") and self.gradient_radio:
-            radio_style = self._get_radio_style()
+            radio_style = self.app.styles["radio"]
             self.gradient_radio.setStyleSheet(radio_style)
             self.plain_radio.setStyleSheet(radio_style)
 
@@ -441,21 +321,25 @@ class OnboardingWindow(ThemedWidget):
         if hasattr(self, "title_label"):
             for widget in self.findChildren(QLabel):
                 if widget.objectName() == "title_label":
-                    widget.setStyleSheet(self._get_title_style())
+                    widget.setStyleSheet(self.app.styles["label_title"])
 
         # Update all content labels
         for widget in self.findChildren(QLabel):
             if widget != self.color_mode_dropdown and not widget.objectName() == "title_label":
-                widget.setStyleSheet(self._get_content_style())
+                widget.setStyleSheet(self.app.styles["label"])
 
         # Update specific labels with their appropriate styles
         for widget in self.findChildren(QLabel):
             if widget.objectName() == "title_label":
-                widget.setStyleSheet(self._get_title_style())
+                widget.setStyleSheet(self.app.styles["label_title"])
             elif (
                 widget.objectName() != ""
             ):  # Skip background widgets but apply content style to others
-                widget.setStyleSheet(self._get_content_style())
+                widget.setStyleSheet(self.app.styles["label"])
+
+        # Update next button
+        if hasattr(self, "next_button") and self.next_button:
+            self.next_button.setStyleSheet(self.app.styles["close_button"])
 
         # Refresh background theme
         super().refresh_theme()
