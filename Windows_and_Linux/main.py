@@ -4,9 +4,10 @@ import sys
 
 from WritingToolApp import WritingToolApp
 
-# Check if we're running in console mode (when console=True in PyInstaller)
+# Check if we're running in console mode (when console=True in PyInstaller or --console flag)
 CONSOLE_MODE = (
-    getattr(sys, "frozen", False) and os.name == "nt" and sys.stdout and sys.stdout.isatty()
+    "--console" in sys.argv
+    or (getattr(sys, "frozen", False) and os.name == "nt" and sys.stdout and sys.stdout.isatty())
 )
 
 # Set up logging to console with debug level (auto-enabled)

@@ -1,200 +1,146 @@
 #!/usr/bin/env python3
-r"""
-Writing Tools - Startup Debug Installer
+"""
+Writing Tools - Startup Dev Installer
 
-This script configures Windows registry entries to automatically launch
-startup debugging when Windows boots.
+Install/uninstall dev_script.py to run at Windows startup with optional debug mode.
 
 Usage:
-    python scripts/install_startup_debug.py
-
-What it does:
-1. Installs startup_debug.py to run automatically at Windows boot
-2. Configures registry entries in HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run
-3. Creates batch/PowerShell wrappers for execution
-4. Provides install/uninstall functionality
-
-When to use:
-- Need to debug systray issues that only occur at Windows startup
-- Application works when launched manually but fails at boot
-- Investigating boot-time environment differences
+    python install_startup_debug.py            # Toggle install/uninstall with normal debug
+    python install_startup_debug.py --verbose  # Toggle install/uninstall with verbose debug
 """
 
-import logging
-import os
 import sys
 import winreg
+from pathlib import Path
+
+FORCE_VERBOSE = True  # Set to True to always enable verbose debug mode
 
 
-def setup_logging() -> None:
-    """Configure le logging pour l'installation"""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        handlers=[logging.StreamHandler(), logging.FileHandler("install_debug.log")],
-    )
+def get_paths() -> tuple[Path, Path, Path]:
+    """Get project paths using Path objects"""
+    # Use the existing utility function
+    from utils import get_project_root, get_python_executable
+
+    project_root = get_project_root()  # Returns Windows_and_Linux directory
+    venv_python = get_python_executable("myvenv")  # Uses utils function
+    dev_script = project_root / "scripts" / "dev_script.py"
+
+    return project_root, venv_python, dev_script
 
 
-def get_script_directory() -> str:
-    """Obtient le répertoire du script"""
-    if getattr(sys, "frozen", False):
-        return os.path.dirname(sys.executable)
-    else:
-        return os.path.dirname(os.path.abspath(__file__))
-
-
-def install_startup_debug() -> bool:
-    """Installe le script de debug dans le démarrage de Windows"""
-    logger = logging.getLogger(__name__)
-
-    try:
-        script_dir = get_script_directory()
-        logger.debug(f"Script directory: {script_dir}")
-
-        # Chemins des scripts
-        python_script = os.path.join(script_dir, "startup_debug.py")
-        batch_script = os.path.join(script_dir, "startup_debug.bat")
-
-        # Vérifier que les scripts existent
-        if not os.path.exists(python_script):
-            logger.error(f"Python script not found: {python_script}")
-            return False
-
-        if not os.path.exists(batch_script):
-            logger.error(f"Batch script not found: {batch_script}")
-            return False
-
-        # Ouvrir la clé de registre pour le démarrage
-        key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
-
-        try:
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_WRITE)
-
-            # Ajouter l'entrée pour le debug de démarrage
-            debug_entry_name = "WritingToolsStartupDebug"
-            debug_command = f'"{batch_script}"'
-
-            winreg.SetValueEx(key, debug_entry_name, 0, winreg.REG_SZ, debug_command)
-            winreg.CloseKey(key)
-
-            logger.debug(f"Successfully installed startup debug entry: {debug_entry_name}")
-            logger.debug(f"Command: {debug_command}")
-
-            return True
-
-        except Exception as e:
-            logger.error(f"Error accessing registry: {e}")
-            return False
-
-    except Exception as e:
-        logger.error(f"Error installing startup debug: {e}")
+def validate_paths(project_root: Path, venv_python: Path, dev_script: Path) -> bool:
+    """Validate that required paths exist"""
+    if not dev_script.exists():
+        print(f"Error: dev_script.py not found: {dev_script}")
         return False
 
+    if not venv_python.exists():
+        print(f"Error: Virtual environment Python not found: {venv_python}")
+        return False
 
-def uninstall_startup_debug() -> bool:
-    """Désinstalle le script de debug du démarrage de Windows"""
-    logger = logging.getLogger(__name__)
+    return True
 
+
+def install_startup_dev(verbose_debug: bool = False) -> bool:
+    """Install dev script to run at Windows startup"""
     try:
-        key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
-        debug_entry_name = "WritingToolsStartupDebug"
+        project_root, venv_python, dev_script = get_paths()
 
-        try:
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_WRITE)
+        if not validate_paths(project_root, venv_python, dev_script):
+            return False
 
+        # Build command with optional verbose debug - CORRECTION: utiliser dev_script complet
+        debug_args = "--console --debug-verbose" if verbose_debug else "--console"
+        command = f'cmd /k "cd /d "{project_root}" && "{venv_python}" "{dev_script}" {debug_args}"'
+
+        # Add to Windows startup registry
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Run",
+            0,
+            winreg.KEY_WRITE,
+        ) as key:
+            winreg.SetValueEx(key, "WritingToolsDevStartup", 0, winreg.REG_SZ, command)
+
+        debug_mode = "verbose debug" if verbose_debug else "normal debug"
+        print(f"Startup dev entry installed with {debug_mode} mode")
+        return True
+
+    except Exception as e:
+        print(f"Failed to install startup dev: {e}")
+        return False
+
+def uninstall_startup_dev() -> bool:
+    """Remove dev script from Windows startup"""
+    try:
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Run",
+            0,
+            winreg.KEY_WRITE,
+        ) as key:
             try:
-                winreg.DeleteValue(key, debug_entry_name)
-                logger.debug(f"Successfully removed startup debug entry: {debug_entry_name}")
+                winreg.DeleteValue(key, "WritingToolsDevStartup")
+                print("Startup dev entry removed successfully")
             except OSError:
-                logger.debug("Startup debug entry was not found (already removed)")
+                print("Startup dev entry was not found (already removed)")
 
-            winreg.CloseKey(key)
-            return True
-
-        except Exception as e:
-            logger.error(f"Error accessing registry: {e}")
-            return False
+        return True
 
     except Exception as e:
-        logger.error(f"Error uninstalling startup debug: {e}")
+        print(f"Failed to uninstall startup dev: {e}")
         return False
 
 
-def check_startup_debug_status() -> tuple[bool, str | None]:
-    """Vérifie si le debug de démarrage est installé"""
-    logger = logging.getLogger(__name__)
-
+def is_startup_dev_installed() -> bool:
+    """Check if startup dev entry exists"""
     try:
-        key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
-        debug_entry_name = "WritingToolsStartupDebug"
-
-        try:
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_READ)
-            value, _ = winreg.QueryValueEx(key, debug_entry_name)
-            winreg.CloseKey(key)
-
-            logger.debug(f"Startup debug is INSTALLED: {value}")
-            return True, value
-
-        except OSError:
-            logger.debug("Startup debug is NOT installed")
-            return False, None
-
-    except Exception as e:
-        logger.error(f"Error checking startup debug status: {e}")
-        return False, None
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Run",
+            0,
+            winreg.KEY_READ,
+        ) as key:
+            winreg.QueryValueEx(key, "WritingToolsDevStartup")
+            return True
+    except OSError:
+        return False
 
 
 def main():
-    """Fonction principale"""
-    setup_logging()
-    logger = logging.getLogger(__name__)
+    """Main function - toggle install/uninstall"""
+    print("Writing Tools - Startup Dev Installer")
+    print("=" * 40)
 
-    logger.debug("Writing Tools - Startup Debug Installer")
-    logger.debug("=" * 50)
+    # Check for verbose flag or force verbose
+    verbose_debug = "--verbose" in sys.argv or FORCE_VERBOSE
 
-    if len(sys.argv) < 2:
-        print("Usage:")
-        print("  python install_startup_debug.py install   - Install startup debug")
-        print("  python install_startup_debug.py uninstall - Remove startup debug")
-        print("  python install_startup_debug.py status    - Check current status")
-        return 1
+    if FORCE_VERBOSE and "--verbose" not in sys.argv:
+        print("FORCE_VERBOSE is enabled - verbose debug mode forced")
+    elif verbose_debug:
+        print("Verbose debug mode requested")
 
-    command = sys.argv[1].lower()
-
-    if command == "install":
-        logger.debug("Installing startup debug...")
-        if install_startup_debug():
-            print("✓ Startup debug installed successfully!")
-            print("The debug script will run at next Windows startup.")
-            print("Check the 'startup_logs' folder for debug information.")
+    if is_startup_dev_installed():
+        print("Startup dev is currently INSTALLED")
+        print("Uninstalling...")
+        if uninstall_startup_dev():
+            print("✓ Startup dev uninstalled successfully!")
         else:
-            print("✗ Failed to install startup debug.")
+            print("✗ Failed to uninstall startup dev")
             return 1
-
-    elif command == "uninstall":
-        logger.debug("Uninstalling startup debug...")
-        if uninstall_startup_debug():
-            print("✓ Startup debug uninstalled successfully!")
-        else:
-            print("✗ Failed to uninstall startup debug.")
-            return 1
-
-    elif command == "status":
-        logger.debug("Checking startup debug status...")
-        is_installed, command_value = check_startup_debug_status()
-        if is_installed:
-            print("✓ Startup debug is INSTALLED")
-            print(f"Command: {command_value}")
-        else:
-            print("✗ Startup debug is NOT installed")
-
     else:
-        print(f"Unknown command: {command}")
-        return 1
+        print("Startup dev is currently NOT installed")
+        print("Installing...")
+        if install_startup_dev(verbose_debug):
+            debug_type = "verbose debug" if verbose_debug else "normal debug"
+            print(f"✓ Startup dev installed with {debug_type} mode!")
+            print("The dev script will run at next Windows boot in a console window.")
+            print("The console will remain open for debugging systray issues.")
+        else:
+            print("✗ Failed to install startup dev")
+            return 1
 
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
