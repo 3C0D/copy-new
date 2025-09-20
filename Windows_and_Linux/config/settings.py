@@ -206,42 +206,37 @@ class SettingsManager:
         providers = self.providers
         active_provider = getattr(self, "provider", None)
 
+        # If no active provider or not in providers, try to set a default
         if not active_provider or active_provider not in providers:
-            return False
+            if "gemini" in providers:
+                self.provider = "gemini"
+                active_provider = "gemini"
+            else:
+                return False
 
         provider_config = providers[active_provider]
 
-        # For Ollama, we need both a valid model AND Ollama to be installed
+        # For Ollama, check if it's installed and has a model
         if active_provider == "ollama":
-            # Check if api_model is configured and not empty
             api_model = provider_config.get("api_model", "")
-            model_configured = bool(api_model and api_model.strip())
+            if not (api_model and api_model.strip()):
+                return False
+            try:
+                from aiprovider import is_ollama_installed
+                return is_ollama_installed()
+            except ImportError:
+                return False
 
-            # Also check if Ollama is actually installed and available
-            if model_configured:
-                try:
-                    # Import here to avoid circular imports
-                    from aiprovider import is_ollama_installed
-
-                    ollama_available = is_ollama_installed()
-                    return ollama_available
-                except ImportError:
-                    # If we can't import the function, assume Ollama is not available
-                    return False
+        # For other providers, check API key and model
+        api_key = provider_config.get("api_key", "")
+        if not api_key:
             return False
 
-        # For all other providers, we require a valid API key
-        if "api_key" in provider_config:
-            api_key_valid = bool(provider_config["api_key"])
-            # Also check if api_model is configured for providers that use it
-            if "api_model" in provider_config:
-                api_model = provider_config.get("api_model", "")
-                api_model_valid = bool(api_model and api_model.strip())
-                return api_key_valid and api_model_valid
-            return api_key_valid
+        api_model = provider_config.get("api_model", "")
+        if api_model and not api_model.strip():
+            return False
 
-        # If no api_key field exists, the provider is not configured
-        return False
+        return True
 
     #
     # ACTION MANAGEMENT (simplified)

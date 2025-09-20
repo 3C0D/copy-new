@@ -492,6 +492,7 @@ class AIProvider(ABC):
                 setting.set_value(config[setting.name])
             else:
                 setattr(self, setting.name, setting.default_value)
+
         self.after_load()
 
     def save_config(self) -> None:
@@ -555,22 +556,20 @@ class AIProvider(ABC):
             bool: True if the provider is properly configured, False otherwise
         """
         # Check for API key
-        if hasattr(self, "api_key"):
-            if not self.api_key or not self.api_key.strip():
-                self.app.show_message_signal.emit(
-                    "Configuration Error",
-                    f"API key is required for {self.provider_name}. Please configure your API key in settings.",
-                )
-                return False
+        if hasattr(self, "api_key") and not (self.api_key and self.api_key.strip()):
+            self.app.show_message_signal.emit(
+                "Configuration Error",
+                f"API key is required for {self.provider_name}. Please configure your API key in settings.",
+            )
+            return False
 
         # Check for model
-        if hasattr(self, "api_model"):
-            if not self.api_model or not self.api_model.strip():
-                self.app.show_message_signal.emit(
-                    "Configuration Error",
-                    f"Model selection is required for {self.provider_name}. Please select a model in settings.",
-                )
-                return False
+        if hasattr(self, "api_model") and not (self.api_model and self.api_model.strip()):
+            self.app.show_message_signal.emit(
+                "Configuration Error",
+                f"Model selection is required for {self.provider_name}. Please select a model in settings.",
+            )
+            return False
 
         return True
 
@@ -1096,12 +1095,21 @@ class OpenAICompatibleProvider(AIProvider):
             ]
 
         try:
+            self._logger.debug("🔄 OpenAICompatibleProvider._get_response_impl called")
+            self._logger.debug(f"🔄 Client instance exists: {self.client is not None}")
+            self._logger.debug(f"🔄 API key configured: {bool(self.api_key)}")
+            self._logger.debug(f"🔄 API model configured: {bool(self.api_model)}")
+
             if self.client is None:
+                self._logger.error("❌ OpenAI client is None - provider not properly initialized")
                 self.app.show_message_signal.emit(
                     "Error",
                     "OpenAI client not initialized. Please check your API settings.",
                 )
                 return ""
+
+            self._logger.debug(f"🔄 Making API call to model: {self.api_model}")
+            self._logger.debug(f"🔄 Messages count: {len(messages)}")
 
             response = self.client.chat.completions.create(
                 model=self.api_model,
@@ -1109,7 +1117,16 @@ class OpenAICompatibleProvider(AIProvider):
                 temperature=0.5,
                 stream=False,
             )
-            response_text = response.choices[0].message.content.rstrip("\n")
+
+            self._logger.debug("🔄 API call completed successfully")
+            self._logger.debug(f"🔄 Response choices count: {len(response.choices) if response.choices else 0}")
+
+            if response.choices and len(response.choices) > 0:
+                response_text = response.choices[0].message.content.rstrip("\n")
+                self._logger.debug(f"🔄 Response text length: {len(response_text) if response_text else 0}")
+            else:
+                self._logger.error("❌ No choices in API response")
+                response_text = ""
 
             if not return_response and not hasattr(self.app, "current_response_window"):
                 self.app.output_ready_signal.emit(response_text)
@@ -1145,15 +1162,22 @@ class OpenAICompatibleProvider(AIProvider):
     def after_load(self) -> None:
         """Initialize OpenAI client with configured settings."""
         if OpenAI is not None:
-            self.client = OpenAI(
-                api_key=self.api_key,
-                base_url=self.api_base,
-                organization=self.api_organisation,
-                project=self.api_project,
-            )  # type: ignore[reportGeneralTypeIssues]
+            try:
+                self.client = OpenAI(
+                    api_key=self.api_key,
+                    base_url=self.api_base,
+                    organization=self.api_organisation,
+                    project=self.api_project,
+                )
+            except Exception as e:
+                self._logger.error(f"Failed to create OpenAI client: {e}")
+                self.client = None
+        else:
+            self.client = None
 
     def before_load(self) -> None:
         """Clean up client before reloading."""
+        self._logger.debug("🧹 OpenAICompatibleProvider.before_load called - cleaning up client")
         self.client = None
 
 
@@ -1200,20 +1224,21 @@ def find_ollama_executable() -> str | None:
 def is_ollama_installed() -> bool:
     """
     Check if Ollama is installed and available on the system.
-    Returns True if Ollama is installed, False otherwise.
+    Returns True if Ollama is installed and responsive, False otherwise.
+    Non-blocking: returns False immediately if Ollama doesn't respond quickly.
     """
     ollama_path = find_ollama_executable()
     if not ollama_path:
         return False
 
     try:
-        # 'ollama --version' in less than 5 seconds
+        # 'ollama --version' in less than 0.1 seconds
         result = subprocess.run(
             [ollama_path, "--version"],
             check=False,
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=0.1,
         )
         return result.returncode == 0
     except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
@@ -1426,7 +1451,12 @@ def get_ollama_models() -> list[tuple[str, str]]:
 
     Parses the command output to extract model names and sizes.
     Handles error cases (Ollama not installed, no models, etc.).
+    Non-blocking: returns default values immediately if Ollama is not responsive.
     """
+    # First check if Ollama is installed and responsive
+    if not is_ollama_installed():
+        return [("Ollama not available - Please install it", "")]
+
     # Find Ollama executable
     ollama_path = find_ollama_executable()
     if not ollama_path:
@@ -1434,7 +1464,7 @@ def get_ollama_models() -> list[tuple[str, str]]:
 
     try:
         result = subprocess.run(
-            [ollama_path, "list"], check=False, capture_output=True, text=True, timeout=10
+            [ollama_path, "list"], check=False, capture_output=True, text=True, timeout=0.1
         )
 
         if result.returncode == 0:
@@ -1469,12 +1499,11 @@ def get_ollama_models() -> list[tuple[str, str]]:
                 return models
             # No models found, return message to install models
             return [("Please install Ollama models first", "")]
-        logging.warning(f"Failed to get Ollama models: {result.stderr}")
         return [("Please install Ollama models first", "")]
 
-    except (subprocess.TimeoutExpired, FileNotFoundError, Exception) as e:
-        logging.warning(f"Could not run 'ollama list': {e}")
-        return [("Ollama not available - Please install it", "")]
+    except BaseException:
+        # Return empty model list to avoid crashing
+        return [("", "")]
 
 
 def remove_ollama_model(model_name: str) -> tuple[bool, str]:
@@ -1907,7 +1936,7 @@ class AnthropicProvider(AIProvider):
                     default_headers={
                         "anthropic-version": "2023-06-01",
                     },
-                )  # type: ignore[reportGeneralTypeIssues]
+                )
 
             # Prepare messages
             messages = []
@@ -1932,7 +1961,7 @@ class AnthropicProvider(AIProvider):
                     default_headers={
                         "anthropic-version": "2023-06-01",
                     },
-                )  # type: ignore[reportGeneralTypeIssues]
+                )
 
             if self.client is None:
                 error_msg = (
@@ -2011,7 +2040,7 @@ class AnthropicProvider(AIProvider):
                 default_headers={
                     "anthropic-version": "2023-06-01",
                 },
-            )  # type: ignore[reportGeneralTypeIssues]
+            )
 
     def before_load(self) -> None:
         """Clean up client before reloading."""

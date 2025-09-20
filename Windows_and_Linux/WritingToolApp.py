@@ -158,14 +158,32 @@ class WritingToolApp(QApplication):
 
     def _setup_ai_providers(self) -> None:
         """Initialize available AI providers."""
-        self._ = gettext.gettext
-        self.providers: list[AIProvider] = [
-            GeminiProvider(self),
-            OpenAICompatibleProvider(self),
-            OllamaProvider(self),
-            AnthropicProvider(self),
-            MistralProvider(self),
+        provider_classes = [
+            ("Gemini", GeminiProvider),
+            ("Ollama", OllamaProvider),
+            ("Anthropic", AnthropicProvider),
+            ("Mistral", MistralProvider),
+            ("OpenAICompatible", OpenAICompatibleProvider),
         ]
+
+        self.providers: list[AIProvider] = []
+
+        for name, provider_class in provider_classes:
+            try:
+                self._logger.debug(f"Creating {name}Provider...")
+                provider = provider_class(self)
+                self.providers.append(provider)
+                self._logger.debug(f"{name}Provider created successfully: {provider}")
+            except BaseException as e:
+                self._logger.error(f"Failed to create {name}Provider: {e}")
+                print(f"DEBUG: Failed to create {name}Provider - {e}")
+                import traceback
+                self._logger.error(f"Traceback: {traceback.format_exc()}")
+                raise
+
+        self._logger.debug(
+            f"Total providers initialized: {len(self.providers)}/{len(provider_classes)}"
+        )
 
     def _setup_spam_protection(self) -> None:
         """Initialize hotkey spam protection system."""

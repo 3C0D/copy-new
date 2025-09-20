@@ -304,27 +304,27 @@ DEFAULT_PROVIDER_CONFIGS: dict[tuple[str, ...], ProviderConfig] = {
     ("Gemini", "Gemini (Recommended)"): {
         "api_key": "",
         "api_model": DEFAULT_MODELS["gemini"],
-        "base_url": DEFAULT_BASE_URLS["gemini"],
+        "api_base": DEFAULT_BASE_URLS["gemini"],
     },
     ("Ollama", "Ollama (Local)", "Ollama"): {
         "api_key": "",
         "api_model": DEFAULT_MODELS["ollama"],  # ""
-        "base_url": DEFAULT_BASE_URLS["ollama"],
+        "api_base": DEFAULT_BASE_URLS["ollama"],
         "keep_alive": _DEFAULT_SYSTEM_VALUES_RAW["ollama_keep_alive"],
     },
     ("Mistral", "Mistral AI"): {
         "api_key": "",
         "api_model": DEFAULT_MODELS["mistral"],
-        "base_url": DEFAULT_BASE_URLS["mistral"],
+        "api_base": DEFAULT_BASE_URLS["mistral"],
     },
     ("Anthropic", "Anthropic (Claude)"): {
         "api_key": "",
         "api_model": DEFAULT_MODELS["anthropic"],
-        "base_url": DEFAULT_BASE_URLS["anthropic"],
+        "api_base": DEFAULT_BASE_URLS["anthropic"],
     },
     ("OpenAI", "OpenAI-Compatible"): {
         "api_key": "",
-        "base_url": DEFAULT_BASE_URLS["openai"],
+        "api_base": DEFAULT_BASE_URLS["openai"],
         "api_model": DEFAULT_MODELS["openai"],
     },
 }

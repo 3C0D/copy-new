@@ -44,8 +44,10 @@ class SystemConfig(TypedDict, total=False):
 class ProviderConfig(TypedDict, total=False):
     api_key: str
     api_model: str
-    base_url: Optional[str]
+    api_base: Optional[str]
     keep_alive: Optional[str]
+    api_project: Optional[str]
+    api_organisation: Optional[str]
 
 
 class CustomDataStructure(TypedDict, total=False):
