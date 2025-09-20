@@ -428,7 +428,15 @@ class SettingsWindow(ThemedWidget):
 
         # Save current provider's config
         self.app.current_provider.save_config()
-        self._logger.debug(f"Saved settings for: {self.app.current_provider.internal_name}")
+
+        # Reload the configuration into the current provider instance
+        # This ensures that validate_connection() uses the updated values
+        provider_config = self.app.settings_manager.providers.get(
+            self.app.current_provider.internal_name, {}
+        )
+        self.app.current_provider.load_config(provider_config)
+
+        self._logger.debug(f"Saved and reloaded settings for: {self.app.current_provider.internal_name}")
 
     def disable_dropdown_scroll(self, layout: QLayout) -> None:
         """
