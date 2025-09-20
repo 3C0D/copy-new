@@ -206,36 +206,39 @@ class SettingsManager:
         providers = self.providers
         active_provider = getattr(self, "provider", None)
 
+        self._logger.debug(f"has_providers_configured: active_provider={active_provider}")
+        self._logger.debug(f"has_providers_configured: providers keys={list(providers.keys())}")
+
         # If no active provider or not in providers, try to set a default
         if not active_provider or active_provider not in providers:
             if "gemini" in providers:
                 self.provider = "gemini"
                 active_provider = "gemini"
+                self._logger.debug("has_providers_configured: set default to gemini")
             else:
+                self._logger.debug("has_providers_configured: no valid provider found")
                 return False
 
         provider_config = providers[active_provider]
+        self._logger.debug(f"has_providers_configured: provider_config for {active_provider} = {provider_config}")
 
-        # For Ollama, check if it's installed and has a model
+        # For Ollama, just ensure the config exists (no installation check needed)
         if active_provider == "ollama":
-            api_model = provider_config.get("api_model", "")
-            if not (api_model and api_model.strip()):
-                return False
-            try:
-                from aiprovider import is_ollama_installed
-                return is_ollama_installed()
-            except ImportError:
-                return False
+            self._logger.debug("has_providers_configured: Ollama configured correctly")
+            return True
 
         # For other providers, check API key and model
         api_key = provider_config.get("api_key", "")
         if not api_key:
+            self._logger.debug(f"has_providers_configured: {active_provider} missing API key")
             return False
 
         api_model = provider_config.get("api_model", "")
         if api_model and not api_model.strip():
+            self._logger.debug(f"has_providers_configured: {active_provider} model not configured")
             return False
 
+        self._logger.debug(f"has_providers_configured: {active_provider} configured correctly")
         return True
 
     #

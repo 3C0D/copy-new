@@ -168,22 +168,22 @@ class WritingToolApp(QApplication):
 
         self.providers: list[AIProvider] = []
 
+        failed_providers = []
         for name, provider_class in provider_classes:
             try:
-                self._logger.debug(f"Creating {name}Provider...")
                 provider = provider_class(self)
                 self.providers.append(provider)
-                self._logger.debug(f"{name}Provider created successfully: {provider}")
             except BaseException as e:
                 self._logger.error(f"Failed to create {name}Provider: {e}")
-                print(f"DEBUG: Failed to create {name}Provider - {e}")
+                failed_providers.append(name)
                 import traceback
                 self._logger.error(f"Traceback: {traceback.format_exc()}")
                 raise
 
-        self._logger.debug(
-            f"Total providers initialized: {len(self.providers)}/{len(provider_classes)}"
-        )
+        if failed_providers:
+            self._logger.warning(f"Failed to create providers: {failed_providers}")
+        else:
+            self._logger.debug(f"All {len(self.providers)} providers initialized successfully")
 
     def _setup_spam_protection(self) -> None:
         """Initialize hotkey spam protection system."""

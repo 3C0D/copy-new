@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (
 if TYPE_CHECKING:
     from aiprovider import AIProvider
     from WritingToolApp import WritingToolApp
+# Import Ollama check function
 from config.constants import PROVIDER_DISPLAY_NAMES
 from config.data_operations import get_provider_display_name
 from ui.AutostartManager import AutostartManager
@@ -287,9 +288,23 @@ class SettingsWindow(ThemedWidget):
         Dynamically builds UI based on provider configuration.
         """
         # Refresh provider configuration before building UI (for dynamic providers like Ollama)
-        if hasattr(provider, "refresh_configuration"):
+        # Skip refresh for Ollama if not installed to avoid blocking UI
+        if hasattr(provider, "refresh_configuration") and provider.internal_name != "ollama":
             provider.refresh_configuration()
             self._logger.debug(f"Refreshed configuration for {provider.internal_name}")
+        elif provider.internal_name == "ollama" and hasattr(provider, "refresh_configuration"):
+            # For Ollama, only refresh if it's installed to avoid blocking
+            from aiprovider import OllamaStateManager
+
+            state_manager = OllamaStateManager()
+            if state_manager.is_ollama_installed():
+                try:
+                    provider.refresh_configuration()
+                    self._logger.debug(f"Refreshed configuration for {provider.internal_name}")
+                except Exception as e:
+                    self._logger.warning(f"Failed to refresh Ollama configuration: {e}")
+            else:
+                self._logger.debug("Skipped refresh for Ollama - not installed")
 
         # Clean up previous provider UI to prevent memory leaks and layout conflicts
         if self.current_provider_layout:
@@ -429,14 +444,15 @@ class SettingsWindow(ThemedWidget):
         # Save current provider's config
         self.app.current_provider.save_config()
 
-        # Reload the configuration into the current provider instance
-        # This ensures that validate_connection() uses the updated values
+        # Reload config to update provider with new settings
         provider_config = self.app.settings_manager.providers.get(
             self.app.current_provider.internal_name, {}
         )
         self.app.current_provider.load_config(provider_config)
 
-        self._logger.debug(f"Saved and reloaded settings for: {self.app.current_provider.internal_name}")
+        self._logger.debug(
+            f"Saved and reloaded settings for: {self.app.current_provider.internal_name}"
+        )
 
     def disable_dropdown_scroll(self, layout: QLayout) -> None:
         """
@@ -686,6 +702,11 @@ class SettingsWindow(ThemedWidget):
 
         update_buttons_in_layout(self.current_provider_layout)
 
+    def update_provider_button_text(self) -> None:
+        """Update the main provider button text when provider state changes."""
+        if hasattr(self, "main_button") and self.main_button and self.app.current_provider:
+            self.main_button.setText(self.app.current_provider.button_text)
+
     def toggle_autostart(self, state: int) -> None:
         """Toggle the autostart setting based on checkbox state."""
         enable = state == 2  # Qt.Checked
@@ -748,11 +769,39 @@ class SettingsWindow(ThemedWidget):
         if not current_internal_name:
             return
 
+        # Special handling for Ollama provider - allow selection but show status
+        if current_internal_name == "ollama":
+            from aiprovider import OllamaStateManager
+
+            state_manager = OllamaStateManager()
+            ollama_installed = state_manager.is_ollama_installed()
+            ollama_running = state_manager.is_ollama_running()
+
+            # Allow selection but show informative message
+            if not ollama_installed:
+                self.app.show_message_signal.emit(
+                    "Ollama Not Installed",
+                    "Ollama is not installed on your system.\n\n"
+                    "You can install it using the 'Install Ollama' button in the provider settings below.\n\n"
+                    "Once installed and running, Ollama will be ready to use.",
+                )
+            elif not ollama_running:
+                self.app.show_message_signal.emit(
+                    "Ollama Not Running",
+                    "Ollama is installed but not currently running.\n\n"
+                    "Please start Ollama from the command line with: ollama serve\n\n"
+                    "Or use the provider interface to manage Ollama.",
+                )
+
         # Find the new provider
         new_provider = self._find_provider_by_name(current_internal_name)
         if not new_provider:
             self._logger.warning(f"Provider {current_internal_name} not found")
             return
+
+        # Clean up the old provider before switching
+        if self.app.current_provider and hasattr(self.app.current_provider, 'before_load'):
+            self.app.current_provider.before_load()
 
         # Update the application
         self.app.current_provider = new_provider
