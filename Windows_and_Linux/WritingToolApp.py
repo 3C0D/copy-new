@@ -5,7 +5,6 @@ This module contains the core application logic for the Writing Tools applicatio
 including AI provider management, hotkey handling, and user interface coordination.
 """
 
-import asyncio
 import base64
 import gettext
 import logging
@@ -1296,13 +1295,11 @@ class WritingToolApp(QApplication):
         else:
             self._logger.debug(" 🖼️\u00a0 No image data to pass to provider")
 
-        response = asyncio.run(
-            self.current_provider.get_response(
-                prompt_data["system_instruction"],
-                str(prompt_data["prompt"]),
-                return_response=True,
-                image_data=image_data,  # Pass image data to provider
-            )
+        response = self.current_provider.get_response(
+            prompt_data["system_instruction"],
+            str(prompt_data["prompt"]),
+            return_response=True,
+            image_data=image_data,  # Pass image data to provider
         )
         self._logger.debug(f"Got response of length: {len(response) if response else 0}")
 
@@ -1359,9 +1356,7 @@ class WritingToolApp(QApplication):
 
         self._logger.debug("Getting response for direct replacement")
         prompt_str = str(prompt_data["prompt"])
-        asyncio.run(
-            self.current_provider.get_response(prompt_data["system_instruction"], prompt_str)
-        )
+        self.current_provider.get_response(prompt_data["system_instruction"], prompt_str)
         self._logger.debug("Response processed")
 
     def _handle_processing_error(self, error: Exception) -> None:
@@ -1749,13 +1744,11 @@ class WritingToolApp(QApplication):
                     messages.append({"role": "user", "content": question})
 
                     # Get response from Mistral
-                    response_text = asyncio.run(
-                        self.current_provider.get_response(
-                            system_instruction,
-                            messages if isinstance(messages, str) else str(messages),
-                            return_response=True,
-                            image_data=image_data,
-                        )
+                    response_text = self.current_provider.get_response(
+                        system_instruction,
+                        messages if isinstance(messages, str) else str(messages),
+                        return_response=True,
+                        image_data=image_data,
                     )
 
                 elif self.current_provider:
@@ -1790,12 +1783,10 @@ class WritingToolApp(QApplication):
                             messages.append({"role": role, "content": msg["content"]})
 
                     # Get response by passing the full messages array
-                    response_text = asyncio.run(
-                        self.current_provider.get_response(
-                            system_instruction,
-                            messages if isinstance(messages, str) else str(messages),
-                            return_response=True,
-                        )
+                    response_text = self.current_provider.get_response(
+                        system_instruction,
+                        messages if isinstance(messages, str) else str(messages),
+                        return_response=True,
                     )
                 else:
                     response_text = "Error: No provider available"

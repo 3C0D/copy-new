@@ -37,7 +37,6 @@ Response Flow:
 # pyright: reportPrivateImportUsage=false
 
 # Standard library imports
-import asyncio
 import copy
 import io
 import logging
@@ -49,7 +48,7 @@ import tempfile
 import threading
 import webbrowser
 from abc import ABC, abstractmethod
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import CancelledError, ThreadPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
 
@@ -405,7 +404,8 @@ class AIProvider(ABC):
         self.button_text = button_text
         self.button_action = button_action
         self.logo = logo
-        self.current_task = None
+        self.executor = ThreadPoolExecutor(max_workers=1)
+        self.current_future = None
 
         # Support for multiple buttons (for providers that need refresh functionality)
         self.additional_buttons = []
@@ -429,7 +429,7 @@ class AIProvider(ABC):
     # Suppression of the getter/setter for model_name, we use api_model directly
     # which will be created by setattr() in load_config()
 
-    async def get_response(
+    def get_response(
         self, system_instruction: str, prompt: str, return_response: bool = False, **kwargs
     ) -> str:
         """
@@ -438,19 +438,19 @@ class AIProvider(ABC):
         Automatically handles cancellation and threading for all providers.
         """
         # Cancel the previous request if it exists
-        if self.current_task and not self.current_task.done():
-            self.current_task.cancel()
+        if self.current_future and not self.current_future.done():
+            self.current_future.cancel()
             logging.debug(f"Cancelled previous {self.provider_name} request")
 
         # Launch the new query in a thread
-        self.current_task = asyncio.create_task(
-            self._get_response_impl(system_instruction, prompt, return_response, **kwargs)
+        self.current_future = self.executor.submit(
+            self._get_response_impl, system_instruction, prompt, return_response, **kwargs
         )
 
         try:
             # Wait for the result
-            return await self.current_task
-        except asyncio.CancelledError:
+            return self.current_future.result()
+        except CancelledError:
             logging.debug(f"{self.provider_name} request was cancelled")
             return ""
         except Exception as e:
@@ -462,7 +462,7 @@ class AIProvider(ABC):
             return ""
 
     @abstractmethod
-    async def _get_response_impl(
+    def _get_response_impl(
         self, system_instruction: str, prompt: str, return_response: bool = False, **kwargs
     ) -> str:
         """
@@ -543,12 +543,17 @@ class AIProvider(ABC):
 
         Default implementation that works for all providers.
         """
-        if self.current_task and not self.current_task.done():
-            cancelled = self.current_task.cancel()
+        if self.current_future and not self.current_future.done():
+            cancelled = self.current_future.cancel()
             if cancelled:
                 logging.debug(f"Successfully cancelled {self.provider_name} request")
             else:
                 logging.debug(f"Could not cancel {self.provider_name} request (already started)")
+
+    def __del__(self):
+        """Cleanup of the ThreadPoolExecutor on destruction."""
+        if hasattr(self, "executor"):
+            self.executor.shutdown(wait=False)
 
     def validate_connection(self) -> bool:
         """
@@ -619,7 +624,7 @@ class GeminiProvider(AIProvider):
             "gemini",
         )
 
-    async def _get_response_impl(
+    def _get_response_impl(
         self,
         system_instruction: str,
         prompt: str,
@@ -1059,7 +1064,7 @@ class OpenAICompatibleProvider(AIProvider):
             "openai",
         )
 
-    async def _get_response_impl(
+    def _get_response_impl(
         self,
         system_instruction: str,
         prompt: Union[str, list],
@@ -1789,7 +1794,7 @@ class OllamaProvider(AIProvider):
                 else:
                     self.app.show_message_signal.emit("Deletion Failed", message)
 
-    async def _get_response_impl(
+    def _get_response_impl(
         self,
         system_instruction: str,
         prompt: Union[str, list],
@@ -1932,7 +1937,7 @@ class AnthropicProvider(AIProvider):
             "anthropic",
         )
 
-    async def _get_response_impl(
+    def _get_response_impl(
         self, system_instruction: str, prompt: str, return_response: bool = False, **kwargs
     ) -> str:
         """
@@ -2110,7 +2115,7 @@ class MistralProvider(AIProvider):
             "mistral",
         )
 
-    async def _get_response_impl(
+    def _get_response_impl(
         self,
         system_instruction,
         prompt,
