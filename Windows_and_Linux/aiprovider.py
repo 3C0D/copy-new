@@ -1336,12 +1336,20 @@ class OllamaStateManager(QObject):
             return False
 
         try:
+            # Hide console window on Windows
+            startupinfo = None
+            if os.name == "nt":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = subprocess.SW_HIDE
+
             result = subprocess.run(
                 [ollama_path, "--version"],
                 check=False,
                 capture_output=True,
                 text=True,
                 timeout=0.5,  # Reduced timeout for better performance
+                startupinfo=startupinfo,
             )
             self._is_running = result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
@@ -1375,12 +1383,20 @@ class OllamaStateManager(QObject):
             return self._models_list
 
         try:
+            # Hide console window on Windows
+            startupinfo = None
+            if os.name == "nt":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = subprocess.SW_HIDE
+
             result = subprocess.run(
                 [ollama_path, "list"],
                 check=False,
                 capture_output=True,
                 text=True,
                 timeout=2.0,  # Longer timeout for list operation
+                startupinfo=startupinfo,
             )
 
             if result.returncode == 0:
@@ -1460,12 +1476,20 @@ class OllamaStateManager(QObject):
             return False, "Ollama not available - Please install it"
 
         try:
+            # Hide console window on Windows
+            startupinfo = None
+            if os.name == "nt":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = subprocess.SW_HIDE
+
             result = subprocess.run(
                 [ollama_path, "rm", model_name],
                 check=False,
                 capture_output=True,
                 text=True,
                 timeout=30,
+                startupinfo=startupinfo,
             )
 
             if result.returncode == 0:
