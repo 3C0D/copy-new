@@ -256,6 +256,10 @@ class SettingsWindow(ThemedWidget):
             self.app.providers[0],
         )
 
+        # Ensure current_provider is set for auto-save to work
+        if not self.app.current_provider:
+            self.app.current_provider = provider_instance
+
         # Initial UI setup for the selected provider
         self.init_provider_ui(provider_instance, self.provider_container)
 
