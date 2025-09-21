@@ -1,3 +1,4 @@
+ollama settings has vision? recommanded model for vision
 
 Reproduire la même barre, scroll dans Settings window Que dans help window
 description_label.setStyleSheet(f"{self.app.styles['label']} text-align: center;")

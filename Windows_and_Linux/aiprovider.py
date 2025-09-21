@@ -552,8 +552,12 @@ class AIProvider(ABC):
 
     def __del__(self):
         """Cleanup of the ThreadPoolExecutor on destruction."""
-        if hasattr(self, "executor"):
-            self.executor.shutdown(wait=False)
+        try:
+            if hasattr(self, "executor") and self.executor:
+                self.executor.shutdown(wait=False)
+        except Exception:
+            # Ignore errors during cleanup
+            pass
 
     def validate_connection(self) -> bool:
         """
@@ -660,7 +664,7 @@ class GeminiProvider(AIProvider):
         max_retries = 3
         for attempt in range(max_retries):
             attempt_num = attempt + 1
-            self._logger.info(f"🔄🔥 Gemini API call - Attempt {attempt_num}/{max_retries}")
+            self._logger.debug(f"Gemini API call - Attempt {attempt_num}/{max_retries}")
 
             try:
                 # Prepare content for Gemini
@@ -838,13 +842,10 @@ class GeminiProvider(AIProvider):
                         return ""
 
                 # If we get here, we have a valid response - log success and return it
-                success_msg = f"🔥 Success on attempt {attempt_num}/{max_retries}"
-                self._logger.info(success_msg)
                 if attempt > 0:
-                    self._logger.info(f"🔥 Response obtained after {attempt_num} attempt(s)")
+                    self._logger.debug(f"Gemini response obtained after {attempt_num} attempt(s)")
 
-                self._logger.debug(f"🔥 Gemini raw response.text: '{response_text}'")
-                self._logger.debug(f"🔥 Gemini response_text length: {len(response_text)}")
+                self._logger.debug(f"Gemini response length: {len(response_text)}")
 
                 # Direct replacement
                 if not return_response and not hasattr(self.app, "current_response_window"):
@@ -1322,6 +1323,12 @@ class OllamaStateManager(QObject):
         ):
             return self._is_running
 
+        # Use cached installation status to avoid redundant path finding
+        if not self._is_installed:
+            self._is_running = False
+            self._running_check_time = self._get_current_time()
+            return False
+
         ollama_path = self.find_ollama_executable()
         if not ollama_path:
             self._is_running = False
@@ -1334,7 +1341,7 @@ class OllamaStateManager(QObject):
                 check=False,
                 capture_output=True,
                 text=True,
-                timeout=1.0,
+                timeout=0.5,  # Reduced timeout for better performance
             )
             self._is_running = result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
@@ -2138,13 +2145,8 @@ class MistralProvider(AIProvider):
             f"MistralProvider current config - api_key: {self.api_key[:10] if self.api_key else 'None'}..., api_model: {self.api_model}",
         )
 
-        # DEBUG: Log the incoming request
-        self._logger.debug("🔥 MistralProvider.get_response called")
-        self._logger.debug(f"🔥 system_instruction length: {len(system_instruction)}")
-        self._logger.debug(f"🔥 prompt length: {len(prompt)}")
-        self._logger.debug(f"🔥 prompt preview:\n{prompt[:200]}...")
-        self._logger.debug(f"🔥 return_response: {return_response}")
-        self._logger.debug(f"🔥 image_data present: {image_data is not None}")
+        # Log request details for debugging
+        self._logger.debug(f"Mistral request - system: {len(system_instruction)} chars, prompt: {len(prompt)} chars, image: {image_data is not None}")
 
         try:
             # Check if requests library is available
