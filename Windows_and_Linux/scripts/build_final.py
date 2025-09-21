@@ -17,6 +17,7 @@ MODE = "build-final"
 
 if os.name == "nt":  # Windows
     from utils import (
+        BuildTimer,
         check_data,
         clear_console,
         copy_required_files,
@@ -28,6 +29,7 @@ if os.name == "nt":  # Windows
     )
 else:  # Linux/Unix
     from .utils import (
+        BuildTimer,
         check_data,
         clear_console,
         copy_required_files,
@@ -253,6 +255,10 @@ def main():
     print("===== Writing Tools - Final Release Build =====")
     print()
 
+    # Start build timer
+    timer = BuildTimer()
+    timer.start()
+
     try:
         # Setup project root
         project_root = get_project_root()
@@ -295,6 +301,10 @@ def main():
 
         print("\n===== Final release build completed =====")
         print("The executable and required files are in the 'dist/production' directory.")
+
+        # Print build duration
+        timer.print_duration("final release build")
+
         return 0
 
     except KeyboardInterrupt:

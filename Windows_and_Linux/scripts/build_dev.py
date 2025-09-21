@@ -36,6 +36,7 @@ CONSOLE_MODE_DEFAULT = True  # True = console visible by default, False = window
 # Import utilities based on platform
 if os.name == "nt":  # Windows
     from utils import (
+        BuildTimer,
         check_data,
         clear_console,
         copy_required_files,
@@ -47,6 +48,7 @@ if os.name == "nt":  # Windows
     )
 else:  # Linux/Unix
     from .utils import (
+        BuildTimer,
         check_data,
         clear_console,
         copy_required_files,
@@ -282,6 +284,10 @@ def main():
     print("===== Writing Tools - Development Build =====")
     print()
 
+    # Start build timer
+    timer = BuildTimer()
+    timer.start()
+
     # Determine console mode based on arguments or default
     if args.console:
         console_mode = True
@@ -363,6 +369,9 @@ def main():
             )
         else:
             print("Windowed mode - check dist/dev/build_dev_debug.log for detailed logs.")
+
+        # Print build duration
+        timer.print_duration("development build")
 
         return 0
 

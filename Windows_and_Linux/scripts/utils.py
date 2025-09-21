@@ -504,3 +504,55 @@ def setup_environment(
     except Exception as e:
         print(f"Error setting up environment: {e}")
         return False, None
+
+
+class BuildTimer:
+    """A simple timer class to measure build duration"""
+
+    def __init__(self):
+        self.start_time = None
+        self.end_time = None
+
+    def start(self):
+        """Start the timer"""
+        self.start_time = time.time()
+        print("⏱️  Build timer started...")
+
+    def stop(self):
+        """Stop the timer and return elapsed time"""
+        if self.start_time is None:
+            return 0.0
+
+        self.end_time = time.time()
+        return self.end_time - self.start_time
+
+    def get_elapsed_time(self):
+        """Get elapsed time without stopping the timer"""
+        if self.start_time is None:
+            return 0.0
+        return time.time() - self.start_time
+
+    def print_duration(self, build_type: str = "build"):
+        """Print the build duration in a formatted way"""
+        if self.start_time is None:
+            return
+
+        if self.end_time is None:
+            elapsed = self.stop()
+        else:
+            elapsed = self.end_time - self.start_time
+
+        # Format time nicely
+        if elapsed < 60:
+            time_str = f"{elapsed:.1f} seconds"
+        elif elapsed < 3600:
+            minutes = int(elapsed // 60)
+            seconds = elapsed % 60
+            time_str = f"{minutes} minute{'s' if minutes > 1 else ''} and {seconds:.1f} seconds"
+        else:
+            hours = int(elapsed // 3600)
+            minutes = int((elapsed % 3600) // 60)
+            seconds = elapsed % 60
+            time_str = f"{hours} hour{'s' if hours > 1 else ''}, {minutes} minute{'s' if minutes > 1 else ''} and {seconds:.1f} seconds"
+
+        print(f"⏱️  {build_type.capitalize()} completed in {time_str}")
