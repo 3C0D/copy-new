@@ -34,8 +34,8 @@ class SystrayManager:
         """
         Create the system tray icon for the application.
         """
-        if self.tray_icon:
-            self._logger.debug("Tray icon already exists")
+        if self.tray_icon and self.tray_icon.isVisible():
+            self._logger.debug("Tray icon already exists and is visible")
             return
 
         self._logger.debug("Creating system tray icon")
@@ -46,14 +46,12 @@ class SystrayManager:
             return
 
         icon_path = ui_utils.get_icon_path(self.app, "app_icon", with_theme=False)
-        self._logger.debug(f"Icon path resolved to: {icon_path}")
 
         if not icon_path.exists():
             self._logger.warning(f"Tray icon not found at {icon_path}")
             # Use a default icon if not found
             self.tray_icon = QSystemTrayIcon(self.app)
         else:
-            self._logger.debug(f"Loading icon from: {icon_path}")
             icon = QtGui.QIcon(icon_path.as_posix())
             if icon.isNull():
                 self._logger.warning(f"Failed to load icon from {icon_path}")
@@ -71,12 +69,11 @@ class SystrayManager:
 
         self.update_tray_menu()
         self.tray_icon.show()
-        self._logger.debug("Tray icon show() called")
 
         # Verify if it's actually visible with retry
         self._verify_tray_icon_visibility()
 
-        self._logger.debug("Tray icon setup completed")
+        self._logger.info("Tray icon setup completed")
 
     def update_tray_menu(self) -> None:
         """

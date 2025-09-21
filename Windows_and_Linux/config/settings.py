@@ -220,7 +220,9 @@ class SettingsManager:
                 return False
 
         provider_config = providers[active_provider]
-        self._logger.debug(f"has_providers_configured: provider_config for {active_provider} = {provider_config}")
+        self._logger.debug(
+            f"has_providers_configured: provider_config for {active_provider} = {provider_config}"
+        )
 
         # For Ollama, just ensure the config exists (no installation check needed)
         if active_provider == "ollama":
@@ -311,14 +313,11 @@ class SettingsManager:
     def _write_settings_to_file(self) -> bool:
         """Write settings data to the file."""
         try:
-            self._logger.debug("Saving settings:")
-            self._logger.debug(f"  data_file: {self.data_file}")
-
             data = self._serialize_settings()
             with open(self.data_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
 
-            self._logger.debug(f"Settings saved to {self.data_file}")
+            self._logger.info(f"Settings saved to {self.data_file}")
             return True
         except Exception as e:
             self._logger.error(f"Failed to write settings: {e}")
