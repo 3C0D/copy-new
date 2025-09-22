@@ -7,7 +7,9 @@ Usage:
     python scripts/build_dev.py                    # Build with default mode (see CONSOLE_MODE_DEFAULT)
     python scripts/build_dev.py --console          # Force console mode (visible logs)
     python scripts/build_dev.py --windowed         # Force windowed mode (logs to file)
-    python scripts/build_dev.py --console --arg    # Console build with extra args
+    python scripts/build_dev.py --clean            # Force clean build (clears cache)
+    python scripts/build_dev.py --console --clean  # Console build with clean cache
+    python scripts/build_dev.py --arg              # Build with extra args
 
 Console Mode:
     Console window stays visible with real-time logs.
@@ -16,6 +18,10 @@ Console Mode:
 Windowed Mode:
     Hides console window. Logs are written to build_dev_debug.log.
     Use for normal testing in production-like mode.
+
+Clean Mode:
+    Forces cache cleanup before build. Use after Git operations (revert, merge, rebase)
+    or when build times are unexpectedly slow.
 """
 
 import argparse
@@ -59,14 +65,162 @@ else:  # Linux/Unix
         terminate_existing_processes,
     )
 
+# Shared PyInstaller exclusions to avoid duplication
+PYINSTALLER_EXCLUSIONS = [
+    "tkinter",
+    "unittest",
+    "IPython",
+    "jedi",
+    "email_validator",
+    "cryptography",
+    "psutil",
+    "pyzmq",
+    "tornado",
+    # PySide6 unused modules
+    "PySide6.QtNetwork",
+    "PySide6.QtXml",
+    "PySide6.QtQml",
+    "PySide6.QtQuick",
+    "PySide6.QtQuickWidgets",
+    "PySide6.QtPrintSupport",
+    "PySide6.QtSql",
+    "PySide6.QtTest",
+    "PySide6.QtSvg",
+    "PySide6.QtSvgWidgets",
+    "PySide6.QtHelp",
+    "PySide6.QtMultimedia",
+    "PySide6.QtMultimediaWidgets",
+    "PySide6.QtOpenGL",
+    "PySide6.QtOpenGLWidgets",
+    "PySide6.QtPositioning",
+    "PySide6.QtLocation",
+    "PySide6.QtSerialPort",
+    "PySide6.QtWebChannel",
+    "PySide6.QtWebSockets",
+    "PySide6.QtWinExtras",
+    "PySide6.QtNetworkAuth",
+    "PySide6.QtRemoteObjects",
+    "PySide6.QtTextToSpeech",
+    "PySide6.QtWebEngineCore",
+    "PySide6.QtWebEngineWidgets",
+    "PySide6.QtWebEngine",
+    "PySide6.QtBluetooth",
+    "PySide6.QtNfc",
+    "PySide6.QtWebView",
+    "PySide6.QtCharts",
+    "PySide6.QtDataVisualization",
+    "PySide6.QtPdf",
+    "PySide6.QtPdfWidgets",
+    "PySide6.QtQuick3D",
+    "PySide6.QtQuickControls2",
+    "PySide6.QtQuickParticles",
+    "PySide6.QtQuickTest",
+    "PySide6.QtQuickWidgets",
+    "PySide6.QtSensors",
+    "PySide6.QtStateMachine",
+    "PySide6.Qt3DCore",
+    "PySide6.Qt3DRender",
+    "PySide6.Qt3DInput",
+    "PySide6.Qt3DLogic",
+    "PySide6.Qt3DAnimation",
+    "PySide6.Qt3DExtras",
+]
+
 
 def copy_required_files_dev() -> bool:
     """Copy required files for the development build to dist/dev/."""
     return copy_required_files("development", "dev")
 
 
-def run_dev_build(venv_path: str = "myvenv", console_mode: bool = False) -> bool:
-    """Run PyInstaller build for development (faster, less cleanup)"""
+def clean_dev_cache() -> None:
+    """Clean PyInstaller cache and build directories for dev build."""
+    print("🧹 Cleaning PyInstaller cache...")
+
+    # Clean build and __pycache__ directories
+    directories_to_clean = [Path("build"), Path("__pycache__")]
+    for directory in directories_to_clean:
+        if directory.exists():
+            try:
+                shutil.rmtree(directory)
+                print(f"   Cleaned: {directory}")
+            except Exception as e:
+                print(f"   Warning: Could not clean {directory}: {e}")
+
+    # Clean .spec files
+    current_dir = Path(".")
+    for file in current_dir.glob("*.spec"):
+        try:
+            file.unlink()
+            print(f"   Cleaned: {file}")
+        except Exception as e:
+            print(f"   Warning: Could not clean {file}: {e}")
+
+    print("   Cache cleanup completed!")
+
+
+def should_auto_clean() -> bool:
+    """
+    Detect if we should automatically clean cache based on Git state or build artifacts age.
+    This helps avoid slow builds after Git operations without always cleaning.
+    """
+    try:
+        # Check if .git exists (we're in a Git repo)
+        git_dir = Path(".git")
+        if not git_dir.exists():
+            return False
+
+        # Get last commit time
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%ct"], capture_output=True, text=True, timeout=5
+        )
+
+        if result.returncode != 0:
+            return False
+
+        last_commit_time = int(result.stdout.strip())
+
+        # Check if build directory exists and get its modification time
+        build_dir = Path("build")
+        if not build_dir.exists():
+            return False  # No cache to clean
+
+        build_time = build_dir.stat().st_mtime
+
+        # If there's a significant time difference (in either direction) between
+        # last commit and build cache, suggest cleaning
+        # This catches: reverts, checkouts, merges, rebases
+        time_diff = abs(last_commit_time - build_time)
+        if time_diff > 600:  # 10 minutes buffer
+            return True
+
+    except Exception:
+        # If anything fails, don't auto-clean
+        pass
+
+    return False
+
+
+def run_dev_build(
+    venv_path: str = "myvenv", console_mode: bool = False, clean_build: bool = False
+) -> tuple[bool, bool]:
+    """Run PyInstaller build for development (faster, less cleanup)
+
+    Returns:
+        tuple[bool, bool]: (success, was_auto_cleaned)
+    """
+
+    # Auto-detect if we should clean based on Git state
+    auto_clean = should_auto_clean()
+    if auto_clean:
+        print(
+            "⚠️  Detected recent Git operations - automatically cleaning cache for optimal build time"
+        )
+        clean_dev_cache()
+        print()
+    elif clean_build:
+        print("🧹  Manual clean build requested")
+        clean_dev_cache()
+        print()
 
     # Remove existing .spec file if switching console mode to force regeneration
     spec_file = Path("Writing Tools.spec")
@@ -83,6 +237,7 @@ def run_dev_build(venv_path: str = "myvenv", console_mode: bool = False) -> bool
     # Build icon path
     icon_path = Path("config/icons/app_icon.ico")
 
+    # Build PyInstaller command with exclusions
     pyinstaller_command = [
         python_cmd,
         "-m",
@@ -92,143 +247,38 @@ def run_dev_build(venv_path: str = "myvenv", console_mode: bool = False) -> bool
         f"--icon={icon_path}",
         "--name=Writing Tools",
         "--distpath=dist/dev",  # Output to dist/dev/
-        "--noconfirm",  # Removed --clean for faster builds
-        # Exclude unnecessary modules
-        "--exclude-module",
-        "tkinter",
-        "--exclude-module",
-        "unittest",
-        "--exclude-module",
-        "IPython",
-        "--exclude-module",
-        "jedi",
-        "--exclude-module",
-        "email_validator",
-        "--exclude-module",
-        "cryptography",
-        "--exclude-module",
-        "psutil",
-        "--exclude-module",
-        "pyzmq",
-        "--exclude-module",
-        "tornado",
-        # Exclude modules related to PySide6 that are not used
-        "--exclude-module",
-        "PySide6.QtNetwork",
-        "--exclude-module",
-        "PySide6.QtXml",
-        "--exclude-module",
-        "PySide6.QtQml",
-        "--exclude-module",
-        "PySide6.QtQuick",
-        "--exclude-module",
-        "PySide6.QtQuickWidgets",
-        "--exclude-module",
-        "PySide6.QtPrintSupport",
-        "--exclude-module",
-        "PySide6.QtSql",
-        "--exclude-module",
-        "PySide6.QtTest",
-        "--exclude-module",
-        "PySide6.QtSvg",
-        "--exclude-module",
-        "PySide6.QtSvgWidgets",
-        "--exclude-module",
-        "PySide6.QtHelp",
-        "--exclude-module",
-        "PySide6.QtMultimedia",
-        "--exclude-module",
-        "PySide6.QtMultimediaWidgets",
-        "--exclude-module",
-        "PySide6.QtOpenGL",
-        "--exclude-module",
-        "PySide6.QtOpenGLWidgets",
-        "--exclude-module",
-        "PySide6.QtPositioning",
-        "--exclude-module",
-        "PySide6.QtLocation",
-        "--exclude-module",
-        "PySide6.QtSerialPort",
-        "--exclude-module",
-        "PySide6.QtWebChannel",
-        "--exclude-module",
-        "PySide6.QtWebSockets",
-        "--exclude-module",
-        "PySide6.QtWinExtras",
-        "--exclude-module",
-        "PySide6.QtNetworkAuth",
-        "--exclude-module",
-        "PySide6.QtRemoteObjects",
-        "--exclude-module",
-        "PySide6.QtTextToSpeech",
-        "--exclude-module",
-        "PySide6.QtWebEngineCore",
-        "--exclude-module",
-        "PySide6.QtWebEngineWidgets",
-        "--exclude-module",
-        "PySide6.QtWebEngine",
-        "--exclude-module",
-        "PySide6.QtBluetooth",
-        "--exclude-module",
-        "PySide6.QtNfc",
-        "--exclude-module",
-        "PySide6.QtWebView",
-        "--exclude-module",
-        "PySide6.QtCharts",
-        "--exclude-module",
-        "PySide6.QtDataVisualization",
-        "--exclude-module",
-        "PySide6.QtPdf",
-        "--exclude-module",
-        "PySide6.QtPdfWidgets",
-        "--exclude-module",
-        "PySide6.QtQuick3D",
-        "--exclude-module",
-        "PySide6.QtQuickControls2",
-        "--exclude-module",
-        "PySide6.QtQuickParticles",
-        "--exclude-module",
-        "PySide6.QtQuickTest",
-        "--exclude-module",
-        "PySide6.QtQuickWidgets",
-        "--exclude-module",
-        "PySide6.QtSensors",
-        "--exclude-module",
-        "PySide6.QtStateMachine",
-        "--exclude-module",
-        "PySide6.Qt3DCore",
-        "--exclude-module",
-        "PySide6.Qt3DRender",
-        "--exclude-module",
-        "PySide6.Qt3DInput",
-        "--exclude-module",
-        "PySide6.Qt3DLogic",
-        "--exclude-module",
-        "PySide6.Qt3DAnimation",
-        "--exclude-module",
-        "PySide6.Qt3DExtras",
-        f"{DEFAULT_SCRIPT_NAME}",
+        "--noconfirm" if not (clean_build or auto_clean) else "--clean",  # Use --clean when needed
     ]
+
+    # Add exclusions
+    for module in PYINSTALLER_EXCLUSIONS:
+        pyinstaller_command.extend(["--exclude-module", module])
+
+    # Add main script
+    pyinstaller_command.append(f"{DEFAULT_SCRIPT_NAME}")
 
     try:
         mode_text = "console" if console_mode else "windowed"
-        print(f"Starting PyInstaller development build ({mode_text} mode)...")
+        clean_text = " (auto-clean)" if auto_clean else " (clean)" if clean_build else ""
+        print(f"Starting PyInstaller development build ({mode_text} mode{clean_text})...")
         subprocess.run(pyinstaller_command, check=True)
-        print(f"PyInstaller development build completed successfully ({mode_text} mode)!")
+        print(
+            f"PyInstaller development build completed successfully ({mode_text} mode{clean_text})!"
+        )
 
         if console_mode:
             print("Console mode enabled - logs will be visible in terminal when running the exe")
         else:
             print("Windowed mode - logs will be written to dist/dev/build_dev_debug.log")
 
-        return True
+        return True, auto_clean
 
     except subprocess.CalledProcessError as e:
         print(f"Error: Build failed with error: {e}")
-        return False
+        return False, False
     except FileNotFoundError:
         print("Error: PyInstaller not found. Please install it with: pip install pyinstaller")
-        return False
+        return False, False
 
 
 def launch_build(extra_args: list[str] | None = None) -> bool:
@@ -276,6 +326,12 @@ def main():
     )
 
     parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Force clean build (clear PyInstaller cache - use after Git operations)",
+    )
+
+    parser.add_argument(
         "extra_args", nargs="*", help="Extra arguments to pass to the built executable"
     )
     args = parser.parse_args()
@@ -301,6 +357,9 @@ def main():
         print(
             f"⚙️  Using default mode: {default_text} (CONSOLE_MODE_DEFAULT = {CONSOLE_MODE_DEFAULT})"
         )
+
+    if args.clean:
+        print("🧹  Clean build forced via --clean argument")
 
     extra_args = args.extra_args or None
 
@@ -332,7 +391,10 @@ def main():
         check_data(MODE)
 
         # Run build
-        if not run_dev_build(console_mode=console_mode):
+        build_success, was_auto_cleaned = run_dev_build(
+            console_mode=console_mode, clean_build=args.clean
+        )
+        if not build_success:
             print("\nBuild failed!")
             return 1
 
@@ -369,6 +431,13 @@ def main():
             )
         else:
             print("Windowed mode - check dist/dev/build_dev_debug.log for detailed logs.")
+
+        if args.clean:
+            print("Clean build completed - cache was manually cleared for optimal performance.")
+        elif was_auto_cleaned:
+            print(
+                "Auto-clean build completed - cache was automatically cleared due to Git changes."
+            )
 
         # Print build duration
         timer.print_duration("development build")
