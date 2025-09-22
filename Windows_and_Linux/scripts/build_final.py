@@ -17,6 +17,7 @@ MODE = "build-final"
 
 if os.name == "nt":  # Windows
     from utils import (
+        PYINSTALLER_EXCLUSIONS,
         BuildTimer,
         check_data,
         clear_console,
@@ -29,6 +30,7 @@ if os.name == "nt":  # Windows
     )
 else:  # Linux/Unix
     from .utils import (
+        PYINSTALLER_EXCLUSIONS,
         BuildTimer,
         check_data,
         clear_console,
@@ -107,6 +109,7 @@ def run_build_final(venv_path: str = "myvenv") -> bool:
     # Build icon path
     icon_path = Path("config/icons/app_icon.ico")
 
+    # Build PyInstaller command with exclusions
     pyinstaller_command = [
         python_cmd,
         "-m",
@@ -118,122 +121,14 @@ def run_build_final(venv_path: str = "myvenv") -> bool:
         "--distpath=dist/production",  # Output to dist/production/
         "--clean",  # Clean build for final release
         "--noconfirm",
-        # Exclude unnecessary modules
-        "--exclude-module",
-        "tkinter",
-        "--exclude-module",
-        "unittest",
-        "--exclude-module",
-        "IPython",
-        "--exclude-module",
-        "jedi",
-        "--exclude-module",
-        "email_validator",
-        "--exclude-module",
-        "cryptography",
-        "--exclude-module",
-        "psutil",
-        "--exclude-module",
-        "pyzmq",
-        "--exclude-module",
-        "tornado",
-        # Exclude modules related to PySide6 that are not used
-        "--exclude-module",
-        "PySide6.QtNetwork",
-        "--exclude-module",
-        "PySide6.QtXml",
-        "--exclude-module",
-        "PySide6.QtQml",
-        "--exclude-module",
-        "PySide6.QtQuick",
-        "--exclude-module",
-        "PySide6.QtQuickWidgets",
-        "--exclude-module",
-        "PySide6.QtPrintSupport",
-        "--exclude-module",
-        "PySide6.QtSql",
-        "--exclude-module",
-        "PySide6.QtTest",
-        "--exclude-module",
-        "PySide6.QtSvg",
-        "--exclude-module",
-        "PySide6.QtSvgWidgets",
-        "--exclude-module",
-        "PySide6.QtHelp",
-        "--exclude-module",
-        "PySide6.QtMultimedia",
-        "--exclude-module",
-        "PySide6.QtMultimediaWidgets",
-        "--exclude-module",
-        "PySide6.QtOpenGL",
-        "--exclude-module",
-        "PySide6.QtOpenGLWidgets",
-        "--exclude-module",
-        "PySide6.QtPositioning",
-        "--exclude-module",
-        "PySide6.QtLocation",
-        "--exclude-module",
-        "PySide6.QtSerialPort",
-        "--exclude-module",
-        "PySide6.QtWebChannel",
-        "--exclude-module",
-        "PySide6.QtWebSockets",
-        "--exclude-module",
-        "PySide6.QtWinExtras",
-        "--exclude-module",
-        "PySide6.QtNetworkAuth",
-        "--exclude-module",
-        "PySide6.QtRemoteObjects",
-        "--exclude-module",
-        "PySide6.QtTextToSpeech",
-        "--exclude-module",
-        "PySide6.QtWebEngineCore",
-        "--exclude-module",
-        "PySide6.QtWebEngineWidgets",
-        "--exclude-module",
-        "PySide6.QtWebEngine",
-        "--exclude-module",
-        "PySide6.QtBluetooth",
-        "--exclude-module",
-        "PySide6.QtNfc",
-        "--exclude-module",
-        "PySide6.QtWebView",
-        "--exclude-module",
-        "PySide6.QtCharts",
-        "--exclude-module",
-        "PySide6.QtDataVisualization",
-        "--exclude-module",
-        "PySide6.QtPdf",
-        "--exclude-module",
-        "PySide6.QtPdfWidgets",
-        "--exclude-module",
-        "PySide6.QtQuick3D",
-        "--exclude-module",
-        "PySide6.QtQuickControls2",
-        "--exclude-module",
-        "PySide6.QtQuickParticles",
-        "--exclude-module",
-        "PySide6.QtQuickTest",
-        "--exclude-module",
-        "PySide6.QtQuickWidgets",
-        "--exclude-module",
-        "PySide6.QtSensors",
-        "--exclude-module",
-        "PySide6.QtStateMachine",
-        "--exclude-module",
-        "PySide6.Qt3DCore",
-        "--exclude-module",
-        "PySide6.Qt3DRender",
-        "--exclude-module",
-        "PySide6.Qt3DInput",
-        "--exclude-module",
-        "PySide6.Qt3DLogic",
-        "--exclude-module",
-        "PySide6.Qt3DAnimation",
-        "--exclude-module",
-        "PySide6.Qt3DExtras",
-        f"{DEFAULT_SCRIPT_NAME}",
     ]
+
+    # Add exclusions
+    for module in PYINSTALLER_EXCLUSIONS:
+        pyinstaller_command.extend(["--exclude-module", module])
+
+    # Add main script
+    pyinstaller_command.append(f"{DEFAULT_SCRIPT_NAME}")
 
     try:
         print("Starting PyInstaller final build...")
