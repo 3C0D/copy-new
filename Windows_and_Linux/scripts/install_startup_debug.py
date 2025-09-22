@@ -46,6 +46,14 @@ def install_startup_dev() -> bool:
         if not validate_paths(project_root, venv_python, dev_script):
             return False
 
+        # Check and disable normal startup if it exists
+        normal_was_active = check_normal_startup_exists()
+        if normal_was_active:
+            if disable_normal_startup_if_exists():
+                print("Disabled conflicting normal application startup entry")
+            else:
+                print("Warning: Could not disable normal startup entry")
+
         # Build command
         debug_args = "--console"
         command = f'cmd /k "cd /d "{project_root}" && "{venv_python}" "{dev_script}" {debug_args}"'
@@ -87,6 +95,41 @@ def uninstall_startup_dev() -> bool:
         return False
 
 
+def check_normal_startup_exists() -> bool:
+    """Check if the normal application startup entry exists"""
+    try:
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Run",
+            0,
+            winreg.KEY_READ,
+        ) as key:
+            winreg.QueryValueEx(key, "WritingTools")
+            return True
+    except OSError:
+        return False
+
+
+def disable_normal_startup_if_exists() -> bool:
+    """Disable the normal application startup entry if it exists"""
+    try:
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Run",
+            0,
+            winreg.KEY_WRITE,
+        ) as key:
+            try:
+                winreg.DeleteValue(key, "WritingTools")
+                return True
+            except OSError:
+                # Value doesn't exist, that's fine
+                return True
+    except Exception as e:
+        print(f"Warning: Could not disable normal startup entry: {e}")
+        return False
+
+
 def is_startup_dev_installed() -> bool:
     """Check if startup dev entry exists"""
     try:
@@ -111,19 +154,19 @@ def main():
         print("Startup dev is currently INSTALLED")
         print("Uninstalling...")
         if uninstall_startup_dev():
-            print("✓ Startup dev uninstalled successfully!")
+            print("Startup dev uninstalled successfully!")
         else:
-            print("✗ Failed to uninstall startup dev")
+            print("Failed to uninstall startup dev")
             return 1
     else:
         print("Startup dev is currently NOT installed")
         print("Installing...")
         if install_startup_dev():
-            print("✓ Startup dev installed!")
+            print("Startup dev installed!")
             print("The dev script will run at next Windows boot in a console window.")
             print("The console will remain open for debugging systray issues.")
         else:
-            print("✗ Failed to install startup dev")
+            print("Failed to install startup dev")
             return 1
 
     return 0

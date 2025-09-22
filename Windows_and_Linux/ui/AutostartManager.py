@@ -67,11 +67,19 @@ Hidden=false
         Get the path that should be used for autostart.
         Returns None if running from source.
         """
-        if not AutostartManager.is_compiled():
+        compiled = AutostartManager.is_compiled()
+        logging.debug(f"AutostartManager.is_compiled(): {compiled}")
+        logging.debug(f"sys.executable: {sys.executable}")
+        logging.debug(f"sys.frozen: {hasattr(sys, 'frozen')}")
+        logging.debug(f"sys._MEIPASS: {hasattr(sys, '_MEIPASS')}")
+
+        if not compiled:
             # For development, could return the python script path
             # return f"python {os.path.abspath(sys.argv[0])}"
+            logging.debug("Not compiled, returning None for startup path")
             return None
 
+        logging.debug(f"Compiled exe path: {sys.executable}")
         return sys.executable
 
     @staticmethod
@@ -98,6 +106,58 @@ Hidden=false
         return autostart_dir / "writing-tools.desktop"
 
     @staticmethod
+    def check_dev_startup_exists() -> bool:
+        """
+        Check if the development startup entry exists.
+
+        Returns:
+            bool: True if dev startup is configured, False otherwise
+        """
+        if winreg is None:
+            return False
+
+        try:
+            with winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\Microsoft\Windows\CurrentVersion\Run",
+                0,
+                winreg.KEY_READ,
+            ) as key:
+                winreg.QueryValueEx(key, "WritingToolsDevStartup")
+                return True
+        except OSError:
+            return False
+
+    @staticmethod
+    def disable_dev_startup_if_exists() -> bool:
+        """
+        Disable the development startup entry if it exists.
+
+        Returns:
+            bool: True if disabled or didn't exist, False if error occurred
+        """
+        if winreg is None:
+            return True
+
+        try:
+            with winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\Microsoft\Windows\CurrentVersion\Run",
+                0,
+                winreg.KEY_WRITE,
+            ) as key:
+                try:
+                    winreg.DeleteValue(key, "WritingToolsDevStartup")
+                    logging.info("Disabled conflicting development startup entry")
+                    return True
+                except OSError:
+                    # Value doesn't exist, that's fine
+                    return True
+        except Exception as e:
+            logging.warning(f"Could not disable dev startup entry: {e}")
+            return False
+
+    @staticmethod
     def set_autostart_windows(enable: bool) -> bool:
         """
         Enable or disable autostart for Windows.
@@ -122,6 +182,11 @@ Hidden=false
 
             try:
                 if enable:
+                    # Disable conflicting dev startup before enabling ours
+                    dev_was_disabled = AutostartManager.disable_dev_startup_if_exists()
+                    if not dev_was_disabled:
+                        logging.warning("Could not disable conflicting dev startup entry")
+
                     # Open/create key and set value
                     key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_WRITE)
                     winreg.SetValueEx(key, "WritingTools", 0, winreg.REG_SZ, startup_path)
