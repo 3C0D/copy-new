@@ -112,6 +112,42 @@ The project includes a `.vscode/settings.json` file with optimal configuration:
 
 The `requirements.txt` includes all necessary development tools and type stubs for optimal IDE experience.
 
+## 🔄 Autostart System (For Developers)
+
+Writing Tools includes a smart autostart system with mutual exclusion to prevent conflicts.
+
+### **Two Autostart Methods**
+
+1. **Application Autostart** (For built executables)
+   - Available in Settings → "Start on boot"
+   - Creates registry key: `WritingTools`
+   - Works with built executables only
+   - Automatically disables dev autostart if active
+
+2. **Development Autostart** (For debugging)
+   - Run: `python scripts/setup_dev_autostart.py`
+   - Creates registry key: `WritingToolsDevStartup`
+   - Runs dev script with visible console for debugging
+   - Automatically disables application autostart if active
+
+### **How It Works**
+
+- **Mutual Exclusion**: Only one autostart method can be active at a time
+- **Automatic Cleanup**: Activating one method automatically disables the other
+- **Conflict Prevention**: No duplicate processes at startup
+- **Smart Detection**: System detects and manages existing configurations
+
+### **Usage Examples**
+
+```bash
+# For development with console debugging
+python scripts/setup_dev_autostart.py  # Toggle dev autostart
+
+# For testing built application autostart
+python scripts/build_dev.py  # Build first
+# Then enable autostart in the app settings
+```
+
 ## 🏗️ Project Structure
 
 ```
@@ -127,7 +163,8 @@ Windows_and_Linux/
 │   └── ui_utils.py         # UI utilities and theming
 ├── scripts/                # Development scripts
 │   ├── update_deps.py      # Dependency management
-│   └── dev_script.py       # Development utilities
+│   ├── dev_script.py       # Development utilities
+│   └── setup_dev_autostart.py # Development autostart setup
 └── myvenv/                 # Virtual environment (auto-created)
 ```
 
@@ -138,5 +175,40 @@ Windows_and_Linux/
 3. **Test**: Modify `constants.py` for first-window theme testing
 4. **Format**: Black formatting is applied automatically
 5. **Update**: Use `update_deps.py` when dependencies change
+
+## ⚙️ Script Behavior & Build Modes
+
+### **Common Script Features**
+
+- **Automatic Instance Termination**: All scripts automatically close existing Writing Tools instances before starting
+- **Build Timers**: Both `build_dev.py` and `build_final.py` measure and display compilation time
+- **Environment Setup**: Scripts automatically create virtual environments and install dependencies
+
+### **Build Mode Comparison**
+
+| Feature | build_dev.py | build_final.py |
+|---------|-------------|----------------|
+| **PyInstaller Mode** | `--onedir` (folder) | `--onefile` (single exe) |
+| **Output** | `dist/dev/` folder | `dist/production/` single file |
+| **Compression** | Fast development | Maximum compression |
+| **Auto-clean** | Detects Git changes (>10 min) | Always clean build |
+| **Debug Support** | Console mode available | Production optimized |
+| **File Transfer** | Direct folder transfer | Single file deployment |
+
+#### **build_dev Optimizations**
+
+- **Smart Caching**: Preserves build cache between compilations for faster rebuilds
+- **Git-Aware Cleaning**: Automatically cleans cache when detecting commits older than 10 minutes
+- **Manual Clean Option**: Use `--clean` flag for forced cache cleanup
+- **Console Debug Mode**: `--console` flag enables visible console for debugging (works with autostart too)
+- **Asset Transfer**: Directly transfers required files to build folder for immediate execution
+- **Development Focus**: Optimized for rapid iteration during development
+
+#### **build_final Optimizations**
+
+- **Single File**: Creates standalone executable with maximum compression
+- **Clean Build**: Always performs fresh build for consistency
+- **Production Ready**: Optimized for distribution and deployment
+- **Minimal Size**: Excludes unnecessary development files
 
 ### [**◀️ Back to main page**](https://github.com/theJayTea/WritingTools)

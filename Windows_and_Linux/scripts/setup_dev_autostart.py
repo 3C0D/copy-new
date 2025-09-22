@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 """
-Writing Tools - Startup Dev Installer
+Writing Tools - Development Startup Setup
 
-Install/uninstall dev_script.py to run at Windows startup with optional debug mode.
+Install/uninstall dev_script.py to run at Windows startup with console debugging.
+
+This script automatically disables the normal application autostart if it's active,
+and vice versa when the normal application autostart is enabled.
+
+Features:
+- Runs dev_script.py at Windows startup in a visible console window
+- Automatically disables conflicting normal application autostart
+- Console remains open for debugging systray and startup issues
 
 Usage:
-    python install_startup_debug.py            # Toggle install/uninstall with normal debug
+    python setup_dev_autostart.py           # Toggle install/uninstall
 """
 
 import sys
@@ -147,26 +155,26 @@ def is_startup_dev_installed() -> bool:
 
 def main():
     """Main function - toggle install/uninstall"""
-    print("Writing Tools - Startup Dev Installer")
-    print("=" * 40)
+    print("Writing Tools - Development Startup Setup")
+    print("=" * 45)
 
     if is_startup_dev_installed():
         print("Startup dev is currently INSTALLED")
         print("Uninstalling...")
         if uninstall_startup_dev():
-            print("Startup dev uninstalled successfully!")
+            print("[SUCCESS] Startup dev uninstalled successfully!")
         else:
-            print("Failed to uninstall startup dev")
+            print("[ERROR] Failed to uninstall startup dev")
             return 1
     else:
         print("Startup dev is currently NOT installed")
         print("Installing...")
         if install_startup_dev():
-            print("Startup dev installed!")
+            print("[SUCCESS] Startup dev installed!")
             print("The dev script will run at next Windows boot in a console window.")
             print("The console will remain open for debugging systray issues.")
         else:
-            print("Failed to install startup dev")
+            print("[ERROR] Failed to install startup dev")
             return 1
 
     return 0

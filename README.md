@@ -54,7 +54,7 @@ All scripts work perfectly with Code Runner:
 2. Press `Ctrl+F5`
 3. Script runs with proper environment setup
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### **Systray Icon Missing**
 
@@ -62,8 +62,8 @@ All scripts work perfectly with Code Runner:
 # Debug startup issues
 python Windows_and_Linux/scripts/startup_debug.py
 
-# For boot-time issues
-python Windows_and_Linux/scripts/install_startup_debug.py
+# For boot-time issues (development only)
+python Windows_and_Linux/scripts/setup_dev_autostart.py
 ```
 
 ### **Build Failures**
