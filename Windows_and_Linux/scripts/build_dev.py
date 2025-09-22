@@ -103,6 +103,9 @@ def should_auto_clean() -> bool:
     """
     Detect if we should automatically clean cache based on Git state or build artifacts age.
     This helps avoid slow builds after Git operations without always cleaning.
+
+    Particularly useful when navigating between old and recent commits (e.g., to fix bugs)
+    and building each time - the cache becomes stale and causes slow builds.
     """
     try:
         # Check if .git exists (we're in a Git repo)
