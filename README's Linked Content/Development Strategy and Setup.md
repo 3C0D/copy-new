@@ -112,6 +112,11 @@ The project includes a `.vscode/settings.json` file with optimal configuration:
 
 The `requirements.txt` includes all necessary development tools and type stubs for optimal IDE experience.
 
+### **Code Quality Tools**
+
+- **Ruff**: Fast Python linter and formatter used in development scripts and VSCode configuration
+- **Type Stubs**: PySide6-stubs for better IDE support
+
 ## 🔄 Autostart System (For Developers)
 
 Writing Tools includes a smart autostart system with mutual exclusion to prevent conflicts.
@@ -150,7 +155,7 @@ python scripts/build_dev.py  # Build first
 
 ## 🏗️ Project Structure
 
-```
+```shell
 Windows_and_Linux/
 ├── main.py                 # Application entry point
 ├── WritingToolApp.py       # Main application class

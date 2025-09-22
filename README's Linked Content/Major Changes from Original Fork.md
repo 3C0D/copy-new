@@ -5,6 +5,7 @@ This document outlines the significant architectural and functional changes made
 ## 🏗️ Architecture Overhaul
 
 ### **Multi-Mode System**
+
 - **Original**: Single development mode
 - **New**: Three distinct modes with automatic detection
   - `dev`: Development mode (source code)
@@ -12,6 +13,7 @@ This document outlines the significant architectural and functional changes made
   - `build-final`: Production build (executable with final settings)
 
 ### **Settings Management Revolution**
+
 - **Original**: Basic configuration handling
 - **New**: Sophisticated `SettingsManager` with:
   - Mode-aware configuration loading
@@ -20,7 +22,18 @@ This document outlines the significant architectural and functional changes made
   - Robust error handling and validation
   - Dynamic provider configuration
 
+### **Code Organization & Constants**
+
+- **Original**: Hard-coded values scattered throughout the codebase
+- **New**: Centralized configuration in `constants.py` with:
+  - Application-wide constants and default values
+  - Provider configurations and API endpoints
+  - UI dimensions and styling parameters
+  - Build and deployment settings
+  - Error messages and status codes
+
 ### **Build System Modernization**
+
 - **Original**: Manual PyInstaller commands
 - **New**: Automated build scripts with:
   - `scripts/build_dev.py` - Fast development builds
@@ -33,20 +46,23 @@ This document outlines the significant architectural and functional changes made
 ## 🔧 Development Experience
 
 ### **Enhanced Debugging**
+
 - **Console Mode**: Real-time log visibility during development
 - **Startup Debug**: Specialized tools for systray issues
 - **Detailed Logging**: Comprehensive error tracking and diagnostics
 - **Environment Detection**: Automatic mode switching based on context
 
 ### **Improved Scripts**
+
 - **Location**: All scripts moved to `Windows_and_Linux/scripts/`
-- **Functionality**: 
+- **Functionality**:
   - `startup_debug.py` - Debug systray startup issues
   - `install_startup_debug.py` - Auto-debug at Windows boot
   - `update_deps.py` - Dependency management
   - `utils.py` - Shared utilities
 
 ### **Code Runner Integration**
+
 - **Original**: Manual command execution
 - **New**: Optimized for VS Code Code Runner
 - **Simple Commands**:
@@ -58,12 +74,14 @@ This document outlines the significant architectural and functional changes made
 ## 🎯 User Experience
 
 ### **Systray Reliability**
+
 - **Enhanced Detection**: Better system tray availability checking
 - **Retry Mechanisms**: Automatic retry for systray creation
 - **Startup Debugging**: Tools to diagnose boot-time issues
 - **Cross-Platform**: Improved Windows compatibility
 
 ### **Provider System**
+
 - **Dynamic Loading**: Providers loaded based on availability
 - **Error Handling**: Graceful fallbacks when providers fail
 - **Configuration**: Per-mode provider settings
@@ -72,12 +90,14 @@ This document outlines the significant architectural and functional changes made
 ## 📁 File Organization
 
 ### **Cleaned Structure**
+
 - **Scripts**: Consolidated in `scripts/` directory
 - **Documentation**: Streamlined in `README's Linked Content/`
 - **Logs**: Temporary files automatically cleaned
 - **Assets**: Proper asset management and copying
 
 ### **Removed Clutter**
+
 - Eliminated temporary test files
 - Removed duplicate batch/PowerShell scripts
 - Cleaned up development artifacts
@@ -86,12 +106,14 @@ This document outlines the significant architectural and functional changes made
 ## 🔄 Migration Path
 
 ### **From Original to New**
+
 1. **Settings**: Automatic migration of existing configurations
 2. **Providers**: API keys preserved during upgrade
 3. **Preferences**: UI settings maintained
 4. **Compatibility**: Backward compatibility where possible
 
 ### **Development Workflow**
+
 1. **Clone**: Use this enhanced version
 2. **Setup**: Run `python scripts/dev_script.py` for immediate testing
 3. **Build**: Use `python scripts/build_dev.py` for executable testing
@@ -101,19 +123,23 @@ This document outlines the significant architectural and functional changes made
 ## 🎯 Why These Changes?
 
 ### **Scalability**
+
 The original codebase was difficult to maintain and extend. The new architecture supports:
+
 - Easy addition of new AI providers
 - Simplified debugging and troubleshooting
 - Better separation of concerns
 - Automated testing and deployment
 
 ### **Developer Experience**
+
 - **Faster Iteration**: Quick development builds
 - **Better Debugging**: Console mode and detailed logging
 - **Simplified Workflow**: One-command build and run
 - **Documentation**: Clear usage instructions
 
 ### **User Reliability**
+
 - **Robust Startup**: Better handling of Windows systray issues
 - **Error Recovery**: Graceful handling of provider failures
 - **Performance**: Optimized builds with unnecessary modules excluded
@@ -122,6 +148,7 @@ The original codebase was difficult to maintain and extend. The new architecture
 ## 🚀 Future Roadmap
 
 This enhanced architecture provides a solid foundation for:
+
 - Additional AI provider integrations
 - Advanced UI features
 - Cross-platform expansion
