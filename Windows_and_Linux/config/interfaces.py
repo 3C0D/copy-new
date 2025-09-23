@@ -27,6 +27,7 @@ class SystemConfig(TypedDict, total=False):
     hotkey: str
     background_theme: str
     color_mode: str  # "auto", "light", or "dark"
+    response_window_zoom: float
 
     # Application Settings
     language: str

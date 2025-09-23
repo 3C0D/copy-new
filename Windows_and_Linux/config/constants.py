@@ -167,6 +167,7 @@ _DEFAULT_SYSTEM_VALUES_RAW = {
     "hotkey": "ctrl+space",
     "background_theme": "gradient",
     "color_mode": "auto",  # Color mode: "auto", "light", or "dark"
+    "response_window_zoom": 1.2,  # Default zoom factor for response window
     "language": "en",
     "run_mode": "dev",
     "update_available": False,

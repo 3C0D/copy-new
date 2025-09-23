@@ -146,6 +146,7 @@ class MarkdownTextBrowser(QTextBrowser):
         if old_factor != self.zoom_factor:
             self._apply_zoom()
             self._update_size()
+            self._save_zoom()
 
     def zoom_out(self) -> None:
         old_factor = self.zoom_factor
@@ -153,6 +154,7 @@ class MarkdownTextBrowser(QTextBrowser):
         if old_factor != self.zoom_factor:
             self._apply_zoom()
             self._update_size()
+            self._save_zoom()
 
     def reset_zoom(self) -> None:
         old_factor = self.zoom_factor
@@ -160,6 +162,7 @@ class MarkdownTextBrowser(QTextBrowser):
         if old_factor != self.zoom_factor:
             self._apply_zoom()
             self._update_size()
+            self._save_zoom()
 
     def get_scroll_area(self) -> "ChatContentScrollArea | None":
         """Find the parent ChatContentScrollArea"""
@@ -173,6 +176,16 @@ class MarkdownTextBrowser(QTextBrowser):
     def resizeEvent(self, e: QtGui.QResizeEvent) -> None:
         super().resizeEvent(e)
         self._update_size()
+
+    def _save_zoom(self) -> None:
+        """Save the current zoom factor to settings"""
+        # Get the ResponseWindow parent
+        parent = self.parent()
+        while parent and not isinstance(parent, ResponseWindow):
+            parent = parent.parent()
+
+        if parent and isinstance(parent, ResponseWindow):
+            parent.app.settings_manager.response_window_zoom = self.zoom_factor
 
 
 class MessageContainer(QWidget):
@@ -962,14 +975,8 @@ class ResponseWindow(ThemedWidget):
         text_display = self.chat_area.add_message(text)
 
         # Update zoom state
-        if (
-            self.app.settings_manager.settings.custom_data
-            and "response_window_zoom" in self.app.settings_manager.settings.custom_data
-            and text_display
-        ):
-            text_display.zoom_factor = self.app.settings_manager.settings.custom_data[
-                "response_window_zoom"
-            ]
+        if text_display:
+            text_display.zoom_factor = getattr(self.app.settings_manager, "response_window_zoom", 1.2)
             text_display._apply_zoom()
 
         QtCore.QTimer.singleShot(100, self._adjust_window_height)
@@ -1039,8 +1046,6 @@ class ResponseWindow(ThemedWidget):
         """Handle window close event"""
         # Save zoom factor to settings
         if hasattr(self, "current_text_display") and self.current_text_display:
-            if not self.app.settings_manager.settings.custom_data:
-                self.app.settings_manager.settings.custom_data = {}
             self.app.settings_manager.response_window_zoom = self.current_text_display.zoom_factor
 
         self.chat_history = []
