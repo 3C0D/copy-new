@@ -570,19 +570,34 @@ class WritingToolApp(QApplication):
         """
         Show the popup window when the hotkey is pressed.
         """
-        # Check for image first
+        # Check for image first in clipboard
         if self.image is None:
             self.image = self.get_clipboard_image()
 
         # Update has_image flag based on actual image presence
         self.has_image = bool(self.image is not None)
 
+        selected_text = None
         if self.image is None:
+            # No image in clipboard, check selected text
             selected_text = self.original_selection = self.get_selected_text(sleep_duration=0.1)
             self._logger.debug(f'Selected text: "{selected_text}"')
-            self._logger.debug(" 🖼️\u00a0 No image found, processing text selection")
+
+            # Check if selected text is an image path
+            if selected_text and self._is_image_path(selected_text):
+                self._logger.debug("Selected text is image path, loading image")
+                self.image = self._load_image_from_path(selected_text)
+                if self.image:
+                    self.has_image = True
+                    selected_text = None  # Set to None as per requirements
+                    self._logger.debug(
+                        f" 🖼️\u00a0 Image loaded from selection path - size: {self.image.width()}x{self.image.height()}"
+                    )
+                else:
+                    self._logger.debug("Failed to load image from selection path")
+            else:
+                self._logger.debug(" 🖼️\u00a0 No image found, processing text selection")
         else:
-            selected_text = None
             self._logger.debug(
                 f" 🖼️\u00a0 Image found in clipboard - size: {self.image.width()}x{self.image.height()}"
             )
@@ -659,45 +674,65 @@ class WritingToolApp(QApplication):
 
     def get_clipboard_image(self) -> QImage | None:
         """
-        Get the image data currently stored in the clipboard from screenshots or image copy operations.
+        Get the image data currently stored in the clipboard from screenshots, image copy operations, or image file paths.
         Enhanced error handling and format support.
         """
         try:
             clipboard = QApplication.clipboard()
             mime_data = clipboard.mimeData()
 
-            if not mime_data.hasImage():
-                self._logger.debug("No image found in clipboard")
-                return None
+            # First check if there's actual image data in clipboard
+            if mime_data.hasImage():
+                # Check available formats for debugging
+                available_formats = mime_data.formats()
+                self._logger.debug(f"Available clipboard formats: {available_formats}")
 
-            # Check available formats for debugging
-            available_formats = mime_data.formats()
-            self._logger.debug(f"Available clipboard formats: {available_formats}")
+                image_data = mime_data.imageData()
 
-            image_data = mime_data.imageData()
+                if isinstance(image_data, QImage):
+                    self._logger.debug("QImage found in clipboard")
+                    if image_data.isNull():
+                        self._logger.warning("QImage is null")
+                        return None
+                    clipboard.clear()
+                    self._logger.debug("Clipboard cleared after image retrieval")
+                    return image_data
 
-            if isinstance(image_data, QImage):
-                self._logger.debug("QImage found in clipboard")
-                if image_data.isNull():
-                    self._logger.warning("QImage is null")
+                elif hasattr(image_data, "toImage"):  # QPixmap
+                    self._logger.debug("Converting QPixmap to QImage")
+                    qimage = image_data.toImage()
+                    if qimage.isNull():
+                        self._logger.warning("Converted QImage is null")
+                        return None
+                    self._logger.debug(f"QPixmap converted: {qimage.width()}x{qimage.height()}")
+                    clipboard.clear()
+                    self._logger.debug("Clipboard cleared after image retrieval")
+                    return qimage
+
+                else:
+                    self._logger.warning(f"Unknown image type: {type(image_data)}")
                     return None
-                clipboard.clear()
-                self._logger.debug("Clipboard cleared after image retrieval")
-                return image_data
 
-            elif hasattr(image_data, "toImage"):  # QPixmap
-                self._logger.debug("Converting QPixmap to QImage")
-                qimage = image_data.toImage()
-                if qimage.isNull():
-                    self._logger.warning("Converted QImage is null")
+            # If no image data, check if clipboard contains text that might be an image path
+            elif mime_data.hasText():
+                text = mime_data.text()
+                self._logger.debug(f"Checking if clipboard text is image path: {text[:50]}...")
+                if self._is_image_path(text):
+                    self._logger.debug("Clipboard contains image path, loading image")
+                    image = self._load_image_from_path(text)
+                    if image:
+                        clipboard.clear()  # Clear clipboard after successful loading
+                        self._logger.debug("Clipboard cleared after loading image from path")
+                        return image
+                    else:
+                        self._logger.debug("Failed to load image from clipboard path")
+                        return None
+                else:
+                    self._logger.debug("Clipboard text is not an image path")
                     return None
-                self._logger.debug(f"QPixmap converted: {qimage.width()}x{qimage.height()}")
-                clipboard.clear()
-                self._logger.debug("Clipboard cleared after image retrieval")
-                return qimage
 
             else:
-                self._logger.warning(f"Unknown image type: {type(image_data)}")
+                self._logger.debug("No image or text found in clipboard")
                 return None
 
         except Exception as e:
@@ -818,6 +853,94 @@ class WritingToolApp(QApplication):
             return True
 
         return False
+
+    def _is_image_path(self, text: str) -> bool:
+        """
+        Check if the text is a path to a valid image file.
+
+        Args:
+            text: The text to check
+
+        Returns:
+            bool: True if it's a path to a valid image file, False otherwise
+        """
+        if not text or not text.strip():
+            return False
+
+        text = text.strip()
+
+        # Remove surrounding quotes if present (Windows "Copy as path" adds quotes)
+        if text.startswith('"') and text.endswith('"'):
+            text = text[1:-1]
+
+        if not self._is_file_path(text):
+            return False
+
+        # Remove file:// prefix if present
+        if text.startswith("file:///"):
+            text = text[7:]  # Remove "file:///"
+            # URL decode if needed (basic handling)
+            import urllib.parse
+            text = urllib.parse.unquote(text)
+
+        try:
+            path = Path(text)
+            if not path.exists() or not path.is_file():
+                return False
+
+            # Check file extension for common image formats
+            image_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.tif', '.webp', '.svg'}
+            if path.suffix.lower() not in image_extensions:
+                return False
+
+            # Try to load the image to verify it's valid
+            image = QImage(str(path))
+            return not image.isNull()
+
+        except Exception as e:
+            self._logger.debug(f"Error checking if path is image: {e}")
+            return False
+
+    def _load_image_from_path(self, text: str) -> QImage | None:
+        """
+        Load an image from a file path.
+
+        Args:
+            text: The file path
+
+        Returns:
+            QImage | None: The loaded image or None if failed
+        """
+        if not text or not text.strip():
+            return None
+
+        text = text.strip()
+
+        # Remove surrounding quotes if present (Windows "Copy as path" adds quotes)
+        if text.startswith('"') and text.endswith('"'):
+            text = text[1:-1]
+
+        if not self._is_image_path(text):
+            return None
+
+        # Remove file:// prefix if present
+        if text.startswith("file:///"):
+            text = text[7:]  # Remove "file:///"
+            # URL decode if needed (basic handling)
+            import urllib.parse
+            text = urllib.parse.unquote(text)
+
+        try:
+            path = Path(text)
+            image = QImage(str(path))
+            if image.isNull():
+                self._logger.debug(f"Failed to load image from path: {path}")
+                return None
+            self._logger.debug(f"Successfully loaded image from path: {path} - size: {image.width()}x{image.height()}")
+            return image
+        except Exception as e:
+            self._logger.error(f"Error loading image from path {text}: {e}")
+            return None
 
     def process_option(
         self,
