@@ -1167,12 +1167,17 @@ class CustomPopupWindow(QWidget):
         # Add edit overlays to buttons
         self.add_edit_overlays_to_buttons()
 
+        # Force height to 400 for image edit mode to eliminate empty spaces
+        if self.has_image:
+            self.resize(self.width(), 420)
+
     def exit_edit_mode(self) -> None:
         """Exit edit mode - called when user clicks the close button in edit mode."""
         self.edit_mode = False
         self._logger.debug("Exiting edit mode")
 
         # Reload the window to ensure clean state and proper layout
+        # Note: reload_window creates a new window, so adjustSize is not needed here
         self.reload_window()
 
     def rebuild_edit_mode_with_scroll(self) -> None:
