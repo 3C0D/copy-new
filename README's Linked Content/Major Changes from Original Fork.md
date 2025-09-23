@@ -87,6 +87,12 @@ This document outlines the significant architectural and functional changes made
 - **Configuration**: Per-mode provider settings
 - **Validation**: API key and endpoint validation
 
+### **UI Enhancements**
+
+- **Persistent Zoom**: Response window zoom level is now remembered between sessions
+- **Improved Layout**: Better text rendering and sizing calculations
+- **Enhanced Controls**: More intuitive zoom controls with immediate feedback
+
 ## 📁 File Organization
 
 ### **Cleaned Structure**
