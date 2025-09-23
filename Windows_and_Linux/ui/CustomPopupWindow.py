@@ -34,7 +34,7 @@ from config.constants import (
     OPENAI_MODELS,
 )
 from config.data_operations import create_default_actions_config
-from config.interfaces import ActionConfig
+from config.interfaces import ActionConfig, ActionConfigWithName
 from ui.ui_utils import ThemeBackground, ui_utils
 
 if TYPE_CHECKING:
@@ -43,11 +43,6 @@ if TYPE_CHECKING:
 
 def _(x):
     return x
-
-
-# ActionConfigWithName type
-class ActionConfigWithName(ActionConfig, total=False):
-    name: str
 
 
 class ToggleSwitch(QCheckBox):
@@ -128,19 +123,26 @@ class ButtonEditDialog(QDialog):
         parent: QWidget | None = None,
         button_data: dict | None = None,
         title: str = "Edit Button",
+        is_image_context: bool = False,
     ):
         super().__init__(parent)
         self.app = app
+        self.is_image_context = is_image_context
         self.button_data = (
             button_data
             if button_data
             else {
-                "prefix": "Make this change to the following text:\n\n",
+                "prefix": "Analyze this image:\n\n"
+                if is_image_context
+                else "Make this change to the following text:\n\n",
                 "instruction": "",
                 "icon": "icons/magnifying-glass",
                 "open_in_window": False,
+                "image": is_image_context,
             }
         )
+        if is_image_context:
+            self.button_data["image"] = True
         self.setWindowTitle(title)
         self.init_ui()
 
@@ -157,17 +159,28 @@ class ButtonEditDialog(QDialog):
         layout.addWidget(name_label)
         layout.addWidget(self.name_input)
 
+        # No checkbox - image context is determined by popup context
+
         # Instruction (changed to a multiline QPlainTextEdit)
+        content_type = "image" if self.is_image_context else "selected text"
         instruction_label = QLabel(
-            "What should your AI do with your selected text? (System Instruction)"
+            f"What should your AI do with your {content_type}? (System Instruction)"
         )
         instruction_label.setStyleSheet(self.app.styles["label"])
         self.instruction_input = QPlainTextEdit()
         self.instruction_input.setStyleSheet(self.app.styles["input"])
         self.instruction_input.setPlainText(self.button_data.get("instruction", ""))
         self.instruction_input.setMinimumHeight(100)
-        self.instruction_input.setPlaceholderText(
-            """Examples:
+        if self.is_image_context:
+            placeholder = """Examples:
+    - Extract and translate any text visible in this image.
+    - Describe this image in detail.
+    - What objects can you see in this image?
+    - Analyse the mood or atmosphere of this image.
+    - What colors are prominent in this image?
+    - Describe this image for someone who cannot see it."""
+        else:
+            placeholder = """Examples:
     - Fix / improve / explain this code.
     - Make it funny.
     - Add emojis!
@@ -176,35 +189,44 @@ class ButtonEditDialog(QDialog):
     - Make the text title case.
     - If it's all caps, make it all small, and vice-versa.
     - Write a reply to this.
-    - Analyse potential biases in this news article.""",
-        )
+    - Analyse potential biases in this news article."""
+
+        self.instruction_input.setPlaceholderText(placeholder)
         layout.addWidget(instruction_label)
         layout.addWidget(self.instruction_input)
 
-        # open_in_window
-        display_label = QLabel("How should your AI response be shown?")
-        display_label.setStyleSheet(self.app.styles["label"])
-        layout.addWidget(display_label)
+        if self.is_image_context:
+            # Force chat note for image actions
+            self.force_chat_label = QLabel(
+                "<i>Image actions always open in chat window (force chat)</i>"
+            )
+            self.force_chat_label.setStyleSheet(self.app.styles["label_small"])
+            layout.addWidget(self.force_chat_label)
+        else:
+            # open_in_window options - only for text actions
+            self.display_label = QLabel("How should your AI response be shown?")
+            self.display_label.setStyleSheet(self.app.styles["label"])
+            layout.addWidget(self.display_label)
 
-        radio_layout = QHBoxLayout()
-        self.replace_radio = QRadioButton("Replace the selected text")
-        self.window_radio = QRadioButton("In a chat pop-up window")
-        for r in (self.replace_radio, self.window_radio):
-            r.setStyleSheet(self.app.styles["radio"])
+            self.radio_layout = QHBoxLayout()
+            self.replace_radio = QRadioButton("Replace the selected text")
+            self.window_radio = QRadioButton("In a chat pop-up window")
+            for r in (self.replace_radio, self.window_radio):
+                r.setStyleSheet(self.app.styles["radio"])
 
-        self.replace_radio.setChecked(not self.button_data.get("open_in_window", False))
-        self.window_radio.setChecked(self.button_data.get("open_in_window", False))
+            self.replace_radio.setChecked(not self.button_data.get("open_in_window", False))
+            self.window_radio.setChecked(self.button_data.get("open_in_window", False))
 
-        radio_layout.addWidget(self.replace_radio)
-        radio_layout.addWidget(self.window_radio)
-        layout.addLayout(radio_layout)
+            self.radio_layout.addWidget(self.replace_radio)
+            self.radio_layout.addWidget(self.window_radio)
+            layout.addLayout(self.radio_layout)
 
-        # Indicator information
-        indicator_label = QLabel(
-            "<i>A small indicator will be shown on the button: Ⓡ for replace, Ⓒ for chat</i>"
-        )
-        indicator_label.setStyleSheet(self.app.styles["label_small"])
-        layout.addWidget(indicator_label)
+            # Indicator information - only for text actions
+            self.indicator_label = QLabel(
+                "<i>A small indicator will be shown on the button: Ⓡ for replace, Ⓒ for chat</i>"
+            )
+            self.indicator_label.setStyleSheet(self.app.styles["label_small"])
+            layout.addWidget(self.indicator_label)
 
         # OK & Cancel
         btn_layout = QHBoxLayout()
@@ -225,11 +247,14 @@ class ButtonEditDialog(QDialog):
     def get_button_data(self) -> ActionConfigWithName:
         return {
             "name": self.name_input.text(),
-            "prefix": "Make this change to the following text:\n\n",
+            "prefix": "Analyze this image:\n\n"
+            if self.is_image_context
+            else "Make this change to the following text:\n\n",
             # Retrieve multiline text
             "instruction": self.instruction_input.toPlainText(),
             "icon": "icons/custom",
-            "open_in_window": self.window_radio.isChecked(),
+            "open_in_window": self.window_radio.isChecked() if not self.is_image_context else True,
+            "image": self.is_image_context,
         }
 
 
@@ -354,13 +379,18 @@ class DraggableButton(QPushButton):
         if self.action_indicator:
             self.action_indicator.setGeometry(self.width() - 20, 4, 16, 16)
 
-    def set_action_indicator(self, open_in_window: bool) -> None:
+    def set_action_indicator(self, open_in_window: bool, is_image_action: bool | None) -> None:
         """Set the action indicator (Ⓡ or Ⓒ) based on action type."""
+        if is_image_action:
+            return
+
         if self.action_indicator:
             self.action_indicator.deleteLater()
 
         self.action_indicator = QLabel(self)
+
         indicator_text = "Ⓒ" if open_in_window else "Ⓡ"
+
         self.action_indicator.setText(indicator_text)
         self.action_indicator.setStyleSheet(self.app.styles["action_indicator"])
         self.action_indicator.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -409,9 +439,11 @@ class CustomPopupWindow(QWidget):
         self.force_chat_area: QWidget | None = None
         self.top_bar_widget: QWidget | None = None
         self.remove_image_button: QPushButton | None = None
+        self.image_preview_container: QWidget | None = None
 
     def init_ui(self):
         """Initialize the main UI structure."""
+        self.edit_mode = False  # Ensure we start in normal mode
         self._setup_window_properties()
         main_layout = self._create_main_layout()
         content_layout = self._create_background_and_content_layout(main_layout)
@@ -420,8 +452,10 @@ class CustomPopupWindow(QWidget):
         self._create_input_area(content_layout)
         if self.has_sel_text:
             self.create_force_chat_toggle(content_layout)
+        if self.has_sel_text or self.has_image:
             buttons_layout = self._create_buttons_scroll_layout(content_layout)
             self._setup_buttons_and_content(buttons_layout)
+        self._create_image_preview_area(content_layout)
         self._show_update_notice_if_available(content_layout)
 
         self._finalize_ui_setup()
@@ -465,7 +499,7 @@ class CustomPopupWindow(QWidget):
         top_bar_layout = QHBoxLayout(self.top_bar_widget)
         top_bar_layout.setContentsMargins(0, 0, 0, 0)
         top_bar_layout.setSpacing(0)
-        if self.has_sel_text:
+        if self.has_sel_text or self.has_image:
             self._create_reset_button(top_bar_layout)
             self._create_drag_label(top_bar_layout)
             self._create_edit_buttons(top_bar_layout)
@@ -547,9 +581,9 @@ class CustomPopupWindow(QWidget):
         return self.app.styles["close_small_button"]
 
     def _create_input_area(self, content_layout: QVBoxLayout) -> None:
-        """Create the input area with text field, send button, and image preview if applicable."""
+        """Create the input area with text field and send button."""
         self.input_area = QWidget()
-        input_layout = QVBoxLayout(self.input_area)  # Changed to VBoxLayout for stacking
+        input_layout = QVBoxLayout(self.input_area)
         input_layout.setContentsMargins(0, 0, 0, 0)
         input_layout.setSpacing(8)
 
@@ -562,17 +596,18 @@ class CustomPopupWindow(QWidget):
         self._create_send_button(input_row_layout)
 
         input_layout.addWidget(input_row)
-
-        # Add image preview if there's an image
-        if self.has_image:
-            self._create_image_preview(input_layout)
-
         content_layout.addWidget(self.input_area)
 
-    def _create_image_preview(self, layout: QVBoxLayout) -> None:
-        """Create an image preview widget below the input field."""
+    def _create_image_preview_area(self, content_layout: QVBoxLayout) -> None:
+        """Create the image preview area if there's an image."""
+        if self.has_image:
+            self._create_image_preview(content_layout)
+
+    def _create_image_preview(self, content_layout: QVBoxLayout) -> None:
+        """Create an image preview widget in the content layout."""
         # Image preview container
-        preview_container = QWidget()
+        self.image_preview_container = QWidget()
+        preview_container = self.image_preview_container
         preview_container.setStyleSheet(self.app.styles["container"])
         preview_layout = QVBoxLayout(preview_container)
         preview_layout.setContentsMargins(4, 4, 4, 4)  # Reduced padding to fit button better
@@ -628,7 +663,7 @@ class CustomPopupWindow(QWidget):
             self.image_display.setText("No image preview available")
 
         preview_layout.addWidget(self.image_display)
-        layout.addWidget(preview_container)
+        content_layout.addWidget(preview_container)
 
     def _remove_image_from_clipboard(self) -> None:
         """Remove image from clipboard and close application."""
@@ -713,7 +748,7 @@ class CustomPopupWindow(QWidget):
 
     def _setup_buttons_and_content(self, content_layout: QVBoxLayout) -> None:
         """Setup buttons and main content based on available input."""
-        if self.has_sel_text:
+        if self.has_sel_text or self.has_image:
             self.build_buttons_list()
             self.rebuild_grid_layout(content_layout)
             self.initialize_button_visibility()
@@ -922,12 +957,14 @@ class CustomPopupWindow(QWidget):
             "instruction": action_config.get("instruction", ""),
             "icon": action_config.get("icon", ""),
             "open_in_window": action_config.get("open_in_window", False),
+            "image": action_config.get("image", False),
         }
 
     def build_buttons_list(self) -> None:
         """
         Loads actions from unified settings system,
         creates DraggableButton for each (except "Custom"),
+        filtering based on whether image is present,
         storing them in self.button_widgets in the same order.
         """
 
@@ -945,6 +982,11 @@ class CustomPopupWindow(QWidget):
         for name, action_config in actions.items():
             if name == "Custom":
                 continue
+            # Filter actions based on image presence
+            is_image_action = action_config.get("image", False)
+            if self.has_image != is_image_action:  # clever shortcut
+                continue
+
             b = DraggableButton(self.app, self, name, name)
             icon_path = ui_utils.get_icon_path(
                 self.app, action_config.get("icon", "Not Found"), with_theme=True
@@ -954,7 +996,7 @@ class CustomPopupWindow(QWidget):
 
             # Set action indicator based on open_in_window
             open_in_window = action_config.get("open_in_window", False)
-            b.set_action_indicator(open_in_window)
+            b.set_action_indicator(open_in_window, is_image_action)
 
             # Add tooltip with tool name and description
             tooltip_text = name
@@ -992,7 +1034,7 @@ class CustomPopupWindow(QWidget):
                 break
 
         # If no scroll area exists, create one (for normal mode)
-        if not buttons_scroll and self.has_sel_text:
+        if not buttons_scroll and (self.has_sel_text or self.has_image):
             buttons_scroll = QScrollArea()
             buttons_scroll.setWidgetResizable(True)
             buttons_scroll.setFrameShape(QFrame.Shape.NoFrame)
@@ -1044,8 +1086,8 @@ class CustomPopupWindow(QWidget):
                     parent_layout.removeWidget(widget)
                     widget.deleteLater()
 
-        # Add "Add New" button outside scroll area (only in edit mode & only if we have text)
-        if edit_mode_to_use and self.has_sel_text:
+        # Add "Add New" button outside scroll area (only in edit mode & only if we have text or image)
+        if edit_mode_to_use and (self.has_sel_text or self.has_image):
             add_btn = QPushButton("+ Add New")
             add_btn.setStyleSheet(self._get_add_button_style())
             add_btn.clicked.connect(self.add_new_button_clicked)
@@ -1112,11 +1154,13 @@ class CustomPopupWindow(QWidget):
         if self.drag_label is not None:
             self.drag_label.show()
         if self.input_area is not None:
-            self.input_area.setVisible(False)
+            self.input_area.hide()
         if self.force_chat_area is not None:
-            self.force_chat_area.setVisible(False)
+            self.force_chat_area.hide()
         if self.update_label is not None:
-            self.update_label.setVisible(False)
+            self.update_label.hide()
+        if self.image_preview_container is not None:
+            self.image_preview_container.hide()
 
         self.rebuild_grid_layout(force_edit_mode=True)
 
@@ -1226,7 +1270,11 @@ class CustomPopupWindow(QWidget):
             self.edit_close_button.hide()
         if hasattr(self, "drag_label") and self.drag_label is not None:
             self.drag_label.hide()
-        if self.has_sel_text and hasattr(self, "edit_button") and self.edit_button is not None:
+        if (
+            (self.has_sel_text or self.has_image)
+            and hasattr(self, "edit_button")
+            and self.edit_button is not None
+        ):
             self.edit_button.show()
         if hasattr(self, "close_button") and self.close_button is not None:
             self.close_button.show()
@@ -1234,6 +1282,10 @@ class CustomPopupWindow(QWidget):
             self.input_area.setVisible(True)
         if hasattr(self, "force_chat_area") and self.force_chat_area is not None:
             self.force_chat_area.setVisible(not self.edit_mode)
+        if hasattr(self, "image_preview_container") and self.image_preview_container is not None:
+            self.image_preview_container.setVisible(True)
+        if hasattr(self, "update_label") and self.update_label is not None:
+            self.update_label.setVisible(True)
 
     def on_reset_clicked(self) -> None:
         """
@@ -1282,7 +1334,9 @@ class CustomPopupWindow(QWidget):
                 )
 
     def add_new_button_clicked(self) -> None:
-        dialog = ButtonEditDialog(self.app, self, title="Add New Button")
+        dialog = ButtonEditDialog(
+            self.app, self, title="Add New Button", is_image_context=self.has_image
+        )
         if dialog.exec_():
             bd = dialog.get_button_data()
 
@@ -1299,6 +1353,7 @@ class CustomPopupWindow(QWidget):
                 instruction=bd.get("instruction", ""),
                 icon=bd.get("icon", ""),
                 open_in_window=bd.get("open_in_window", False),
+                image=bd.get("image", False),
             )
 
             success = self.app.settings_manager.update_action(bd.get("name", ""), action_config)
@@ -1325,7 +1380,7 @@ class CustomPopupWindow(QWidget):
         bd = self.action_config_to_dict(action_config)
         bd["name"] = key
 
-        dialog = ButtonEditDialog(self.app, self, bd)
+        dialog = ButtonEditDialog(self.app, self, bd, is_image_context=self.has_image)
         if dialog.exec_():
             new_data = dialog.get_button_data()
 
@@ -1350,6 +1405,7 @@ class CustomPopupWindow(QWidget):
                     instruction=new_data.get("instruction", ""),
                     icon=new_data.get("icon", ""),
                     open_in_window=new_data.get("open_in_window", False),
+                    image=new_data.get("image", False),
                 )
                 success = self.app.settings_manager.update_action(
                     new_data.get("name", ""), action_config
@@ -1425,17 +1481,18 @@ class CustomPopupWindow(QWidget):
     def reload_window(self) -> None:
         """
         Reload the window with updated button configuration.
-        This recreates the popup window with the same selected text.
+        This recreates the popup window with the same selected text and image.
         """
-        # Store current position and selected text
+        # Store current position, selected text, and image
         current_pos = self.pos()
         selected_text = self.selected_text
+        image = self.image
 
         # Close current window
         self.close()
 
         # Create and show new popup window
-        new_popup = CustomPopupWindow(self.app, selected_text)
+        new_popup = CustomPopupWindow(self.app, selected_text, image)
         new_popup.move(current_pos)
         new_popup.show()
 
@@ -1463,7 +1520,7 @@ class CustomPopupWindow(QWidget):
         """
         User clicked a generic instruction button.
         """
-        if not self.edit_mode and self.selected_text is not None:
+        if not self.edit_mode and (self.selected_text is not None or self.has_image):
             self.app.process_option(
                 instruction, self.selected_text, self.is_force_chat_enabled(), None, self.image
             )

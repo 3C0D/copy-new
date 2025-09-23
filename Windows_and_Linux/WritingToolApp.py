@@ -176,6 +176,7 @@ class WritingToolApp(QApplication):
                 self._logger.error(f"Failed to create {name}Provider: {e}")
                 failed_providers.append(name)
                 import traceback
+
                 self._logger.error(f"Traceback: {traceback.format_exc()}")
                 raise
 

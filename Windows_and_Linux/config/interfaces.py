@@ -14,6 +14,12 @@ class ActionConfig(TypedDict, total=False):
     instruction: str
     icon: str
     open_in_window: bool
+    image: Optional[bool]
+
+
+class ActionConfigWithName(ActionConfig, total=False):
+    """ActionConfig extended with a name field for UI operations"""
+    name: str
 
 
 class SystemConfig(TypedDict, total=False):
