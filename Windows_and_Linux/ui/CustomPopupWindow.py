@@ -1364,10 +1364,13 @@ class CustomPopupWindow(QWidget):
             success = self.app.settings_manager.update_action(bd.get("name", ""), action_config)
 
             if success:
-                self.reload_window()
+                # Stay in edit mode and refresh buttons
+                self.build_buttons_list()
+                self.rebuild_grid_layout(force_edit_mode=True)
+                self.add_edit_overlays_to_buttons()
             else:
                 self.app.show_message_signal.emit(
-                    "Error", "Failed to save the button. Please try again."
+                    "Error", "Failed to save button changes. Please try again."
                 )
 
     def edit_button_clicked(self, btn: QPushButton) -> None:
@@ -1417,10 +1420,14 @@ class CustomPopupWindow(QWidget):
                 )
 
             if success:
-                self.reload_window()
-                self.app.show_message_signal.emit(
+                # Stay in edit mode and refresh buttons
+                self.build_buttons_list()
+                self.rebuild_grid_layout(force_edit_mode=True)
+                self.add_edit_overlays_to_buttons()
+                # Show success message after UI update
+                QtCore.QTimer.singleShot(100, lambda: self.app.show_message_signal.emit(
                     "Button Updated", "Your button changes have been saved and are now active."
-                )
+                ))
             else:
                 self.app.show_message_signal.emit(
                     "Error", "Failed to save button changes. Please try again."
@@ -1445,7 +1452,7 @@ class CustomPopupWindow(QWidget):
             success = self.app.settings_manager.remove_action(key)
 
             if success:
-                # Clean up UI elements
+                # Clean up UI elements and refresh
                 for btn_ in self.button_widgets[:]:
                     if btn_.key == key:
                         if hasattr(btn_, "icon_container") and btn_.icon_container:
@@ -1453,7 +1460,9 @@ class CustomPopupWindow(QWidget):
                         btn_.deleteLater()
                         self.button_widgets.remove(btn_)
 
-                self.reload_window()
+                # Stay in edit mode and refresh buttons
+                self.rebuild_grid_layout(force_edit_mode=True)
+                self.add_edit_overlays_to_buttons()
             else:
                 self.app.show_message_signal.emit(
                     "Error", "Failed to delete the button. Please try again."
