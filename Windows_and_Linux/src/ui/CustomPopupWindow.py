@@ -681,7 +681,7 @@ class CustomPopupWindow(QWidget):
             )
 
             #  Clean the image and close
-            self.app.clean_image()
+            self.app.popup_manager.clean_image()
             self.close()
 
             # Schedule application quit after a brief delay to allow message to be shown

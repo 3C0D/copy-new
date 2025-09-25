@@ -5,13 +5,11 @@ This module contains the core application logic for the Writing Tools applicatio
 including AI provider management, hotkey handling, and user interface coordination.
 """
 
-import base64
 import gettext
 import logging
 import os
 import signal
 import sys
-import tempfile
 import threading
 import time
 import types
@@ -21,8 +19,16 @@ from typing import TYPE_CHECKING, Any, Optional
 from pynput import keyboard as keyboard
 from PySide6 import QtCore, QtGui
 from PySide6.QtCore import QLocale, Signal, Slot
-from PySide6.QtGui import QCursor, QImage
+from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication, QMessageBox
+
+from .aiprovider import (
+    AnthropicProvider,
+    GeminiProvider,
+    MistralProvider,
+    OllamaProvider,
+    OpenAICompatibleProvider,
+)
 
 # ResponseWindow already imported above
 # Removed duplicate imports
@@ -33,6 +39,8 @@ from .config.constants import (
 )
 from .config.interfaces import ActionConfig, ProviderConfig
 from .config.settings import SettingsManager
+from .core.image_processor import ImageProcessor
+from .core.popup_manager import PopupManager
 from .systray import SystrayManager
 from .ui import (
     AboutWindow,
@@ -43,22 +51,11 @@ from .ui import (
     SettingsWindow,
 )
 from .ui.ResponseWindow import ResponseWindow
-from .ui.ui_utils import ui_utils
+from .ui.ThemeManager import ThemeManager
 from .update_checker import UpdateChecker
 
 if TYPE_CHECKING:
     from .aiprovider import AIProvider
-
-    # ResponseWindow already imported
-
-from .aiprovider import (
-    AnthropicProvider,
-    GeminiProvider,
-    MistralProvider,
-    OllamaProvider,
-    OpenAICompatibleProvider,
-)
-from .ui.ThemeManager import ThemeManager
 
 os.environ["QT_LOGGING_RULES"] = (
     "qt.qpa.mime.warning=false;qt.qpa.mime.debug=false;qt.qpa.mime.info=false"  # Disable QMimeDatabase warnings
@@ -123,10 +120,9 @@ class WritingToolApp(QApplication):
         self.current_response_window: ResponseWindow | None = None
         self.current_provider: AIProvider | None = None
         self.output_queue = ""
-        self.original_selection: str | None = None
-        self.image: QImage | None = None
-        self.has_image = bool(self.image is not None)
         self.systray_manager = SystrayManager(self)
+        self.image_processor = ImageProcessor(self._logger)
+        self.popup_manager = PopupManager(self, self._logger)
 
     def _setup_signals(self) -> None:
         """Connect application signals to their handlers."""
@@ -144,7 +140,6 @@ class WritingToolApp(QApplication):
     def _setup_ui_components(self) -> None:
         """Initialize UI component references."""
         self.onboarding_window = None
-        self.popup_window = None
         self.tray_icon = None
         self.settings_window = None
         self.non_editable_modal = None
@@ -545,10 +540,10 @@ class WritingToolApp(QApplication):
             self.non_editable_modal = None
 
         # Close existing popup window if open
-        if hasattr(self, "popup_window") and self.popup_window is not None:
+        if hasattr(self, "popup_manager") and self.popup_manager.popup_window is not None:
             self._logger.debug("Closing existing popup window")
-            self.popup_window.close()
-            self.popup_window = None
+            self.popup_manager.popup_window.close()
+            self.popup_manager.popup_window = None
 
         # Close existing response window if open
         if hasattr(self, "current_response_window") and self.current_response_window is not None:
@@ -564,397 +559,8 @@ class WritingToolApp(QApplication):
 
         # noinspection PyTypeChecker
         QtCore.QMetaObject.invokeMethod(
-            self, "_show_popup", QtCore.Qt.ConnectionType.QueuedConnection
+            self.popup_manager, "show_popup", QtCore.Qt.ConnectionType.QueuedConnection
         )
-
-    @Slot()
-    def _show_popup(self) -> None:
-        """
-        Show the popup window when the hotkey is pressed.
-        """
-        # Check for image first in clipboard
-        if self.image is None:
-            self.image = self.get_clipboard_image()
-
-        # Update has_image flag based on actual image presence
-        self.has_image = bool(self.image is not None)
-
-        selected_text = None
-        if self.image is None:
-            # No image in clipboard, check selected text
-            selected_text = self.original_selection = self.get_selected_text(sleep_duration=0.1)
-            self._logger.debug(f'Selected text: "{selected_text}"')
-
-            # Check if selected text is an image path
-            if selected_text and self._is_image_path(selected_text):
-                self._logger.debug("Selected text is image path, loading image")
-                self.image = self._load_image_from_path(selected_text)
-                if self.image:
-                    self.has_image = True
-                    selected_text = None  # Set to None as per requirements
-                    self._logger.debug(
-                        f" 🖼️\u00a0 Image loaded from selection path - size: {self.image.width()}x{self.image.height()}"
-                    )
-                else:
-                    self._logger.debug("Failed to load image from selection path")
-            else:
-                self._logger.debug(" 🖼️\u00a0 No image found, processing text selection")
-        else:
-            self._logger.debug(
-                f" 🖼️\u00a0 Image found in clipboard - size: {self.image.width()}x{self.image.height()}"
-            )
-            self._logger.debug("Image found in clipboard, skipping text capture")
-
-        try:
-            self._logger.debug("🆕🪟\u00a0 Creating new popup window")
-            self.popup_window = CustomPopupWindow.CustomPopupWindow(self, selected_text, self.image)
-
-            # Set the window icon
-            icon_path = ui_utils.get_icon_path(
-                self,
-                "app_icon",
-                with_theme=False,
-            )
-            if icon_path.exists():
-                self.setWindowIcon(QtGui.QIcon(icon_path.as_posix()))
-
-            self.popup_window.show()
-            self.position_popup_window(self.popup_window, selected_text)
-            ui_utils.existing_window_on_top(self.popup_window)
-
-            # # Position the popup window near the cursor
-            # self._position_popup_near_cursor()
-        except Exception as e:
-            self._logger.error(f"Error showing popup window: {e}", exc_info=True)
-
-    def position_popup_window(
-        self,
-        popup_window,
-        selected_text: str | None,
-        width=300,
-        height=450,
-        offset_x=0,
-        offset_y=20,
-    ):
-        """
-        Position popup window to stay within screen bounds
-
-        Args:
-            popup_window: The popup window to position
-            width: Window width in pixels
-            height: Window height in pixels
-            offset_x: Horizontal offset from cursor
-            offset_y: Vertical offset from cursor
-        """
-        if not self.has_image and (selected_text is None or selected_text.strip() == ""):
-            height = 150  # smaller window
-        # Get cursor position
-
-        cursor_pos = QCursor.pos()
-        x = cursor_pos.x() + offset_x
-        y = cursor_pos.y() + offset_y
-
-        # Get screen dimensions
-        screen = QApplication.primaryScreen().availableGeometry()
-
-        # Adjust if too far right
-        if x + width > screen.right():
-            x = cursor_pos.x() - width
-
-        # Adjust if too far down - place above cursor
-        if y + height > screen.bottom():
-            y = cursor_pos.y() - height - 20
-
-        # Keep within screen bounds
-        x = max(screen.left(), min(x, screen.right() - width))
-        y = max(screen.top(), min(y, screen.bottom() - height))
-
-        # Position the window
-        popup_window.move(x, y)
-
-    def get_clipboard_image(self) -> QImage | None:
-        """
-        Get the image data currently stored in the clipboard from screenshots, image copy operations, or image file paths.
-        Enhanced error handling and format support.
-        """
-        try:
-            clipboard = QApplication.clipboard()
-            mime_data = clipboard.mimeData()
-
-            # First check if there's actual image data in clipboard
-            if mime_data.hasImage():
-                # Check available formats for debugging
-                available_formats = mime_data.formats()
-                self._logger.debug(f"Available clipboard formats: {available_formats}")
-
-                image_data = mime_data.imageData()
-
-                if isinstance(image_data, QImage):
-                    self._logger.debug("QImage found in clipboard")
-                    if image_data.isNull():
-                        self._logger.warning("QImage is null")
-                        return None
-                    clipboard.clear()
-                    self._logger.debug("Clipboard cleared after image retrieval")
-                    return image_data
-
-                elif hasattr(image_data, "toImage"):  # QPixmap
-                    self._logger.debug("Converting QPixmap to QImage")
-                    qimage = image_data.toImage()
-                    if qimage.isNull():
-                        self._logger.warning("Converted QImage is null")
-                        return None
-                    self._logger.debug(f"QPixmap converted: {qimage.width()}x{qimage.height()}")
-                    clipboard.clear()
-                    self._logger.debug("Clipboard cleared after image retrieval")
-                    return qimage
-
-                else:
-                    self._logger.warning(f"Unknown image type: {type(image_data)}")
-                    return None
-
-            # If no image data, check if clipboard contains text that might be an image path
-            elif mime_data.hasText():
-                text = mime_data.text()
-                self._logger.debug(f"Checking if clipboard text is image path: {text[:50]}...")
-                if self._is_image_path(text):
-                    self._logger.debug("Clipboard contains image path, loading image")
-                    image = self._load_image_from_path(text)
-                    if image:
-                        clipboard.clear()  # Clear clipboard after successful loading
-                        self._logger.debug("Clipboard cleared after loading image from path")
-                        return image
-                    else:
-                        self._logger.debug("Failed to load image from clipboard path")
-                        return None
-                else:
-                    self._logger.debug("Clipboard text is not an image path")
-                    return None
-
-            else:
-                self._logger.debug("No image or text found in clipboard")
-                return None
-
-        except Exception as e:
-            self._logger.error(f"Error processing clipboard image data: {e}")
-            return None
-
-    def get_selected_text(
-        self, sleep_duration: float = 0.2, max_retries: int = 3, retry_delay: float = 0.1
-    ) -> str:
-        """
-        Get the currently selected text from any application by simulating Ctrl+C.
-        """
-        self._logger.debug("Getting selected text")
-        clipboard = QApplication.clipboard()
-        clipboard_backup = clipboard.text()
-        self._logger.debug(
-            f"Clipboard backed up: {clipboard_backup[:30] if clipboard_backup else 'Empty'} ..."
-        )
-
-        # Clear the clipboard
-        clipboard.clear()
-        selected_text = ""
-
-        # Simulate Ctrl+C to copy selected text
-        self._logger.debug("Simulating Ctrl+C")
-        kbrd = keyboard.Controller()
-
-        def press_ctrl_c():
-            with kbrd.pressed(keyboard.Key.ctrl):
-                kbrd.press("c")
-                kbrd.release("c")
-
-        # Retry mechanism for Ctrl+C
-        for attempt in range(max_retries):
-            self._logger.debug(f"Attempting Ctrl+C - attempt {attempt + 1}/{max_retries}")
-
-            # Clear clipboard before each attempt to detect success
-            clipboard.clear()
-
-            # Simulate Ctrl+C
-            press_ctrl_c()
-
-            # Wait for clipboard to update
-            time.sleep(sleep_duration)
-
-            # Check if clipboard has new content
-            current_clipboard = clipboard.text()
-
-            if current_clipboard:  # Success - clipboard has content
-                # Check if it's a file path (from QuickLook/file selection)
-                if self._is_file_path(current_clipboard):
-                    self._logger.debug(
-                        f"Detected file path, treating as no selection: {current_clipboard}"
-                    )
-                    selected_text = ""
-                    break
-                else:
-                    selected_text = current_clipboard
-                    self._logger.debug(
-                        f"Ctrl+C successful on attempt {attempt + 1}: {selected_text[:30] if selected_text else 'Empty'} ..."
-                    )
-                    break
-            else:
-                # Failed attempt
-                if attempt < max_retries - 1:  # Don't wait after the last attempt
-                    self._logger.debug(
-                        f"Ctrl+C failed on attempt {attempt + 1}/{max_retries}, retrying in {retry_delay}s..."
-                    )
-                    time.sleep(retry_delay)
-                else:
-                    self._logger.warning(
-                        f"Ctrl+C failed after {max_retries} attempts - no text selected or clipboard access failed"
-                    )
-
-        # Clean the selected text
-        if selected_text:
-            selected_text = selected_text
-            self._logger.debug(f"Text retrieved and cleaned: {len(selected_text)} characters")
-        else:
-            selected_text = ""
-            self._logger.debug("No text was retrieved")
-
-        # Restore the clipboard
-        clipboard.setText(clipboard_backup if clipboard_backup else "")
-        self._logger.debug("Clipboard restored")
-
-        return selected_text
-
-    def _is_file_path(self, text: str) -> bool:
-        """
-        Check if the text is a file path (from file/icon selection).
-
-        Args:
-            text: The text to check
-
-        Returns:
-            bool: True if it's a file path, False if it's regular text
-        """
-        if not text or not text.strip():
-            return False
-
-        text = text.strip()
-
-        # Check for file:// URLs (what we saw in the logs)
-        if text.startswith("file:///"):
-            return True
-
-        # Check for Windows file paths (C:\, D:\, etc.)
-        if len(text) > 2 and text[1:3] == ":\\":
-            return True
-
-        # Check for UNC paths (\\server\share)
-        if text.startswith("\\\\"):
-            return True
-
-        # Check for Unix-style absolute paths
-        if text.startswith("/") and "/" in text[1:]:
-            return True
-
-        return False
-
-    def _is_image_path(self, text: str) -> bool:
-        """
-        Check if the text is a path to a valid image file.
-
-        Args:
-            text: The text to check
-
-        Returns:
-            bool: True if it's a path to a valid image file, False otherwise
-        """
-        if not text or not text.strip():
-            return False
-
-        text = text.strip()
-
-        # Remove surrounding quotes if present (Windows "Copy as path" adds quotes)
-        if text.startswith('"') and text.endswith('"'):
-            text = text[1:-1]
-
-        if not self._is_file_path(text):
-            return False
-
-        # Remove file:// prefix if present
-        if text.startswith("file:///"):
-            text = text[7:]  # Remove "file:///"
-            # URL decode if needed (basic handling)
-            import urllib.parse
-
-            text = urllib.parse.unquote(text)
-
-        try:
-            path = Path(text)
-            if not path.exists() or not path.is_file():
-                return False
-
-            # Check file extension for common image formats
-            image_extensions = {
-                ".png",
-                ".jpg",
-                ".jpeg",
-                ".gif",
-                ".bmp",
-                ".tiff",
-                ".tif",
-                ".webp",
-                ".svg",
-            }
-            if path.suffix.lower() not in image_extensions:
-                return False
-
-            # Try to load the image to verify it's valid
-            image = QImage(str(path))
-            return not image.isNull()
-
-        except Exception as e:
-            self._logger.debug(f"Error checking if path is image: {e}")
-            return False
-
-    def _load_image_from_path(self, text: str) -> QImage | None:
-        """
-        Load an image from a file path.
-
-        Args:
-            text: The file path
-
-        Returns:
-            QImage | None: The loaded image or None if failed
-        """
-        if not text or not text.strip():
-            return None
-
-        text = text.strip()
-
-        # Remove surrounding quotes if present (Windows "Copy as path" adds quotes)
-        if text.startswith('"') and text.endswith('"'):
-            text = text[1:-1]
-
-        if not self._is_image_path(text):
-            return None
-
-        # Remove file:// prefix if present
-        if text.startswith("file:///"):
-            text = text[7:]  # Remove "file:///"
-            # URL decode if needed (basic handling)
-            import urllib.parse
-
-            text = urllib.parse.unquote(text)
-
-        try:
-            path = Path(text)
-            image = QImage(str(path))
-            if image.isNull():
-                self._logger.debug(f"Failed to load image from path: {path}")
-                return None
-            self._logger.debug(
-                f"Successfully loaded image from path: {path} - size: {image.width()}x{image.height()}"
-            )
-            return image
-        except Exception as e:
-            self._logger.error(f"Error loading image from path {text}: {e}")
-            return None
 
     def process_option(
         self,
@@ -1087,15 +693,10 @@ class WritingToolApp(QApplication):
                 self._process_direct_replacement(prompt_data)
 
             # Clean up image resources
-            self.clean_image()
+            self.popup_manager.clean_image()
 
         except Exception as e:
             self._handle_processing_error(e)
-
-    def clean_image(self) -> None:
-        if hasattr(self, "image") and self.image:
-            self.image = None
-        self.has_image = False
 
     def _prepare_prompt_data(
         self,
@@ -1198,7 +799,7 @@ class WritingToolApp(QApplication):
             self._logger.debug(
                 f" 🖼️\u00a0 Processing image in _handle_text_or_image_selected - image size: {image.width()}x{image.height()}"
             )
-            image_data = self._qimage_to_base64(image, use_physical_file=False)
+            image_data = self.image_processor.qimage_to_base64(image, use_physical_file=False)
             if image_data:
                 self._logger.debug(
                     f" 🖼️\u00a0 Image converted to base64 successfully - length: {len(image_data)}"
@@ -1212,185 +813,6 @@ class WritingToolApp(QApplication):
             "action_config": action_config,
             "image_data": image_data,
         }
-
-    def _qimage_to_base64(self, image: QImage, use_physical_file: bool = True) -> str:
-        """
-        Convert QImage to base64 string for API transmission.
-
-        Supports two approaches:
-        1. Physical file approach (use_physical_file=True): Creates temporary file, saves QImage, reads and converts to base64
-        2. Memory approach (use_physical_file=False): Direct conversion using QBuffer without file I/O
-
-        Args:
-            image: QImage to convert
-            use_physical_file: Whether to use temporary file approach. Defaults to False for memory-based conversion.
-
-        Returns:
-            str: Base64 encoded image data
-        """
-        try:
-            if use_physical_file:
-                # Original approach using temporary file
-                return self._qimage_to_base64_with_file(image)
-            else:
-                # Alternative approach using memory buffer
-                return self._qimage_to_base64_memory(image)
-
-        except Exception as e:
-            self._logger.error(f"Error converting QImage to base64: {e}")
-            return ""
-
-    def _qimage_to_base64_with_file(self, image: QImage) -> str:
-        """
-        Convert QImage to base64 using temporary file approach (legacy method).
-
-        Args:
-            image: QImage to convert
-
-        Returns:
-            str: Base64 encoded image data
-        """
-        try:
-            # Create temporary file path
-            temp_path = self._get_temp_image_path()
-            self._logger.debug(
-                f" 🖼️\u00a0 Converting QImage to base64 with file - temp path: {temp_path}"
-            )
-
-            # Save QImage to temporary file (PNG format for compatibility)
-            if not image.save(str(temp_path)):  # Use overload without format parameter
-                self._logger.error(" 🖼️\u00a0 Failed to save QImage to temporary file")
-                return ""
-
-            self._logger.debug(f" 🖼️\u00a0 QImage saved successfully to: {temp_path}")
-
-            # Read the temporary file and convert to base64
-            try:
-                with open(temp_path, "rb") as image_file:
-                    image_bytes = image_file.read()
-                    base64_string = base64.b64encode(image_bytes).decode("utf-8")
-
-                self._logger.debug(
-                    f" 🖼️\u00a0 Converted image to base64: {len(base64_string)} characters"
-                )
-                self._logger.debug(f" 🖼️\u00a0 Base64 preview: {base64_string[:100]}...")
-                return base64_string
-
-            finally:
-                # Clean up temporary file
-                try:
-                    temp_path.unlink(missing_ok=True)
-                    self._logger.debug(f" 🖼️\u00a0 Cleaned up temporary file: {temp_path}")
-                except Exception as cleanup_error:
-                    self._logger.warning(
-                        f" 🖼️\u00a0 Failed to cleanup temporary file {temp_path}: {cleanup_error}"
-                    )
-
-        except Exception as e:
-            self._logger.error(f"Error converting QImage to base64 with file: {e}")
-            return ""
-
-    def _qimage_to_base64_memory(self, image: QImage) -> str:
-        """
-        Convert QImage to base64 using memory buffer approach (new method).
-
-        Args:
-            image: QImage to convert
-
-        Returns:
-            str: Base64 encoded image data
-        """
-        try:
-            from PySide6.QtCore import QBuffer, QByteArray, QIODevice
-
-            # Validate image
-            if image.isNull():
-                self._logger.error(" 🖼️\u00a0 Image is null, cannot convert")
-                return ""
-
-            self._logger.debug(
-                f" 🖼️\u00a0 Image size: {image.width()}x{image.height()}, format: {image.format()}"
-            )
-
-            # Create byte array and buffer
-            byte_array = QByteArray()
-            buffer = QBuffer(byte_array)
-
-            if not buffer.open(QIODevice.OpenModeFlag.WriteOnly):
-                self._logger.error(" 🖼️\u00a0 Failed to open buffer for writing")
-                return ""
-
-            # Save QImage to buffer in PNG format
-            # Try to save directly first, then fallback to conversion
-            save_success = image.save(buffer, "PNG")  # type: ignore
-            if not save_success:
-                # Fallback: convert to RGB32 format
-                rgb_image = image.convertToFormat(QtGui.QImage.Format.Format_RGB32)
-                buffer.close()
-                buffer = QBuffer(byte_array)
-                buffer.open(QIODevice.OpenModeFlag.WriteOnly)
-                save_success = rgb_image.save(buffer, "PNG")  # type: ignore
-            buffer.close()
-
-            if not save_success:
-                self._logger.error(" 🖼️\u00a0 Failed to save QImage to memory buffer")
-                return ""
-
-            # Get the size of saved data
-            image_bytes = byte_array.data()
-            if not image_bytes:
-                self._logger.error(" 🖼️\u00a0 No data saved to buffer")
-                return ""
-
-            self._logger.debug(f" 🖼️\u00a0 Image saved to buffer: {len(image_bytes)} bytes")
-
-            # Convert to base64
-            base64_string = base64.b64encode(image_bytes).decode("utf-8")
-
-            self._logger.debug(
-                f" 🖼️\u00a0 Converted image to base64 from memory: {len(base64_string)} characters"
-            )
-            return base64_string
-
-        except Exception as e:
-            self._logger.error(f"Error converting QImage to base64 from memory: {e}", exc_info=True)
-            return ""
-
-    def _get_temp_image_path(self) -> Path:
-        """
-        Get appropriate temporary file path for clipboard image based on execution mode.
-
-        Returns:
-            Path: Temporary file path for clipboard image
-        """
-        try:
-            # Determine execution mode
-            mode = self._detect_running_mode()
-
-            if mode == "dev":
-                # Development mode: use project directory
-                temp_dir = Path(__file__).parent
-            elif mode in ["build-dev", "build-final"]:
-                # Build mode: use system temp directory
-                temp_dir = Path(tempfile.gettempdir())
-            else:
-                # Fallback to system temp directory
-                temp_dir = Path(tempfile.gettempdir())
-
-            # Create unique temporary file name
-            temp_filename = f"writingtools_clipboard_{int(time.time() * 1000)}.png"
-            temp_path = temp_dir / temp_filename
-
-            self._logger.debug(f"Using temporary image path: {temp_path}")
-            return temp_path
-
-        except Exception as e:
-            self._logger.error(f"Error creating temp image path: {e}")
-            # Fallback to system temp directory
-            return (
-                Path(tempfile.gettempdir())
-                / f"writingtools_clipboard_{int(time.time() * 1000)}.png"
-            )
 
     def _should_display_in_window(
         self, option: str, selected_text: str, action_config: ActionConfig, has_image: bool
@@ -1559,8 +981,8 @@ class WritingToolApp(QApplication):
         response_window = ResponseWindow(self, f"{option} Result")
 
         # Set image and text context
-        if self.has_image and self.image:
-            response_window.image = self.image
+        if self.popup_manager.has_image and self.popup_manager.image:
+            response_window.image = self.popup_manager.image
             self._logger.debug("Image set in response window")
             # For image analysis, we don't need selected text
             response_window.selected_text = None
@@ -1617,13 +1039,13 @@ class WritingToolApp(QApplication):
                 self._handle_clipboard_paste()
 
                 # Check if selection changed (indicating successful paste)
-                new_selection = self.get_selected_text(sleep_duration=0.1)
+                new_selection = self.popup_manager.get_selected_text(sleep_duration=0.1)
 
                 # If selection is the same, paste failed (non-editable page)
                 if (
-                    self.original_selection == new_selection
-                    and self.original_selection
-                    and self.original_selection.strip()
+                    self.popup_manager.original_selection == new_selection
+                    and self.popup_manager.original_selection
+                    and self.popup_manager.original_selection.strip()
                 ):
                     # Fallback to modal window for non-editable pages
                     cleaned_text = self.output_queue.rstrip("\n")
@@ -1633,7 +1055,7 @@ class WritingToolApp(QApplication):
                         QtCore.Qt.ConnectionType.QueuedConnection,
                         QtCore.Q_ARG(str, cleaned_text),
                     )
-                self.original_selection = None
+                self.popup_manager.original_selection = None
                 self.output_queue = ""
 
         except Exception as e:
@@ -1803,7 +1225,7 @@ class WritingToolApp(QApplication):
                     self._logger.debug(
                         f" 🖼️\u00a0 Processing follow-up with image - size: {response_window.image.width()}x{response_window.image.height()}"
                     )
-                    image_data = self._qimage_to_base64(
+                    image_data = self.image_processor.qimage_to_base64(
                         response_window.image, use_physical_file=False
                     )
                     if image_data:

@@ -116,7 +116,11 @@ class ui_utils:
                 base_dir / "icons",  # Build location (dist/dev/icons/)
                 base_dir / "config" / "icons",  # Dev location
                 base_dir / "src" / "config" / "icons",  # Src config location
-                base_dir / "Windows_and_Linux" / "src" / "config" / "icons",  # Root project src location
+                base_dir
+                / "Windows_and_Linux"
+                / "src"
+                / "config"
+                / "icons",  # Root project src location
                 base_dir / "Windows_and_Linux" / "config" / "icons",  # Root project location
                 base_dir / "Windows_and_Linux" / "dist" / "dev" / "icons",  # Dev build location
             ]
