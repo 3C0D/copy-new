@@ -27,18 +27,18 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from config.constants import (
+from ..config.constants import (
     ANTHROPIC_MODELS,
     GEMINI_MODELS,
     MISTRAL_MODELS,
     OPENAI_MODELS,
 )
-from config.data_operations import create_default_actions_config
-from config.interfaces import ActionConfig, ActionConfigWithName
-from ui.ui_utils import ThemeBackground, ui_utils
+from ..config.data_operations import create_default_actions_config
+from ..config.interfaces import ActionConfig, ActionConfigWithName
+from .ui_utils import ThemeBackground, ui_utils
 
 if TYPE_CHECKING:
-    from WritingToolApp import WritingToolApp
+    from ..WritingToolApp import WritingToolApp
 
 
 def _(x):
@@ -1425,9 +1425,12 @@ class CustomPopupWindow(QWidget):
                 self.rebuild_grid_layout(force_edit_mode=True)
                 self.add_edit_overlays_to_buttons()
                 # Show success message after UI update
-                QtCore.QTimer.singleShot(100, lambda: self.app.show_message_signal.emit(
-                    "Button Updated", "Your button changes have been saved and are now active."
-                ))
+                QtCore.QTimer.singleShot(
+                    100,
+                    lambda: self.app.show_message_signal.emit(
+                        "Button Updated", "Your button changes have been saved and are now active."
+                    ),
+                )
             else:
                 self.app.show_message_signal.emit(
                     "Error", "Failed to save button changes. Please try again."

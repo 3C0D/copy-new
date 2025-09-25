@@ -18,10 +18,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ui.ui_utils import ThemedWidget, ui_utils
+from .ui_utils import ThemedWidget, ui_utils
 
 if TYPE_CHECKING:
-    from WritingToolApp import WritingToolApp
+    from ..WritingToolApp import WritingToolApp
 
 
 def _(x):
@@ -976,7 +976,9 @@ class ResponseWindow(ThemedWidget):
 
         # Update zoom state
         if text_display:
-            text_display.zoom_factor = getattr(self.app.settings_manager, "response_window_zoom", 1.2)
+            text_display.zoom_factor = getattr(
+                self.app.settings_manager, "response_window_zoom", 1.2
+            )
             text_display._apply_zoom()
 
         QtCore.QTimer.singleShot(100, self._adjust_window_height)

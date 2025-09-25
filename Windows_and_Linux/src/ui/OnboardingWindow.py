@@ -15,10 +15,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ui.ui_utils import ThemedWidget, ui_utils
+from .ui_utils import ThemedWidget, ui_utils
 
 if TYPE_CHECKING:
-    from WritingToolApp import WritingToolApp
+    from ..WritingToolApp import WritingToolApp
 
 
 def _(x):
@@ -126,7 +126,6 @@ class OnboardingWindow(ThemedWidget):
         title_label.setObjectName("title_label")  # Set object name for style refresh
         title_label.setStyleSheet(self.app.styles["label_title"])
         return title_label
-
 
     def _create_features_section(self) -> QWidget:
         """Create the features description section showing app capabilities."""
@@ -243,12 +242,6 @@ class OnboardingWindow(ThemedWidget):
         self.next_button.clicked.connect(self._on_next_clicked)
         return self.next_button
 
-
-
-
-
-
-
     def _on_shortcut_changed(self) -> None:
         """Handle shortcut input changes and save automatically to settings."""
         new_shortcut = self.shortcut_input.text().strip()
@@ -273,7 +266,6 @@ class OnboardingWindow(ThemedWidget):
 
             # Apply theme change to UI immediately (live preview)
             self.app.theme_manager.change_background_theme(new_theme)
-
 
     def auto_save_color_mode(self) -> None:
         """

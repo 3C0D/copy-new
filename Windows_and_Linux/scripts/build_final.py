@@ -107,7 +107,7 @@ def run_build_final(venv_path: str = "myvenv") -> bool:
     python_cmd = get_python_executable(venv_path)
 
     # Build icon path
-    icon_path = Path("config/icons/app_icon.ico")
+    icon_path = Path("src/config/icons/app_icon.ico")
 
     # Build PyInstaller command with exclusions
     pyinstaller_command = [

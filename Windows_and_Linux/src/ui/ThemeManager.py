@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 from PySide6 import QtCore
 
 if TYPE_CHECKING:
-    from WritingToolApp import WritingToolApp
+    from ..WritingToolApp import WritingToolApp
 
 
 class ThemeManager(QtCore.QObject):
@@ -253,16 +253,16 @@ class ThemeManager(QtCore.QObject):
             "container": f"""
                 QWidget {{
                     background-color: transparent;
-                    border: 1px solid {'#666666' if dark else "#777777D2"};
+                    border: 1px solid {"#666666" if dark else "#777777D2"};
                     border-radius: 8px;
                     padding: 8px;
                 }}
             """,
             "image_preview": f"""
                 QLabel {{
-                    border: 1px solid {'rgba(0, 140, 186, 0.8)' if not dark else 'rgba(76, 175, 80, 0.8)'};
+                    border: 1px solid {"rgba(0, 140, 186, 0.8)" if not dark else "rgba(76, 175, 80, 0.8)"};
                     border-radius: 4px;
-                    {'background-color: rgba(248, 248, 248, 0.4);' if not dark else 'background-color: rgba(255, 255, 255, 0.1);'}
+                    {"background-color: rgba(248, 248, 248, 0.4);" if not dark else "background-color: rgba(255, 255, 255, 0.1);"}
                 }}
             """,
             "icon_button": f"""
@@ -282,8 +282,8 @@ class ThemeManager(QtCore.QObject):
             """,
             "lock_button": f"""
                 QPushButton {{
-                    {'background-color: #f0f0f0; color: #333333;' if not dark else 'background-color: #555555; color: white;'}
-                    border: 1px solid {'#999999' if not dark else '#666666'};
+                    {"background-color: #f0f0f0; color: #333333;" if not dark else "background-color: #555555; color: white;"}
+                    border: 1px solid {"#999999" if not dark else "#666666"};
                     border-radius: 4px;
                     padding: 2px;
                     font-size: 14px;
@@ -292,7 +292,7 @@ class ThemeManager(QtCore.QObject):
                 }}
                 QPushButton:hover {{
                     background-color: {selection};
-                    border: 1px solid {'#777777' if not dark else '#888888'};
+                    border: 1px solid {"#777777" if not dark else "#888888"};
                 }}
                 QPushButton:checked {{
                     background-color: #4CAF50;
@@ -435,27 +435,27 @@ class ThemeManager(QtCore.QObject):
             """,
             "non_editable_modal": f"""
                 QWidget {{
-                    background-color: {'#2a2a2a' if dark else '#ffffff'};
-                    border: 1px solid {'#404040' if dark else '#d0d0d0'};
+                    background-color: {"#2a2a2a" if dark else "#ffffff"};
+                    border: 1px solid {"#404040" if dark else "#d0d0d0"};
                     border-radius: 8px;
                 }}
                 QTextBrowser {{
-                    background-color: {'#1e1e1e' if dark else '#f5f5f5'};
-                    color: {'#ffffff' if dark else '#000000'};
-                    border: 1px solid {'#404040' if dark else '#d0d0d0'};
+                    background-color: {"#1e1e1e" if dark else "#f5f5f5"};
+                    color: {"#ffffff" if dark else "#000000"};
+                    border: 1px solid {"#404040" if dark else "#d0d0d0"};
                     border-radius: 4px;
                     padding: 8px;
                 }}
                 QPushButton {{
-                    background-color: {'#404040' if dark else "#e8e8e8"};
+                    background-color: {"#404040" if dark else "#e8e8e8"};
                     border: none;
                     border-radius: 4px;
-                    color: {'#ffffff' if dark else '#000000'};
+                    color: {"#ffffff" if dark else "#000000"};
                     font-size: 16px;
                 }}
                 QPushButton:hover {{
                     background-color: #4a9eff;
-                    {'' if dark else 'color: #ffffff;'}
+                    {"" if dark else "color: #ffffff;"}
                 }}
             """,
         }

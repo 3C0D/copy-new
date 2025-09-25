@@ -81,6 +81,7 @@ def install_startup_dev() -> bool:
         print(f"Failed to install startup dev: {e}")
         return False
 
+
 def uninstall_startup_dev() -> bool:
     """Remove dev script from Windows startup"""
     try:
@@ -178,6 +179,7 @@ def main():
             return 1
 
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

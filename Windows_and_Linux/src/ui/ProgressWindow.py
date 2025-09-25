@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 if TYPE_CHECKING:
-    from WritingToolApp import WritingToolApp
+    from ..WritingToolApp import WritingToolApp
 
 
 class ProgressWindow(QDialog):

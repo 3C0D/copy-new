@@ -36,13 +36,13 @@ from PySide6.QtWidgets import (
 )
 
 if TYPE_CHECKING:
-    from aiprovider import AIProvider
-    from WritingToolApp import WritingToolApp
+    from ..aiprovider import AIProvider
+    from ..WritingToolApp import WritingToolApp
 # Import Ollama check function
-from config.constants import PROVIDER_DISPLAY_NAMES
-from config.data_operations import get_provider_display_name
-from ui.AutostartManager import AutostartManager
-from ui.ui_utils import ThemedWidget, ui_utils
+from ..AutostartManager import AutostartManager
+from ..config.constants import PROVIDER_DISPLAY_NAMES
+from ..config.data_operations import get_provider_display_name
+from .ui_utils import ThemedWidget, ui_utils
 
 
 def _(x):
@@ -298,7 +298,7 @@ class SettingsWindow(ThemedWidget):
             self._logger.debug(f"Refreshed configuration for {provider.internal_name}")
         elif provider.internal_name == "ollama" and hasattr(provider, "refresh_configuration"):
             # For Ollama, only refresh if it's installed to avoid blocking
-            from aiprovider import OllamaStateManager
+            from ..aiprovider import OllamaStateManager
 
             state_manager = OllamaStateManager()
             if state_manager.is_ollama_installed():
@@ -775,7 +775,7 @@ class SettingsWindow(ThemedWidget):
 
         # Special handling for Ollama provider - allow selection but show status
         if current_internal_name == "ollama":
-            from aiprovider import OllamaStateManager
+            from ..aiprovider import OllamaStateManager
 
             state_manager = OllamaStateManager()
             ollama_installed = state_manager.is_ollama_installed()
@@ -804,7 +804,7 @@ class SettingsWindow(ThemedWidget):
             return
 
         # Clean up the old provider before switching
-        if self.app.current_provider and hasattr(self.app.current_provider, 'before_load'):
+        if self.app.current_provider and hasattr(self.app.current_provider, "before_load"):
             self.app.current_provider.before_load()
 
         # Update the application

@@ -19,48 +19,50 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
 from pynput import keyboard as keyboard
-
-from config.constants import (
-    DEFAULT_PROVIDER,
-    DEFAULT_PROVIDER_CONFIGS,
-)
-from ui.AutostartManager import AutostartManager
-
-os.environ["QT_LOGGING_RULES"] = (
-    "qt.qpa.mime.warning=false;qt.qpa.mime.debug=false;qt.qpa.mime.info=false"  # Disable QMimeDatabase warnings
-)
-
 from PySide6 import QtCore, QtGui
 from PySide6.QtCore import QLocale, Signal, Slot
 from PySide6.QtGui import QCursor, QImage
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-import ui.AboutWindow
-import ui.CustomPopupWindow
-import ui.HelpWindow
-import ui.NonEditableModal
-import ui.OnboardingWindow
-import ui.ResponseWindow
-import ui.SettingsWindow
-from config.interfaces import ActionConfig, ProviderConfig
-from config.settings import SettingsManager
-from ui.ResponseWindow import ResponseWindow
-from ui.systray import SystrayManager
-from ui.ui_utils import ui_utils
-from update_checker import UpdateChecker
+# ResponseWindow already imported above
+# Removed duplicate imports
+from .AutostartManager import AutostartManager
+from .config.constants import (
+    DEFAULT_PROVIDER,
+    DEFAULT_PROVIDER_CONFIGS,
+)
+from .config.interfaces import ActionConfig, ProviderConfig
+from .config.settings import SettingsManager
+from .systray import SystrayManager
+from .ui import (
+    AboutWindow,
+    CustomPopupWindow,
+    HelpWindow,
+    NonEditableModal,
+    OnboardingWindow,
+    SettingsWindow,
+)
+from .ui.ResponseWindow import ResponseWindow
+from .ui.ui_utils import ui_utils
+from .update_checker import UpdateChecker
 
 if TYPE_CHECKING:
-    from aiprovider import AIProvider
-    from ui.ResponseWindow import ResponseWindow
+    from .aiprovider import AIProvider
 
-from aiprovider import (
+    # ResponseWindow already imported
+
+from .aiprovider import (
     AnthropicProvider,
     GeminiProvider,
     MistralProvider,
     OllamaProvider,
     OpenAICompatibleProvider,
 )
-from ui.ThemeManager import ThemeManager
+from .ui.ThemeManager import ThemeManager
+
+os.environ["QT_LOGGING_RULES"] = (
+    "qt.qpa.mime.warning=false;qt.qpa.mime.debug=false;qt.qpa.mime.info=false"  # Disable QMimeDatabase warnings
+)
 
 _ = gettext.gettext
 
@@ -350,12 +352,12 @@ class WritingToolApp(QApplication):
     def _update_translation_functions(self, translation: gettext.NullTranslations) -> None:
         """Update translation functions for all UI components."""
         self._ = translation.gettext
-        ui.AboutWindow._ = self._
-        ui.SettingsWindow._ = self._
-        ui.ResponseWindow._ = self._
-        ui.OnboardingWindow._ = self._
-        ui.CustomPopupWindow._ = self._
-        ui.HelpWindow._ = self._
+        AboutWindow._ = self._
+        SettingsWindow._ = self._
+        ResponseWindow._ = self._  # type: ignore
+        OnboardingWindow._ = self._
+        CustomPopupWindow._ = self._
+        HelpWindow._ = self._
 
     def retranslate_ui(self) -> None:
         """Retranslate the user interface elements."""
@@ -433,7 +435,7 @@ class WritingToolApp(QApplication):
         """
         self._logger.debug("Showing onboarding window")
 
-        self.onboarding_window = ui.OnboardingWindow.OnboardingWindow(self)
+        self.onboarding_window = OnboardingWindow.OnboardingWindow(self)
         self.onboarding_window.close_signal.connect(self.on_onboarding_closed)
         self.onboarding_window.show()
 
@@ -605,9 +607,7 @@ class WritingToolApp(QApplication):
 
         try:
             self._logger.debug("🆕🪟\u00a0 Creating new popup window")
-            self.popup_window = ui.CustomPopupWindow.CustomPopupWindow(
-                self, selected_text, self.image
-            )
+            self.popup_window = CustomPopupWindow.CustomPopupWindow(self, selected_text, self.image)
 
             # Set the window icon
             icon_path = ui_utils.get_icon_path(
@@ -881,6 +881,7 @@ class WritingToolApp(QApplication):
             text = text[7:]  # Remove "file:///"
             # URL decode if needed (basic handling)
             import urllib.parse
+
             text = urllib.parse.unquote(text)
 
         try:
@@ -889,7 +890,17 @@ class WritingToolApp(QApplication):
                 return False
 
             # Check file extension for common image formats
-            image_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.tif', '.webp', '.svg'}
+            image_extensions = {
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".gif",
+                ".bmp",
+                ".tiff",
+                ".tif",
+                ".webp",
+                ".svg",
+            }
             if path.suffix.lower() not in image_extensions:
                 return False
 
@@ -928,6 +939,7 @@ class WritingToolApp(QApplication):
             text = text[7:]  # Remove "file:///"
             # URL decode if needed (basic handling)
             import urllib.parse
+
             text = urllib.parse.unquote(text)
 
         try:
@@ -936,7 +948,9 @@ class WritingToolApp(QApplication):
             if image.isNull():
                 self._logger.debug(f"Failed to load image from path: {path}")
                 return None
-            self._logger.debug(f"Successfully loaded image from path: {path} - size: {image.width()}x{image.height()}")
+            self._logger.debug(
+                f"Successfully loaded image from path: {path} - size: {image.width()}x{image.height()}"
+            )
             return image
         except Exception as e:
             self._logger.error(f"Error loading image from path {text}: {e}")
@@ -1694,7 +1708,7 @@ class WritingToolApp(QApplication):
                 self.non_editable_modal = None
 
             # Create and show the modal window
-            self.non_editable_modal = ui.NonEditableModal.NonEditableModal(self, transformed_text)
+            self.non_editable_modal = NonEditableModal.NonEditableModal(self, transformed_text)
             self.non_editable_modal.close_signal.connect(self._on_non_editable_modal_closed)
             self.non_editable_modal.show()
 
@@ -1967,7 +1981,7 @@ class WritingToolApp(QApplication):
             self.settings_window.close()
 
         # Always create a new settings window to handle providers_only correctly
-        self.settings_window = ui.SettingsWindow.SettingsWindow(self, providers_only=providers_only)
+        self.settings_window = SettingsWindow.SettingsWindow(self, providers_only=providers_only)
 
         # Set reference to previous window for navigation
         if previous_window:

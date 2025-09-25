@@ -84,14 +84,14 @@ except ImportError:
     HarmCategory = None  # type: ignore
 
 # Local imports
-from config.constants import ANTHROPIC_MODELS, GEMINI_MODELS, MISTRAL_MODELS, OPENAI_MODELS
-from config.data_operations import get_default_model_for_provider
-from ui.ProgressWindow import OllamaInstallProgressWindow
+from .config.constants import ANTHROPIC_MODELS, GEMINI_MODELS, MISTRAL_MODELS, OPENAI_MODELS
+from .config.data_operations import get_default_model_for_provider
+from .ui.ProgressWindow import OllamaInstallProgressWindow
 
 # Type checking imports
 if TYPE_CHECKING:
-    from config.interfaces import ProviderConfig
-    from WritingToolApp import WritingToolApp
+    from .config.interfaces import ProviderConfig
+    from .WritingToolApp import WritingToolApp
 
 
 class AIProviderSetting(ABC):
@@ -2170,7 +2170,9 @@ class MistralProvider(AIProvider):
         )
 
         # Log request details for debugging
-        self._logger.debug(f"Mistral request - system: {len(system_instruction)} chars, prompt: {len(prompt)} chars, image: {image_data is not None}")
+        self._logger.debug(
+            f"Mistral request - system: {len(system_instruction)} chars, prompt: {len(prompt)} chars, image: {image_data is not None}"
+        )
 
         try:
             # Check if requests library is available

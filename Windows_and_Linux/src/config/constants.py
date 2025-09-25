@@ -6,7 +6,7 @@ Contains all default values for the application settings
 # Model options for different providers
 from typing import cast
 
-from config.interfaces import ActionConfig, ProviderConfig, SystemConfig
+from .interfaces import ActionConfig, ProviderConfig, SystemConfig
 
 # * indicates vision support
 GEMINI_MODELS = [

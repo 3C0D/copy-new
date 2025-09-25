@@ -18,10 +18,10 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from ui.ui_utils import ThemedWidget
+from .ui_utils import ThemedWidget
 
 if TYPE_CHECKING:
-    from WritingToolApp import WritingToolApp
+    from ..WritingToolApp import WritingToolApp
 
 
 def _(x):
@@ -86,7 +86,6 @@ class NonEditableModal(ThemedWidget):
 
         self.copy_button.setFocus()
 
-
     def refresh_theme(self) -> None:
         """Refresh the modal's theme when color mode changes."""
         self.setStyleSheet(self.app.styles["non_editable_modal"])
@@ -121,7 +120,7 @@ class NonEditableModal(ThemedWidget):
 
 # Example usage for testing
 if __name__ == "__main__":
-    from WritingToolApp import WritingToolApp
+    from ..WritingToolApp import WritingToolApp
 
     app = QApplication([])
     writing_app = WritingToolApp(None)

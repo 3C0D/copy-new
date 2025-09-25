@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from ui.ui_utils import ThemedWidget
+from .ui_utils import ThemedWidget
 
 
 def _(x):

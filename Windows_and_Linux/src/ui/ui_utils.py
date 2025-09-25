@@ -7,7 +7,7 @@ from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication, QLayout, QMessageBox, QVBoxLayout, QWidget
 
 if TYPE_CHECKING:
-    from WritingToolApp import WritingToolApp
+    from ..WritingToolApp import WritingToolApp
 
 
 class ui_utils:
@@ -108,12 +108,15 @@ class ui_utils:
             base_paths = [
                 base_dir / "icons",  # Next to exe
                 base_dir / "config" / "icons",  # Config next to exe
+                base_dir / "src" / "config" / "icons",  # Src config next to exe
             ]
         else:
             # For dev mode
             base_paths = [
                 base_dir / "icons",  # Build location (dist/dev/icons/)
                 base_dir / "config" / "icons",  # Dev location
+                base_dir / "src" / "config" / "icons",  # Src config location
+                base_dir / "Windows_and_Linux" / "src" / "config" / "icons",  # Root project src location
                 base_dir / "Windows_and_Linux" / "config" / "icons",  # Root project location
                 base_dir / "Windows_and_Linux" / "dist" / "dev" / "icons",  # Dev build location
             ]
@@ -310,6 +313,7 @@ class ThemeBackground(QWidget):
             possible_paths = [
                 base_dir / bg_file,  # Build location (dist/dev or dist/production)
                 base_dir / "config" / "backgrounds" / bg_file,  # Dev location
+                base_dir / "src" / "config" / "backgrounds" / bg_file,  # Src config location
             ]
 
             background_image = None

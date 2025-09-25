@@ -67,18 +67,18 @@ def copy_required_files(build_type: str, target_dir: str) -> bool:
 
     # --- Asset files (always copied) ---
     assets_to_copy = [
-        (Path("config/icons"), dist_target_dir / "icons"),
-        (Path("config/backgrounds/background.png"), dist_target_dir / "background.png"),
+        (Path("src/config/icons"), dist_target_dir / "icons"),
+        (Path("src/config/backgrounds/background.png"), dist_target_dir / "background.png"),
         (
-            Path("config/backgrounds/background_dark.png"),
+            Path("src/config/backgrounds/background_dark.png"),
             dist_target_dir / "background_dark.png",
         ),
         (
-            Path("config/backgrounds/background_popup.png"),
+            Path("src/config/backgrounds/background_popup.png"),
             dist_target_dir / "background_popup.png",
         ),
         (
-            Path("config/backgrounds/background_popup_dark.png"),
+            Path("src/config/backgrounds/background_popup_dark.png"),
             dist_target_dir / "background_popup_dark.png",
         ),
     ]

@@ -19,6 +19,7 @@ class ActionConfig(TypedDict, total=False):
 
 class ActionConfigWithName(ActionConfig, total=False):
     """ActionConfig extended with a name field for UI operations"""
+
     name: str
 
 
