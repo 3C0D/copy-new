@@ -186,6 +186,7 @@ class SettingsManager:
 
         # Update run_mode to match current execution mode
         self.settings.system["run_mode"] = self.mode
+
         return self.settings
 
     def save(self) -> bool:

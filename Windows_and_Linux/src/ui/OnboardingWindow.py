@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..config.constants import AVAILABLE_LANGUAGES
 from .ui_utils import ThemedWidget, ui_utils
 
 if TYPE_CHECKING:
@@ -103,6 +104,10 @@ class OnboardingWindow(ThemedWidget):
         # Features description section
         features_widget = self._create_features_section()
         self.content_layout.addWidget(features_widget)
+
+        # Language selection section (auto-saves on change)
+        language_section = self._create_language_section()
+        self.content_layout.addLayout(language_section)
 
         # Keyboard shortcut configuration section (auto-saves on change)
         shortcut_section = self._create_shortcut_section()
@@ -199,6 +204,45 @@ class OnboardingWindow(ThemedWidget):
 
         return color_mode_layout
 
+    def _create_language_section(self) -> QVBoxLayout:
+        """Create the language selection section with dropdown."""
+        language_layout = QVBoxLayout()
+
+        # Language selection title
+        language_title = QLabel(_("Language:"))
+        language_title.setStyleSheet(self.app.styles["label"])
+        language_layout.addWidget(language_title)
+
+        # Dropdown for language selection
+        self.language_dropdown = QComboBox()
+        # Populate dropdown with available languages
+        for display_name, lang_code in AVAILABLE_LANGUAGES:
+            self.language_dropdown.addItem(display_name, lang_code)
+
+        # Set current selection based on saved language
+        current_language = self.app.settings_manager.language or "en"
+        current_index = self.language_dropdown.findData(current_language)
+        if current_index != -1:
+            self.language_dropdown.setCurrentIndex(current_index)
+        else:
+            # Default to English if current language not found
+            english_index = self.language_dropdown.findData("en")
+            if english_index != -1:
+                self.language_dropdown.setCurrentIndex(english_index)
+
+        # Apply styling to dropdown
+        self.language_dropdown.setStyleSheet(self.app.styles["dropdown"])
+
+        # Auto-save language changes
+        self.language_dropdown.currentTextChanged.connect(self.auto_save_language)
+
+        # Prevent wheel scroll from interfering with main scroll area
+        self.language_dropdown.wheelEvent = lambda e: e.ignore()
+
+        language_layout.addWidget(self.language_dropdown)
+
+        return language_layout
+
     def _create_theme_section(self) -> QVBoxLayout:
         """Create the theme selection section with immediate preview."""
         theme_layout = QVBoxLayout()
@@ -287,11 +331,26 @@ class OnboardingWindow(ThemedWidget):
             # Refresh UI styles with updated colorMode
             self.refresh_theme()
 
+    def auto_save_language(self) -> None:
+        """
+        Auto-save language when it changes.
+        """
+        if hasattr(self, "language_dropdown") and self.language_dropdown is not None:
+            # Get the selected language code
+            selected_lang_code = self.language_dropdown.currentData()
+            if selected_lang_code:
+                self.app.settings_manager.language = selected_lang_code
+                self._logger.debug(f"Language changed to: {selected_lang_code}")
+
     def refresh_theme(self) -> None:
         """Refresh all UI element styles to reflect the current color mode."""
         # Update color mode dropdown style
         if hasattr(self, "color_mode_dropdown") and self.color_mode_dropdown:
             self.color_mode_dropdown.setStyleSheet(self.app.styles["dropdown"])
+
+        # Update language dropdown style
+        if hasattr(self, "language_dropdown") and self.language_dropdown:
+            self.language_dropdown.setStyleSheet(self.app.styles["dropdown"])
 
         # Update other UI elements
         if hasattr(self, "shortcut_input") and self.shortcut_input:

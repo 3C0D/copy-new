@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from ..WritingToolApp import WritingToolApp
 # Import Ollama check function
 from ..AutostartManager import AutostartManager
-from ..config.constants import PROVIDER_DISPLAY_NAMES
+from ..config.constants import AVAILABLE_LANGUAGES, PROVIDER_DISPLAY_NAMES
 from ..config.data_operations import get_provider_display_name
 from .ui_utils import ThemedWidget, ui_utils
 
@@ -140,6 +140,37 @@ class SettingsWindow(ThemedWidget):
                 )
                 self.autostart_checkbox.stateChanged.connect(self.toggle_autostart)
                 content_layout.addWidget(self.autostart_checkbox)
+
+            # Language selection
+            self.language_label = QLabel(_("Language:"))
+            self.language_label.setStyleSheet(self.app.styles["label"])
+            content_layout.addWidget(self.language_label)
+
+            self.language_dropdown = QComboBox()
+            self.language_dropdown.setStyleSheet(self.app.styles["dropdown"])
+            # Prevent wheel scroll from interfering with main scroll area
+            self.language_dropdown.wheelEvent = lambda e: e.ignore()
+
+            current_language = self.app.settings_manager.language or "en"
+
+            # Populate dropdown with available languages
+            for display_name, lang_code in AVAILABLE_LANGUAGES:
+                self.language_dropdown.addItem(display_name, lang_code)
+
+            # Set current selection based on saved language
+            current_index = self.language_dropdown.findData(current_language)
+            if current_index != -1:
+                self.language_dropdown.setCurrentIndex(current_index)
+            else:
+                # Default to English if current language not found
+                english_index = self.language_dropdown.findData("en")
+                if english_index != -1:
+                    self.language_dropdown.setCurrentIndex(english_index)
+
+            # Auto-save language changes
+            self.language_dropdown.currentTextChanged.connect(self.auto_save_language)
+
+            content_layout.addWidget(self.language_dropdown)
 
             # Global hotkey configuration
             self.shortcut_label = QLabel(_("Shortcut Key:"))
@@ -561,6 +592,17 @@ class SettingsWindow(ThemedWidget):
             # Use parent class method for theme change
             self.app.theme_manager.change_background_theme(theme)
 
+    def auto_save_language(self) -> None:
+        """
+        Auto-save language when it changes.
+        """
+        if self.language_dropdown is not None and not self.providers_only:
+            # Get the selected language code
+            selected_lang_code = self.language_dropdown.currentData()
+            if selected_lang_code:
+                self.app.settings_manager.language = selected_lang_code
+                self._logger.debug(f"Language changed to: {selected_lang_code}")
+
     def auto_save_color_mode(self) -> None:
         """
         Auto-save color mode when it changes for immediate visual feedback.
@@ -591,6 +633,10 @@ class SettingsWindow(ThemedWidget):
         if self.color_mode_dropdown:
             self.color_mode_dropdown.setStyleSheet(self.app.styles["dropdown"])
 
+        # Update language dropdown style
+        if self.language_dropdown:
+            self.language_dropdown.setStyleSheet(self.app.styles["dropdown"])
+
         # Update provider dropdown style
         if self.provider_dropdown:
             self.provider_dropdown.setStyleSheet(self.app.styles["dropdown"])
@@ -602,6 +648,8 @@ class SettingsWindow(ThemedWidget):
             self.theme_label.setStyleSheet(self.app.styles["label"])
         if hasattr(self, "color_mode_label") and self.color_mode_label:
             self.color_mode_label.setStyleSheet(self.app.styles["label"])
+        if hasattr(self, "language_label") and self.language_label:
+            self.language_label.setStyleSheet(self.app.styles["label"])
         if hasattr(self, "provider_label") and self.provider_label:
             self.provider_label.setStyleSheet(self.app.styles["label"])
 

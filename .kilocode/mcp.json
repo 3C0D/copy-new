@@ -16,7 +16,13 @@
       "alwaysAllow": [
         "create_entities",
         "delete_entities",
-        "read_graph"
+        "read_graph",
+        "create_relations",
+        "add_observations",
+        "delete_observations",
+        "delete_relations",
+        "open_nodes",
+        "search_nodes"
       ]
     }
   }

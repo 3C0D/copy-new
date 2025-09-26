@@ -161,6 +161,57 @@ DEFAULT_BASE_URLS = {
 
 DEFAULT_PROVIDER = "gemini"
 
+# Supported languages for UI and AI prompts
+SUPPORTED_LANGUAGES = [
+    ("English", "en"),
+    ("Français", "fr"),
+    ("Español", "es"),
+    ("Deutsch", "de"),
+    ("Italiano", "it"),
+    ("Português", "pt"),
+    ("Русский", "ru"),
+    ("日本語", "ja"),
+    ("한국어", "ko"),
+    ("中文", "zh"),
+    ("العربية", "ar"),
+    ("हिन्दी", "hi"),
+]
+
+# Language code to full name mapping for AI prompts
+LANGUAGE_NAMES = {code: name for name, code in SUPPORTED_LANGUAGES}
+
+
+def get_available_languages() -> list[tuple[str, str]]:
+    """
+    Get list of available languages by reading locales directory.
+    Returns list of (display_name, code) tuples for languages that have translations.
+    """
+    from pathlib import Path
+
+    # Get the locales directory path (relative to this file)
+    locales_dir = Path(__file__).parent.parent.parent / "locales"
+
+    available_languages = []
+
+    if locales_dir.exists() and locales_dir.is_dir():
+        # Read all subdirectories in locales (each represents a language code)
+        for item in locales_dir.iterdir():
+            if item.is_dir():
+                lang_code = item.name
+                # Get display name from our mapping, fallback to capitalized code
+                display_name = LANGUAGE_NAMES.get(lang_code, lang_code.upper())
+                available_languages.append((display_name, lang_code))
+
+    # Always include English as fallback
+    if not any(code == "en" for _, code in available_languages):
+        available_languages.insert(0, ("English", "en"))
+
+    return available_languages
+
+
+# Dynamic list of available languages based on locales directory
+AVAILABLE_LANGUAGES = get_available_languages()
+
 # Default system configuration VALUES - Raw data, not objects
 _DEFAULT_SYSTEM_VALUES_RAW = {
     "provider": "gemini",  # Internal provider name
@@ -232,6 +283,13 @@ _DEFAULT_ACTIONS_VALUES_RAW = {
         "instruction": "You are a writing and coding assistant. You MUST make the user\\'s described change to the text or code provided by the user. Output ONLY the appropriately modified text or code without additional comments. When the content is code, PRESERVE the existing indentation level before applying the change and DO NOT add backticks around the code. Respond in the same language as the input (e.g., English US, French). Do not answer or respond to the user\\'s text content. If the text or code is absolutely incompatible with the requested change, output \"ERROR_TEXT_INCOMPATIBLE_WITH_REQUEST\".",
         "icon": "icons/summary",
         "open_in_window": False,
+    },
+    "Img_txt→En": {
+        "prefix": "Extract and translate all visible text from this image to English:\n\n",
+        "instruction": "You are an image text extraction and translation assistant. Extract all visible text from the provided image and translate it completely to English. Provide ONLY the English translation without any explanations, descriptions, or additional text. Do not describe the image or add any commentary.",
+        "icon": "icons/magnifying-glass",
+        "open_in_window": True,
+        "image": True,
     },
 }
 
