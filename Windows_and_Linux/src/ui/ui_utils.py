@@ -232,6 +232,10 @@ class ThemedWidget(QWidget):
         self.app.theme_manager.color_mode_changed.connect(self._on_color_mode_changed)
         self.app.theme_manager.background_theme_changed.connect(self._on_background_theme_changed)
 
+        # Register for language changes
+        self.app.language_manager.register_widget(self)
+        self.app.language_manager.language_changed.connect(self._on_language_changed)
+
     def _on_color_mode_changed(self) -> None:
         """Automatically called when the color mode changes."""
         self.refresh_theme()
@@ -244,6 +248,10 @@ class ThemedWidget(QWidget):
 
         self.refresh_theme()
 
+    def _on_language_changed(self, language: str) -> None:
+        """Automatically called when the language changes."""
+        self.refresh_language()
+
     def refresh_theme(self) -> None:
         """
         Called when theme changes. Override in child classes for specific refresh logic.
@@ -251,6 +259,13 @@ class ThemedWidget(QWidget):
         """
         if self.background:
             self.background.update()
+
+    def refresh_language(self) -> None:
+        """
+        Called when language changes. Override in child classes for specific refresh logic.
+        Base implementation does nothing.
+        """
+        pass
 
     # not used currently
     def get_theme_styles(self) -> dict[str, str]:

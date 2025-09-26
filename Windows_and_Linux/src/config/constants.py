@@ -188,7 +188,7 @@ def get_available_languages() -> list[tuple[str, str]]:
     """
     from pathlib import Path
 
-    # Get the locales directory path (relative to this file)
+    # Get the locales directory path (relative to this file, up to Windows_and_Linux root)
     locales_dir = Path(__file__).parent.parent.parent / "locales"
 
     available_languages = []

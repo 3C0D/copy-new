@@ -11,6 +11,9 @@ psutil
 requests
 ruff
 Pillow
+polib
+googletrans
+deep-translator
 
 # Qt complement
 PySide6-stubs

@@ -50,6 +50,7 @@ from .ui import (
     OnboardingWindow,
     SettingsWindow,
 )
+from .ui.LanguageManager import LanguageManager
 from .ui.ResponseWindow import ResponseWindow
 from .ui.ThemeManager import ThemeManager
 from .update_checker import UpdateChecker
@@ -144,6 +145,7 @@ class WritingToolApp(QApplication):
         self.settings_window = None
         self.non_editable_modal = None
         self.theme_manager = ThemeManager(self)
+        self.language_manager = LanguageManager(self)
         self.styles = self.theme_manager.get_styles()
 
     def _setup_hotkey_system(self) -> None:
@@ -333,9 +335,10 @@ class WritingToolApp(QApplication):
             lang = QLocale.system().name().split("_")[0]
 
         try:
+            locales_dir = Path(__file__).parent.parent / "locales"
             translation = gettext.translation(
                 "messages",
-                localedir=os.path.join(os.path.dirname(__file__), "locales"),
+                localedir=str(locales_dir),
                 languages=[lang],
             )
         except FileNotFoundError:
@@ -360,9 +363,7 @@ class WritingToolApp(QApplication):
 
     def change_language(self, lang: str) -> None:
         """Change the application language and update all UI elements."""
-        self.setup_translations(lang)
-        self.retranslate_ui()
-        self._update_widget_translations()
+        self.language_manager.change_language(lang)
 
     def _update_widget_translations(self) -> None:
         """Update translations for all top-level widgets."""
@@ -875,7 +876,6 @@ class WritingToolApp(QApplication):
     ) -> None:
         """Update chat history for custom prompts, including image context."""
         is_custom_option = option == "Custom"
-        # has_selected_text = selected_text and selected_text.strip() != ""
         has_image = image_data is not None
 
         if not self.current_response_window or not is_custom_option:

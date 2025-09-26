@@ -277,3 +277,7 @@ msgstr "Informazioni"
 #: WritingToolApp.py:574 WritingToolApp.py:575
 msgid "Exit"
 msgstr "Esci"
+
+#: ui/SettingsWindow.py:567 ui/SettingsWindow.py:572
+msgid "Close Settings"
+msgstr "Chiudi"

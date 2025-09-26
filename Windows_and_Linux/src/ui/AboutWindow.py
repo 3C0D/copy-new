@@ -1,5 +1,6 @@
 import logging
 import webbrowser
+from typing import cast
 
 from PySide6 import QtCore, QtGui
 from PySide6.QtWidgets import (
@@ -224,6 +225,36 @@ class AboutWindow(ThemedWidget):
             self._title_label.setStyleSheet(self.app.styles["label_title"])
         if hasattr(self, "_update_button"):
             self.apply_update_button_style(self._update_button)
+
+    def refresh_language(self) -> None:
+        """Refresh all text elements to reflect the current language."""
+        self._logger.debug("AboutWindow refresh_language called")
+
+        # Update title
+        if hasattr(self, "_title_label"):
+            self._title_label.setText(_("About Writing Tools"))
+            self._logger.debug(f"Updated title to: {_('About Writing Tools')}")
+
+        # Update button text
+        if hasattr(self, "_update_button"):
+            self._update_button.setText(_("Check for updates"))
+            self._logger.debug(f"Updated button to: {_('Check for updates')}")
+
+        # For the HTML content, we need to update the QLabel that contains it
+        # Find the scroll area and update its content
+        for i in range(self.content_layout.count()):
+            item = self.content_layout.itemAt(i)
+            if item and item.widget() and isinstance(item.widget(), QScrollArea):
+                scroll_area = cast(QScrollArea, item.widget())
+                content_widget = scroll_area.widget()
+                if content_widget and isinstance(content_widget, QLabel):
+                    # Regenerate the HTML content with new translations
+                    new_content = self._get_about_content()
+                    cast(QLabel, content_widget).setText(new_content)
+                    self._logger.debug("Updated HTML content with new translations")
+                    break
+
+        self._logger.debug("AboutWindow refresh_language finished")
 
     def original_app(self) -> None:
         """Open the original app GitHub page."""

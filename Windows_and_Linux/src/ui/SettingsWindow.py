@@ -15,7 +15,7 @@ Key features:
 """
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from PySide6 import QtCore, QtGui
 from PySide6.QtGui import QImage
@@ -83,6 +83,9 @@ class SettingsWindow(ThemedWidget):
 
         # Store current background_theme as instance variable for use throughout the class
         self.current_background_theme = self.app.settings_manager.background_theme or "gradient"
+
+        # Flag to prevent recursive language changes
+        self._changing_language = False
 
         # Set the correct background_theme from saved settings
         if self.background is not None:
@@ -168,7 +171,7 @@ class SettingsWindow(ThemedWidget):
                     self.language_dropdown.setCurrentIndex(english_index)
 
             # Auto-save language changes
-            self.language_dropdown.currentTextChanged.connect(self.auto_save_language)
+            self.language_dropdown.currentIndexChanged.connect(self._on_language_changed)
 
             content_layout.addWidget(self.language_dropdown)
 
@@ -592,16 +595,23 @@ class SettingsWindow(ThemedWidget):
             # Use parent class method for theme change
             self.app.theme_manager.change_background_theme(theme)
 
-    def auto_save_language(self) -> None:
+    def _on_language_changed(self, language: str) -> None:
         """
-        Auto-save language when it changes.
+        Handle language change from dropdown.
         """
-        if self.language_dropdown is not None and not self.providers_only:
-            # Get the selected language code
+        if self._changing_language:
+            return  # Prevent recursive calls
+
+        if self.language_dropdown is not None:
             selected_lang_code = self.language_dropdown.currentData()
             if selected_lang_code:
-                self.app.settings_manager.language = selected_lang_code
-                self._logger.debug(f"Language changed to: {selected_lang_code}")
+                self._changing_language = True
+                try:
+                    # Use LanguageManager to change language and notify all widgets
+                    self.app.language_manager.change_language(selected_lang_code)
+                    self._logger.debug(f"Language changed to: {selected_lang_code}")
+                finally:
+                    self._changing_language = False
 
     def auto_save_color_mode(self) -> None:
         """
@@ -878,6 +888,123 @@ class SettingsWindow(ThemedWidget):
             ),
             None,
         )
+
+    def refresh_language(self) -> None:
+        """Refresh all UI text elements to reflect the current language."""
+        # Block signals to prevent infinite loops during refresh
+        if self.language_dropdown:
+            self.language_dropdown.blockSignals(True)
+        if self.color_mode_dropdown:
+            self.color_mode_dropdown.blockSignals(True)
+        if self.provider_dropdown:
+            self.provider_dropdown.blockSignals(True)
+
+        try:
+            # Update window title
+            self.setWindowTitle(_("Settings"))
+
+            # Update title label
+            title_label = self.findChild(QLabel, "title_label")
+            if title_label:
+                title_label.setText(_("Settings"))
+
+            # Update labels
+            if hasattr(self, "language_label") and self.language_label:
+                self.language_label.setText(_("Language:"))
+            if hasattr(self, "shortcut_label") and self.shortcut_label:
+                self.shortcut_label.setText(_("Shortcut Key:"))
+            if hasattr(self, "theme_label") and self.theme_label:
+                self.theme_label.setText(_("Background Theme:"))
+            if hasattr(self, "color_mode_label") and self.color_mode_label:
+                self.color_mode_label.setText(_("Color Mode:"))
+            if hasattr(self, "provider_label") and self.provider_label:
+                self.provider_label.setText(_("Choose AI Provider:"))
+
+            # Update radio buttons
+            if self.gradient_radio:
+                self.gradient_radio.setText(_("Blurry Gradient"))
+            if self.plain_radio:
+                self.plain_radio.setText(_("Plain"))
+
+            # Update color mode dropdown items
+            if self.color_mode_dropdown:
+                self.color_mode_dropdown.clear()
+                self.color_mode_dropdown.addItems([_("Auto"), _("Light"), _("Dark")])
+                # Restore current selection
+                current_mode = self.app.settings_manager.color_mode
+                mode_index = {"auto": 0, "light": 1, "dark": 2}.get(current_mode, 0)
+                self.color_mode_dropdown.setCurrentIndex(mode_index)
+
+            # Update checkbox
+            if self.autostart_checkbox:
+                self.autostart_checkbox.setText(_("Start on Boot"))
+
+            # Update close button
+            if hasattr(self, "close_button") and self.close_button:
+                button_text = _("Complete Setup") if self.providers_only else _("Close Settings")
+                self.close_button.setText(button_text)
+
+            # Update vision comment
+            if hasattr(self, "vision_comment") and self.vision_comment:
+                self.vision_comment.setText(_("* Models with vision support"))
+
+            # Update buttons text
+            if hasattr(self, "close_button") and self.close_button:
+                button_text = _("Complete Setup") if self.providers_only else _("Close Settings")
+                self.close_button.setText(button_text)
+
+            # Update main button if exists
+            if (
+                hasattr(self, "main_button")
+                and self.main_button
+                and self.app.current_provider
+                and hasattr(self.app.current_provider, "button_text")
+            ):
+                self.main_button.setText(self.app.current_provider.button_text)
+
+            # Update additional buttons
+            if (
+                self.app.current_provider
+                and hasattr(self.app.current_provider, "additional_buttons")
+                and self.app.current_provider.additional_buttons
+            ):
+                # Find buttons in the current provider layout
+                if self.current_provider_layout:
+                    button_index = 0
+                    for i in range(self.current_provider_layout.count()):
+                        item = self.current_provider_layout.itemAt(i)
+                        if item and item.widget() and isinstance(item.widget(), QWidget):
+                            widget = item.widget()
+                            # Look for buttons in nested layouts
+                            if hasattr(widget, "layout") and widget.layout():
+                                for j in range(widget.layout().count()):
+                                    sub_item = widget.layout().itemAt(j)
+                                    if (
+                                        sub_item
+                                        and sub_item.widget()
+                                        and isinstance(sub_item.widget(), QPushButton)
+                                    ):
+                                        button = cast(QPushButton, sub_item.widget())
+                                        if button_index < len(
+                                            self.app.current_provider.additional_buttons
+                                        ):
+                                            config = self.app.current_provider.additional_buttons[
+                                                button_index
+                                            ]
+                                            button.setText(config["text"])
+                                            button_index += 1
+
+            # Call retranslate_ui for additional translations
+            self.retranslate_ui()
+
+        finally:
+            # Always restore signals
+            if self.language_dropdown:
+                self.language_dropdown.blockSignals(False)
+            if self.color_mode_dropdown:
+                self.color_mode_dropdown.blockSignals(False)
+            if self.provider_dropdown:
+                self.provider_dropdown.blockSignals(False)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """

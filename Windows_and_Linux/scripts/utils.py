@@ -263,18 +263,18 @@ def install_dependencies(venv_path: str, requirements_path: str) -> bool:
 
             # Remove obsolete packages
             if packages_to_remove:
-                print(f"🗑️  Removing obsolete packages: {', '.join(packages_to_remove)}")
+                print(f"Removing obsolete packages: {', '.join(packages_to_remove)}")
                 cmd_uninstall = [python_cmd, "-m", "pip", "uninstall", "-y"] + list(
                     packages_to_remove
                 )
                 try:
                     subprocess.run(cmd_uninstall, check=True, capture_output=True)
-                    print("✅ Obsolete packages removed successfully.")
+                    print("Obsolete packages removed successfully.")
                 except subprocess.CalledProcessError as e:
-                    print(f"⚠️  Warning: Some packages could not be removed: {e}")
+                    print(f"Warning: Some packages could not be removed: {e}")
 
             # Install/update current requirements.-q silent install
-            print("📦 Installing/updating dependencies...")
+            print("Installing/updating dependencies...")
             cmd_install = [
                 python_cmd,
                 "-m",
@@ -516,7 +516,7 @@ class BuildTimer:
     def start(self):
         """Start the timer"""
         self.start_time = time.time()
-        print("⏱️  Build timer started...")
+        print("Build timer started...")
 
     def stop(self):
         """Stop the timer and return elapsed time"""
@@ -555,7 +555,7 @@ class BuildTimer:
             seconds = elapsed % 60
             time_str = f"{hours} hour{'s' if hours > 1 else ''}, {minutes} minute{'s' if minutes > 1 else ''} and {seconds:.1f} seconds"
 
-        print(f"⏱️  {build_type.capitalize()} completed in {time_str}")
+        print(f"{build_type.capitalize()} completed in {time_str}")
 
 
 # PyInstaller exclusions shared between build scripts
