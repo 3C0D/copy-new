@@ -33,6 +33,7 @@ from .aiprovider import (
 from .AutostartManager import AutostartManager
 from .config.settings import SettingsManager
 from .core.ai_processor import AIProcessor
+from .core.hotkey_manager import HotkeyManager
 from .core.image_processor import ImageProcessor
 from .core.popup_manager import PopupManager
 from .systray import SystrayManager
@@ -116,6 +117,7 @@ class WritingToolApp(QApplication):
         self.current_provider: AIProvider | None = None
         self.output_queue = ""
         self.ai_processor = AIProcessor(self)
+        self.hotkey_manager = HotkeyManager(self)
         self.systray_manager = SystrayManager(self)
         self.image_processor = ImageProcessor(self._logger)
         self.popup_manager = PopupManager(self, self._logger)
@@ -124,7 +126,7 @@ class WritingToolApp(QApplication):
         """Connect application signals to their handlers."""
         self.output_ready_signal.connect(self.replace_text)
         self.show_message_signal.connect(self.show_message_box)
-        self.hotkey_triggered_signal.connect(self.on_hotkey_pressed)
+        self.hotkey_triggered_signal.connect(self.hotkey_manager.on_hotkey_pressed)
 
     def _setup_settings(self) -> None:
         """Initialize settings manager and load configuration."""
@@ -145,9 +147,7 @@ class WritingToolApp(QApplication):
 
     def _setup_hotkey_system(self) -> None:
         """Initialize hotkey and keyboard listener system."""
-        self.hotkey_listener = None
-        self.ctrl_c_timer = None
-        self.setup_ctrl_c_listener()
+        self.hotkey_manager.setup_ctrl_c_listener()
 
     def _setup_ai_providers(self) -> None:
         """Initialize available AI providers."""
@@ -181,9 +181,8 @@ class WritingToolApp(QApplication):
 
     def _setup_spam_protection(self) -> None:
         """Initialize hotkey spam protection system."""
-        self.recent_triggers = []
-        self.TRIGGER_WINDOW = 1.5  # Time window in seconds
-        self.MAX_TRIGGERS = 3  # Max allowed triggers in window
+        # Spam protection is now handled by HotkeyManager
+        pass
 
     def _handle_first_launch(self) -> None:
         """Handle first-time application launch."""
@@ -222,7 +221,7 @@ class WritingToolApp(QApplication):
         """Setup user interface components."""
         self._sync_autostart_settings()
         self._create_tray_icon_with_startup_delay()
-        self.register_hotkey()
+        self.hotkey_manager.register_hotkey()
 
     def _create_tray_icon_with_startup_delay(self) -> None:
         """
@@ -369,20 +368,6 @@ class WritingToolApp(QApplication):
     # HOTKEY AND INPUT HANDLING METHODS
     # ============================================================================
 
-    def check_trigger_spam(self) -> bool:
-        """
-        Check if hotkey is being triggered too frequently.
-        Returns True if spam is detected (3+ times in 1.5 seconds).
-        """
-        current_time = time.time()
-        self.recent_triggers.append(current_time)
-
-        # Remove old triggers outside the window
-        self.recent_triggers = [
-            t for t in self.recent_triggers if current_time - t <= self.TRIGGER_WINDOW
-        ]
-
-        return len(self.recent_triggers) >= self.MAX_TRIGGERS
 
     def show_onboarding(self) -> None:
         """
@@ -411,7 +396,7 @@ class WritingToolApp(QApplication):
 
         self._sync_autostart_settings()
         self._create_tray_icon_with_startup_delay()
-        self.register_hotkey()
+        self.hotkey_manager.register_hotkey()
 
         # Set language from system settings
         lang = self.settings_manager.language or "en"
@@ -429,98 +414,6 @@ class WritingToolApp(QApplication):
     # HOTKEY MANAGEMENT METHODS
     # ============================================================================
 
-    def start_hotkey_listener(self) -> None:
-        """
-        Create listener for hotkeys on Linux/Mac.
-        """
-        orig_shortcut = self.settings_manager.hotkey or "ctrl+space"
-
-        # Parse the shortcut string, for example ctrl+alt+h -> <ctrl>+<alt>+<h>. Space are removed.
-        shortcut = "+".join([f"<{t.strip()}>" for t in orig_shortcut.split("+")])
-
-        self._logger.debug(f"Registering global hotkey for shortcut: {shortcut}")
-
-        try:
-            if self.hotkey_listener is not None:
-                self.hotkey_listener.stop()
-                self.hotkey_listener = None
-
-            def on_activate():
-                if self.systray_manager.paused:
-                    return
-                self._logger.debug("triggered hotkey")
-                self.hotkey_triggered_signal.emit()  # Emit the signal when hotkey is pressed
-
-            # Define the hotkey combination
-            hotkey = keyboard.HotKey(keyboard.HotKey.parse(shortcut), on_activate)
-
-            # Helper function to standardize key event
-            def for_canonical(f):
-                return lambda k: f(
-                    self.hotkey_listener.canonical(k)
-                    if k is not None and self.hotkey_listener is not None
-                    else k
-                )
-
-            # Create a listener and store it as an attribute to stop it later
-            self.hotkey_listener = keyboard.Listener(
-                on_press=for_canonical(hotkey.press),
-                on_release=for_canonical(hotkey.release),
-            )
-
-            # Start the listener
-            self.hotkey_listener.start()
-        except Exception as e:
-            self._logger.error(f"Failed to register hotkey: {e}")
-
-    def register_hotkey(self) -> None:
-        """
-        Register the global hotkey for activating Writing Tools.
-        """
-        self._logger.debug("Registering hotkey")
-        self.start_hotkey_listener()
-        self._logger.debug("Hotkey registered")
-
-    def on_hotkey_pressed(self) -> None:
-        """
-        Handle the hotkey press event.
-        """
-        self._logger.debug("Hotkey pressed ==============================")
-
-        # Check for spam triggers
-        if self.check_trigger_spam():
-            self._logger.warning("Hotkey spam detected - quitting application")
-            self.exit_app()
-            return
-
-        # Close existing non-editable modal if open
-        if hasattr(self, "non_editable_modal") and self.non_editable_modal is not None:
-            self._logger.debug("Closing existing non-editable modal")
-            self.non_editable_modal.close()
-            self.non_editable_modal = None
-
-        # Close existing popup window if open
-        if hasattr(self, "popup_manager") and self.popup_manager.popup_window is not None:
-            self._logger.debug("Closing existing popup window")
-            self.popup_manager.popup_window.close()
-            self.popup_manager.popup_window = None
-
-        # Close existing response window if open
-        if hasattr(self, "current_response_window") and self.current_response_window is not None:
-            self._logger.debug("Closing existing response window")
-            self.current_response_window.close()
-            self.current_response_window = None
-
-        # Original hotkey handling continues...
-        if self.ai_processor.current_provider:
-            self._logger.debug("Cancelling current provider's request")
-            self.ai_processor.current_provider.cancel()
-            self.ai_processor.output_queue = ""
-
-        # noinspection PyTypeChecker
-        QtCore.QMetaObject.invokeMethod(
-            self.popup_manager, "show_popup", QtCore.Qt.ConnectionType.QueuedConnection
-        )
 
     def process_option(
         self,
@@ -793,6 +686,10 @@ class WritingToolApp(QApplication):
         """Delegate to AI processor."""
         self.ai_processor.process_followup_question(response_window, question)
 
+    def register_hotkey(self) -> None:
+        """Delegate to hotkey manager for backward compatibility."""
+        self.hotkey_manager.register_hotkey()
+
     def show_settings(self, providers_only: bool = False, previous_window=None) -> None:
         """
         Show the settings window with debounce protection against rapid clicks.
@@ -831,38 +728,12 @@ class WritingToolApp(QApplication):
     # APPLICATION LIFECYCLE METHODS
     # ============================================================================
 
-    def setup_ctrl_c_listener(self) -> None:
-        """
-        Listener for Ctrl+C to exit the app.
-        """
-        signal.signal(signal.SIGINT, lambda signum, frame: self.handle_sigint(signum, frame))
-        # This empty timer is needed to make sure that the sigint handler gets checked inside the main loop:
-        # without it, the sigint handle would trigger only when an event is triggered, either by a hotkey combination
-        # or by another GUI event like spawning a new window. With this we trigger it every 100ms with an empy lambda
-        # so that the signal handler gets checked regularly.
-        self.ctrl_c_timer = QtCore.QTimer()
-        self.ctrl_c_timer.start(100)
-        self.ctrl_c_timer.timeout.connect(lambda: None)
-
-    def handle_sigint(self, signum: int, frame: Optional[types.FrameType]) -> None:
-        """
-        Handle the SIGINT signal (Ctrl+C) to exit the app gracefully.
-
-        Args:
-            signum: Signal number (unused but required by signal handler interface)
-            frame: Current stack frame (unused but required by signal handler interface)
-        """
-        del signum, frame  # Explicitly mark as unused
-        self._logger.debug("Received SIGINT. Exiting...")
-        self.exit_app()
 
     def exit_app(self) -> None:
         """
         Exit the application.
         """
-        self._logger.debug("Stopping the listener")
-        if self.hotkey_listener is not None:
-            self.hotkey_listener.stop()
+        self.hotkey_manager.cleanup()
         self._logger.debug("Restoring default SIGINT handler")
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         self._logger.debug("Exiting application")
