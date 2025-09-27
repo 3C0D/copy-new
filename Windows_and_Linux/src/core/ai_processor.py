@@ -1,74 +1,3 @@
-Je propose de créer un module `core/ai_processor.py` qui regroupe toute la logique de traitement IA. Voici le nouveau module complet :Maintenant, voici les modifications à apporter au module principal `WritingToolApp.py` :
-
-**1. Ajouts à importer en haut du fichier :**
-```python
-from .core.ai_processor import AIProcessor
-```
-
-**2. Dans `_setup_core_attributes()`, ajouter :**
-```python
-self.ai_processor = AIProcessor(self)
-```
-
-**3. Dans `_initialize_ai_provider()`, remplacer le contenu par :**
-```python
-def _initialize_ai_provider(self) -> None:
-    """Initialize and configure the current AI provider."""
-    self.ai_processor.set_current_provider()
-    
-    if self.ai_processor.current_provider:
-        self._logger.debug(f"Current provider: {self.ai_processor.current_provider.provider_name}")
-        provider_config = self.ai_processor.get_provider_config(self.app.settings_manager.provider)
-        self._logger.debug(f"Provider config: {provider_config}")
-        self.ai_processor.current_provider.load_config(provider_config)
-        self._logger.debug("Provider config loaded successfully")
-    
-    # Keep the reference for compatibility
-    self.current_provider = self.ai_processor.current_provider
-```
-
-**4. Dans `on_hotkey_pressed()`, remplacer la ligne du cancellation :**
-```python
-if self.ai_processor.current_provider:
-    self._logger.debug("Cancelling current provider's request")
-    self.ai_processor.current_provider.cancel()
-    self.ai_processor.output_queue = ""
-```
-
-**5. Déléguer `process_option` :**
-```python
-def process_option(self, option: str, selected_text: str | None, force_chat: bool = False, custom_change: str | None = None, image: QtGui.QImage | None = None) -> None:
-    """Delegate to AI processor."""
-    self.ai_processor.process_option(option, selected_text, force_chat, custom_change, image)
-```
-
-**6. Déléguer `process_followup_question` :**
-```python
-def process_followup_question(self, response_window: ResponseWindow, question: str) -> None:
-    """Delegate to AI processor."""
-    self.ai_processor.process_followup_question(response_window, question)
-```
-
-**Fonctions à SUPPRIMER complètement du module principal :**
-- `_set_current_provider()` 
-- `_get_provider_config()`
-- `process_option()` (remplacer par la délégation)
-- `_setup_response_window()`
-- `process_option_thread()`
-- `_prepare_prompt_data()`
-- `_handle_no_text_selected()`
-- `_handle_text_or_image_selected()`
-- `_should_display_in_window()`
-- `_process_window_response()`
-- `_update_chat_history_if_needed()`
-- `_update_response_window()`
-- `_process_direct_replacement()`
-- `_handle_processing_error()`
-- `process_followup_question()` (remplacer par la délégation)
-
-Cette refactorisation divise bien les responsabilités : `WritingToolApp` garde la gestion globale et l'interface, tandis que `AIProcessor` se charge exclusivement du traitement IA.
-
-
 """
 AI Processor - Handles AI request processing and response management.
 
@@ -78,20 +7,18 @@ managing responses, and coordinating with different AI providers.
 
 import logging
 import threading
-import time
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from PySide6 import QtCore, QtGui
 from PySide6.QtCore import QObject, Signal
 
-from ..aiprovider import AnthropicProvider, GeminiProvider, MistralProvider
+from ..aiprovider import GeminiProvider, MistralProvider
 from ..config.constants import DEFAULT_PROVIDER, DEFAULT_PROVIDER_CONFIGS
 from ..config.interfaces import ActionConfig, ProviderConfig
 
 if TYPE_CHECKING:
     from ..aiprovider import AIProvider
     from ..ui.ResponseWindow import ResponseWindow
-    from .. import WritingToolApp
 
 
 class AIProcessor(QObject):
@@ -103,11 +30,11 @@ class AIProcessor(QObject):
     show_message_signal = Signal(str, str)
     followup_response_signal = Signal(str)
 
-    def __init__(self, app: "WritingToolApp"):
+    def __init__(self, app):
         super().__init__()
         self.app = app
         self._logger = logging.getLogger(__name__)
-        self.current_provider: "AIProvider" | None = None
+        self.current_provider: AIProvider | None = None
         self.output_queue = ""
 
         # Connect signals
@@ -119,11 +46,16 @@ class AIProcessor(QObject):
         provider_name: str = self.app.settings_manager.provider or DEFAULT_PROVIDER
 
         self.current_provider = next(
-            (provider for provider in self.app.providers if provider.internal_name == provider_name),
+            (
+                provider
+                for provider in self.app.providers
+                if provider.internal_name == provider_name
+            ),
             self.app.providers[0],  # Fallback to first provider
         )
 
-        self.app.settings_manager.provider = self.current_provider.internal_name
+        if self.current_provider is not None:
+            self.app.settings_manager.provider = self.current_provider.internal_name
 
     def get_provider_config(self, provider_name: str) -> ProviderConfig:
         """
@@ -216,7 +148,9 @@ class AIProcessor(QObject):
         """
         is_custom = option == "Custom"
         window_title = "Chat" if not is_custom else option
-        self.app.current_response_window = self.app.show_response_window(window_title, selected_text)
+        self.app.current_response_window = self.app.show_response_window(
+            window_title, selected_text
+        )
 
         # Handle chat history based on content type
         if image is not None:
@@ -437,9 +371,7 @@ class AIProcessor(QObject):
         image_data = prompt_data.get("image_data")
 
         if image_data:
-            self._logger.debug(
-                f" 🖼️  Passing image data to provider - length: {len(image_data)}"
-            )
+            self._logger.debug(f" 🖼️  Passing image data to provider - length: {len(image_data)}")
             self._logger.debug(f" 🖼️  Image data preview: {image_data[:100]}...")
         else:
             self._logger.debug(" 🖼️  No image data to pass to provider")
