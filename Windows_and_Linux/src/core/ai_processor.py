@@ -625,7 +625,7 @@ class AIProcessor(QObject):
                 response_window.chat_history.append({"role": "assistant", "content": response_text})
 
                 # Emit response via signal
-                self.followup_response_signal.emit(response_text)
+                self.app.followup_response_signal.emit(response_text)
 
             except Exception as e:
                 self._logger.error(f"Error processing follow-up question: {e}", exc_info=True)
@@ -635,12 +635,12 @@ class AIProcessor(QObject):
                         "Error - Rate Limit Hit",
                         "Whoops! You've hit the per-minute rate limit of the API. Please try again in a few moments.\n\nIf this happens often, try switching to a different model in Settings.",
                     )
-                    self.followup_response_signal.emit(
+                    self.app.followup_response_signal.emit(
                         "Sorry, an error occurred while processing your question."
                     )
                 else:
                     self.show_message_signal.emit("Error", f"An error occurred: {e}")
-                    self.followup_response_signal.emit(
+                    self.app.followup_response_signal.emit(
                         "Sorry, an error occurred while processing your question."
                     )
 
