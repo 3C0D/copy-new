@@ -4,7 +4,6 @@ Script de traduction automatique pour les fichiers .po
 Utilise Google Translate API pour traduire les chaînes vides
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -90,7 +89,7 @@ def main():
     src_lang = sys.argv[2] if len(sys.argv) > 2 else "en"
     dest_lang = sys.argv[3] if len(sys.argv) > 3 else "fr"
 
-    if not os.path.exists(po_file_path):
+    if not Path(po_file_path).exists():
         print(f"Fichier non trouvé: {po_file_path}")
         sys.exit(1)
 
