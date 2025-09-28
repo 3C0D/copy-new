@@ -56,6 +56,8 @@ class LanguageManager(QtCore.QObject):
         self.app.retranslate_ui()
         self._update_widget_translations()
 
+        self._logger.debug(f"Language changed to: {new_language}")
+
     def _update_widget_translations(self) -> None:
         """Update translations for all top-level widgets."""
         from PySide6.QtWidgets import QApplication

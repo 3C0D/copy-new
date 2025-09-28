@@ -103,37 +103,6 @@ class ConfigManager:
 
         # builtins._ = self._
 
-    def change_language(self, new_language: str) -> None:
-        """
-        Change the application language and update all UI elements.
-
-        Args:
-            new_language: New language code
-        """
-        # Save to settings
-        self.app.settings_manager.language = new_language
-
-        # Update translations
-        self.setup_translations(new_language)
-
-        # Emit language changed signal
-        self.app.language_manager.language_changed.emit(new_language)
-
-        # Refresh all registered widgets
-        for widget in self.app.language_manager._registered_widgets[:]:
-            if hasattr(widget, "refresh_language"):
-                try:
-                    widget.refresh_language()
-                except RuntimeError:
-                    # Widget destroyed, remove it from the list
-                    self.app.language_manager._registered_widgets.remove(widget)
-
-        # Update tray menu and other UI elements
-        self.retranslate_ui()
-        self._update_widget_translations()
-
-        self._logger.debug(f"Language changed to: {new_language}")
-
     def retranslate_ui(self) -> None:
         """
         Retranslate user interface elements.

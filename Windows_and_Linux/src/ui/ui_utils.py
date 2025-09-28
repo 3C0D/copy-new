@@ -275,6 +275,7 @@ class ThemedWidget(QWidget):
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Handle window close event and unregister from theme manager."""
         self.app.theme_manager.unregister_widget(self)
+        self.app.language_manager.unregister_widget(self)
 
 
 class ThemeBackground(QWidget):

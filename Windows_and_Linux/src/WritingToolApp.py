@@ -189,7 +189,7 @@ class WritingToolApp(QApplication):
         try:
             self._initialize_ai_provider()
             self._setup_user_interface()
-            self._setup_language()
+            self.language_manager.change_language(self.settings_manager.language or "en")
             self._initialize_update_checker()
         except Exception as e:
             self._handle_initialization_error(e)
@@ -248,11 +248,6 @@ class WritingToolApp(QApplication):
             AutostartManager.sync_with_settings(self.settings_manager)
         except Exception as e:
             self._logger.warning(f"Could not sync autostart settings: {e}")
-
-    def _setup_language(self) -> None:
-        """Configure application language."""
-        lang = self.settings_manager.language or "en"
-        self.change_language(lang if lang != "en" else "en")
 
     def _initialize_update_checker(self) -> None:
         """Initialize the update checker system."""
@@ -342,10 +337,6 @@ class WritingToolApp(QApplication):
         """Retranslate the user interface elements."""
         self.systray_manager.update_tray_menu()
 
-    def change_language(self, lang: str) -> None:
-        """Change the application language and update all UI elements."""
-        self.language_manager.change_language(lang)
-
     def _update_widget_translations(self) -> None:
         """Update translations for all top-level widgets."""
         for widget in QApplication.topLevelWidgets():
@@ -381,8 +372,7 @@ class WritingToolApp(QApplication):
         self.hotkey_manager.register_hotkey()
 
         # Set language from system settings
-        lang = self.settings_manager.language or "en"
-        self.change_language(lang if lang != "en" else "en")
+        self.language_manager.change_language(self.settings_manager.language or "en")
 
         # Initialize update checker
         self.update_checker = UpdateChecker(self)
