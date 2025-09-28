@@ -31,9 +31,11 @@ from .aiprovider import (
 from .AutostartManager import AutostartManager
 from .config.settings import SettingsManager
 from .core.ai_processor import AIProcessor
+from .core.clipboard_manager import ClipboardManager
 from .core.config_manager import ConfigManager
 from .core.hotkey_manager import HotkeyManager
 from .core.image_processor import ImageProcessor
+from .core.input_manager import InputManager
 from .core.popup_manager import PopupManager
 from .core.text_processor import TextProcessor
 from .core.ui_manager import UIManager
@@ -117,7 +119,9 @@ class WritingToolApp(QApplication):
         self.text_processor = TextProcessor(self)
         self.hotkey_manager = HotkeyManager(self)
         self.systray_manager = SystrayManager(self)
-        self.image_processor = ImageProcessor(self._logger)
+        self.image_processor = ImageProcessor(self, self._logger)
+        self.clipboard_manager = ClipboardManager(self, self._logger)
+        self.input_manager = InputManager(self, self._logger)
         self.popup_manager = PopupManager(self, self._logger)
         self.ui_manager = UIManager(self)
 

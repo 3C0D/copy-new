@@ -208,6 +208,7 @@ class UIManager:
         self.non_editable_modal = NonEditableModal(self.app, transformed_text)
         self.non_editable_modal.show()
 
+    # pas utilisé? !!!
     def close_all_windows(self) -> None:
         """
         Ferme toutes les fenêtres gérées par ce gestionnaire.

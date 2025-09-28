@@ -41,7 +41,7 @@ class PopupManager(QObject):
             return self.image, None
 
         # No image in clipboard, check selected text
-        selected_text = self.original_selection = self.image_processor.get_selected_text(
+        selected_text = self.original_selection = self.app.input_manager.get_selected_text(
             sleep_duration=0.1
         )
         self._logger.debug(f'Selected text: "{selected_text}"')
@@ -157,39 +157,7 @@ class PopupManager(QObject):
         # Position the window
         popup_window.move(x, y)
 
-    # kept for potential future use
-    def _is_file_path(self, text: str) -> bool:
-        """
-        Check if the text is a file path (from file/icon selection).
 
-        Args:
-            text: The text to check
-
-        Returns:
-            bool: True if it's a file path, False if it's regular text
-        """
-        if not text or not text.strip():
-            return False
-
-        text = text.strip()
-
-        # Check for file:// URLs (what we saw in the logs)
-        if text.startswith("file:///"):
-            return True
-
-        # Check for Windows file paths (C:\, D:\, etc.)
-        if len(text) > 2 and text[1:3] == ":\\":
-            return True
-
-        # Check for UNC paths (\\server\share)
-        if text.startswith("\\\\"):
-            return True
-
-        # Check for Unix-style absolute paths
-        if text.startswith("/") and "/" in text[1:]:
-            return True
-
-        return False
 
     def clean_image(self) -> None:
         """Clean up image resources."""

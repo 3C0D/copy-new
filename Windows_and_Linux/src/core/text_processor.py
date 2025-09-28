@@ -77,7 +77,7 @@ class TextProcessor(QObject):
                 self._handle_clipboard_paste()
 
                 # Check if selection changed (indicating successful paste)
-                new_selection = self.app.image_processor.get_selected_text(sleep_duration=0.1)
+                new_selection = self.app.input_manager.get_selected_text(sleep_duration=0.1)
 
                 # If selection is the same, paste failed (non-editable page)
                 if (
