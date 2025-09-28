@@ -62,7 +62,7 @@ class HotkeyManager:
         """
         del signum, frame  # Explicitly mark as unused
         self._logger.debug("Received SIGINT. Exiting...")
-        self.app.exit_app()
+        self.app.lifecycle_manager.exit_app()
 
     def check_trigger_spam(self) -> bool:
         """
@@ -140,7 +140,7 @@ class HotkeyManager:
         # Check for spam triggers
         if self.check_trigger_spam():
             self._logger.warning("Hotkey spam detected - quitting application")
-            self.app.exit_app()
+            self.app.lifecycle_manager.exit_app()
             return
 
         # Close existing non-editable modal if open

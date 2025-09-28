@@ -8,9 +8,7 @@ including AI provider management, hotkey handling, and user interface coordinati
 import gettext
 import logging
 import os
-import signal
 import sys
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pynput import keyboard as keyboard
@@ -33,6 +31,7 @@ from .core.config_manager import ConfigManager
 from .core.hotkey_manager import HotkeyManager
 from .core.image_processor import ImageProcessor
 from .core.input_manager import InputManager
+from .core.lifecycle_manager import LifecycleManager
 from .core.popup_manager import PopupManager
 from .core.text_processor import TextProcessor
 from .core.ui_manager import UIManager
@@ -114,6 +113,7 @@ class WritingToolApp(QApplication):
         self.input_manager = InputManager(self, self._logger)
         self.popup_manager = PopupManager(self, self._logger)
         self.ui_manager = UIManager(self)
+        self.lifecycle_manager = LifecycleManager(self)
 
     def _setup_signals(self) -> None:
         """Connect application signals to their handlers."""
@@ -125,7 +125,7 @@ class WritingToolApp(QApplication):
 
     def _setup_settings(self) -> None:
         """Initialize settings manager and load configuration."""
-        mode = self._detect_running_mode()
+        mode = self.lifecycle_manager._detect_running_mode()
         self._logger.debug(f"Running mode: {mode}")
         self.settings_manager = SettingsManager(mode=mode)
 
@@ -257,44 +257,6 @@ class WritingToolApp(QApplication):
     # CONFIGURATION AND SETUP METHODS
     # ============================================================================
 
-    def _detect_running_mode(self) -> str:
-        """
-        Detect the operating mode based on the environment.
-
-        Returns:
-            str: "dev", "build-dev", or "build-final"
-        """
-
-        base_dir = Path(sys.executable).parent
-
-        # dev
-        if not getattr(sys, "frozen", False):
-            self._logger.debug("Detected dev mode")
-            return "dev"
-
-        # build-dev
-        elif base_dir.name == "dev":
-            self._logger.debug("Detected build-dev mode")
-            return "build-dev"
-
-        # build-final
-        else:
-            self._logger.debug("Detected build-final mode")
-            return "build-final"
-
-    # Another way to detect mode
-    # import inspect
-
-    # stack = inspect.stack()
-    # for frame_info in stack:
-    #     filename = frame_info.filename
-
-    #     if (
-    #         "build_dev.py" in filename
-    #         or "build_final.py" in filename
-    #         or "PyInstaller" in filename
-    #     ): build...
-
     def retranslate_ui(self) -> None:
         """Retranslate the user interface elements."""
         self.systray_manager.update_tray_menu()
@@ -302,32 +264,6 @@ class WritingToolApp(QApplication):
     # ============================================================================
     # HOTKEY AND INPUT HANDLING METHODS
     # ============================================================================
-
-    def on_onboarding_closed(self) -> None:
-        """
-        Handle onboarding window being closed.
-        Instead of exiting, continue with normal app initialization.
-        """
-        self._logger.debug("Onboarding window closed, continuing with app initialization")
-        self.onboarding_window = None
-        # Initialize the current provider with default settings
-        self.ai_processor.set_current_provider()
-
-        # Load provider-specific config from system settings
-        if self.ai_processor.current_provider:
-            provider_config = self.ai_processor.get_provider_config(self.settings_manager.provider)
-            self.ai_processor.current_provider.load_config(provider_config)
-
-        self._sync_autostart_settings()
-        self._create_tray_icon_with_startup_delay()
-        self.hotkey_manager.register_hotkey()
-
-        # Set language from system settings
-        self.language_manager.change_language(self.settings_manager.language or "en")
-
-        # Initialize update checker
-        self.update_checker = UpdateChecker(self)
-        self.update_checker.check_updates_async()
 
     def get_current_model(self, provider_name: str) -> str:
         provider = self.settings_manager.providers.get(provider_name, {})
@@ -344,17 +280,3 @@ class WritingToolApp(QApplication):
         Delegates to the UI manager.
         """
         self.ui_manager.show_message_box(title, message)
-
-    # ============================================================================
-    # APPLICATION LIFECYCLE METHODS
-    # ============================================================================
-
-    def exit_app(self) -> None:
-        """
-        Exit the application.
-        """
-        self.hotkey_manager.cleanup()
-        self._logger.debug("Restoring default SIGINT handler")
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
-        self._logger.debug("Exiting application")
-        self.quit()

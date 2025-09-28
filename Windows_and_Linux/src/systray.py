@@ -104,7 +104,7 @@ class SystrayManager:
 
         # Exit menu item
         exit_action = self.tray_menu.addAction(_("Exit"))
-        exit_action.triggered.connect(self.app.exit_app)
+        exit_action.triggered.connect(self.app.lifecycle_manager.exit_app)
 
     def show_about(self) -> None:
         """

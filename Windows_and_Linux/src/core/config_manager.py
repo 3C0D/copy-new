@@ -5,7 +5,6 @@ Centralizes management of settings, languages, themes, and running mode.
 
 import gettext
 import logging
-import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -34,7 +33,7 @@ class ConfigManager:
         self._logger = logging.getLogger(__name__)
 
         # Detect running mode
-        self.running_mode = self._detect_running_mode()
+        self.running_mode = self.app.lifecycle_manager._detect_running_mode()
 
         # Initialize translations
         self._current_translation: gettext.NullTranslations | None = None
@@ -107,30 +106,6 @@ class ConfigManager:
         for widget in QApplication.topLevelWidgets():
             if widget != self.app and hasattr(widget, "retranslate_ui"):
                 widget.retranslate_ui()  # type: ignore
-
-    def _detect_running_mode(self) -> str:
-        """
-        Detect the running mode based on the environment.
-
-        Returns:
-            str: "dev", "build-dev", or "build-final"
-        """
-        base_dir = Path(sys.executable).parent
-
-        # Development mode
-        if not getattr(sys, "frozen", False):
-            self._logger.debug("Detected mode: dev")
-            return "dev"
-
-        # Build-dev mode
-        elif base_dir.name == "dev":
-            self._logger.debug("Detected mode: build-dev")
-            return "build-dev"
-
-        # Build-final mode
-        else:
-            self._logger.debug("Detected mode: build-final")
-            return "build-final"
 
     def get_current_language(self) -> str:
         """

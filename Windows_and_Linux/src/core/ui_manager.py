@@ -56,22 +56,8 @@ class UIManager:
             self.onboarding_window.close()
 
         self.onboarding_window = OnboardingWindow(self.app)
-        self.onboarding_window.close_signal.connect(self.on_onboarding_closed)
+        self.onboarding_window.close_signal.connect(self.app.lifecycle_manager.on_onboarding_closed())
         self.onboarding_window.show()
-
-    def on_onboarding_closed(self) -> None:
-        """
-        Handle the closing of the onboarding window.
-
-        This method is called when the user closes the onboarding window,
-        allowing to continue the normal initialization of the application.
-        """
-        self._logger.debug("Onboarding window closed, continuing initialization")
-        self.onboarding_window = None
-
-        # Delegate business logic to the main application
-        if hasattr(self.app, "on_onboarding_closed"):
-            self.app.on_onboarding_closed()
 
     def show_settings(self, providers_only: bool = False, previous_window=None) -> None:
         """
@@ -109,7 +95,10 @@ class UIManager:
         if previous_window:
             self.settings_window.previous_window = previous_window
 
-        self.settings_window.close_signal.connect(self.app.exit_app)
+        # self.settings_window.close_signal.connect(self.app.lifecycle_manager.on_onboarding_closed)
+        # previously... !!! does it change anything?
+        # self.settings_window.close_signal.connect(self.app.lifecycle_manager.exit_app)
+
         self.settings_window.retranslate_ui()
         self.settings_window.show()
 
