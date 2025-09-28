@@ -156,12 +156,7 @@ class AIProcessor(QObject):
             ]
         elif is_custom and not selected_text:
             # Custom mode without text
-            self.app.current_response_window.chat_history = [
-                {
-                    "role": "user",
-                    "content": f"Original text to {option.lower()}:\n\n{selected_text}",
-                }
-            ]
+            self.app.current_response_window.chat_history = []
         else:
             # Text mode
             self.app.current_response_window.chat_history = (
@@ -572,8 +567,8 @@ class AIProcessor(QObject):
 
                     # Get response from Mistral
                     response_text = self.current_provider.get_response(
-                        system_instruction,
-                        messages if isinstance(messages, str) else str(messages),
+                        "",  # system_instruction already in messages
+                        messages,
                         return_response=True,
                         image_data=image_data,
                     )
@@ -611,8 +606,8 @@ class AIProcessor(QObject):
 
                     # Get response by passing the full messages array
                     response_text = self.current_provider.get_response(
-                        system_instruction,
-                        messages if isinstance(messages, str) else str(messages),
+                        "",  # system_instruction already in messages
+                        messages,
                         return_response=True,
                     )
                 else:

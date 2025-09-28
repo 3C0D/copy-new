@@ -157,8 +157,6 @@ class PopupManager(QObject):
         # Position the window
         popup_window.move(x, y)
 
-
-
     def clean_image(self) -> None:
         """Clean up image resources."""
         if hasattr(self, "image") and self.image:

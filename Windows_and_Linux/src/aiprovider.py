@@ -430,7 +430,11 @@ class AIProvider(ABC):
     # which will be created by setattr() in load_config()
 
     def get_response(
-        self, system_instruction: str, prompt: str, return_response: bool = False, **kwargs
+        self,
+        system_instruction: str,
+        prompt: Union[str, list],
+        return_response: bool = False,
+        **kwargs,
     ) -> str:
         """
         Public interface to get a response from the AI provider.
@@ -463,7 +467,11 @@ class AIProvider(ABC):
 
     @abstractmethod
     def _get_response_impl(
-        self, system_instruction: str, prompt: str, return_response: bool = False, **kwargs
+        self,
+        system_instruction: str,
+        prompt: Union[str, list],
+        return_response: bool = False,
+        **kwargs,
     ) -> str:
         """
         Concrete implementation of get_response for each provider.
@@ -631,7 +639,7 @@ class GeminiProvider(AIProvider):
     def _get_response_impl(
         self,
         system_instruction: str,
-        prompt: str,
+        prompt: Union[str, list],
         return_response: bool = False,
         **kwargs,
     ) -> str:
@@ -1969,7 +1977,11 @@ class AnthropicProvider(AIProvider):
         )
 
     def _get_response_impl(
-        self, system_instruction: str, prompt: str, return_response: bool = False, **kwargs
+        self,
+        system_instruction: str,
+        prompt: Union[str, list],
+        return_response: bool = False,
+        **kwargs,
     ) -> str:
         """
         Generate response using Anthropic's Claude API.
@@ -2149,7 +2161,7 @@ class MistralProvider(AIProvider):
     def _get_response_impl(
         self,
         system_instruction,
-        prompt,
+        prompt: Union[str, list],
         return_response: bool = False,
         **kwargs,
     ) -> str:
@@ -2171,7 +2183,7 @@ class MistralProvider(AIProvider):
 
         # Log request details for debugging
         self._logger.debug(
-            f"Mistral request - system: {len(system_instruction)} chars, prompt: {len(prompt)} chars, image: {image_data is not None}"
+            f"Mistral request - system: {len(system_instruction)} chars, prompt: {len(prompt) if isinstance(prompt, str) else 'list'} chars, image: {image_data is not None}"
         )
 
         try:
@@ -2209,45 +2221,49 @@ class MistralProvider(AIProvider):
                 "Content-Type": "application/json",
             }
 
-            messages = []
-
-            # Add system instruction as first message
-            if system_instruction:
-                messages.append({"role": "system", "content": system_instruction})
-
-            # Add conversation history if provided
-            if conversation_history:
-                messages.extend(conversation_history)
-
-            # Handle image data if provided for Mistral
-            if image_data:
-                # Check if current model supports vision
-                vision_models = [
-                    "pixtral-12b-2409",
-                    "mistral-small-2503",
-                    "mistral-medium-2505",
-                    "pixtral-large-2411",
-                    "mistral-small-latest",  # Keep for backward compatibility
-                ]
-
-                if self.api_model not in vision_models:
-                    error_msg = f"The selected model '{self.api_model}' does not support image analysis. Please choose a vision-capable model like pixtral-12b-2409 or mistral-small-2503."
-                    self._logger.error(error_msg)
-                    self.app.show_message_signal.emit(
-                        "Model Incompatible",
-                        error_msg,
-                    )
-                    return ""
-
-                user_content = [
-                    {"type": "text", "text": prompt},
-                    {"type": "image_url", "image_url": f"data:image/png;base64,{image_data}"},
-                ]
+            # Check if prompt is already a list of messages
+            if isinstance(prompt, list):
+                messages = prompt
             else:
-                user_content = prompt
+                messages = []
 
-            # Add current user message
-            messages.append({"role": "user", "content": user_content})
+                # Add system instruction as first message
+                if system_instruction:
+                    messages.append({"role": "system", "content": system_instruction})
+
+                # Add conversation history if provided
+                if conversation_history:
+                    messages.extend(conversation_history)
+
+                # Handle image data if provided for Mistral
+                if image_data:
+                    # Check if current model supports vision
+                    vision_models = [
+                        "pixtral-12b-2409",
+                        "mistral-small-2503",
+                        "mistral-medium-2505",
+                        "pixtral-large-2411",
+                        "mistral-small-latest",  # Keep for backward compatibility
+                    ]
+
+                    if self.api_model not in vision_models:
+                        error_msg = f"The selected model '{self.api_model}' does not support image analysis. Please choose a vision-capable model like pixtral-12b-2409 or mistral-small-2503."
+                        self._logger.error(error_msg)
+                        self.app.show_message_signal.emit(
+                            "Model Incompatible",
+                            error_msg,
+                        )
+                        return ""
+
+                    user_content = [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": f"data:image/png;base64,{image_data}"},
+                    ]
+                else:
+                    user_content = prompt
+
+                # Add current user message
+                messages.append({"role": "user", "content": user_content})
 
             data = {
                 "model": self.api_model,
