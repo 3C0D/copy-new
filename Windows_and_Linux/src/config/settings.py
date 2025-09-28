@@ -100,7 +100,7 @@ class SettingsManager:
             if name in settings.system:
                 return settings.system[name]
         except AttributeError:
-            # settings n'existe pas encore (pendant __init__)
+            # settings doesn't exist yet (during __init__)
             pass
 
         # Not found - raise standard AttributeError

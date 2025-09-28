@@ -446,6 +446,43 @@ class AIProcessor(QObject):
     def process_followup_question(self, response_window: "ResponseWindow", question: str) -> None:
         """
         Process a follow-up question in the chat window, with image support.
+
+        This method handles the complex interaction between the UI, chat history, and AI providers:
+
+        1. Chat History Management:
+        - Maintains a list of all messages (original text, summary, follow-ups)
+        - Properly formats roles (user/assistant) for each message
+        - Preserves conversation context across multiple questions (until the Window is closed)
+
+        2. Provider-Specific Handling:
+        a) Gemini:
+            - Converts internal roles to Gemini's user/model format
+            - Uses chat sessions with proper history formatting
+            - Maintains context through chat.send_message()
+
+        b) OpenAI-compatible:
+            - Uses standard OpenAI message array format
+            - Includes system instruction and full conversation history
+            - Properly maps internal roles to OpenAI roles
+
+        3. Flow:
+        a) User asks follow-up question
+        b) Question is added to chat history
+        c) Full history is formatted for the current provider
+        d) Response is generated while maintaining context
+        e) Response is displayed in chat UI
+        f) New response is added to history for future context
+
+        4. Threading:
+        - Runs in a separate thread to prevent UI freezing
+        - Uses signals to safely update UI from background thread
+        - Handles errors too
+
+        Args:
+            response_window: The ResponseWindow instance managing the chat UI
+            question: The follow-up question from the user
+
+        This implementation is a bit convoluted, but it allows us to manage chat history & model roles across both providers! :3
         """
         self._logger.debug(f"Processing follow-up question: {question}")
 

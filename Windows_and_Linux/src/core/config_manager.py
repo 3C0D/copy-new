@@ -108,6 +108,7 @@ class ConfigManager:
         Retranslate user interface elements.
         """
         self.app.systray_manager.update_tray_menu()
+        self._update_widget_translations() # !!! usefull?
         self._logger.debug("UI retranslated")
 
     def _update_widget_translations(self) -> None:

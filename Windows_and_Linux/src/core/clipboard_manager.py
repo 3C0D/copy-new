@@ -36,7 +36,7 @@ class ClipboardManager:
             return
 
         try:
-            self.app.clipboard_manager.clear_clipboard()
+            self.clear_clipboard()
             self._logger.debug("Clipboard cleared after successful operation")
         except Exception as e:
             self._logger.warning(f"Failed to clear clipboard: {e}")

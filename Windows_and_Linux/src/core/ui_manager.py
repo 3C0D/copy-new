@@ -1,8 +1,8 @@
 """
-UI Manager - Gestion centralisée des fenêtres et modales de l'application.
+UI Manager - Centralized management of application windows and modals.
 
-Ce module fournit une classe UIManager qui centralise la gestion de toutes les
-fenêtres et modales de l'application Writing Tools.
+This module provides a UIManager class that centralizes the management of all
+windows and modals of the Writing Tools application.
 """
 
 import logging
@@ -21,23 +21,23 @@ if TYPE_CHECKING:
 
 class UIManager:
     """
-    Gestionnaire centralisé pour toutes les fenêtres et modales de l'application.
+    Centralized manager for all application windows and modals.
 
-    Cette classe fournit des méthodes pour afficher et gérer les différentes
-    fenêtres de l'interface utilisateur de manière centralisée.
+    This class provides methods to display and manage the different
+    user interface windows in a centralized manner.
     """
 
     def __init__(self, app: "WritingToolApp"):
         """
-        Initialise le gestionnaire d'interface utilisateur.
+        Initialize the user interface manager.
 
         Args:
-            app: Instance principale de l'application WritingToolApp
+            app: Main application instance of WritingToolApp
         """
         self.app = app
         self._logger = logging.getLogger(__name__)
 
-        # Références aux fenêtres actives
+        # References to active windows
         self.onboarding_window: Optional[OnboardingWindow] = None
         self.settings_window: Optional[SettingsWindow] = None
         self.response_window: Optional[ResponseWindow] = None
@@ -45,12 +45,12 @@ class UIManager:
 
     def show_onboarding(self) -> None:
         """
-        Affiche la fenêtre d'onboarding pour les nouveaux utilisateurs.
+        Display the onboarding window for new users.
 
-        Crée une instance d'OnboardingWindow et l'affiche, en connectant
-        le signal de fermeture à la méthode de gestion appropriée.
+        Creates an OnboardingWindow instance and displays it, connecting
+        the close signal to the appropriate handling method.
         """
-        self._logger.debug("Affichage de la fenêtre d'onboarding")
+        self._logger.debug("Showing onboarding window")
 
         if self.onboarding_window:
             self.onboarding_window.close()
@@ -61,16 +61,15 @@ class UIManager:
 
     def on_onboarding_closed(self) -> None:
         """
-        Gère la fermeture de la fenêtre d'onboarding.
+        Handle the closing of the onboarding window.
 
-        Cette méthode est appelée lorsque l'utilisateur ferme la fenêtre
-        d'onboarding, permettant de continuer l'initialisation normale
-        de l'application.
+        This method is called when the user closes the onboarding window,
+        allowing to continue the normal initialization of the application.
         """
-        self._logger.debug("Fenêtre d'onboarding fermée, continuation de l'initialisation")
+        self._logger.debug("Onboarding window closed, continuing initialization")
         self.onboarding_window = None
 
-        # Déléguer la logique métier à l'application principale
+        # Delegate business logic to the main application
         if hasattr(self.app, "on_onboarding_closed"):
             self.app.on_onboarding_closed()
 
@@ -116,27 +115,27 @@ class UIManager:
 
     def show_response_window(self, option: str, text: Optional[str] = None) -> ResponseWindow:
         """
-        Affiche une fenêtre de réponse pour afficher les résultats de l'IA.
+        Display a response window to show AI results.
 
         Args:
-            option: Option sélectionnée (ex: "Summary", "Rewrite", etc.)
-            text: Texte sélectionné ou None pour le mode image
+            option: Selected option (e.g., "Summary", "Rewrite", etc.)
+            text: Selected text or None for image mode
 
         Returns:
-            ResponseWindow: Instance de la fenêtre créée
+            ResponseWindow: Created window instance
         """
-        self._logger.debug(f"Affichage de la fenêtre de réponse pour l'option: {option}")
+        self._logger.debug(f"Showing response window for option: {option}")
 
         response_window = ResponseWindow(self.app, f"{option} Result")
 
-        # Configuration pour l'image si disponible
+        # Configuration for image if available
         if (
             hasattr(self.app.popup_manager, "has_image")
             and self.app.popup_manager.has_image
             and self.app.popup_manager.image
         ):
             response_window.image = self.app.popup_manager.image
-            self._logger.debug("Image configurée dans la fenêtre de réponse")
+            self._logger.debug("Image configured in response window")
             response_window.selected_text = None
         else:
             response_window.selected_text = text
@@ -148,25 +147,25 @@ class UIManager:
 
     def show_message_box(self, title: str, message: str) -> None:
         """
-        Affiche une boîte de message avec le titre et le message donnés.
+        Display a message box with the given title and message.
 
-        Pour les erreurs API, ajoute un bouton pour ouvrir les paramètres.
+        For API errors, adds a button to open settings.
 
         Args:
-            title: Titre de la boîte de message
-            message: Message à afficher
+            title: Message box title
+            message: Message to display
         """
-        self._logger.debug(f"Affichage d'une boîte de message: {title}")
+        self._logger.debug(f"Showing message box: {title}")
 
         msg_box = QMessageBox(None)
         msg_box.setWindowFlags(msg_box.windowFlags() | self.app.Qt.WindowType.WindowStaysOnTopHint)  # type: ignore
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
 
-        # Ajouter le bouton OK standard
+        # Add standard OK button
         msg_box.addButton(QMessageBox.StandardButton.Ok)
 
-        # Pour les erreurs API, ajouter un bouton pour ouvrir les paramètres
+        # For API errors, add a button to open settings
         settings_button = None
         if any(
             keyword in title.lower()
@@ -183,24 +182,24 @@ class UIManager:
         ):
             settings_button = msg_box.addButton("Open Settings", QMessageBox.ButtonRole.ActionRole)
 
-        # Afficher la boîte de message
+        # Show the message box
         msg_box.exec()
 
-        # Si le bouton paramètres a été cliqué, ouvrir les paramètres
+        # If the settings button was clicked, open settings
         if settings_button and msg_box.clickedButton() == settings_button:
             self.show_settings()
 
     def _show_non_editable_modal(self, transformed_text: Optional[str] = None) -> None:
         """
-        Affiche une modale pour le texte non éditable.
+        Display a modal for non-editable text.
 
-        Utilisée lorsque le collage direct échoue et qu'il faut afficher
-        le texte transformé dans une modale.
+        Used when direct pasting fails and the transformed text needs to be displayed
+        in a modal.
 
         Args:
-            transformed_text: Texte transformé à afficher
+            transformed_text: Transformed text to display
         """
-        self._logger.debug("Affichage de la modale non éditable")
+        self._logger.debug("Showing non-editable modal")
 
         if self.non_editable_modal:
             self.non_editable_modal.close()
@@ -208,12 +207,12 @@ class UIManager:
         self.non_editable_modal = NonEditableModal(self.app, transformed_text)
         self.non_editable_modal.show()
 
-    # pas utilisé? !!!
+    # not used? !!!
     def close_all_windows(self) -> None:
         """
-        Ferme toutes les fenêtres gérées par ce gestionnaire.
+        Close all windows managed by this manager.
         """
-        self._logger.debug("Fermeture de toutes les fenêtres")
+        self._logger.debug("Closing all windows")
 
         windows_to_close = [
             self.onboarding_window,
@@ -226,7 +225,7 @@ class UIManager:
             if window:
                 window.close()
 
-        # Réinitialiser les références
+        # Reset references
         self.onboarding_window = None
         self.settings_window = None
         self.response_window = None

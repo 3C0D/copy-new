@@ -25,9 +25,6 @@ from .aiprovider import (
     OllamaProvider,
     OpenAICompatibleProvider,
 )
-
-# ResponseWindow already imported above
-# Removed duplicate imports
 from .AutostartManager import AutostartManager
 from .config.settings import SettingsManager
 from .core.ai_processor import AIProcessor
@@ -54,6 +51,7 @@ from .update_checker import UpdateChecker
 
 if TYPE_CHECKING:
     from .aiprovider import AIProvider
+    from .ui.ResponseWindow import ResponseWindow
 
 os.environ["QT_LOGGING_RULES"] = (
     "qt.qpa.mime.warning=false;qt.qpa.mime.debug=false;qt.qpa.mime.info=false"  # Disable QMimeDatabase warnings
@@ -393,55 +391,6 @@ class WritingToolApp(QApplication):
         Delegates to the UI manager.
         """
         self.ui_manager.show_message_box(title, message)
-
-    """
-    The function below (process_followup_question) processes follow-up questions in the chat interface for Summary, Key Points, and Table operations.
-
-    This method handles the complex interaction between the UI, chat history, and AI providers:
-
-    1. Chat History Management:
-    - Maintains a list of all messages (original text, summary, follow-ups)
-    - Properly formats roles (user/assistant) for each message
-    - Preserves conversation context across multiple questions (until the Window is closed)
-
-    2. Provider-Specific Handling:
-    a) Gemini:
-        - Converts internal roles to Gemini's user/model format
-        - Uses chat sessions with proper history formatting
-        - Maintains context through chat.send_message()
-
-    b) OpenAI-compatible:
-        - Uses standard OpenAI message array format
-        - Includes system instruction and full conversation history
-        - Properly maps internal roles to OpenAI roles
-
-    3. Flow:
-    a) User asks follow-up question
-    b) Question is added to chat history
-    c) Full history is formatted for the current provider
-    d) Response is generated while maintaining context
-    e) Response is displayed in chat UI
-    f) New response is added to history for future context
-
-    4. Threading:
-    - Runs in a separate thread to prevent UI freezing
-    - Uses signals to safely update UI from background thread
-    - Handles errors too
-
-    Args:
-        response_window: The ResponseWindow instance managing the chat UI
-        question: The follow-up question from the user
-
-    This implementation is a bit convoluted, but it allows us to manage chat history & model roles across both providers! :3
-    """
-
-    # useless now, moved to ai_processor.py
-    # def process_followup_question(self, response_window: "ResponseWindow", question: str) -> None:
-    #     """
-    #     Process a follow-up question in the chat window.
-    #     Delegates to the AI processor.
-    #     """
-    #     self.ai_processor.process_followup_question(response_window, question)
 
     # ============================================================================
     # APPLICATION LIFECYCLE METHODS

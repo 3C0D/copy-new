@@ -1,5 +1,6 @@
 """
 Progress Window for long-running operations like Ollama installation.
+!!! works?
 """
 
 from typing import TYPE_CHECKING

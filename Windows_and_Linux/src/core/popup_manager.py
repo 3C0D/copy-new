@@ -131,7 +131,9 @@ class PopupManager(QObject):
             offset_x: Horizontal offset from cursor
             offset_y: Vertical offset from cursor
         """
-        if not self.has_image and (selected_text is None or selected_text.strip() == ""):
+        if not self.has_image and (
+            selected_text is None or (selected_text and selected_text.strip() == "")
+        ):
             height = 150  # smaller window
         # Get cursor position
 

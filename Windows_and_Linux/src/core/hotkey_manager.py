@@ -165,9 +165,9 @@ class HotkeyManager:
             self.app.current_response_window = None
 
         # Original hotkey handling continues...
-        if self.current_provider:
+        if self.app.ai_processor.current_provider:
             self._logger.debug("Cancelling current provider's request")
-            self.current_provider.cancel()
+            self.app.ai_processor.current_provider.cancel()
             self.app.ai_processor.output_queue = ""
 
         # noinspection PyTypeChecker

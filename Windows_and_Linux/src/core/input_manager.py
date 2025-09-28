@@ -73,7 +73,6 @@ class InputManager:
 
         # Clean the selected text
         if selected_text:
-            selected_text = selected_text
             self._logger.debug(f"Text retrieved and cleaned: {len(selected_text)} characters")
         else:
             selected_text = ""
