@@ -32,6 +32,7 @@ from .aiprovider import (
 from .AutostartManager import AutostartManager
 from .config.settings import SettingsManager
 from .core.ai_processor import AIProcessor
+from .core.config_manager import ConfigManager
 from .core.hotkey_manager import HotkeyManager
 from .core.image_processor import ImageProcessor
 from .core.popup_manager import PopupManager
@@ -141,6 +142,7 @@ class WritingToolApp(QApplication):
         self.settings_window = None
         self.non_editable_modal = None
         self.theme_manager = ThemeManager(self)
+        self.config_manager = ConfigManager(self)
         self.language_manager = LanguageManager(self)
         self.styles = self.theme_manager.get_styles()
 
