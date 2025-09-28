@@ -38,7 +38,7 @@ class LanguageManager(QtCore.QObject):
         self.app.settings_manager.language = new_language
 
         # Update translations
-        self.app.setup_translations(new_language)
+        self.app.config_manager.setup_translations(new_language)
 
         # Emit signal
         self.language_changed.emit(new_language)

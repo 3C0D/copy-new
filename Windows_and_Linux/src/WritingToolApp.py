@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 
 from pynput import keyboard as keyboard
 from PySide6 import QtCore
-from PySide6.QtCore import QLocale, Signal, Slot
+from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QApplication
 
 from .aiprovider import (
@@ -37,13 +37,6 @@ from .core.popup_manager import PopupManager
 from .core.text_processor import TextProcessor
 from .core.ui_manager import UIManager
 from .systray import SystrayManager
-from .ui import (
-    AboutWindow,
-    CustomPopupWindow,
-    HelpWindow,
-    OnboardingWindow,
-    SettingsWindow,
-)
 from .ui.LanguageManager import LanguageManager
 from .ui.ResponseWindow import ResponseWindow
 from .ui.ThemeManager import ThemeManager
@@ -135,7 +128,6 @@ class WritingToolApp(QApplication):
         mode = self._detect_running_mode()
         self._logger.debug(f"Running mode: {mode}")
         self.settings_manager = SettingsManager(mode=mode)
-        self.load_settings()
 
     def _setup_ui_components(self) -> None:
         """Initialize UI component references."""
@@ -303,48 +295,9 @@ class WritingToolApp(QApplication):
     #         or "PyInstaller" in filename
     #     ): build...
 
-    def setup_translations(self, lang=None) -> None:
-        """Setup application translations for the specified language."""
-        if not lang:
-            lang = QLocale.system().name().split("_")[0]
-
-        try:
-            locales_dir = Path(__file__).parent.parent / "locales"
-            translation = gettext.translation(
-                "messages",
-                localedir=str(locales_dir),
-                languages=[lang],
-            )
-        except FileNotFoundError:
-            translation = gettext.NullTranslations()
-
-        translation.install()
-        self._update_translation_functions(translation)
-
-    def _update_translation_functions(self, translation: gettext.NullTranslations) -> None:
-        """Update translation functions for all UI components."""
-        self._ = translation.gettext
-        AboutWindow._ = self._
-        SettingsWindow._ = self._
-        ResponseWindow._ = self._  # type: ignore
-        OnboardingWindow._ = self._
-        CustomPopupWindow._ = self._
-        HelpWindow._ = self._
-
     def retranslate_ui(self) -> None:
         """Retranslate the user interface elements."""
         self.systray_manager.update_tray_menu()
-
-    def _update_widget_translations(self) -> None:
-        """Update translations for all top-level widgets."""
-        for widget in QApplication.topLevelWidgets():
-            if widget != self and hasattr(widget, "retranslate_ui"):
-                widget.retranslate_ui()  # type: ignore
-
-    def load_settings(self) -> None:
-        """Load unified settings using the SettingsManager."""
-        self.settings_manager.load_settings()
-        self._logger.debug("Unified settings loaded successfully")
 
     # ============================================================================
     # HOTKEY AND INPUT HANDLING METHODS

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QLocale
+from PySide6.QtWidgets import QApplication
 
 if TYPE_CHECKING:
     from ..WritingToolApp import WritingToolApp
@@ -37,15 +38,7 @@ class ConfigManager:
 
         # Initialize translations
         self._current_translation: gettext.NullTranslations | None = None
-        self._ = gettext.gettext  # Default translation function
-
-    def load_settings(self) -> None:
-        """
-        Load application settings.
-        Delegates to the existing SettingsManager.
-        """
-        self.app.load_settings()
-        self._logger.debug("Settings loaded via ConfigManager")
+        self._ = gettext.gettext  # Default translation function !!! à garder?
 
     def setup_translations(self, lang: str | None = None) -> None:
         """
@@ -58,7 +51,7 @@ class ConfigManager:
             lang = QLocale.system().name().split("_")[0]
 
         try:
-            locales_dir = Path(__file__).parent.parent / "locales"
+            locales_dir = Path(__file__).parent.parent.parent / "locales"
             translation = gettext.translation(
                 "messages",
                 localedir=str(locales_dir),
@@ -98,24 +91,18 @@ class ConfigManager:
         CustomPopupWindow._ = self._
         HelpWindow._ = self._
 
-        # Update global function
-        # import builtins
-
-        # builtins._ = self._
-
     def retranslate_ui(self) -> None:
         """
         Retranslate user interface elements.
         """
         self.app.systray_manager.update_tray_menu()
-        self._update_widget_translations() # !!! usefull?
+        self._update_widget_translations()  # !!! usefull?
         self._logger.debug("UI retranslated")
 
     def _update_widget_translations(self) -> None:
         """
         Update translations for all top-level widgets.
         """
-        from PySide6.QtWidgets import QApplication
 
         for widget in QApplication.topLevelWidgets():
             if widget != self.app and hasattr(widget, "retranslate_ui"):
@@ -182,24 +169,3 @@ class ConfigManager:
         """
         self.app.theme_manager.change_background_theme(new_theme)
         self._logger.debug(f"Background theme changed to: {new_theme}")
-
-    def get_styles(self) -> dict[str, str]:
-        """
-        Get the current CSS styles.
-
-        Returns:
-            dict: Dictionary of CSS styles
-        """
-        return self.app.theme_manager.get_styles()
-
-    def translate(self, text: str) -> str:
-        """
-        Translate a text.
-
-        Args:
-            text: Text to translate
-
-        Returns:
-            str: Translated text
-        """
-        return self._(text)

@@ -180,6 +180,7 @@ class SettingsManager:
             user_data = self._load_user_data()
             if user_data is not None:
                 self.settings = create_unified_settings_from_data(user_data)
+                self._logger.debug(f"Settings loaded from {self.data_file}")
         else:
             self._logger.debug(f"No settings file found at {self.data_file}, using defaults")
             self.settings = self.default_settings
