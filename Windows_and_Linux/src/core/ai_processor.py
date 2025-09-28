@@ -37,10 +37,6 @@ class AIProcessor(QObject):
         self.current_provider: AIProvider | None = None
         self.output_queue = ""
 
-        # Connect signals
-        self.output_ready_signal.connect(self.app.replace_text)
-        self.show_message_signal.connect(self.app.show_message_box)
-
     def set_current_provider(self) -> None:
         """Set the current provider and save settings."""
         provider_name: str = self.app.settings_manager.provider or DEFAULT_PROVIDER

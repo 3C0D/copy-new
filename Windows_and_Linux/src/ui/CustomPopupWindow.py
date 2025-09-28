@@ -1528,7 +1528,7 @@ class CustomPopupWindow(QWidget):
         widget = getattr(self, "custom_input", None)
         txt = widget.text() if widget else ""
         if txt.strip():
-            self.app.process_option(
+            self.app.ai_processor.process_option(
                 "Custom", self.selected_text, self.is_force_chat_enabled(), txt, self.image
             )
             self.close()
@@ -1538,7 +1538,7 @@ class CustomPopupWindow(QWidget):
         User clicked a generic instruction button.
         """
         if not self.edit_mode and (self.selected_text is not None or self.has_image):
-            self.app.process_option(
+            self.app.ai_processor.process_option(
                 instruction, self.selected_text, self.is_force_chat_enabled(), None, self.image
             )
             self.close()

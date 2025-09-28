@@ -1031,7 +1031,7 @@ class ResponseWindow(ThemedWidget):
 
         self.chat_history.append({"role": "user", "content": message})
         self.start_thinking_animation()
-        self.app.process_followup_question(self, message)
+        self.app.ai_processor.process_followup_question(self, message)
 
     def copy_as_markdown(self) -> None:
         """Copy conversation as Markdown"""

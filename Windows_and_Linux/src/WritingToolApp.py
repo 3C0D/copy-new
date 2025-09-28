@@ -11,12 +11,11 @@ import os
 import signal
 import sys
 import time
-import types
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from pynput import keyboard as keyboard
-from PySide6 import QtCore, QtGui
+from PySide6 import QtCore
 from PySide6.QtCore import QLocale, Signal, Slot
 from PySide6.QtWidgets import QApplication, QMessageBox
 
@@ -36,12 +35,12 @@ from .core.ai_processor import AIProcessor
 from .core.hotkey_manager import HotkeyManager
 from .core.image_processor import ImageProcessor
 from .core.popup_manager import PopupManager
+from .core.text_processor import TextProcessor
 from .systray import SystrayManager
 from .ui import (
     AboutWindow,
     CustomPopupWindow,
     HelpWindow,
-    NonEditableModal,
     OnboardingWindow,
     SettingsWindow,
 )
@@ -89,13 +88,11 @@ class WritingToolApp(QApplication):
             self._setup_ui_components()
 
             self._logger.debug("Setting up hotkey system...")
-            self._setup_hotkey_system()
 
             self._logger.debug("Setting up AI providers...")
             self._setup_ai_providers()
 
             self._logger.debug("Setting up spam protection...")
-            self._setup_spam_protection()
 
             # Initialize app based on configuration state
             self._logger.debug("Checking provider configuration...")
@@ -115,8 +112,8 @@ class WritingToolApp(QApplication):
         """Initialize core application attributes."""
         self.current_response_window: ResponseWindow | None = None
         self.current_provider: AIProvider | None = None
-        self.output_queue = ""
         self.ai_processor = AIProcessor(self)
+        self.text_processor = TextProcessor(self)
         self.hotkey_manager = HotkeyManager(self)
         self.systray_manager = SystrayManager(self)
         self.image_processor = ImageProcessor(self._logger)
@@ -124,8 +121,10 @@ class WritingToolApp(QApplication):
 
     def _setup_signals(self) -> None:
         """Connect application signals to their handlers."""
-        self.output_ready_signal.connect(self.replace_text)
+        self.output_ready_signal.connect(self.text_processor.replace_text)
         self.show_message_signal.connect(self.show_message_box)
+        # Connecter les signaux du text_processor
+        self.text_processor.show_message_signal.connect(self.show_message_box)
         self.hotkey_triggered_signal.connect(self.hotkey_manager.on_hotkey_pressed)
 
     def _setup_settings(self) -> None:
@@ -144,10 +143,6 @@ class WritingToolApp(QApplication):
         self.theme_manager = ThemeManager(self)
         self.language_manager = LanguageManager(self)
         self.styles = self.theme_manager.get_styles()
-
-    def _setup_hotkey_system(self) -> None:
-        """Initialize hotkey and keyboard listener system."""
-        self.hotkey_manager.setup_ctrl_c_listener()
 
     def _setup_ai_providers(self) -> None:
         """Initialize available AI providers."""
@@ -178,11 +173,6 @@ class WritingToolApp(QApplication):
             self._logger.warning(f"Failed to create providers: {failed_providers}")
         else:
             self._logger.debug(f"All {len(self.providers)} providers initialized successfully")
-
-    def _setup_spam_protection(self) -> None:
-        """Initialize hotkey spam protection system."""
-        # Spam protection is now handled by HotkeyManager
-        pass
 
     def _handle_first_launch(self) -> None:
         """Handle first-time application launch."""
@@ -368,7 +358,6 @@ class WritingToolApp(QApplication):
     # HOTKEY AND INPUT HANDLING METHODS
     # ============================================================================
 
-
     def show_onboarding(self) -> None:
         """
         Show the onboarding window for first-time users.
@@ -409,26 +398,6 @@ class WritingToolApp(QApplication):
     def get_current_model(self, provider_name: str) -> str:
         provider = self.settings_manager.providers.get(provider_name, {})
         return provider.get("api_model", "")
-
-    # ============================================================================
-    # HOTKEY MANAGEMENT METHODS
-    # ============================================================================
-
-
-    def process_option(
-        self,
-        option: str,
-        selected_text: str | None,
-        force_chat: bool = False,
-        custom_change: str | None = None,
-        image: QtGui.QImage | None = None,
-    ) -> None:
-        """Delegate to AI processor."""
-        self.ai_processor.process_option(option, selected_text, force_chat, custom_change, image)
-
-    # ============================================================================
-    # AI PROCESSING METHODS
-    # ============================================================================
 
     # ============================================================================
     # USER INTERFACE METHODS
@@ -492,155 +461,6 @@ class WritingToolApp(QApplication):
         response_window.show()
         return response_window
 
-    @Slot(str)
-    def replace_text(self, new_text: str) -> None:
-        """
-        Replaces the text by pasting in the LLM generated text. With "Key Points" and "Summary", invokes a window with the output instead.
-        If pasting fails (non-editable page), shows the text in a modal window.
-        """
-        self._logger.debug(
-            f"replace_text called with text length: {len(new_text) if new_text else 0}"
-        )
-
-        # Early return if no valid text
-        if not new_text or not isinstance(new_text, str):
-            self._logger.debug("No new text to process")
-            return
-
-        error_message = "ERROR_TEXT_INCOMPATIBLE_WITH_REQUEST"
-        self.output_queue += new_text
-        current_output = (
-            self.output_queue
-        )  # no strip there the answer can be code with indentation, on several lines
-
-        # Handle error message
-        if current_output.strip() == error_message:
-            self.show_message_signal.emit(
-                "Error", "The text is incompatible with the requested change."
-            )
-            return
-
-        # Check if we're building up to the error message (to prevent partial pasting)
-        if len(current_output.strip()) <= len(error_message):
-            clean_current = "".join(current_output.split())
-            clean_error = "".join(error_message.split())
-            if clean_current == clean_error[: len(clean_current)]:
-                return
-
-        self._logger.debug("Processing output text")
-
-        try:
-            # Handle Summary and Key Points - show in response window
-            if hasattr(self, "current_response_window") and self.current_response_window:
-                self._handle_response_window_output(new_text)
-            else:
-                # Handle other options - try clipboard-based replacement with fallback
-                self._handle_clipboard_paste()
-
-                # Check if selection changed (indicating successful paste)
-                new_selection = self.popup_manager.get_selected_text(sleep_duration=0.1)
-
-                # If selection is the same, paste failed (non-editable page)
-                if (
-                    self.popup_manager.original_selection == new_selection
-                    and self.popup_manager.original_selection
-                    and self.popup_manager.original_selection.strip()
-                ):
-                    # Fallback to modal window for non-editable pages
-                    cleaned_text = self.output_queue.rstrip("\n")
-                    QtCore.QMetaObject.invokeMethod(
-                        self,
-                        "_show_non_editable_modal",
-                        QtCore.Qt.ConnectionType.QueuedConnection,
-                        QtCore.Q_ARG(str, cleaned_text),
-                    )
-                self.popup_manager.original_selection = None
-                self.output_queue = ""
-
-        except Exception as e:
-            self._logger.exception(f"Error processing output: {e}")
-
-    def _handle_response_window_output(self, new_text: str) -> None:
-        """Handle output for response window (Summary/Key Points)"""
-        # Check if current_response_window exists and is not None
-        current_window = getattr(self, "current_response_window", None)
-        if not current_window:
-            self._logger.warning("No current_response_window to handle output")
-            return
-
-        # Check if chat_area exists and is not None
-        chat_area = getattr(current_window, "chat_area", None)
-        if chat_area:
-            chat_area.add_message(new_text)
-        else:
-            self._logger.warning("No chat_area found in current_response_window")
-            return
-
-        # If this is the initial response, add it to chat history
-        if len(current_window.chat_history) == 1:  # Only original text exists
-            current_window.chat_history.append(
-                {
-                    "role": "assistant",
-                    "content": self.output_queue.rstrip("\n"),
-                }
-            )
-
-    def _handle_clipboard_paste(self) -> None:
-        """Handle clipboard-based text replacement with simple pyperclip approach"""
-        try:
-            import pyperclip
-
-            clipboard_backup = pyperclip.paste()
-            cleaned_text = self.output_queue.rstrip("\n")
-            pyperclip.copy(cleaned_text)
-
-            kbrd = keyboard.Controller()
-
-            def press_ctrl_v():
-                with kbrd.pressed(keyboard.Key.ctrl):
-                    kbrd.press("v")
-                    kbrd.release("v")
-
-            press_ctrl_v()
-            time.sleep(0.2)
-            pyperclip.copy(clipboard_backup)
-
-        except Exception as e:
-            self._logger.error(f"Error in clipboard paste: {e}")
-            # Fallback to modal window for non-editable pages
-            cleaned_text = self.output_queue.rstrip("\n")
-            QtCore.QMetaObject.invokeMethod(
-                self,
-                "_show_non_editable_modal",
-                QtCore.Qt.ConnectionType.QueuedConnection,
-                QtCore.Q_ARG(str, cleaned_text),
-            )
-
-    @Slot(str)
-    def _show_non_editable_modal(self, transformed_text: str) -> None:
-        """
-        Show a modal window with the transformed text when pasting fails (non-editable page).
-        """
-        self._logger.debug("Showing non-editable modal window")
-        try:
-            # Close existing modal if any
-            if hasattr(self, "non_editable_modal") and self.non_editable_modal is not None:
-                self.non_editable_modal.close()
-                self.non_editable_modal = None
-
-            # Create and show the modal window
-            self.non_editable_modal = NonEditableModal.NonEditableModal(self, transformed_text)
-            self.non_editable_modal.close_signal.connect(self._on_non_editable_modal_closed)
-            self.non_editable_modal.show()
-
-        except Exception as e:
-            self._logger.error(f"Error showing non-editable modal: {e}", exc_info=True)
-
-    @Slot()
-    def _on_non_editable_modal_closed(self) -> None:
-        """Clean up modal reference when it's closed"""
-        self.non_editable_modal = None
-
     """
     The function below (process_followup_question) processes follow-up questions in the chat interface for Summary, Key Points, and Table operations.
 
@@ -682,13 +502,13 @@ class WritingToolApp(QApplication):
     This implementation is a bit convoluted, but it allows us to manage chat history & model roles across both providers! :3
     """
 
-    def process_followup_question(self, response_window: ResponseWindow, question: str) -> None:
-        """Delegate to AI processor."""
-        self.ai_processor.process_followup_question(response_window, question)
-
-    def register_hotkey(self) -> None:
-        """Delegate to hotkey manager for backward compatibility."""
-        self.hotkey_manager.register_hotkey()
+    # useless now, moved to ai_processor.py
+    # def process_followup_question(self, response_window: "ResponseWindow", question: str) -> None:
+    #     """
+    #     Process a follow-up question in the chat window.
+    #     Delegates to the AI processor.
+    #     """
+    #     self.ai_processor.process_followup_question(response_window, question)
 
     def show_settings(self, providers_only: bool = False, previous_window=None) -> None:
         """
@@ -728,6 +548,12 @@ class WritingToolApp(QApplication):
     # APPLICATION LIFECYCLE METHODS
     # ============================================================================
 
+    def register_hotkey(self) -> None:
+        """
+        Register the global hotkey for the application.
+        Delegates to the hotkey manager.
+        """
+        self.hotkey_manager.register_hotkey()
 
     def exit_app(self) -> None:
         """

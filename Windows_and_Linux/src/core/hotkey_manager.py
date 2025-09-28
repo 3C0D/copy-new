@@ -36,6 +36,9 @@ class HotkeyManager:
         self.TRIGGER_WINDOW = 1.5  # Time window in seconds
         self.MAX_TRIGGERS = 3  # Max allowed triggers in window
 
+        # Setup Ctrl+C listener
+        self.setup_ctrl_c_listener()
+
     def setup_ctrl_c_listener(self) -> None:
         """
         Listener for Ctrl+C to exit the app.

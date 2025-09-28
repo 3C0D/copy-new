@@ -583,7 +583,7 @@ class SettingsWindow(ThemedWidget):
         """
         if self.shortcut_input is not None and not self.providers_only:
             self.app.settings_manager.hotkey = self.shortcut_input.text() or "ctrl+space"
-            self.app.register_hotkey()
+            self.app.hotkey_manager.register_hotkey()
 
     def _on_theme_radio_changed(self) -> None:
         """Handle theme radio button changes."""
@@ -816,7 +816,7 @@ class SettingsWindow(ThemedWidget):
         self.save_current_provider_settings()
 
         # Re-register hotkey with new settings
-        self.app.register_hotkey()
+        self.app.hotkey_manager.register_hotkey()
         # Exit providers_only mode after first save
         self.providers_only = False
 
