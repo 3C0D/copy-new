@@ -114,7 +114,6 @@ class WritingToolApp(QApplication):
     def _setup_core_attributes(self) -> None:
         """Initialize core application attributes."""
         self.current_response_window: ResponseWindow | None = None
-        self.current_provider: AIProvider | None = None
         self.ai_processor = AIProcessor(self)
         self.text_processor = TextProcessor(self)
         self.hotkey_manager = HotkeyManager(self)
@@ -210,9 +209,6 @@ class WritingToolApp(QApplication):
             self._logger.debug(f"Provider config: {provider_config}")
             self.ai_processor.current_provider.load_config(provider_config)
             self._logger.debug("Provider config loaded successfully")
-
-        # Keep the reference for compatibility
-        self.current_provider = self.ai_processor.current_provider
 
     def _setup_user_interface(self) -> None:
         """Setup user interface components."""

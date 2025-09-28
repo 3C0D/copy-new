@@ -62,6 +62,7 @@ class SettingsWindow(ThemedWidget):
         self.app = app
         self._logger = logging.getLogger(__name__)
         self.current_provider_layout = None
+        self.current_provider = self.app.ai_processor.current_provider
         # Special mode to show only provider settings (during first setup)
         self.providers_only = providers_only
 
@@ -291,8 +292,8 @@ class SettingsWindow(ThemedWidget):
         )
 
         # Ensure current_provider is set for auto-save to work
-        if not self.app.current_provider:
-            self.app.current_provider = provider_instance
+        if not self.current_provider:
+            self.current_provider = provider_instance
 
         # Initial UI setup for the selected provider
         self.init_provider_ui(provider_instance, self.provider_container)
@@ -476,20 +477,20 @@ class SettingsWindow(ThemedWidget):
         Save settings for the currently selected provider.
         Called when individual settings change.
         """
-        if not self.app.current_provider:
+        if not self.current_provider:
             return
 
         # Save current provider's config
-        self.app.current_provider.save_config()
+        self.current_provider.save_config()
 
         # Reload config to update provider with new settings
         provider_config = self.app.settings_manager.providers.get(
-            self.app.current_provider.internal_name, {}
+            self.current_provider.internal_name, {}
         )
-        self.app.current_provider.load_config(provider_config)
+        self.current_provider.load_config(provider_config)
 
         self._logger.debug(
-            f"Saved and reloaded settings for: {self.app.current_provider.internal_name}"
+            f"Saved and reloaded settings for: {self.current_provider.internal_name}"
         )
 
     def disable_dropdown_scroll(self, layout: QLayout) -> None:
@@ -726,8 +727,8 @@ class SettingsWindow(ThemedWidget):
             self.app.systray_manager.apply_tray_menu_styles(self.app.systray_manager.tray_menu)
 
         # Refresh styles in the current provider if applicable (in aiprovider.py)
-        if self.app.current_provider:
-            self.app.current_provider.refresh_styles()
+        if self.current_provider:
+            self.current_provider.refresh_styles()
 
         # Refresh background theme
         super().refresh_theme()
@@ -766,8 +767,8 @@ class SettingsWindow(ThemedWidget):
 
     def update_provider_button_text(self) -> None:
         """Update the main provider button text when provider state changes."""
-        if hasattr(self, "main_button") and self.main_button and self.app.current_provider:
-            self.main_button.setText(self.app.current_provider.button_text)
+        if hasattr(self, "main_button") and self.main_button and self.current_provider:
+            self.main_button.setText(self.current_provider.button_text)
 
     def toggle_autostart(self, state: int) -> None:
         """Toggle the autostart setting based on checkbox state."""
@@ -862,11 +863,11 @@ class SettingsWindow(ThemedWidget):
             return
 
         # Clean up the old provider before switching
-        if self.app.current_provider and hasattr(self.app.current_provider, "before_load"):
-            self.app.current_provider.before_load()
+        if self.current_provider and hasattr(self.current_provider, "before_load"):
+            self.current_provider.before_load()
 
         # Update the application
-        self.app.current_provider = new_provider
+        self.current_provider = new_provider
         self.app.settings_manager.provider = current_internal_name
 
         # Reload config for the new provider
@@ -957,16 +958,16 @@ class SettingsWindow(ThemedWidget):
             if (
                 hasattr(self, "main_button")
                 and self.main_button
-                and self.app.current_provider
-                and hasattr(self.app.current_provider, "button_text")
+                and self.current_provider
+                and hasattr(self.current_provider, "button_text")
             ):
-                self.main_button.setText(self.app.current_provider.button_text)
+                self.main_button.setText(self.current_provider.button_text)
 
             # Update additional buttons
             if (
-                self.app.current_provider
-                and hasattr(self.app.current_provider, "additional_buttons")
-                and self.app.current_provider.additional_buttons
+                self.current_provider
+                and hasattr(self.current_provider, "additional_buttons")
+                and self.current_provider.additional_buttons
             ):
                 # Find buttons in the current provider layout
                 if self.current_provider_layout:
@@ -986,9 +987,9 @@ class SettingsWindow(ThemedWidget):
                                     ):
                                         button = cast(QPushButton, sub_item.widget())
                                         if button_index < len(
-                                            self.app.current_provider.additional_buttons
+                                            self.current_provider.additional_buttons
                                         ):
-                                            config = self.app.current_provider.additional_buttons[
+                                            config = self.current_provider.additional_buttons[
                                                 button_index
                                             ]
                                             button.setText(config["text"])
