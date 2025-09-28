@@ -12,7 +12,7 @@ import logging
 import time
 from typing import Optional
 
-from pynput import keyboard
+import pyperclip
 from PySide6 import QtCore
 from PySide6.QtCore import Q_ARG, QObject, Signal, Slot
 
@@ -127,20 +127,11 @@ class TextProcessor(QObject):
     def _handle_clipboard_paste(self) -> None:
         """Handle clipboard-based text replacement with simple pyperclip approach"""
         try:
-            import pyperclip
-
             clipboard_backup = pyperclip.paste()
             cleaned_text = self.app.ai_processor.output_queue.rstrip("\n")
             pyperclip.copy(cleaned_text)
 
-            kbrd = keyboard.Controller()
-
-            def press_ctrl_v():
-                with kbrd.pressed(keyboard.Key.ctrl):
-                    kbrd.press("v")
-                    kbrd.release("v")
-
-            press_ctrl_v()
+            self.app.input_manager.simulate_ctrl_key("v")
             time.sleep(0.2)
             pyperclip.copy(clipboard_backup)
 

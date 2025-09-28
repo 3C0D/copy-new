@@ -28,12 +28,6 @@ class InputManager:
 
         # Simulate Ctrl+C to copy selected text
         self._logger.debug("Simulating Ctrl+C")
-        kbrd = keyboard.Controller()
-
-        def press_ctrl_c():
-            with kbrd.pressed(keyboard.Key.ctrl):
-                kbrd.press("c")
-                kbrd.release("c")
 
         # Retry mechanism for Ctrl+C
         for attempt in range(max_retries):
@@ -43,7 +37,7 @@ class InputManager:
             self.app.clipboard_manager.clear_clipboard()
 
             # Simulate Ctrl+C
-            press_ctrl_c()
+            self.simulate_ctrl_key("c")
 
             # Wait for clipboard to update
             time.sleep(sleep_duration)
@@ -91,14 +85,16 @@ class InputManager:
 
         return selected_text
 
-    # plus utilisé? !!!
-    def simulate_ctrl_c(self) -> None:
-        """Simulate Ctrl+C key combination."""
+    def simulate_ctrl_key(self, key: str) -> None:
+        """Simulate Ctrl+key combination.
+
+        Args:
+            key: The key to press with Ctrl ('c' for copy, 'v' for paste)
+        """
         kbrd = keyboard.Controller()
         with kbrd.pressed(keyboard.Key.ctrl):
-            kbrd.press("c")
-            kbrd.release("c")
-
+            kbrd.press(key)
+            kbrd.release(key)
 
     def _is_file_path(self, text: str) -> bool:
         """Check if text looks like a file path."""
