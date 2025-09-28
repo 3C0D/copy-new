@@ -1,3 +1,39 @@
+"""
+A voir!!!
+
+Il y a effectivement une incohérence architecturale :
+
+## Problème identifié
+
+**Dans ImageProcessor** :
+- `get_selected_text()` - Cette fonction n'a rien à voir avec le traitement d'images
+- Elle manipule le clipboard pour récupérer du texte, pas des images
+- Elle utilise des simulations clavier (Ctrl+C) qui sont de la gestion d'entrée utilisateur
+
+## Solutions possibles
+
+### Option 1: Créer un nouveau module
+Créer un `ClipboardManager` ou `InputManager` qui gérerait :
+- `get_selected_text()`
+- Les opérations clipboard génériques
+- Les simulations clavier
+
+### Option 2: Réorganiser les responsabilités
+- **ImageProcessor** : Garde uniquement le traitement d'images pures
+- **PopupManager** : Récupère `get_selected_text()` car c'est lui qui a besoin de cette fonction pour déterminer le contenu à traiter
+
+### Option 3: Renommer ImageProcessor
+Le renommer en `ContentProcessor` ou `ClipboardProcessor` pour refléter ses responsabilités élargies (images + texte du clipboard).
+
+## Recommandation
+
+Je pencherais pour l'**Option 2** :
+- Remettre `get_selected_text()` dans PopupManager
+- Garder ImageProcessor focalisé sur les images uniquement
+- PopupManager devient le gestionnaire de "contenu d'entrée" (texte sélectionné + images)
+
+Cette approche respecte mieux le principe de responsabilité unique : ImageProcessor = images, PopupManager = gestion des entrées utilisateur pour les popups.
+"""
 import base64
 import tempfile
 import time
@@ -5,6 +41,7 @@ import urllib.parse
 from pathlib import Path
 from typing import Optional
 
+from pynput import keyboard
 from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
 
@@ -98,6 +135,89 @@ class ImageProcessor:
             self._logger.debug(f"Error validating image path: {e}")
             return False
 
+    # Placeholder methods that should be implemented in the actual class
+    def get_selected_text(
+        self, sleep_duration: float = 0.2, max_retries: int = 3, retry_delay: float = 0.1
+    ) -> str:
+        """
+        Get the currently selected text from any application by simulating Ctrl+C.
+        """
+        self._logger.debug("Getting selected text")
+        clipboard = QApplication.clipboard()
+        clipboard_backup = clipboard.text()
+        self._logger.debug(
+            f"Clipboard backed up: {clipboard_backup[:30] if clipboard_backup else 'Empty'} ..."
+        )
+
+        # Clear the clipboard
+        clipboard.clear()
+        selected_text = ""
+
+        # Simulate Ctrl+C to copy selected text
+        self._logger.debug("Simulating Ctrl+C")
+        kbrd = keyboard.Controller()
+
+        def press_ctrl_c():
+            with kbrd.pressed(keyboard.Key.ctrl):
+                kbrd.press("c")
+                kbrd.release("c")
+
+        # Retry mechanism for Ctrl+C
+        for attempt in range(max_retries):
+            self._logger.debug(f"Attempting Ctrl+C - attempt {attempt + 1}/{max_retries}")
+
+            # Clear clipboard before each attempt to detect success
+            clipboard.clear()
+
+            # Simulate Ctrl+C
+            press_ctrl_c()
+
+            # Wait for clipboard to update
+            time.sleep(sleep_duration)
+
+            # Check if clipboard has new content
+            current_clipboard = clipboard.text()
+
+            if current_clipboard:  # Success - clipboard has content
+                # Check if it's a file path (from QuickLook/file selection)
+                if self._is_file_path(current_clipboard):
+                    self._logger.debug(
+                        f"Detected file path, treating as no selection: {current_clipboard}"
+                    )
+                    selected_text = ""
+                    break
+                else:
+                    selected_text = current_clipboard
+                    self._logger.debug(
+                        f"Ctrl+C successful on attempt {attempt + 1}: {selected_text[:30] if selected_text else 'Empty'} ..."
+                    )
+                    break
+            else:
+                # Failed attempt
+                if attempt < max_retries - 1:  # Don't wait after the last attempt
+                    self._logger.debug(
+                        f"Ctrl+C failed on attempt {attempt + 1}/{max_retries}, retrying in {retry_delay}s..."
+                    )
+                    time.sleep(retry_delay)
+                else:
+                    self._logger.warning(
+                        f"Ctrl+C failed after {max_retries} attempts - no text selected or clipboard access failed"
+                    )
+
+        # Clean the selected text
+        if selected_text:
+            selected_text = selected_text
+            self._logger.debug(f"Text retrieved and cleaned: {len(selected_text)} characters")
+        else:
+            selected_text = ""
+            self._logger.debug("No text was retrieved")
+
+        # Restore the clipboard
+        clipboard.setText(clipboard_backup if clipboard_backup else "")
+        self._logger.debug("Clipboard restored")
+
+        return selected_text
+
     def _load_image_from_path(self, text: str) -> Optional[QImage]:
         """
         Load an image from a file path.
@@ -179,7 +299,7 @@ class ImageProcessor:
             self._logger.error(f"Error processing clipboard image data: {e}")
             return None
 
-    def get_clipboard_image(self) -> Optional[QImage]:
+    def get_image_from_clipboard(self) -> Optional[QImage]:
         """
         Get image data from clipboard (screenshots, copied images, or image file paths).
 

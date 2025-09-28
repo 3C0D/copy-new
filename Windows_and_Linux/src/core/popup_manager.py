@@ -1,13 +1,10 @@
-import time
 from typing import Optional
 
-from pynput import keyboard
 from PySide6.QtCore import QObject, Slot
 from PySide6.QtGui import QCursor, QIcon, QImage
 from PySide6.QtWidgets import QApplication
 
 from ..ui.ui_utils import ui_utils
-from .image_processor import ImageProcessor
 
 
 class PopupManager(QObject):
@@ -17,7 +14,7 @@ class PopupManager(QObject):
         super().__init__()
         self.app = app
         self._logger = logger
-        self.image_processor = ImageProcessor(logger)
+        self.image_processor = app.image_processor
 
         # State variables
         self.image: Optional[QImage] = None
@@ -34,7 +31,7 @@ class PopupManager(QObject):
         """
         # Check clipboard first
         if self.image is None:
-            self.image = self.image_processor.get_clipboard_image()
+            self.image = self.image_processor.get_image_from_clipboard()
 
         # If we have an image from clipboard, no need to check text
         if self.image:
@@ -44,7 +41,9 @@ class PopupManager(QObject):
             return self.image, None
 
         # No image in clipboard, check selected text
-        selected_text = self.original_selection = self.get_selected_text(sleep_duration=0.1)
+        selected_text = self.original_selection = self.image_processor.get_selected_text(
+            sleep_duration=0.1
+        )
         self._logger.debug(f'Selected text: "{selected_text}"')
 
         if not selected_text:
@@ -113,89 +112,6 @@ class PopupManager(QObject):
         except Exception as e:
             self._logger.error(f"Error showing popup window: {e}", exc_info=True)
 
-    # Placeholder methods that should be implemented in the actual class
-    def get_selected_text(
-        self, sleep_duration: float = 0.2, max_retries: int = 3, retry_delay: float = 0.1
-    ) -> str:
-        """
-        Get the currently selected text from any application by simulating Ctrl+C.
-        """
-        self._logger.debug("Getting selected text")
-        clipboard = QApplication.clipboard()
-        clipboard_backup = clipboard.text()
-        self._logger.debug(
-            f"Clipboard backed up: {clipboard_backup[:30] if clipboard_backup else 'Empty'} ..."
-        )
-
-        # Clear the clipboard
-        clipboard.clear()
-        selected_text = ""
-
-        # Simulate Ctrl+C to copy selected text
-        self._logger.debug("Simulating Ctrl+C")
-        kbrd = keyboard.Controller()
-
-        def press_ctrl_c():
-            with kbrd.pressed(keyboard.Key.ctrl):
-                kbrd.press("c")
-                kbrd.release("c")
-
-        # Retry mechanism for Ctrl+C
-        for attempt in range(max_retries):
-            self._logger.debug(f"Attempting Ctrl+C - attempt {attempt + 1}/{max_retries}")
-
-            # Clear clipboard before each attempt to detect success
-            clipboard.clear()
-
-            # Simulate Ctrl+C
-            press_ctrl_c()
-
-            # Wait for clipboard to update
-            time.sleep(sleep_duration)
-
-            # Check if clipboard has new content
-            current_clipboard = clipboard.text()
-
-            if current_clipboard:  # Success - clipboard has content
-                # Check if it's a file path (from QuickLook/file selection)
-                if self.image_processor._is_file_path(current_clipboard):
-                    self._logger.debug(
-                        f"Detected file path, treating as no selection: {current_clipboard}"
-                    )
-                    selected_text = ""
-                    break
-                else:
-                    selected_text = current_clipboard
-                    self._logger.debug(
-                        f"Ctrl+C successful on attempt {attempt + 1}: {selected_text[:30] if selected_text else 'Empty'} ..."
-                    )
-                    break
-            else:
-                # Failed attempt
-                if attempt < max_retries - 1:  # Don't wait after the last attempt
-                    self._logger.debug(
-                        f"Ctrl+C failed on attempt {attempt + 1}/{max_retries}, retrying in {retry_delay}s..."
-                    )
-                    time.sleep(retry_delay)
-                else:
-                    self._logger.warning(
-                        f"Ctrl+C failed after {max_retries} attempts - no text selected or clipboard access failed"
-                    )
-
-        # Clean the selected text
-        if selected_text:
-            selected_text = selected_text
-            self._logger.debug(f"Text retrieved and cleaned: {len(selected_text)} characters")
-        else:
-            selected_text = ""
-            self._logger.debug("No text was retrieved")
-
-        # Restore the clipboard
-        clipboard.setText(clipboard_backup if clipboard_backup else "")
-        self._logger.debug("Clipboard restored")
-
-        return selected_text
-
     def position_popup_window(
         self,
         popup_window,
@@ -241,6 +157,7 @@ class PopupManager(QObject):
         # Position the window
         popup_window.move(x, y)
 
+    # kept for potential future use
     def _is_file_path(self, text: str) -> bool:
         """
         Check if the text is a file path (from file/icon selection).
