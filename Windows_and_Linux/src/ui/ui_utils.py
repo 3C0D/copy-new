@@ -146,6 +146,7 @@ class ThemedWidget(QWidget):
 
         # Theme management integration
         self._register_for_theme_changes()
+        self._register_for_language_changes()
 
     def _calculate_window_size(self) -> None:
         """
@@ -232,7 +233,8 @@ class ThemedWidget(QWidget):
         self.app.theme_manager.color_mode_changed.connect(self._on_color_mode_changed)
         self.app.theme_manager.background_theme_changed.connect(self._on_background_theme_changed)
 
-        # Register for language changes
+    def _register_for_language_changes(self) -> None:
+        """Register this widget for language change notifications."""
         self.app.language_manager.register_widget(self)
         self.app.language_manager.language_changed.connect(self._on_language_changed)
 
