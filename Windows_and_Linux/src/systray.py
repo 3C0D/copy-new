@@ -89,7 +89,7 @@ class SystrayManager:
 
         # Settings menu item
         settings_action = self.tray_menu.addAction(_("Settings"))
-        settings_action.triggered.connect(self.app.show_settings)
+        settings_action.triggered.connect(self.app.ui_manager.show_settings)
 
         # Pause/Resume toggle action
         self.toggle_action = self.tray_menu.addAction(_("Resume") if self.paused else _("Pause"))

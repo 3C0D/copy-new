@@ -144,7 +144,7 @@ class AIProcessor(QObject):
         """
         is_custom = option == "Custom"
         window_title = "Chat" if not is_custom else option
-        self.app.current_response_window = self.app.show_response_window(
+        self.app.current_response_window = self.app.ui_manager.show_response_window(
             window_title, selected_text
         )
 

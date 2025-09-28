@@ -794,7 +794,7 @@ class SettingsWindow(ThemedWidget):
         # Always save settings before closing
         self.save_settings_without_closing()
 
-        # Return to previous window if it exists and is still valid (set from WritingToolApp.show_settings)
+        # Return to previous window if it exists and is still valid (set from ui_manager.show_settings)
         ui_utils.existing_window_on_top(self.previous_window)
 
         # Close this window

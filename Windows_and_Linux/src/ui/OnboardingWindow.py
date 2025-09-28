@@ -424,7 +424,7 @@ class OnboardingWindow(ThemedWidget):
     def _show_api_key_input(self) -> None:
         """Navigate to API key configuration screen and close this window."""
         # Open settings window focused on provider configuration
-        self.app.show_settings(providers_only=True)
+        self.app.ui_manager.show_settings(providers_only=True)
         # Mark as self-closing to avoid emitting close signal
         self.self_close = True
         # Close this onboarding window

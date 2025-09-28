@@ -10,14 +10,13 @@ import logging
 import os
 import signal
 import sys
-import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pynput import keyboard as keyboard
 from PySide6 import QtCore
 from PySide6.QtCore import QLocale, Signal, Slot
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication
 
 from .aiprovider import (
     AnthropicProvider,
@@ -37,6 +36,7 @@ from .core.hotkey_manager import HotkeyManager
 from .core.image_processor import ImageProcessor
 from .core.popup_manager import PopupManager
 from .core.text_processor import TextProcessor
+from .core.ui_manager import UIManager
 from .systray import SystrayManager
 from .ui import (
     AboutWindow,
@@ -119,6 +119,7 @@ class WritingToolApp(QApplication):
         self.systray_manager = SystrayManager(self)
         self.image_processor = ImageProcessor(self._logger)
         self.popup_manager = PopupManager(self, self._logger)
+        self.ui_manager = UIManager(self)
 
     def _setup_signals(self) -> None:
         """Connect application signals to their handlers."""
@@ -179,7 +180,7 @@ class WritingToolApp(QApplication):
     def _handle_first_launch(self) -> None:
         """Handle first-time application launch."""
         self._logger.debug("First launch detected (no providers configured), showing onboarding")
-        self.show_onboarding()
+        self.ui_manager.show_onboarding()
 
     def _handle_normal_launch(self) -> None:
         """Handle normal application launch with configured providers."""
@@ -265,7 +266,7 @@ class WritingToolApp(QApplication):
         import traceback
 
         self._logger.debug(f"Full traceback: {traceback.format_exc()}")
-        self.show_onboarding()
+        self.ui_manager.show_onboarding()
 
     # ============================================================================
     # CONFIGURATION AND SETUP METHODS
@@ -360,16 +361,6 @@ class WritingToolApp(QApplication):
     # HOTKEY AND INPUT HANDLING METHODS
     # ============================================================================
 
-    def show_onboarding(self) -> None:
-        """
-        Show the onboarding window for first-time users.
-        """
-        self._logger.debug("Showing onboarding window")
-
-        self.onboarding_window = OnboardingWindow.OnboardingWindow(self)
-        self.onboarding_window.close_signal.connect(self.on_onboarding_closed)
-        self.onboarding_window.show()
-
     def on_onboarding_closed(self) -> None:
         """
         Handle onboarding window being closed.
@@ -409,59 +400,9 @@ class WritingToolApp(QApplication):
     def show_message_box(self, title: str, message: str) -> None:
         """
         Show a message box with the given title and message.
-        For API errors, adds a button to open settings.
+        Delegates to the UI manager.
         """
-        msg_box = QMessageBox(None)
-        msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
-        msg_box.setWindowTitle(title)
-        msg_box.setText(message)
-
-        # Add standard 'OK' button
-        msg_box.addButton(QMessageBox.StandardButton.Ok)
-
-        # For API errors, add a button to open settings
-        settings_button = None
-        if any(
-            keyword in title.lower()
-            for keyword in [
-                "api",
-                "key",
-                "quota",
-                "rate limit",
-                "connection",
-                "authentication",
-                "vision",
-                "configuration",
-            ]
-        ):
-            settings_button = msg_box.addButton("Open Settings", QMessageBox.ButtonRole.ActionRole)
-
-        # Show the message box
-        msg_box.exec()
-
-        # If settings button was clicked, open settings
-        if settings_button and msg_box.clickedButton() == settings_button:
-            self.show_settings()
-
-    def show_response_window(self, option: str, text: str | None) -> ResponseWindow:
-        """
-        Show the response in a new window instead of pasting it.
-        Enhanced to support image display and analysis.
-        """
-        response_window = ResponseWindow(self, f"{option} Result")
-
-        # Set image and text context
-        if self.popup_manager.has_image and self.popup_manager.image:
-            response_window.image = self.popup_manager.image
-            self._logger.debug("Image set in response window")
-            # For image analysis, we don't need selected text
-            response_window.selected_text = None
-        else:
-            response_window.selected_text = text  # Store the text for regeneration
-            response_window.image = None
-
-        response_window.show()
-        return response_window
+        self.ui_manager.show_message_box(title, message)
 
     """
     The function below (process_followup_question) processes follow-up questions in the chat interface for Summary, Key Points, and Table operations.
@@ -512,50 +453,9 @@ class WritingToolApp(QApplication):
     #     """
     #     self.ai_processor.process_followup_question(response_window, question)
 
-    def show_settings(self, providers_only: bool = False, previous_window=None) -> None:
-        """
-        Show the settings window with debounce protection against rapid clicks.
-        """
-        current_time = time.time() * 1000  # Convert to milliseconds
-
-        # Prevent rapid successive clicks that could accidentally open Settings
-        # This fixes the bug where rapid right-clicks on tray icon open Settings accidentally
-        if (
-            hasattr(self, "last_tray_click_time")
-            and (current_time - self.last_tray_click_time)
-            < self.systray_manager.tray_click_debounce_ms
-        ):
-            self._logger.debug("Settings click ignored due to debounce protection")
-            return
-
-        self.last_tray_click_time = current_time
-
-        self._logger.debug("Showing settings window")
-
-        if self.settings_window:
-            self.settings_window.close()
-
-        # Always create a new settings window to handle providers_only correctly
-        self.settings_window = SettingsWindow.SettingsWindow(self, providers_only=providers_only)
-
-        # Set reference to previous window for navigation
-        if previous_window:
-            self.settings_window.previous_window = previous_window
-
-        self.settings_window.close_signal.connect(self.exit_app)
-        self.settings_window.retranslate_ui()
-        self.settings_window.show()
-
     # ============================================================================
     # APPLICATION LIFECYCLE METHODS
     # ============================================================================
-
-    def register_hotkey(self) -> None:
-        """
-        Register the global hotkey for the application.
-        Delegates to the hotkey manager.
-        """
-        self.hotkey_manager.register_hotkey()
 
     def exit_app(self) -> None:
         """
