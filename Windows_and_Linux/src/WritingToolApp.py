@@ -18,11 +18,11 @@ from PySide6.QtWidgets import QApplication
 
 from .aiprovider.aiprovider import (
     GeminiProvider,
-    OllamaProvider,
     OpenAICompatibleProvider,
 )
 from .aiprovider.anthropic import AnthropicProvider
 from .aiprovider.mistral import MistralProvider
+from .aiprovider.ollama import OllamaProvider
 from .AutostartManager import AutostartManager
 from .config.settings import SettingsManager
 from .core.ai_processor import AIProcessor
@@ -58,7 +58,7 @@ class WritingToolApp(QApplication):
     """
 
     output_ready_signal = Signal(str)
-    show_message_signal = Signal(str, str)  # a signal for showing message boxes
+    show_message_signal = Signal(str, str)
     hotkey_triggered_signal = Signal()
     followup_response_signal = Signal(str)
 

@@ -52,7 +52,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
 
 # Third-party imports (with fallbacks for optional dependencies)
-from ollama import Client as OllamaClient
 from openai import OpenAI
 from PIL import Image as PILImage
 
@@ -60,13 +59,10 @@ from PIL import Image as PILImage
 from PySide6 import QtCore
 from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import (
-    QApplication,
     QComboBox,
-    QDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QPushButton,
     QVBoxLayout,
 )
 
@@ -81,9 +77,8 @@ except ImportError:
     HarmCategory = None  # type: ignore
 
 # Local imports
-from ..config.constants import ANTHROPIC_MODELS, GEMINI_MODELS, OPENAI_MODELS
+from ..config.constants import GEMINI_MODELS, OPENAI_MODELS
 from ..config.data_operations import get_default_model_for_provider
-from ..ui.ProgressWindow import OllamaInstallProgressWindow
 
 # Type checking imports
 if TYPE_CHECKING:
@@ -330,8 +325,18 @@ class DropdownSetting(AIProviderSetting):
             return
 
         try:
+            # Don't refresh if dropdown popup is currently visible to avoid closing it
+            if self.dropdown.view().isVisible():
+                # Just update the options list for next time
+                self.options = new_options
+                return
+
             # Save current selection
             current_value = self.get_value()
+            initial_index = self.dropdown.currentIndex()
+
+            # Block signals during refresh to prevent unwanted auto-save triggers
+            self.dropdown.blockSignals(True)
 
             # Clear and repopulate dropdown
             self.dropdown.clear()
@@ -349,10 +354,20 @@ class DropdownSetting(AIProviderSetting):
                     self._logger.warning(f"Unexpected option format: {option_tuple}")
 
             # Restore selection if possible
+            final_index = initial_index
             if current_value:
                 index = self.dropdown.findData(current_value)
                 if index != -1:
                     self.dropdown.setCurrentIndex(index)
+                    final_index = index
+
+            # Unblock signals
+            self.dropdown.blockSignals(False)
+
+            # Only trigger auto-save if the effective selection actually changed
+            if final_index != initial_index and self.auto_save_callback:
+                self.auto_save_callback()
+
         except RuntimeError:
             # Widget has been deleted, just update the options
             self.options = new_options
@@ -1598,336 +1613,3 @@ class OllamaStateManager(QObject):
         except Exception as e:
             self._logger.exception(f"Error installing Ollama on Linux: {e}")
             return False
-
-
-class OllamaProvider(AIProvider):
-    """
-    Optimized Ollama provider with async operations and state caching.
-    """
-
-    def __init__(self, app: "WritingToolApp"):
-        self.app = app
-        self.client: Optional[OllamaClient] = None
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        # Use the singleton state manager
-        self.state_manager = OllamaStateManager()
-
-        # Connect to state updates
-        self.state_manager.state_updated.connect(self._on_state_updated)
-        self.state_manager.models_updated.connect(self._on_models_updated)
-
-        # Get initial state (using cached values if available)
-        ollama_installed = self.state_manager.is_ollama_installed()
-        ollama_models = self.state_manager.get_ollama_models()
-
-        # Set default model
-        default_ollama_model = ""
-        if ollama_models and ollama_models[0][1]:
-            default_ollama_model = ollama_models[0][1]
-
-        settings = [
-            TextSetting(
-                app,
-                "api_base",
-                "API Base URL",
-                "http://localhost:11434",
-                "E.g. http://localhost:11434",
-            ),
-            DropdownSetting(
-                app,
-                name="api_model",
-                display_name="API Model (detected automatically)",
-                default_value=default_ollama_model,
-                description="Models are automatically detected from your Ollama installation",
-                options=ollama_models,
-                refresh_callback=self._refresh_models,
-            ),
-            TextSetting(
-                app,
-                "keep_alive",
-                "Time to keep the model loaded in memory in minutes",
-                "5",
-                "E.g. 5",
-            ),
-        ]
-
-        # Determine initial UI state and button text
-        if ollama_installed:
-            description = (
-                "• Connect to an Ollama server (local LLM).\n"
-                "• Ollama is installed and ready to use."
-            )
-            button_text = "Update Ollama"
-        else:
-            description = (
-                "• Connect to an Ollama server (local LLM).\n"
-                "• Ollama is not installed. Click the button to install it."
-            )
-            button_text = "Install Ollama"
-
-        super().__init__(
-            app,
-            "Ollama",
-            settings,
-            description,
-            "ollama",
-            button_text,
-            lambda: self._install_ollama_async(),
-            "ollama",
-        )
-
-        # Add additional buttons if Ollama is installed
-        if ollama_installed:
-            self.add_button("🗑️ Delete Model", self._delete_model, "secondary")
-
-        # Start async refresh on initialization
-        self.state_manager.refresh_state_async()
-
-    def _on_state_updated(self):
-        """Handle state updates from the state manager."""
-        self.refresh_configuration()
-        # Update button text in settings window if it's open
-        if hasattr(self.app, "settings_window") and self.app.settings_window:
-            self.app.settings_window.update_provider_button_text()
-
-    def _on_models_updated(self, models: list[tuple[str, str]]):
-        """Handle model list updates."""
-        for setting in self.settings:
-            if setting.name == "api_model" and isinstance(setting, DropdownSetting):
-                setting.refresh_options(models)
-                # Update selection if needed
-                current_value = setting.get_value() if hasattr(setting, "get_value") else ""
-                if models and models[0][1] and not current_value:
-                    setting.set_value(models[0][1])
-                break
-
-    def _refresh_models(self):
-        """Refresh models asynchronously."""
-        self.state_manager.refresh_models_async()
-
-    def _install_ollama_async(self):
-        """Install Ollama asynchronously."""
-
-        progress_window = OllamaInstallProgressWindow(self.app)
-        progress_window.show()
-        progress_window.start_animation()
-
-        def progress_callback(status):
-            if status == "downloading":
-                QApplication.processEvents()
-            elif status == "installing":
-                progress_window.set_installing()
-                QApplication.processEvents()
-            elif status == "finishing":
-                progress_window.set_finishing()
-                QApplication.processEvents()
-
-        def install_thread():
-            success = self.state_manager.install_ollama(self.app, progress_callback)
-            progress_window.close()
-
-            if success:
-                self.app.show_message_signal.emit(
-                    "Installation Successful", "Ollama has been installed successfully!"
-                )
-                # Refresh UI
-                self.refresh_configuration()
-                if hasattr(self.app, "settings_window") and self.app.settings_window:
-                    self.app.settings_window._on_provider_changed()
-            else:
-                self.app.show_message_signal.emit(
-                    "Installation Failed",
-                    "Ollama installation failed. Please try again or install manually.",
-                )
-
-        # Run installation in a separate thread
-        import threading
-
-        thread = threading.Thread(target=install_thread)
-        thread.start()
-
-    def refresh_configuration(self):
-        """Refresh configuration based on current state."""
-        ollama_installed = self.state_manager.is_ollama_installed()
-        ollama_running = self.state_manager.is_ollama_running() if ollama_installed else False
-
-        if ollama_installed:
-            self.description = (
-                "• Connect to an Ollama server (local LLM).\n"
-                "• Ollama is installed and ready to use."
-            )
-            self.button_text = "Update Ollama"
-        else:
-            self.description = (
-                "• Connect to an Ollama server (local LLM).\n"
-                "• Ollama is not installed. Click the button to install it."
-            )
-            self.button_text = "Install Ollama"
-
-        # Update additional buttons
-        self.additional_buttons = []
-        if ollama_installed:
-            self.add_button("🗑️ Delete Model", self._delete_model, "secondary")
-
-        # Refresh models if installed and running
-        if ollama_installed and ollama_running:
-            self._refresh_models()
-
-    def _delete_model(self):
-        """Delete model implementation - same as before but using state_manager."""
-        # Get models from state manager
-        valid_models = [
-            (display, model)
-            for display, model in self.state_manager.get_ollama_models()
-            if model and model.strip()
-        ]
-
-        if not valid_models:
-            self.app.show_message_signal.emit(
-                "No Models Available", "No Ollama models are available to delete."
-            )
-            return
-
-        # Create selection dialog (same as before)
-        dialog = QDialog()
-        dialog.setWindowTitle("Delete Ollama Model")
-        dialog.setModal(True)
-        dialog.resize(400, 200)
-
-        layout = QVBoxLayout(dialog)
-
-        warning_label = QLabel("⚠️ Warning: This will permanently delete the selected model.")
-        layout.addWidget(warning_label)
-
-        model_label = QLabel("Select model to delete:")
-        layout.addWidget(model_label)
-
-        model_combo = QComboBox()
-        for display_name, model_name in valid_models:
-            model_combo.addItem(display_name, model_name)
-        layout.addWidget(model_combo)
-
-        button_layout = QHBoxLayout()
-
-        cancel_button = QPushButton("Cancel")
-        cancel_button.clicked.connect(dialog.reject)
-        button_layout.addWidget(cancel_button)
-
-        delete_button = QPushButton("Delete Model")
-        delete_button.clicked.connect(dialog.accept)
-        button_layout.addWidget(delete_button)
-
-        layout.addLayout(button_layout)
-
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            selected_model = model_combo.currentData()
-            if selected_model:
-                success, message = self.state_manager.remove_ollama_model(selected_model)
-
-                if success:
-                    self.app.show_message_signal.emit("Model Deleted", message)
-                else:
-                    self.app.show_message_signal.emit("Deletion Failed", message)
-
-    def _get_response_impl(
-        self,
-        system_instruction: str,
-        prompt: Union[str, list],
-        return_response: bool = False,
-        **kwargs,
-    ) -> str:
-        """Send request to Ollama server."""
-        # Check Ollama status before attempting to send request
-        ollama_installed = self.state_manager.is_ollama_installed()
-        ollama_running = self.state_manager.is_ollama_running()
-
-        if not ollama_installed:
-            error_msg = (
-                "Ollama Not Installed",
-                "Ollama is not installed on your system.\n\n"
-                "Please go to Settings and use the 'Install Ollama' button to install it.\n\n"
-                "Once installed, you can use Ollama for AI responses.",
-            )
-            self.app.show_message_signal.emit(error_msg[0], error_msg[1])
-            return ""
-
-        if not ollama_running:
-            error_msg = (
-                "Ollama Not Running",
-                "Ollama is installed but not currently running.\n\n"
-                "Please start Ollama using your system's Ollama application.\n"
-                "On Windows: Click the Ollama icon in your system tray or start menu.\n"
-                "On Linux: Run 'ollama serve' in a terminal.\n\n"
-                "Or go to Settings to manage Ollama.",
-            )
-            self.app.show_message_signal.emit(error_msg[0], error_msg[1])
-            return ""
-
-        # Implementation remains the same as your original
-        image_data = kwargs.get("image_data")
-        if isinstance(prompt, list):
-            messages = prompt
-        else:
-            if image_data:
-                user_content = [
-                    {"type": "text", "text": prompt},
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image/png;base64,{image_data}"},
-                    },
-                ]
-            else:
-                user_content = prompt
-
-            messages = [
-                {"role": "system", "content": system_instruction},
-                {"role": "user", "content": user_content},
-            ]
-
-        try:
-            if not self.api_model or self.api_model.strip() == "":
-                self.app.show_message_signal.emit("Ollama Error", "No Ollama model selected.")
-                return ""
-
-            if self.client is None:
-                self.app.show_message_signal.emit("Error", "Ollama client not initialized.")
-                return ""
-
-            response = self.client.chat(model=self.api_model, messages=messages)
-            response_text = response["message"]["content"].rstrip("\n")
-
-            if not return_response and not hasattr(self.app, "current_response_window"):
-                self.app.output_ready_signal.emit(response_text)
-
-            return response_text
-
-        except Exception as e:
-            error_str = str(e)
-            self._logger.exception(f"Error during Ollama chat: {error_str}")
-
-            if "connection" in error_str.lower() or "refused" in error_str.lower():
-                self.app.show_message_signal.emit(
-                    "Connection Error", "Cannot connect to Ollama server."
-                )
-            else:
-                self.app.show_message_signal.emit("Ollama Error", f"An error occurred: {error_str}")
-            return ""
-
-    def after_load(self):
-        """Initialize Ollama client."""
-        if OllamaClient is not None and self.state_manager.is_ollama_installed():
-            try:
-                self.client = OllamaClient(host=self.api_base)
-                self._logger.debug("Ollama client initialized successfully")
-            except Exception as e:
-                self._logger.warning(f"Failed to initialize Ollama client: {e}")
-                self.client = None
-        else:
-            self.client = None
-
-    def before_load(self):
-        """Clean up client before reloading."""
-        self.client = None
-
-
