@@ -8,6 +8,7 @@ windows and modals of the Writing Tools application.
 import logging
 from typing import TYPE_CHECKING, Optional
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMessageBox
 
 from ..ui.NonEditableModal import NonEditableModal
@@ -149,7 +150,7 @@ class UIManager:
         self._logger.debug(f"Showing message box: {title}")
 
         msg_box = QMessageBox(None)
-        msg_box.setWindowFlags(msg_box.windowFlags() | self.app.Qt.WindowType.WindowStaysOnTopHint)  # type: ignore
+        msg_box.setWindowFlags(msg_box.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
 

@@ -59,17 +59,17 @@ ANTHROPIC_MODELS = [
     (
         "*Claude 3.5 Sonnet (Best for Most Users)",
         "claude-3-5-sonnet-20241022",
-        {"vision": False},
+        {"vision": True},
     ),
     (
         "*Claude 3.5 Haiku (Fastest, Most Affordable)",
         "claude-3-5-haiku-20241022",
-        {"vision": False},
+        {"vision": True},
     ),
     (
         "*Claude 3 Opus (Most Capable, Expensive)",
         "claude-3-opus-20240229",
-        {"vision": False},
+        {"vision": True},
     ),
 ]
 
