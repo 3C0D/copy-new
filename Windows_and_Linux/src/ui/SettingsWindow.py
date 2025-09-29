@@ -877,6 +877,9 @@ class SettingsWindow(ThemedWidget):
         # Rebuild UI for the new provider
         self.init_provider_ui(new_provider, self.provider_container)
 
+        # Update the AI processor with the new provider
+        self.app.ai_processor.set_current_provider()
+
         self._logger.debug(f"Switched to provider: {current_internal_name}")
 
     def _find_provider_by_name(self, internal_name: str) -> "AIProvider | None":

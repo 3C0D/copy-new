@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 from PySide6 import QtCore, QtGui
 from PySide6.QtCore import QObject, Signal
 
-from ..aiprovider.aiprovider import GeminiProvider
+from ..aiprovider.gemini import GeminiProvider
 from ..aiprovider.mistral import MistralProvider
 from ..config.constants import DEFAULT_PROVIDER, DEFAULT_PROVIDER_CONFIGS
 from ..config.interfaces import ActionConfig, ProviderConfig

@@ -17,10 +17,10 @@ from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QApplication
 
 from .aiprovider.aiprovider import (
-    GeminiProvider,
     OpenAICompatibleProvider,
 )
 from .aiprovider.anthropic import AnthropicProvider
+from .aiprovider.gemini import GeminiProvider
 from .aiprovider.mistral import MistralProvider
 from .aiprovider.ollama import OllamaProvider
 from .AutostartManager import AutostartManager
