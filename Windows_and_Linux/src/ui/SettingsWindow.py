@@ -36,7 +36,7 @@ from PySide6.QtWidgets import (
 )
 
 if TYPE_CHECKING:
-    from ..aiprovider import AIProvider
+    from ..aiprovider.aiprovider import AIProvider
     from ..WritingToolApp import WritingToolApp
 # Import Ollama check function
 from ..AutostartManager import AutostartManager
@@ -333,7 +333,7 @@ class SettingsWindow(ThemedWidget):
             self._logger.debug(f"Refreshed configuration for {provider.internal_name}")
         elif provider.internal_name == "ollama" and hasattr(provider, "refresh_configuration"):
             # For Ollama, only refresh if it's installed to avoid blocking
-            from ..aiprovider import OllamaStateManager
+            from ..aiprovider.aiprovider import OllamaStateManager
 
             state_manager = OllamaStateManager()
             if state_manager.is_ollama_installed():
@@ -834,7 +834,7 @@ class SettingsWindow(ThemedWidget):
 
         # Special handling for Ollama provider - allow selection but show status
         if current_internal_name == "ollama":
-            from ..aiprovider import OllamaStateManager
+            from ..aiprovider.aiprovider import OllamaStateManager
 
             state_manager = OllamaStateManager()
             ollama_installed = state_manager.is_ollama_installed()

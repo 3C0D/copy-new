@@ -12,12 +12,13 @@ from typing import TYPE_CHECKING, Any
 from PySide6 import QtCore, QtGui
 from PySide6.QtCore import QObject, Signal
 
-from ..aiprovider import GeminiProvider, MistralProvider
+from ..aiprovider.aiprovider import GeminiProvider
+from ..aiprovider.mistral import MistralProvider
 from ..config.constants import DEFAULT_PROVIDER, DEFAULT_PROVIDER_CONFIGS
 from ..config.interfaces import ActionConfig, ProviderConfig
 
 if TYPE_CHECKING:
-    from ..aiprovider import AIProvider
+    from ..aiprovider.aiprovider import AIProvider
     from ..ui.ResponseWindow import ResponseWindow
 
 

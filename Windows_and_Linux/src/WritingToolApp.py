@@ -16,13 +16,13 @@ from PySide6 import QtCore
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QApplication
 
-from .aiprovider import (
+from .aiprovider.aiprovider import (
     AnthropicProvider,
     GeminiProvider,
-    MistralProvider,
     OllamaProvider,
     OpenAICompatibleProvider,
 )
+from .aiprovider.mistral import MistralProvider
 from .AutostartManager import AutostartManager
 from .config.settings import SettingsManager
 from .core.ai_processor import AIProcessor
@@ -42,7 +42,7 @@ from .ui.ThemeManager import ThemeManager
 from .update_checker import UpdateChecker
 
 if TYPE_CHECKING:
-    from .aiprovider import AIProvider
+    from .aiprovider.aiprovider import AIProvider
     from .ui.ResponseWindow import ResponseWindow
 
 os.environ["QT_LOGGING_RULES"] = (

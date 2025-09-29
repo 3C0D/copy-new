@@ -56,7 +56,9 @@ class UIManager:
             self.onboarding_window.close()
 
         self.onboarding_window = OnboardingWindow(self.app)
-        self.onboarding_window.close_signal.connect(self.app.lifecycle_manager.on_onboarding_closed())
+        self.onboarding_window.close_signal.connect(
+            self.app.lifecycle_manager.on_onboarding_closed()
+        )
         self.onboarding_window.show()
 
     def show_settings(self, providers_only: bool = False, previous_window=None) -> None:
