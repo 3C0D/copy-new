@@ -257,7 +257,12 @@ class OllamaStateManager(QObject):
                                 else:
                                     size_info = f" ({size_raw})"
 
-                            display_name = f"{model_name}{size_info}"
+                            # Add asterisk for models with vision support
+                            vision_indicator = ""
+                            if "vision" in model_name.lower() or "vl" in model_name.lower():
+                                vision_indicator = "*"
+
+                            display_name = f"{vision_indicator}{model_name}{size_info}"
                             models.append((display_name, model_name))
 
                 if models:
