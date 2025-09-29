@@ -5,14 +5,7 @@ from typing import TYPE_CHECKING, Any, Union
 import requests
 
 from ..config.constants import MISTRAL_MODELS
-
-# Local imports
 from ..config.data_operations import get_default_model_for_provider
-
-# Type checking imports
-if TYPE_CHECKING:
-    from ..WritingToolApp import WritingToolApp
-
 from .aiprovider import AIProvider, DropdownSetting, TextSetting
 
 if TYPE_CHECKING:
