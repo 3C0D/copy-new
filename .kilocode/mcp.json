@@ -5,6 +5,9 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "alwaysAllow": [
+        "sequentialthinking"
       ]
     },
     "memory": {
@@ -24,6 +27,10 @@
         "open_nodes",
         "search_nodes"
       ]
+    },
+    "git-mcp": {
+      "type": "streamable-http",
+      "url": "https://gitmcp.io/3C0D/copy-new"
     }
   }
 }
