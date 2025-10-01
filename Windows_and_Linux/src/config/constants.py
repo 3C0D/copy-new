@@ -52,6 +52,7 @@ OPENAI_MODELS = [
     ),
     ("GPT-4 (Most Capable)", "gpt-4", {"vision": False}),
     ("GPT-3.5 Turbo (Fast)", "gpt-3.5-turbo", {"vision": False}),
+    ("moonshotai/kimi-k2:free", "moonshotai/kimi-k2:free", {"vision": False}),
 ]
 
 # * indicates vision support

@@ -16,13 +16,11 @@ from PySide6 import QtCore
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QApplication
 
-from .aiprovider.aiprovider import (
-    OpenAICompatibleProvider,
-)
 from .aiprovider.anthropic import AnthropicProvider
 from .aiprovider.gemini import GeminiProvider
 from .aiprovider.mistral import MistralProvider
 from .aiprovider.ollama import OllamaProvider
+from .aiprovider.openAI_compatible import OpenAICompatibleProvider
 from .AutostartManager import AutostartManager
 from .config.settings import SettingsManager
 from .core.ai_processor import AIProcessor
@@ -253,25 +251,13 @@ class WritingToolApp(QApplication):
         self._logger.debug(f"Full traceback: {traceback.format_exc()}")
         self.ui_manager.show_onboarding()
 
-    # ============================================================================
-    # CONFIGURATION AND SETUP METHODS
-    # ============================================================================
-
     def retranslate_ui(self) -> None:
         """Retranslate the user interface elements."""
         self.systray_manager.update_tray_menu()
 
-    # ============================================================================
-    # HOTKEY AND INPUT HANDLING METHODS
-    # ============================================================================
-
     def get_current_model(self, provider_name: str) -> str:
         provider = self.settings_manager.providers.get(provider_name, {})
         return provider.get("api_model", "")
-
-    # ============================================================================
-    # USER INTERFACE METHODS
-    # ============================================================================
 
     @Slot(str, str)
     def show_message_box(self, title: str, message: str) -> None:
