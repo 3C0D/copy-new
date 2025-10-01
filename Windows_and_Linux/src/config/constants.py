@@ -87,12 +87,21 @@ GEMINI_MODELS = [
 ]
 
 OPENAI_MODELS = [
+    ("GPT-5 (Most Advanced)", "gpt-5-2025-08-07", {"vision": True}),
+    ("GPT-5 Mini (Balanced)", "gpt-5-mini-2025-08-07", {"vision": True}),
+    ("GPT-5 Nano (Fast)", "gpt-5-nano-2025-08-07", {"vision": True}),
+    ("GPT-5 Chat Latest (Latest)", "gpt-5-chat-latest", {"vision": True}),
+    ("O3 (Reasoning)", "o3", {"vision": True}),
+    ("O4 Mini (Fast Reasoning)", "o4-mini", {"vision": True}),
+    ("GPT-4.1 (Advanced)", "gpt-4.1", {"vision": True}),
+    ("GPT-4.1 Mini (Balanced)", "gpt-4.1-mini", {"vision": True}),
+    ("GPT-4.1 Nano (Fast)", "gpt-4.1-nano", {"vision": True}),
+    ("O1 (Reasoning)", "o1", {"vision": True}),
+    ("O1 Preview (Reasoning Preview)", "o1-preview", {"vision": True}),
+    ("O1 Mini (Fast Reasoning)", "o1-mini", {"vision": True}),
     ("GPT-4o (Optimized)", "gpt-4o", {"vision": True}),
-    (
-        "GPT-4o Mini (Lightweight)",
-        "gpt-4o-mini",
-        {"vision": True},
-    ),
+    ("GPT-4o Mini (Lightweight)", "gpt-4o-mini", {"vision": True}),
+    ("ChatGPT-4o Latest (Latest)", "chatgpt-4o-latest", {"vision": True}),
     ("GPT-4 (Most Capable)", "gpt-4", {"vision": False}),
     ("GPT-3.5 Turbo (Fast)", "gpt-3.5-turbo", {"vision": False}),
 ]
@@ -103,13 +112,43 @@ OPENAI_MODELS = [
 
 ANTHROPIC_MODELS = [
     (
-        "Claude 3.5 Sonnet (Best for Most Users)",
-        "claude-3-5-sonnet-20241022",
+        "Claude Sonnet 4.5 (Most Advanced)",
+        "claude-sonnet-4-5-20250929",
         {"vision": True},
     ),
     (
-        "Claude 3.5 Haiku (Fastest, Most Affordable)",
-        "claude-3-5-haiku-20241022",
+        "Claude Sonnet 4.5 1M (Most Advanced, Large Context)",
+        "claude-sonnet-4-5-20250929:1m",
+        {"vision": True},
+    ),
+    (
+        "Claude Sonnet 4 (Advanced)",
+        "claude-sonnet-4-20250514",
+        {"vision": True},
+    ),
+    (
+        "Claude Sonnet 4 1M (Advanced, Large Context)",
+        "claude-sonnet-4-20250514:1m",
+        {"vision": True},
+    ),
+    (
+        "Claude Opus 4.1 (Most Capable)",
+        "claude-opus-4-1-20250805",
+        {"vision": True},
+    ),
+    (
+        "Claude Opus 4 (Most Capable)",
+        "claude-opus-4-20250514",
+        {"vision": True},
+    ),
+    (
+        "Claude 3.7 Sonnet (Advanced)",
+        "claude-3-7-sonnet-20250219",
+        {"vision": True},
+    ),
+    (
+        "Claude 3.5 Sonnet (Best for Most Users)",
+        "claude-3-5-sonnet-20241022",
         {"vision": True},
     ),
     (
@@ -117,33 +156,18 @@ ANTHROPIC_MODELS = [
         "claude-3-opus-20240229",
         {"vision": True},
     ),
+    (
+        "Claude 3 Haiku (Fast, Affordable)",
+        "claude-3-haiku-20240307",
+        {"vision": True},
+    ),
 ]
 
 MISTRAL_MODELS = [
     (
-        "Mistral 7B (lightweight | fast | legacy model)",
-        "open-mistral-7b",
+        "Mistral Large (most capable | slow)",
+        "mistral-large-2411",
         {"vision": False},
-    ),
-    (
-        "Mistral Nemo (efficient | medium speed | research model)",
-        "open-mistral-nemo",
-        {"vision": False},
-    ),
-    (
-        "Pixtral 12B (multimodal | vision)",
-        "pixtral-12b-2409",
-        {"vision": True},
-    ),
-    (
-        "Mistral Small 3.1 (multimodal | vision)",
-        "mistral-small-2503",
-        {"vision": True},
-    ),
-    (
-        "Mistral Medium 3 (multimodal | vision)",
-        "mistral-medium-2505",
-        {"vision": True},
     ),
     (
         "Pixtral Large (multimodal | vision)",
@@ -151,13 +175,43 @@ MISTRAL_MODELS = [
         {"vision": True},
     ),
     (
-        "Devstral Small 2505 (code-focused | multimodal)",
+        "Mistral Small Latest (multimodal | vision)",
+        "mistral-small-latest",
+        {"vision": True},
+    ),
+    (
+        "Mistral Medium Latest (multimodal | vision)",
+        "mistral-medium-latest",
+        {"vision": True},
+    ),
+    (
+        "Pixtral 12B (multimodal | vision)",
+        "pixtral-12b-2409",
+        {"vision": True},
+    ),
+    (
+        "Mistral Nemo (efficient | medium speed | research model)",
+        "open-mistral-nemo-2407",
+        {"vision": False},
+    ),
+    (
+        "Codestral (code-focused | fast)",
+        "codestral-2501",
+        {"vision": False},
+    ),
+    (
+        "Devstral Small (code-focused | multimodal)",
         "devstral-small-2505",
         {"vision": False},
     ),
     (
         "Devstral Medium Latest (code-focused | multimodal)",
         "devstral-medium-latest",
+        {"vision": False},
+    ),
+    (
+        "Mistral 7B (lightweight | fast | legacy model)",
+        "open-mistral-7b",
         {"vision": False},
     ),
 ]
