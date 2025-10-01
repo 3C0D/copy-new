@@ -1,13 +1,11 @@
 import webbrowser
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Union, cast
 
 from openai import OpenAI
 
-from ..aiprovider.aiprovider import AIProvider, DropdownSetting, TextSetting
+from ..aiprovider.aiprovider import AIProvider, AIProviderSetting, TextSetting
 
 # Local imports
-from ..config.constants import OPENAI_MODELS
-from ..config.data_operations import get_default_model_for_provider
 
 # Type checking imports
 if TYPE_CHECKING:
@@ -47,20 +45,25 @@ class OpenAICompatibleProvider(AIProvider):
                 "",
                 "Leave blank if not applicable.",
             ),
-            TextSetting(app, "api_project", "API Project", "", "Leave blank if not applicable."),
-            DropdownSetting(
+            TextSetting(
+                app,
+                name="api_project",
+                display_name="API Project",
+                default_value="",
+                description="Leave blank if not applicable.",
+            ),
+            TextSetting(
                 app,
                 name="api_model",
                 display_name="API Model",
-                default_value=get_default_model_for_provider("openai"),
-                description="Select OpenAI model to use",
-                options=OPENAI_MODELS,
+                default_value="",
+                description="Add a custom model name",
             ),
         ]
         super().__init__(
             app,
-            "OpenAI Compatible (For Experts)",
-            settings,
+            "OpenAI Compatible",
+            cast(list[AIProviderSetting], settings),
             "• Connect to ANY OpenAI-compatible API (v1/chat/completions).\n"
             "• You must abide by the service's Terms of Service.",
             "openai-compatible",
@@ -111,6 +114,14 @@ class OpenAICompatibleProvider(AIProvider):
             self._logger.debug(f"🔄 Client instance exists: {self.client is not None}")
             self._logger.debug(f"🔄 API key configured: {bool(self.api_key)}")
             self._logger.debug(f"🔄 API model configured: {bool(self.api_model)}")
+
+            if not self.api_model or not self.api_model.strip():
+                self._logger.error("❌ Added model is not configured")
+                self.app.show_message_signal.emit(
+                    "Model Not Configured",
+                    "Please enter a model name in the 'Added Model' field in OpenAI Compatible settings.",
+                )
+                return ""
 
             if self.client is None:
                 self._logger.error("❌ OpenAI client is None - provider not properly initialized")

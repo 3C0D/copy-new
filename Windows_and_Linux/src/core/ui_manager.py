@@ -58,7 +58,7 @@ class UIManager:
 
         self.onboarding_window = OnboardingWindow(self.app)
         self.onboarding_window.close_signal.connect(
-            self.app.lifecycle_manager.on_onboarding_closed()
+            self.app.lifecycle_manager.on_onboarding_closed
         )
         self.onboarding_window.show()
 
