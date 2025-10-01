@@ -38,14 +38,11 @@ Response Flow:
 
 # Standard library imports
 import logging
-import webbrowser
 from abc import ABC, abstractmethod
 from concurrent.futures import CancelledError, ThreadPoolExecutor
-from typing import TYPE_CHECKING, Any, Callable, Union, cast
+from typing import TYPE_CHECKING, Callable, Union, cast
 
 # Third-party imports (with fallbacks for optional dependencies)
-from openai import OpenAI
-
 # PySide6 imports
 from PySide6 import QtCore
 from PySide6.QtWidgets import (
@@ -67,8 +64,6 @@ except ImportError:
     HarmCategory = None  # type: ignore
 
 # Local imports
-from ..config.constants import OPENAI_MODELS
-from ..config.data_operations import get_default_model_for_provider
 
 # Type checking imports
 if TYPE_CHECKING:
@@ -603,5 +598,3 @@ class AIProvider(ABC):
             return False
 
         return True
-
-

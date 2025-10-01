@@ -10,23 +10,13 @@ from .interfaces import ActionConfig, ProviderConfig, SystemConfig
 
 GEMINI_MODELS = [
     (
-        "Gemini 2.0 Flash Lite (intelligent | very fast | 30 uses/min)",
-        "gemini-2.0-flash-lite-preview-02-05",
+        "Gemini 2.5 Pro (most intelligent | slow | 2 uses/min, 50 uses/day)",
+        "gemini-2.5-pro",
         {"vision": True},
     ),
     (
-        "Gemini 2.0 Flash (very intelligent | fast | 15 uses/min)",
-        "gemini-2.0-flash",
-        {"vision": True},
-    ),
-    (
-        "Gemini 2.0 Flash Thinking (most intelligent | slow | 10 uses/min)",
-        "gemini-2.0-flash-thinking-exp-01-21",
-        {"vision": True},
-    ),
-    (
-        "Gemini 2.0 Pro (most intelligent | slow | 2 uses/min)",
-        "gemini-2.0-pro-exp-02-05",
+        "Gemini 2.5 Flash Lite Preview (intelligent | fast | preview)",
+        "gemini-2.5-flash-lite-preview-06-17",
         {"vision": True},
     ),
     (
@@ -35,8 +25,63 @@ GEMINI_MODELS = [
         {"vision": True},
     ),
     (
-        "Gemini 2.5 Pro (most intelligent | slow | 2 uses/min, 50 uses/day)",
-        "gemini-2.5-pro",
+        "Gemini 2.0 Flash (very intelligent | fast | 15 uses/min)",
+        "gemini-2.0-flash-001",
+        {"vision": True},
+    ),
+    (
+        "Gemini 2.0 Flash Lite (intelligent | very fast | 30 uses/min)",
+        "gemini-2.0-flash-lite-preview-02-05",
+        {"vision": True},
+    ),
+    (
+        "Gemini 2.0 Pro (most intelligent | slow | 2 uses/min)",
+        "gemini-2.0-pro-exp-02-05",
+        {"vision": True},
+    ),
+    (
+        "Gemini 2.0 Flash Thinking (most intelligent | slow | 10 uses/min)",
+        "gemini-2.0-flash-thinking-exp-01-21",
+        {"vision": True},
+    ),
+    (
+        "Gemini 2.0 Flash Thinking Exp (experimental | slow)",
+        "gemini-2.0-flash-thinking-exp-1219",
+        {"vision": True},
+    ),
+    (
+        "Gemini 2.0 Flash Exp (experimental | fast)",
+        "gemini-2.0-flash-exp",
+        {"vision": True},
+    ),
+    (
+        "Gemini 1.5 Flash (intelligent | fast)",
+        "gemini-1.5-flash-002",
+        {"vision": True},
+    ),
+    (
+        "Gemini 1.5 Flash Exp (experimental | fast)",
+        "gemini-1.5-flash-exp-0827",
+        {"vision": True},
+    ),
+    (
+        "Gemini 1.5 Flash 8B Exp (experimental | fast)",
+        "gemini-1.5-flash-8b-exp-0827",
+        {"vision": True},
+    ),
+    (
+        "Gemini 1.5 Pro (most intelligent | slow)",
+        "gemini-1.5-pro-002",
+        {"vision": True},
+    ),
+    (
+        "Gemini 1.5 Pro Exp (experimental | slow)",
+        "gemini-1.5-pro-exp-0827",
+        {"vision": True},
+    ),
+    (
+        "Gemini Exp 1206 (experimental | slow)",
+        "gemini-exp-1206",
         {"vision": True},
     ),
 ]
