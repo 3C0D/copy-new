@@ -8,73 +8,72 @@ from typing import cast
 
 from .interfaces import ActionConfig, ProviderConfig, SystemConfig
 
-# * indicates vision support
 GEMINI_MODELS = [
     (
-        "* Gemini 2.0 Flash Lite (intelligent | very fast | 30 uses/min)",
+        "Gemini 2.0 Flash Lite (intelligent | very fast | 30 uses/min)",
         "gemini-2.0-flash-lite-preview-02-05",
         {"vision": True},
     ),
     (
-        "* Gemini 2.0 Flash (very intelligent | fast | 15 uses/min)",
+        "Gemini 2.0 Flash (very intelligent | fast | 15 uses/min)",
         "gemini-2.0-flash",
         {"vision": True},
     ),
     (
-        "* Gemini 2.0 Flash Thinking (most intelligent | slow | 10 uses/min)",
+        "Gemini 2.0 Flash Thinking (most intelligent | slow | 10 uses/min)",
         "gemini-2.0-flash-thinking-exp-01-21",
         {"vision": True},
     ),
     (
-        "* Gemini 2.0 Pro (most intelligent | slow | 2 uses/min)",
+        "Gemini 2.0 Pro (most intelligent | slow | 2 uses/min)",
         "gemini-2.0-pro-exp-02-05",
         {"vision": True},
     ),
     (
-        "* Gemini 2.5 Flash (very intelligent | fast | 15 uses/min, 1500 uses/day)",
+        "Gemini 2.5 Flash (very intelligent | fast | 15 uses/min, 1500 uses/day)",
         "gemini-2.5-flash",
         {"vision": True},
     ),
     (
-        "* Gemini 2.5 Pro (most intelligent | slow | 2 uses/min, 50 uses/day)",
+        "Gemini 2.5 Pro (most intelligent | slow | 2 uses/min, 50 uses/day)",
         "gemini-2.5-pro",
         {"vision": True},
     ),
 ]
 
-# * indicates vision support
 OPENAI_MODELS = [
-    ("* GPT-4o (Optimized)", "gpt-4o", {"vision": True}),
+    ("GPT-4o (Optimized)", "gpt-4o", {"vision": True}),
     (
-        "* GPT-4o Mini (Lightweight)",
+        "GPT-4o Mini (Lightweight)",
         "gpt-4o-mini",
         {"vision": True},
     ),
     ("GPT-4 (Most Capable)", "gpt-4", {"vision": False}),
     ("GPT-3.5 Turbo (Fast)", "gpt-3.5-turbo", {"vision": False}),
-    ("moonshotai/kimi-k2:free", "moonshotai/kimi-k2:free", {"vision": False}),
 ]
 
-# * indicates vision support
+# ("moonshotai/kimi-k2:free", "moonshotai/kimi-k2:free", {"vision": False}),
+# ("x-ai/grok-4-fast:free", "x-ai/grok-4-fast:free", {"vision": False}),
+# ("google/gemini-2.0-flash-exp:free", "google/gemini-2.0-flash-exp:free", {"vision": True}),
+
 ANTHROPIC_MODELS = [
     (
-        "*Claude 3.5 Sonnet (Best for Most Users)",
+        "Claude 3.5 Sonnet (Best for Most Users)",
         "claude-3-5-sonnet-20241022",
         {"vision": True},
     ),
     (
-        "*Claude 3.5 Haiku (Fastest, Most Affordable)",
+        "Claude 3.5 Haiku (Fastest, Most Affordable)",
         "claude-3-5-haiku-20241022",
         {"vision": True},
     ),
     (
-        "*Claude 3 Opus (Most Capable, Expensive)",
+        "Claude 3 Opus (Most Capable, Expensive)",
         "claude-3-opus-20240229",
         {"vision": True},
     ),
 ]
 
-# * indicates vision support
 MISTRAL_MODELS = [
     (
         "Mistral 7B (lightweight | fast | legacy model)",
@@ -87,22 +86,22 @@ MISTRAL_MODELS = [
         {"vision": False},
     ),
     (
-        "* Pixtral 12B (multimodal | vision)",
+        "Pixtral 12B (multimodal | vision)",
         "pixtral-12b-2409",
         {"vision": True},
     ),
     (
-        "* Mistral Small 3.1 (multimodal | vision)",
+        "Mistral Small 3.1 (multimodal | vision)",
         "mistral-small-2503",
         {"vision": True},
     ),
     (
-        "* Mistral Medium 3 (multimodal | vision)",
+        "Mistral Medium 3 (multimodal | vision)",
         "mistral-medium-2505",
         {"vision": True},
     ),
     (
-        "* Pixtral Large (multimodal | vision)",
+        "Pixtral Large (multimodal | vision)",
         "pixtral-large-2411",
         {"vision": True},
     ),

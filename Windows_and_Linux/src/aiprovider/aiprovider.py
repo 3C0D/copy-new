@@ -239,8 +239,13 @@ class DropdownSetting(AIProviderSetting):
                 option, value = option_tuple
                 self.dropdown.addItem(option, value)
             elif len(option_tuple) == 3:
-                option, value, _ = option_tuple
-                self.dropdown.addItem(option, value)
+                option, value, metadata = option_tuple
+                # Add asterisk for vision support
+                if metadata.get("vision", False):
+                    display_option = f"* {option}"
+                else:
+                    display_option = option
+                self.dropdown.addItem(display_option, value)
                 # Store metadata (vision support) if necessary
             else:
                 self._logger.warning(f"Unexpected option format: {option_tuple}")
@@ -337,8 +342,13 @@ class DropdownSetting(AIProviderSetting):
                     option, value = option_tuple
                     self.dropdown.addItem(option, value)
                 elif len(option_tuple) == 3:
-                    option, value, _ = option_tuple
-                    self.dropdown.addItem(option, value)
+                    option, value, metadata = option_tuple
+                    # Add asterisk for vision support
+                    if metadata.get("vision", False):
+                        display_option = f"* {option}"
+                    else:
+                        display_option = option
+                    self.dropdown.addItem(display_option, value)
                     # Store metadata (vision support) if necessary
                 else:
                     self._logger.warning(f"Unexpected option format: {option_tuple}")
