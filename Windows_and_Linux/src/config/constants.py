@@ -236,6 +236,7 @@ OLLAMA_COMMON_MODELS = [
 PROVIDER_DISPLAY_NAMES = {
     "gemini": "Gemini (Recommended)",
     "openai": "OpenAI",
+    "openai-compatible": "OpenAI Compatible",
     "anthropic": "Anthropic (Claude)",
     "mistral": "Mistral AI",
     "ollama": "Ollama",

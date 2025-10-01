@@ -20,6 +20,7 @@ from .aiprovider.anthropic import AnthropicProvider
 from .aiprovider.gemini import GeminiProvider
 from .aiprovider.mistral import MistralProvider
 from .aiprovider.ollama import OllamaProvider
+from .aiprovider.openAI import OpenAIProvider
 from .aiprovider.openAI_compatible import OpenAICompatibleProvider
 from .AutostartManager import AutostartManager
 from .config.settings import SettingsManager
@@ -146,6 +147,7 @@ class WritingToolApp(QApplication):
             ("Anthropic", AnthropicProvider),
             ("Mistral", MistralProvider),
             ("OpenAICompatible", OpenAICompatibleProvider),
+            ("OpenAI", OpenAIProvider),
         ]
 
         self.providers: list[AIProvider] = []

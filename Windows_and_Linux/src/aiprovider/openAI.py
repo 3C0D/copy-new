@@ -14,13 +14,12 @@ if TYPE_CHECKING:
     from ..WritingToolApp import WritingToolApp
 
 
-class OpenAICompatibleProvider(AIProvider):
+class OpenAIProvider(AIProvider):
     """
-    Provider for OpenAI-compatible APIs.
+    Provider for official OpenAI API.
 
     Uses self.client.chat.completions.create() to obtain a response.
-    Streaming is fully removed. Supports APIs with organization
-    and project authentication.
+    Streaming is fully removed. Only supports official OpenAI models.
     """
 
     def __init__(self, app: "WritingToolApp"):
@@ -31,27 +30,12 @@ class OpenAICompatibleProvider(AIProvider):
                 app,
                 name="api_key",
                 display_name="API Key",
-                description="API key for the OpenAI-compatible API.",
+                description="API key for OpenAI API.",
             ),
-            TextSetting(
-                app,
-                "api_base",
-                "API Base URL",
-                "https://api.openai.com/v1",
-                "E.g. https://api.openai.com/v1",
-            ),
-            TextSetting(
-                app,
-                "api_organisation",
-                "API Organisation",
-                "",
-                "Leave blank if not applicable.",
-            ),
-            TextSetting(app, "api_project", "API Project", "", "Leave blank if not applicable."),
             DropdownSetting(
                 app,
                 name="api_model",
-                display_name="API Model",
+                display_name="Model",
                 default_value=get_default_model_for_provider("openai"),
                 description="Select OpenAI model to use",
                 options=OPENAI_MODELS,
@@ -59,14 +43,16 @@ class OpenAICompatibleProvider(AIProvider):
         ]
         super().__init__(
             app,
-            "OpenAI Compatible (For Experts)",
+            "OpenAI (Official)",
             settings,
-            "• Connect to ANY OpenAI-compatible API (v1/chat/completions).\n"
-            "• You must abide by the service's Terms of Service.",
-            "openai-compatible",
+            "• Connect to the official OpenAI API.\n"
+            "• Supports all official OpenAI models including GPT-5, GPT-4, and reasoning models.\n"
+            "• API key required - get yours from the OpenAI platform.\n"
+            "• Click the button below to get your API key.",
+            "openai",
             "Get OpenAI API Key",
             lambda: webbrowser.open("https://platform.openai.com/account/api-keys"),
-            "openai-compatible",
+            "openai",
         )
 
     def _get_response_impl(
@@ -77,7 +63,7 @@ class OpenAICompatibleProvider(AIProvider):
         **kwargs,
     ) -> str:
         """
-        Send a chat request to the OpenAI-compatible API.
+        Send a chat request to the official OpenAI API.
 
         Always performs a non-streaming request.
         If prompt is not a list, builds a simple two-message conversation.
@@ -107,7 +93,7 @@ class OpenAICompatibleProvider(AIProvider):
             ]
 
         try:
-            self._logger.debug("🔄 OpenAICompatibleProvider._get_response_impl called")
+            self._logger.debug("🔄 OpenAIProvider._get_response_impl called")
             self._logger.debug(f"🔄 Client instance exists: {self.client is not None}")
             self._logger.debug(f"🔄 API key configured: {bool(self.api_key)}")
             self._logger.debug(f"🔄 API model configured: {bool(self.api_model)}")
@@ -181,9 +167,6 @@ class OpenAICompatibleProvider(AIProvider):
             try:
                 self.client = OpenAI(
                     api_key=self.api_key,
-                    base_url=self.api_base,
-                    organization=self.api_organisation,
-                    project=self.api_project,
                 )
             except Exception as e:
                 self._logger.error(f"Failed to create OpenAI client: {e}")
@@ -193,5 +176,5 @@ class OpenAICompatibleProvider(AIProvider):
 
     def before_load(self) -> None:
         """Clean up client before reloading."""
-        self._logger.debug("🧹 OpenAICompatibleProvider.before_load called - cleaning up client")
+        self._logger.debug("🧹 OpenAIProvider.before_load called - cleaning up client")
         self.client = None
