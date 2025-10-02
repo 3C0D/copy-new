@@ -12,7 +12,6 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMessageBox
 
 from ..ui.NonEditableModal import NonEditableModal
-from ..ui.OnboardingWindow import OnboardingWindow
 from ..ui.ResponseWindow import ResponseWindow
 from ..ui.SettingsWindow import SettingsWindow
 
@@ -39,28 +38,9 @@ class UIManager:
         self._logger = logging.getLogger(__name__)
 
         # References to active windows
-        self.onboarding_window: Optional[OnboardingWindow] = None
         self.settings_window: Optional[SettingsWindow] = None
         self.response_window: Optional[ResponseWindow] = None
         self.non_editable_modal: Optional[NonEditableModal] = None
-
-    def show_onboarding(self) -> None:
-        """
-        Display the onboarding window for new users.
-
-        Creates an OnboardingWindow instance and displays it, connecting
-        the close signal to the appropriate handling method.
-        """
-        self._logger.debug("Showing onboarding window")
-
-        if self.onboarding_window:
-            self.onboarding_window.close()
-
-        self.onboarding_window = OnboardingWindow(self.app)
-        self.onboarding_window.close_signal.connect(
-            self.app.lifecycle_manager.on_onboarding_closed
-        )
-        self.onboarding_window.show()
 
     def show_settings(self, providers_only: bool = False, previous_window=None) -> None:
         """
@@ -98,8 +78,6 @@ class UIManager:
         if previous_window:
             self.settings_window.previous_window = previous_window
 
-        # self.settings_window.close_signal.connect(self.app.lifecycle_manager.on_onboarding_closed)
-        # previously... !!! does it change anything?
         # self.settings_window.close_signal.connect(self.app.lifecycle_manager.exit_app)
 
         self.settings_window.retranslate_ui()
@@ -207,7 +185,6 @@ class UIManager:
         self._logger.debug("Closing all windows")
 
         windows_to_close = [
-            self.onboarding_window,
             self.settings_window,
             self.response_window,
             self.non_editable_modal,
@@ -218,7 +195,6 @@ class UIManager:
                 window.close()
 
         # Reset references
-        self.onboarding_window = None
         self.settings_window = None
         self.response_window = None
         self.non_editable_modal = None

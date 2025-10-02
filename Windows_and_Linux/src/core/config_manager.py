@@ -78,7 +78,6 @@ class ConfigManager:
             AboutWindow,
             CustomPopupWindow,
             HelpWindow,
-            OnboardingWindow,
             ResponseWindow,
             SettingsWindow,
         )
@@ -86,7 +85,6 @@ class ConfigManager:
         AboutWindow._ = self._
         SettingsWindow._ = self._
         ResponseWindow._ = self._
-        OnboardingWindow._ = self._
         CustomPopupWindow._ = self._
         HelpWindow._ = self._
 

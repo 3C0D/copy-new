@@ -19,7 +19,7 @@ class LifecycleManager:
     """
     Manager for application lifecycle operations.
 
-    Handles initialization after onboarding, application exit, and mode detection.
+    Handles application exit and mode detection.
     """
 
     def __init__(self, app: "WritingToolApp"):
@@ -32,35 +32,6 @@ class LifecycleManager:
         self.app = app
         self._logger = logging.getLogger(__name__)
 
-    def on_onboarding_closed(self) -> None:
-        """
-        Handle onboarding window being closed.
-        Instead of exiting, continue with normal app initialization.
-        """
-        self._logger.debug("Onboarding window closed, continuing with app initialization")
-        self.app.onboarding_window = None
-        # Initialize the current provider with default settings
-        self.app.ai_processor.set_current_provider()
-
-        # Load provider-specific config from system settings
-        if self.app.ai_processor.current_provider:
-            provider_config = self.app.ai_processor.get_provider_config(
-                self.app.settings_manager.provider
-            )
-            self.app.ai_processor.current_provider.load_config(provider_config)
-
-        self.app._sync_autostart_settings()
-        self.app._create_tray_icon_with_startup_delay()
-        self.app.hotkey_manager.register_hotkey()
-
-        # Set language from system settings
-        self.app.language_manager.change_language(self.app.settings_manager.language or "en")
-
-        # Initialize update checker
-        from ..update_checker import UpdateChecker
-
-        self.app.update_checker = UpdateChecker(self.app)
-        self.app.update_checker.check_updates_async()
 
     def exit_app(self) -> None:
         """

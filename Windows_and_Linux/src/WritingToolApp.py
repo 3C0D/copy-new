@@ -87,11 +87,8 @@ class WritingToolApp(QApplication):
             self._logger.debug("Setting up spam protection...")
 
             # Initialize app based on configuration state
-            self._logger.debug("Checking provider configuration...")
-            if not self.settings_manager.has_providers_configured():
-                self._handle_first_launch()
-            else:
-                self._handle_normal_launch()
+            self._logger.debug("Initializing app with normal launch")
+            self._handle_normal_launch()
 
         except Exception as e:
             self._logger.error(f"Critical error during WritingToolApp initialization: {e}")
@@ -130,7 +127,6 @@ class WritingToolApp(QApplication):
 
     def _setup_ui_components(self) -> None:
         """Initialize UI component references."""
-        self.onboarding_window = None
         self.tray_icon = None
         self.settings_window = None
         self.non_editable_modal = None
@@ -169,11 +165,6 @@ class WritingToolApp(QApplication):
             self._logger.warning(f"Failed to create providers: {failed_providers}")
         else:
             self._logger.debug(f"All {len(self.providers)} providers initialized successfully")
-
-    def _handle_first_launch(self) -> None:
-        """Handle first-time application launch."""
-        self._logger.debug("First launch detected (no providers configured), showing onboarding")
-        self.ui_manager.show_onboarding()
 
     def _handle_normal_launch(self) -> None:
         """Handle normal application launch with configured providers."""
@@ -247,11 +238,11 @@ class WritingToolApp(QApplication):
     def _handle_initialization_error(self, error: Exception) -> None:
         """Handle errors during application initialization."""
         self._logger.exception(f"Error during app initialization: {error}")
-        self._logger.exception("Falling back to onboarding")
+        self._logger.exception("Showing settings for configuration")
         import traceback
 
         self._logger.debug(f"Full traceback: {traceback.format_exc()}")
-        self.ui_manager.show_onboarding()
+        self.ui_manager.show_settings()
 
     def retranslate_ui(self) -> None:
         """Retranslate the user interface elements."""

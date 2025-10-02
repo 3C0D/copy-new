@@ -15,12 +15,10 @@ Ces méthodes forment un ensemble cohérent pour le traitement et remplacement d
 ## 2. **UI Manager** (priorité moyenne)
 
 Créer `core/ui_manager.py` pour :
-- `show_onboarding()`
-- `on_onboarding_closed()`
 - `show_settings()`
 - `show_response_window()`
 - `show_message_box()`
-- Gestion des références aux fenêtres (`onboarding_window`, `settings_window`, etc.)
+- Gestion des références aux fenêtres (`settings_window`, etc.)
 
 ## 3. **Configuration Manager** (priorité moyenne)
 
