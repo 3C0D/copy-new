@@ -399,6 +399,7 @@ class AIProvider(ABC):
     ):
         self.app = app
         self._logger = logging.getLogger(__name__)
+        logging.getLogger("PIL").setLevel(logging.WARNING)
         self.provider_name = provider_name
         self.internal_name = internal_name
         self.settings = settings
