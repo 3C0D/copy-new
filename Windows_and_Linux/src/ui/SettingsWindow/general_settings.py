@@ -63,20 +63,19 @@ class GeneralSettings(QWidget):
         layout.setSpacing(15)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # Autostart checkbox (Windows only)
-        if AutostartManager.get_startup_path():
-            self.autostart_checkbox = QCheckBox(_("Start on Boot"))
-            self.autostart_checkbox.setStyleSheet(self.app.styles["checkbox"])
+        # Autostart checkbox
+        self.autostart_checkbox = QCheckBox(_("Start on Boot"))
+        self.autostart_checkbox.setStyleSheet(self.app.styles["checkbox"])
 
-            # Sync with registry
-            AutostartManager.sync_with_settings(self.app.settings_manager)
+        # Sync with registry
+        AutostartManager.sync_with_settings(self.app.settings_manager)
 
-            # Set state from settings
-            self.autostart_checkbox.setChecked(
-                getattr(self.app.settings_manager, "start_on_boot", False)
-            )
-            self.autostart_checkbox.stateChanged.connect(self._on_autostart_changed)
-            layout.addWidget(self.autostart_checkbox)
+        # Set state from settings
+        self.autostart_checkbox.setChecked(
+            getattr(self.app.settings_manager, "start_on_boot", False)
+        )
+        self.autostart_checkbox.stateChanged.connect(self._on_autostart_changed)
+        layout.addWidget(self.autostart_checkbox)
 
         # Language selection
         self.language_label = QLabel(_("Language:"))
@@ -162,6 +161,10 @@ class GeneralSettings(QWidget):
         enable = state == 2  # Qt.Checked
         AutostartManager.set_autostart_with_sync(enable, self.app.settings_manager)
         self._logger.debug(f"Autostart changed: {enable}")
+
+        # Update systray action state if systray exists
+        if hasattr(self.app, 'systray_manager') and self.app.systray_manager.autostart_action:
+            self.app.systray_manager.autostart_action.setChecked(enable)
 
     def _on_language_changed(self) -> None:
         """Handle language change and auto-save."""

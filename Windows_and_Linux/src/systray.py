@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from PySide6 import QtCore, QtGui
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
+from .autostart_manager import AutostartManager
 from .ui import about_window, help_window
 from .ui.ui_utils import ui_utils
 
@@ -25,6 +26,7 @@ class SystrayManager:
         self.last_tray_click_time = 0
         self.tray_click_debounce_ms = 300
         self.toggle_action = None
+        self.autostart_action = None
         self.paused = False
         self.about_window = None
         self.help_window = None
@@ -91,6 +93,12 @@ class SystrayManager:
         settings_action = self.tray_menu.addAction(_("Settings"))
         settings_action.triggered.connect(self.app.ui_manager.show_settings)
 
+        # Start on boot menu item
+        self.autostart_action = self.tray_menu.addAction(_("Start on boot"))
+        self.autostart_action.setCheckable(True)
+        self.autostart_action.setChecked(self.app.settings_manager.start_on_boot)
+        self.autostart_action.triggered.connect(self._on_autostart_changed)
+
         # Pause/Resume toggle action
         self.toggle_action = self.tray_menu.addAction(_("Resume") if self.paused else _("Pause"))
         self.toggle_action.triggered.connect(self.toggle_paused)
@@ -139,6 +147,21 @@ class SystrayManager:
         if self.toggle_action is not None:
             self.toggle_action.setText(_("Resume") if self.paused else _("Pause"))
         self._logger.debug("App is paused" if self.paused else "App is resumed")
+
+    def _on_autostart_changed(self) -> None:
+        """Handle autostart toggle from systray menu."""
+        if self.autostart_action is None:
+            return
+        enable = self.autostart_action.isChecked()
+        AutostartManager.set_autostart_with_sync(enable, self.app.settings_manager)
+        self._logger.debug(f"Autostart changed from systray: {enable}")
+
+        # Update settings checkbox state if settings window is open
+        settings_window = getattr(self.app.ui_manager, 'settings_window', None) if hasattr(self.app, 'ui_manager') else None
+        if settings_window:
+            general_settings = getattr(settings_window, 'general_settings', None)
+            if general_settings and hasattr(general_settings, 'autostart_checkbox') and general_settings.autostart_checkbox:
+                general_settings.autostart_checkbox.setChecked(enable)
 
     def apply_tray_menu_styles(self, menu) -> None:
         """

@@ -158,6 +158,59 @@ Hidden=false
             return False
 
     @staticmethod
+    def disable_normal_startup_if_exists() -> bool:
+        """
+        Disable the normal startup entry if it exists.
+
+        Returns:
+            bool: True if disabled or didn't exist, False if error occurred
+        """
+        if winreg is None:
+            return True
+
+        try:
+            with winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\Microsoft\Windows\CurrentVersion\Run",
+                0,
+                winreg.KEY_WRITE,
+            ) as key:
+                try:
+                    winreg.DeleteValue(key, "WritingTools")
+                    logging.info("Disabled conflicting normal startup entry")
+                    return True
+                except OSError:
+                    # Value doesn't exist, that's fine
+                    return True
+        except Exception as e:
+            logging.warning(f"Could not disable normal startup entry: {e}")
+            return False
+
+    @staticmethod
+    def get_dev_startup_command():
+        """
+        Get the command for development startup.
+        """
+        project_root = Path(__file__).parent.parent
+        venv_python = project_root / "myvenv" / "Scripts" / "python.exe"
+        dev_script = project_root / "scripts" / "dev_script.py"
+        debug_args = "--console"
+        command = f'cmd /k "cd /d "{project_root}" && "{venv_python}" "{dev_script}" {debug_args}"'
+        return command
+
+    @staticmethod
+    def get_startup_command():
+        """
+        Get the command/path for autostart.
+        Returns the exe path if compiled, or the dev command if in dev mode.
+        """
+        compiled = AutostartManager.is_compiled()
+        if compiled:
+            return AutostartManager.get_startup_path()
+        else:
+            return AutostartManager.get_dev_startup_command()
+
+    @staticmethod
     def set_autostart_windows(enable: bool) -> bool:
         """
         Enable or disable autostart for Windows.
@@ -173,34 +226,38 @@ Hidden=false
             return False
 
         try:
-            startup_path = AutostartManager.get_startup_path()
-            if not startup_path:
-                logging.warning("Cannot determine startup path")
+            command = AutostartManager.get_startup_command()
+            if not command:
+                logging.warning("Cannot determine startup command")
                 return False
 
+            compiled = AutostartManager.is_compiled()
             key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
+            key_name = "WritingTools" if compiled else "WritingToolsDevStartup"
+
+            if compiled:
+                # Disable dev startup if exists
+                AutostartManager.disable_dev_startup_if_exists()
+            else:
+                # Disable normal startup if exists
+                AutostartManager.disable_normal_startup_if_exists()
 
             try:
                 if enable:
-                    # Disable conflicting dev startup before enabling ours
-                    dev_was_disabled = AutostartManager.disable_dev_startup_if_exists()
-                    if not dev_was_disabled:
-                        logging.warning("Could not disable conflicting dev startup entry")
-
                     # Open/create key and set value
                     key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_WRITE)
-                    winreg.SetValueEx(key, "WritingTools", 0, winreg.REG_SZ, startup_path)
+                    winreg.SetValueEx(key, key_name, 0, winreg.REG_SZ, command)
                 else:
                     # Open key and delete value if it exists
                     key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_WRITE)
                     try:
-                        winreg.DeleteValue(key, "WritingTools")
+                        winreg.DeleteValue(key, key_name)
                     except OSError:
                         # Value doesn't exist, that's fine
                         pass
 
                 winreg.CloseKey(key)
-                logging.info(f"Windows autostart {'enabled' if enable else 'disabled'}")
+                logging.info(f"Windows autostart {'enabled' if enable else 'disabled'} ({'compiled' if compiled else 'dev'})")
                 return True
 
             except OSError as e:
@@ -223,11 +280,7 @@ Hidden=false
             bool: True if operation succeeded, False if failed
         """
         try:
-            startup_path = AutostartManager.get_startup_path()
-            if not startup_path:
-                logging.warning("Cannot determine startup path")
-                return False
-
+            compiled = AutostartManager.is_compiled()
             desktop_file_path = AutostartManager.get_linux_desktop_file_path()
             autostart_dir = AutostartManager.get_linux_autostart_dir()
 
@@ -235,16 +288,21 @@ Hidden=false
                 # Create autostart directory if it doesn't exist
                 autostart_dir.mkdir(parents=True, exist_ok=True)
 
+                exec_path = AutostartManager.get_startup_command()
+                if not exec_path:
+                    logging.warning("Cannot determine startup command")
+                    return False
+
                 # Create desktop entry file
                 desktop_content = AutostartManager.DESKTOP_ENTRY_TEMPLATE.format(
-                    exec_path=startup_path
+                    exec_path=exec_path
                 )
                 desktop_file_path.write_text(desktop_content)
 
                 # Make it executable (optional but good practice)
                 os.chmod(desktop_file_path, 0o755)
 
-                logging.info(f"Linux autostart enabled: {desktop_file_path}")
+                logging.info(f"Linux autostart enabled: {desktop_file_path} ({'compiled' if compiled else 'dev'})")
                 return True
             else:
                 # Remove desktop entry file if it exists
@@ -288,9 +346,8 @@ Hidden=false
             return False
 
         try:
-            startup_path = AutostartManager.get_startup_path()
-            if not startup_path:
-                return False
+            compiled = AutostartManager.is_compiled()
+            key_name = "WritingTools" if compiled else "WritingToolsDevStartup"
 
             try:
                 key = winreg.OpenKey(
@@ -299,11 +356,14 @@ Hidden=false
                     0,
                     winreg.KEY_READ,
                 )
-                value, _ = winreg.QueryValueEx(key, "WritingTools")
+                value, _ = winreg.QueryValueEx(key, key_name)
                 winreg.CloseKey(key)
 
-                # Check if the stored path matches our current exe
-                return value.lower() == startup_path.lower()
+                expected_command = AutostartManager.get_startup_command()
+                if not expected_command:
+                    return False
+                # Check if the stored value matches our expected command
+                return value == expected_command
 
             except OSError:
                 # Key or value doesn't exist
@@ -327,13 +387,11 @@ Hidden=false
             if not desktop_file_path.exists():
                 return False
 
-            # Check if the desktop file contains our executable path
-            startup_path = AutostartManager.get_startup_path()
-            if not startup_path:
-                return False
-
             content = desktop_file_path.read_text()
-            return f"Exec={startup_path}" in content
+            expected_command = AutostartManager.get_startup_command()
+            if not expected_command:
+                return False
+            return f"Exec={expected_command}" in content
 
         except Exception as e:
             logging.exception(f"Error checking Linux autostart status: {e}")
@@ -359,6 +417,7 @@ Hidden=false
         """
         Synchronize autostart state between system and settings.
         Updates settings to match system state if they differ.
+        Also handles mode changes (dev <-> compiled) by migrating autostart entries.
 
         Args:
             settings_manager: The SettingsManager instance to sync with
@@ -370,6 +429,16 @@ Hidden=false
             system_state = AutostartManager.check_autostart()
             settings_state = getattr(settings_manager, "start_on_boot", False)
 
+            # Check if we need to migrate due to mode change
+            if settings_state and AutostartManager._needs_autostart_migration():
+                logging.info("Autostart mode migration needed, updating system entries")
+                # Remove any conflicting entries and set the correct one for current mode
+                success = AutostartManager.set_autostart(True)
+                if success:
+                    system_state = True  # Now it should be enabled
+                else:
+                    logging.warning("Failed to migrate autostart entry")
+
             if system_state != settings_state:
                 # Update settings to match system state
                 settings_manager.start_on_boot = system_state
@@ -379,6 +448,57 @@ Hidden=false
 
         except Exception as e:
             logging.exception(f"Error synchronizing autostart settings: {e}")
+            return False
+
+    @staticmethod
+    def _needs_autostart_migration() -> bool:
+        """
+        Check if autostart entries need migration due to mode change.
+
+        Returns:
+            bool: True if migration is needed
+        """
+        try:
+            compiled = AutostartManager.is_compiled()
+
+            if sys.platform.startswith("win32"):
+                if winreg is None:
+                    return False
+
+                # Check if the wrong key exists
+                wrong_key = "WritingToolsDevStartup" if compiled else "WritingTools"
+                try:
+                    with winreg.OpenKey(
+                        winreg.HKEY_CURRENT_USER,
+                        r"Software\Microsoft\Windows\CurrentVersion\Run",
+                        0,
+                        winreg.KEY_READ,
+                    ) as key:
+                        winreg.QueryValueEx(key, wrong_key)
+                        return True  # Wrong key exists, migration needed
+                except OSError:
+                    return False  # Wrong key doesn't exist, no migration needed
+
+            elif sys.platform.startswith("linux"):
+                desktop_file_path = AutostartManager.get_linux_desktop_file_path()
+                if not desktop_file_path.exists():
+                    return False
+
+                content = desktop_file_path.read_text()
+                if compiled:
+                    # In compiled mode, should not have python dev_script
+                    return "dev_script.py" in content
+                else:
+                    # In dev mode, should not have exe path
+                    startup_path = AutostartManager.get_startup_path()
+                    if startup_path:
+                        return f"Exec={startup_path}" in content
+                    return False
+
+            return False
+
+        except Exception as e:
+            logging.exception(f"Error checking autostart migration need: {e}")
             return False
 
     @staticmethod
