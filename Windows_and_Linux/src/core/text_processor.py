@@ -14,7 +14,7 @@ from typing import Optional
 
 import pyperclip
 from PySide6 import QtCore
-from PySide6.QtCore import Q_ARG, QObject, Signal, Slot
+from PySide6.QtCore import Q_ARG, QObject, Slot
 
 from ..ui.non_editable_modal import NonEditableModal
 
@@ -23,8 +23,6 @@ class TextProcessor(QObject):
     """
     Handles text processing operations including clipboard management and output display.
     """
-
-    show_message_signal = Signal(str, str)
 
     def __init__(self, app):
         super().__init__()
@@ -54,7 +52,7 @@ class TextProcessor(QObject):
 
         # Handle error message
         if current_output.strip() == error_message:
-            self.show_message_signal.emit(
+            self.app.ui_manager.show_message_signal.emit(
                 "Error", "The text is incompatible with the requested change."
             )
             return

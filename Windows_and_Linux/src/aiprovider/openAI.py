@@ -100,7 +100,7 @@ class OpenAIProvider(AIProvider):
 
             if self.client is None:
                 self._logger.error("❌ OpenAI client is None - provider not properly initialized")
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Error",
                     "OpenAI client not initialized. Please check your API settings.",
                 )
@@ -140,22 +140,22 @@ class OpenAIProvider(AIProvider):
 
             # Handle specific OpenAI API errors
             if "invalid api key" in error_str.lower() or "unauthorized" in error_str.lower():
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Invalid API Key",
                     "Your OpenAI API key is invalid. Please check your API key in Settings and make sure it's correct.",
                 )
             elif "exceeded" in error_str.lower() or "rate limit" in error_str.lower():
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Rate Limit Hit",
                     "You've hit an API rate/usage limit. Please try again later or check your OpenAI usage limits.",
                 )
             elif "insufficient_quota" in error_str.lower() or "quota" in error_str.lower():
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Quota Exceeded",
                     "You've exceeded your OpenAI API quota. Please check your billing and usage limits.",
                 )
             else:
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "API Error",
                     f"An error occurred with the OpenAI API:\n\n{error_str}\n\nPlease check your API key and settings.",
                 )

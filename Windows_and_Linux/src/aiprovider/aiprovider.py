@@ -578,7 +578,7 @@ class AIProvider(ABC):
         """
         # Check for API key
         if hasattr(self, "api_key") and not (self.api_key and self.api_key.strip()):
-            self.app.show_message_signal.emit(
+            self.app.ui_manager.show_message_signal.emit(
                 "Configuration Error",
                 f"API key is required for {self.provider_name}. Please configure your API key in settings.",
             )
@@ -586,7 +586,7 @@ class AIProvider(ABC):
 
         # Check for model
         if hasattr(self, "api_model") and not (self.api_model and self.api_model.strip()):
-            self.app.show_message_signal.emit(
+            self.app.ui_manager.show_message_signal.emit(
                 "Configuration Error",
                 f"Model selection is required for {self.provider_name}. Please select a model in settings.",
             )

@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 
 from pynput import keyboard as keyboard
 from PySide6 import QtCore
-from PySide6.QtCore import Signal, Slot
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QApplication
 
 from .aiprovider.anthropic import AnthropicProvider
@@ -57,7 +57,6 @@ class WritingToolsApp(QApplication):
     """
 
     output_ready_signal = Signal(str)
-    show_message_signal = Signal(str, str)
     hotkey_triggered_signal = Signal()
     followup_response_signal = Signal(str)
 
@@ -114,9 +113,6 @@ class WritingToolsApp(QApplication):
     def _setup_signals(self) -> None:
         """Connect application signals to their handlers."""
         self.output_ready_signal.connect(self.text_processor.replace_text)
-        self.show_message_signal.connect(self.show_message_box)
-        # Connecter les signaux du text_processor
-        self.text_processor.show_message_signal.connect(self.show_message_box)
         self.hotkey_triggered_signal.connect(self.hotkey_manager.on_hotkey_pressed)
 
     def _setup_settings(self) -> None:
@@ -252,10 +248,10 @@ class WritingToolsApp(QApplication):
         provider = self.settings_manager.providers.get(provider_name, {})
         return provider.get("api_model", "")
 
-    @Slot(str, str)
-    def show_message_box(self, title: str, message: str) -> None:
-        """
-        Show a message box with the given title and message.
-        Delegates to the UI manager.
-        """
-        self.ui_manager.show_message_box(title, message)
+    # @Slot(str, str)
+    # def show_message_box(self, title: str, message: str) -> None:
+    #     """
+    #     Show a message box with the given title and message.
+    #     Delegates to the UI manager.
+    #     """
+    #     self.ui_manager.show_message_box(title, message)

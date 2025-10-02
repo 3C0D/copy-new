@@ -8,7 +8,7 @@ windows and modals of the Writing Tools application.
 import logging
 from typing import TYPE_CHECKING, Optional
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QObject, Qt, Signal, Slot
 from PySide6.QtWidgets import QMessageBox
 
 from ..ui.non_editable_modal import NonEditableModal
@@ -19,13 +19,15 @@ if TYPE_CHECKING:
     from ..writing_tools_app import WritingToolsApp
 
 
-class UIManager:
+class UIManager(QObject):
     """
     Centralized manager for all application windows and modals.
 
     This class provides methods to display and manage the different
     user interface windows in a centralized manner.
     """
+
+    show_message_signal = Signal(str, str)
 
     def __init__(self, app: "WritingToolsApp"):
         """
@@ -36,6 +38,9 @@ class UIManager:
         """
         self.app = app
         self._logger = logging.getLogger(__name__)
+
+        # Connect signal to slot
+        self.show_message_signal.connect(self.show_message_box)
 
         # References to active windows
         self.settings_window: Optional[SettingsWindow] = None
@@ -114,6 +119,7 @@ class UIManager:
         self.response_window = response_window
         return response_window
 
+    @Slot(str, str)
     def show_message_box(self, title: str, message: str) -> None:
         """
         Display a message box with the given title and message.

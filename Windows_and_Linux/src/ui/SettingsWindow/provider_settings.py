@@ -314,14 +314,14 @@ class ProviderSettings(QWidget):
         ollama_running = state_manager.is_ollama_running()
 
         if not ollama_installed:
-            self.app.show_message_signal.emit(
+            self.app.ui_manager.show_message_signal.emit(
                 "Ollama Not Installed",
                 "Ollama is not installed on your system.\n\n"
                 "You can install it using the 'Install Ollama' button in the provider settings below.\n\n"
                 "Once installed and running, Ollama will be ready to use.",
             )
         elif not ollama_running:
-            self.app.show_message_signal.emit(
+            self.app.ui_manager.show_message_signal.emit(
                 "Ollama Not Running",
                 "Ollama is installed but not currently running.\n\n"
                 "Please start Ollama from the command line with: ollama serve\n\n"

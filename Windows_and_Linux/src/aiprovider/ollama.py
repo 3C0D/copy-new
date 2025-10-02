@@ -571,7 +571,7 @@ class OllamaProvider(AIProvider):
             progress_window.close()
 
             if success:
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Installation Successful", "Ollama has been installed successfully!"
                 )
                 # Refresh UI
@@ -579,7 +579,7 @@ class OllamaProvider(AIProvider):
                 if hasattr(self.app, "settings_window") and self.app.settings_window:
                     self.app.settings_window._on_provider_changed()
             else:
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Installation Failed",
                     "Ollama installation failed. Please try again or install manually.",
                 )
@@ -627,7 +627,7 @@ class OllamaProvider(AIProvider):
         ]
 
         if not valid_models:
-            self.app.show_message_signal.emit(
+            self.app.ui_manager.show_message_signal.emit(
                 "No Models Available", "No Ollama models are available to delete."
             )
             return
@@ -669,9 +669,9 @@ class OllamaProvider(AIProvider):
                 success, message = self.state_manager.remove_ollama_model(selected_model)
 
                 if success:
-                    self.app.show_message_signal.emit("Model Deleted", message)
+                    self.app.ui_manager.show_message_signal.emit("Model Deleted", message)
                 else:
-                    self.app.show_message_signal.emit("Deletion Failed", message)
+                    self.app.ui_manager.show_message_signal.emit("Deletion Failed", message)
 
     def _get_response_impl(
         self,
@@ -692,7 +692,7 @@ class OllamaProvider(AIProvider):
                 "Please go to Settings and use the 'Install Ollama' button to install it.\n\n"
                 "Once installed, you can use Ollama for AI responses.",
             )
-            self.app.show_message_signal.emit(error_msg[0], error_msg[1])
+            self.app.ui_manager.show_message_signal.emit(error_msg[0], error_msg[1])
             return ""
 
         if not ollama_running:
@@ -704,7 +704,7 @@ class OllamaProvider(AIProvider):
                 "On Linux: Run 'ollama serve' in a terminal.\n\n"
                 "Or go to Settings to manage Ollama.",
             )
-            self.app.show_message_signal.emit(error_msg[0], error_msg[1])
+            self.app.ui_manager.show_message_signal.emit(error_msg[0], error_msg[1])
             return ""
 
         # Implementation for Ollama message format
@@ -767,11 +767,15 @@ class OllamaProvider(AIProvider):
 
         try:
             if not self.api_model or self.api_model.strip() == "":
-                self.app.show_message_signal.emit("Ollama Error", "No Ollama model selected.")
+                self.app.ui_manager.show_message_signal.emit(
+                    "Ollama Error", "No Ollama model selected."
+                )
                 return ""
 
             if self.client is None:
-                self.app.show_message_signal.emit("Error", "Ollama client not initialized.")
+                self.app.ui_manager.show_message_signal.emit(
+                    "Error", "Ollama client not initialized."
+                )
                 return ""
 
             response = self.client.chat(model=self.api_model, messages=messages)
@@ -787,11 +791,13 @@ class OllamaProvider(AIProvider):
             self._logger.exception(f"Error during Ollama chat: {error_str}")
 
             if "connection" in error_str.lower() or "refused" in error_str.lower():
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Connection Error", "Cannot connect to Ollama server."
                 )
             else:
-                self.app.show_message_signal.emit("Ollama Error", f"An error occurred: {error_str}")
+                self.app.ui_manager.show_message_signal.emit(
+                    "Ollama Error", f"An error occurred: {error_str}"
+                )
             return ""
 
     def after_load(self):

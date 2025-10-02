@@ -90,7 +90,7 @@ class MistralProvider(AIProvider):
             if not self.api_key or self.api_key.strip() == "":
                 error_msg = "Mistral API key not configured. Please add your API key in settings."
                 self._logger.error(error_msg)
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "API Key Missing",
                     error_msg,
                 )
@@ -98,7 +98,7 @@ class MistralProvider(AIProvider):
             if not self.api_model or self.api_model.strip() == "":
                 error_msg = "Mistral model not selected. Please select a model in settings."
                 self._logger.error(error_msg)
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Model Missing",
                     error_msg,
                 )
@@ -144,7 +144,7 @@ class MistralProvider(AIProvider):
                     if self.api_model not in vision_models:
                         error_msg = f"The selected model '{self.api_model}' does not support image analysis. Please choose a vision-capable model like pixtral-12b-2409 or mistral-small-2503."
                         self._logger.error(error_msg)
-                        self.app.show_message_signal.emit(
+                        self.app.ui_manager.show_message_signal.emit(
                             "Model Incompatible",
                             error_msg,
                         )
@@ -205,7 +205,7 @@ class MistralProvider(AIProvider):
                     if not response_text or response_text.strip() == "":
                         error_msg = "Mistral API returned an empty response. This might be due to insufficient credits or API limits."
                         self._logger.warning(error_msg)
-                        self.app.show_message_signal.emit(
+                        self.app.ui_manager.show_message_signal.emit(
                             "Empty Response",
                             error_msg,
                         )
@@ -218,7 +218,7 @@ class MistralProvider(AIProvider):
                     return response_text
                 error_msg = "Mistral API returned no content in response."
                 self._logger.error(f"{error_msg} Full response: {result}")
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "No Content",
                     error_msg,
                 )
@@ -227,17 +227,17 @@ class MistralProvider(AIProvider):
             self._logger.error(error_msg)
 
             if response.status_code == 401:
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Authentication Error",
                     "Invalid API key. Please check your Mistral API key in settings.",
                 )
             elif response.status_code == 429:
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Rate Limit",
                     "You've exceeded the rate limit. Please wait a moment and try again.",
                 )
             else:
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Mistral Error",
                     f"API error {response.status_code}: {response.text}",
                 )
@@ -246,7 +246,7 @@ class MistralProvider(AIProvider):
         except ImportError as e:
             error_msg = f"Missing required library: {e}. Please install 'requests' library."
             self._logger.error(error_msg)
-            self.app.show_message_signal.emit(
+            self.app.ui_manager.show_message_signal.emit(
                 "Missing Library",
                 "The 'requests' library is required for Mistral API. Please install it using: pip install requests",
             )
@@ -254,7 +254,7 @@ class MistralProvider(AIProvider):
         except Exception as e:
             error_str = str(e)
             self._logger.exception(f"Mistral API error: {error_str}")
-            self.app.show_message_signal.emit(
+            self.app.ui_manager.show_message_signal.emit(
                 "Mistral Error",
                 f"An error occurred with Mistral:\n\n{error_str}\n\nPlease check your settings and try again.",
             )

@@ -38,7 +38,7 @@ from ..config.interfaces import ActionConfig, ActionConfigWithName
 from .ui_utils import ThemeBackground, ui_utils
 
 if TYPE_CHECKING:
-    pass
+    from ..writing_tools_app import WritingToolsApp
 
 
 def _(x):
@@ -673,7 +673,7 @@ class CustomPopupWindow(QWidget):
             clipboard.clear()
 
             # Show a brief message to the user
-            self.app.show_message_signal.emit(
+            self.app.ui_manager.show_message_signal.emit(
                 "Image Removed",
                 f"Image has been removed from clipboard.\n"
                 f"Application will close.\n"
@@ -1334,7 +1334,7 @@ class CustomPopupWindow(QWidget):
 
             except Exception as e:
                 self._logger.exception(f"Error resetting options: {e}")
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Error", f"An error occurred while resetting: {e!s}"
                 )
 
@@ -1369,7 +1369,7 @@ class CustomPopupWindow(QWidget):
                 self.rebuild_grid_layout(force_edit_mode=True)
                 self.add_edit_overlays_to_buttons()
             else:
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Error", "Failed to save button changes. Please try again."
                 )
 
@@ -1427,12 +1427,12 @@ class CustomPopupWindow(QWidget):
                 # Show success message after UI update
                 QtCore.QTimer.singleShot(
                     100,
-                    lambda: self.app.show_message_signal.emit(
+                    lambda: self.app.ui_manager.show_message_signal.emit(
                         "Button Updated", "Your button changes have been saved and are now active."
                     ),
                 )
             else:
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Error", "Failed to save button changes. Please try again."
                 )
 
@@ -1467,7 +1467,7 @@ class CustomPopupWindow(QWidget):
                 self.rebuild_grid_layout(force_edit_mode=True)
                 self.add_edit_overlays_to_buttons()
             else:
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Error", "Failed to delete the button. Please try again."
                 )
 
@@ -1519,7 +1519,7 @@ class CustomPopupWindow(QWidget):
         """
         # Check if image is provided but model doesn't support vision
         if self.has_image and not self._check_vision_support():
-            self.app.show_message_signal.emit(
+            self.app.ui_manager.show_message_signal.emit(
                 "Vision Not Supported",
                 f"The current AI model {self.app.get_current_model(self.app.settings_manager.provider) or 'Unknown'} does not support image analysis. Please select a model that supports vision capabilities.",
             )

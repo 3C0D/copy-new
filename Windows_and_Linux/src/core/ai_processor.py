@@ -28,7 +28,6 @@ class AIProcessor(QObject):
     """
 
     output_ready_signal = Signal(str)
-    show_message_signal = Signal(str, str)
     followup_response_signal = Signal(str)
 
     def __init__(self, app):

@@ -116,7 +116,7 @@ class AnthropicProvider(AIProvider):
                     "Anthropic client could not be initialized. Please check your API settings."
                 )
                 self._logger.error(error_msg)
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Initialization Error",
                     error_msg,
                 )
@@ -139,7 +139,7 @@ class AnthropicProvider(AIProvider):
             if not response_text or response_text.strip() == "":
                 error_msg = "Anthropic API returned an empty response. This might be due to insufficient credits or API limits."
                 self._logger.warning(error_msg)
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Empty Response",
                     error_msg,
                 )
@@ -163,17 +163,17 @@ class AnthropicProvider(AIProvider):
             self._logger.exception(f"Anthropic API error: {error_str}")
 
             if "401" in error_str or "authentication" in error_str.lower():
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Authentication Error",
                     "Invalid API key. Please check your Anthropic API key in settings.",
                 )
             elif "429" in error_str or "rate limit" in error_str.lower():
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Rate Limit",
                     "You've exceeded the rate limit. Please wait a moment and try again.",
                 )
             else:
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "Anthropic Error",
                     f"An error occurred with Anthropic:\n\n{error_str}\n\nPlease check your settings and try again.",
                 )

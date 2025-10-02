@@ -96,7 +96,7 @@ class GeminiProvider(AIProvider):
             error_msg = "Gemini API key not configured. Please add your API key in settings."
             self._logger.error(error_msg)
             if not return_response:
-                self.app.show_message_signal.emit(
+                self.app.ui_manager.show_message_signal.emit(
                     "API Key Missing",
                     "Your Gemini API key is not configured or invalid. Please go to Settings and add a valid API key.",
                 )
@@ -170,7 +170,7 @@ class GeminiProvider(AIProvider):
                         )
                         error_msg = "Gemini blocked the request due to safety concerns. Try rephrasing your request."
                         self._logger.error("Gemini response blocked - no candidates returned")
-                        self.app.show_message_signal.emit(
+                        self.app.ui_manager.show_message_signal.emit(
                             "Content Blocked",
                             "Your request has been blocked by Gemini's safety filters. Please try rephrasing your request to be more neutral.",
                         )
@@ -197,7 +197,7 @@ class GeminiProvider(AIProvider):
                         self._logger.warning(
                             f"Gemini safety filter triggered. Finish reason: {candidate.finish_reason}"
                         )
-                        self.app.show_message_signal.emit(
+                        self.app.ui_manager.show_message_signal.emit(
                             "Content Blocked by Safety Filters",
                             error_msg,
                         )
@@ -211,7 +211,7 @@ class GeminiProvider(AIProvider):
                     self._logger.warning(
                         f"Gemini recitation filter triggered. Finish reason: {candidate.finish_reason}"
                     )
-                    self.app.show_message_signal.emit(
+                    self.app.ui_manager.show_message_signal.emit(
                         "Content Blocked - Copyright Concern",
                         error_msg,
                     )
@@ -224,7 +224,7 @@ class GeminiProvider(AIProvider):
                     self._logger.warning(f"🔥 Attempt {attempt_num}: {error_detail} - No retry")
                     error_msg = f"Gemini could not complete the response (reason code: {candidate.finish_reason}). Please try again."
                     self._logger.warning(f"Gemini unusual finish reason: {candidate.finish_reason}")
-                    self.app.show_message_signal.emit(
+                    self.app.ui_manager.show_message_signal.emit(
                         "Response Incomplete",
                         error_msg,
                     )
@@ -241,7 +241,7 @@ class GeminiProvider(AIProvider):
                         self._logger.warning(
                             f"🔥 Final failure after {max_retries} attempts: {error_detail}"
                         )
-                        self.app.show_message_signal.emit(
+                        self.app.ui_manager.show_message_signal.emit(
                             "Empty Response",
                             "Gemini returned an empty response. Please try rephrasing your request.",
                         )
@@ -261,7 +261,7 @@ class GeminiProvider(AIProvider):
                         self._logger.warning(
                             f"🔥 Final failure after {max_retries} attempts: {error_detail}"
                         )
-                        self.app.show_message_signal.emit(
+                        self.app.ui_manager.show_message_signal.emit(
                             "Response Processing Error",
                             "Could not process the response from Gemini. Please try again.",
                         )
@@ -278,7 +278,7 @@ class GeminiProvider(AIProvider):
                         self._logger.warning(
                             f"🔥 Final failure after {max_retries} attempts: {error_detail}"
                         )
-                        self.app.show_message_signal.emit(
+                        self.app.ui_manager.show_message_signal.emit(
                             "Content Blocked by Safety Filters",
                             response_text,
                         )
@@ -310,7 +310,7 @@ class GeminiProvider(AIProvider):
 
                 # Handle specific Gemini API errors with user-friendly messages
                 if "API_KEY_INVALID" in error_str or "invalid API key" in error_str.lower():
-                    self.app.show_message_signal.emit(
+                    self.app.ui_manager.show_message_signal.emit(
                         "Invalid API Key",
                         "Your Gemini API key is invalid. Please check your API key in Settings and make sure it's correct.",
                     )
@@ -319,19 +319,19 @@ class GeminiProvider(AIProvider):
                     "quota exceeded" in error_str.lower()
                     or "resource exhausted" in error_str.lower()
                 ):
-                    self.app.show_message_signal.emit(
+                    self.app.ui_manager.show_message_signal.emit(
                         "Quota Exceeded",
                         "You've exceeded your Gemini API quota. Please check your usage limits or try again later.",
                     )
                     return ""
                 elif "rate limit" in error_str.lower():
-                    self.app.show_message_signal.emit(
+                    self.app.ui_manager.show_message_signal.emit(
                         "Rate Limit Hit",
                         "You're sending requests too quickly. Please wait a moment and try again.",
                     )
                     return ""
                 elif "finish_reason" in error_str.lower() and "safety" in error_str.lower():
-                    self.app.show_message_signal.emit(
+                    self.app.ui_manager.show_message_signal.emit(
                         "Content Blocked",
                         "Gemini blocked the request due to safety concerns. Try rephrasing your request to be more neutral.",
                     )
@@ -345,7 +345,7 @@ class GeminiProvider(AIProvider):
                         continue
                     else:
                         # Generic error with option to check settings
-                        self.app.show_message_signal.emit(
+                        self.app.ui_manager.show_message_signal.emit(
                             "API Error",
                             f"An error occurred with the Gemini API:\n\n{error_str}\n\nPlease check your API key and settings.",
                         )
