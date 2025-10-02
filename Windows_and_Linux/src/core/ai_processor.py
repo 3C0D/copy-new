@@ -19,7 +19,7 @@ from ..config.interfaces import ActionConfig, ProviderConfig
 
 if TYPE_CHECKING:
     from ..aiprovider.aiprovider import AIProvider
-    from ..ui.ResponseWindow import ResponseWindow
+    from ..ui.response_window import ResponseWindow
 
 
 class AIProcessor(QObject):

@@ -38,7 +38,7 @@ from ..config.interfaces import ActionConfig, ActionConfigWithName
 from .ui_utils import ThemeBackground, ui_utils
 
 if TYPE_CHECKING:
-    from ..WritingToolApp import WritingToolApp
+    pass
 
 
 def _(x):
@@ -50,7 +50,7 @@ class ToggleSwitch(QCheckBox):
 
     toggled = QtCore.Signal(bool)
 
-    def __init__(self, app: "WritingToolApp", parent: QWidget | None = None):
+    def __init__(self, app: "WritingToolsApp", parent: QWidget | None = None):
         super().__init__(parent)
         self.app = app
         self.setFixedSize(50, 24)
@@ -119,7 +119,7 @@ class ButtonEditDialog(QDialog):
 
     def __init__(
         self,
-        app: "WritingToolApp",
+        app: "WritingToolsApp",
         parent: QWidget | None = None,
         button_data: dict | None = None,
         title: str = "Edit Button",
@@ -260,7 +260,7 @@ class ButtonEditDialog(QDialog):
 
 class DraggableButton(QPushButton):
     def __init__(
-        self, app: "WritingToolApp", parent_popup: "CustomPopupWindow", key: str, text: str
+        self, app: "WritingToolsApp", parent_popup: "CustomPopupWindow", key: str, text: str
     ):
         super().__init__(text, parent_popup)
         self.app = app
@@ -401,7 +401,7 @@ class DraggableButton(QPushButton):
 class CustomPopupWindow(QWidget):
     def __init__(
         self,
-        app: "WritingToolApp",
+        app: "WritingToolsApp",
         selected_text: str | None = None,
         image: QtGui.QImage | None = None,
     ):

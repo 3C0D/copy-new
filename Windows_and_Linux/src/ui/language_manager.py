@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 from PySide6 import QtCore
 
 if TYPE_CHECKING:
-    from ..WritingToolApp import WritingToolApp
+    pass
 
 
 class LanguageManager(QtCore.QObject):
@@ -16,7 +16,7 @@ class LanguageManager(QtCore.QObject):
 
     language_changed = QtCore.Signal(str)  # Emits the new language code (e.g., 'en', 'fr')
 
-    def __init__(self, app: "WritingToolApp"):
+    def __init__(self, app: "WritingToolsApp"):
         super().__init__()
         self.app = app
         self._logger = logging.getLogger(__name__)

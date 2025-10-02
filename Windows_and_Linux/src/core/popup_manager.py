@@ -71,10 +71,10 @@ class PopupManager(QObject):
         self._logger.debug("🆕🪟 Creating new popup window")
 
         # Import here to avoid circular imports
-        from ..ui import CustomPopupWindow
+        from ..ui import custom_popup_window
         from ..ui.ui_utils import ui_utils
 
-        self.popup_window = CustomPopupWindow.CustomPopupWindow(self.app, selected_text, image)
+        self.popup_window = custom_popup_window.CustomPopupWindow(self.app, selected_text, image)
 
         # Set window icon
         icon_path = ui_utils.get_icon_path(

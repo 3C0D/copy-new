@@ -69,7 +69,7 @@ except ImportError:
 # Type checking imports
 if TYPE_CHECKING:
     from ..config.interfaces import ProviderConfig
-    from ..WritingToolApp import WritingToolApp
+    from ..writing_tools_app import WritingToolsApp
 
 
 class AIProviderSetting(ABC):
@@ -133,7 +133,7 @@ class TextSetting(AIProviderSetting):
 
     def __init__(
         self,
-        app: "WritingToolApp",
+        app: "WritingToolsApp",
         name: str,
         display_name: str | None = None,
         default_value: str | None = None,
@@ -203,7 +203,7 @@ class DropdownSetting(AIProviderSetting):
 
     def __init__(
         self,
-        app: "WritingToolApp",
+        app: "WritingToolsApp",
         name: str,
         display_name: str | None = None,
         default_value: str | None = None,
@@ -388,7 +388,7 @@ class AIProvider(ABC):
 
     def __init__(
         self,
-        app: "WritingToolApp",
+        app: "WritingToolsApp",
         provider_name: str,
         settings: list[AIProviderSetting],
         description: str = "An unfinished AI provider!",

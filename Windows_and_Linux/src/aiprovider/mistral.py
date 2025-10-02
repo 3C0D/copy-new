@@ -9,7 +9,7 @@ from ..config.data_operations import get_default_model_for_provider
 from .aiprovider import AIProvider, DropdownSetting, TextSetting
 
 if TYPE_CHECKING:
-    from ..WritingToolApp import WritingToolApp
+    from ..writing_tools_app import WritingToolsApp
 
 
 class MistralProvider(AIProvider):
@@ -20,9 +20,9 @@ class MistralProvider(AIProvider):
     Uses direct HTTP requests for better control and reliability.
     """
 
-    def __init__(self, app: "WritingToolApp"):
+    def __init__(self, app: "WritingToolsApp"):
         self.client: Any = None
-        self.app: WritingToolApp = app
+        self.app: WritingToolsApp = app
         settings = [
             TextSetting(
                 app,

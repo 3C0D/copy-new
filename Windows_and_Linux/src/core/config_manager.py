@@ -11,8 +11,11 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QLocale
 from PySide6.QtWidgets import QApplication
 
+from ..ui import about_window, custom_popup_window, help_window
+from ..ui.SettingsWindow import settings_window
+
 if TYPE_CHECKING:
-    from ..WritingToolApp import WritingToolApp
+    from ..writing_tools_app import WritingToolsApp
 
 
 class ConfigManager:
@@ -22,7 +25,7 @@ class ConfigManager:
     Centralizes management of settings, languages, themes, and running mode.
     """
 
-    def __init__(self, app: "WritingToolApp"):
+    def __init__(self, app: "WritingToolsApp"):
         """
         Initialize the configuration manager.
 
@@ -75,18 +78,14 @@ class ConfigManager:
 
         # Import and update UI modules
         from ..ui import (
-            AboutWindow,
-            CustomPopupWindow,
-            HelpWindow,
-            ResponseWindow,
-            SettingsWindow,
+            response_window,
         )
 
-        AboutWindow._ = self._
-        SettingsWindow._ = self._
-        ResponseWindow._ = self._
-        CustomPopupWindow._ = self._
-        HelpWindow._ = self._
+        about_window._ = self._
+        settings_window._ = self._
+        response_window._ = self._
+        custom_popup_window._ = self._
+        help_window._ = self._
 
     def retranslate_ui(self) -> None:
         """

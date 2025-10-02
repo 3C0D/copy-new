@@ -9,7 +9,7 @@ from ..aiprovider.aiprovider import AIProvider, AIProviderSetting, TextSetting
 
 # Type checking imports
 if TYPE_CHECKING:
-    from ..WritingToolApp import WritingToolApp
+    from ..writing_tools_app import WritingToolsApp
 
 
 class OpenAICompatibleProvider(AIProvider):
@@ -21,7 +21,7 @@ class OpenAICompatibleProvider(AIProvider):
     and project authentication.
     """
 
-    def __init__(self, app: "WritingToolApp"):
+    def __init__(self, app: "WritingToolsApp"):
         self.client: Any = None
 
         settings = [

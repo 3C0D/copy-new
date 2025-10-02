@@ -24,10 +24,10 @@ from PySide6.QtWidgets import (
 )
 
 from ..aiprovider.aiprovider import AIProvider, DropdownSetting, TextSetting
-from ..ui.ProgressWindow import OllamaInstallProgressWindow
+from ..ui.progress_window import OllamaInstallProgressWindow
 
 if TYPE_CHECKING:
-    from ..WritingToolApp import WritingToolApp
+    from ..writing_tools_app import WritingToolsApp
 
 
 class OllamaStateManager(QObject):
@@ -442,7 +442,7 @@ class OllamaProvider(AIProvider):
     Optimized Ollama provider with async operations and state caching.
     """
 
-    def __init__(self, app: "WritingToolApp"):
+    def __init__(self, app: "WritingToolsApp"):
         self.app = app
         self.client: Optional[OllamaClient] = None
         self._logger = logging.getLogger(self.__class__.__name__)

@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 from .ui_utils import ThemedWidget
 
 if TYPE_CHECKING:
-    from ..WritingToolApp import WritingToolApp
+    pass
 
 
 def _(x):
@@ -34,7 +34,7 @@ class NonEditableModal(ThemedWidget):
     # Signal    emitted when window is closed (not when proceeding to next step)
     close_signal = QtCore.Signal()
 
-    def __init__(self, app: "WritingToolApp", transformed_text: str | None):
+    def __init__(self, app: "WritingToolsApp", transformed_text: str | None):
         super().__init__(app)
         self.app = app
         self._logger = logging.getLogger(__name__)
@@ -120,10 +120,10 @@ class NonEditableModal(ThemedWidget):
 
 # Example usage for testing
 if __name__ == "__main__":
-    from ..WritingToolApp import WritingToolApp
+    from ..writing_tools_app import WritingToolsApp
 
     app = QApplication([])
-    writing_app = WritingToolApp(None)
+    writing_app = WritingToolsApp(None)
 
     # Test text with markdown
     test_text = """# Test Title

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 from PySide6 import QtCore
 
 if TYPE_CHECKING:
-    from ..WritingToolApp import WritingToolApp
+    from ..writing_tools_app import WritingToolsApp
 
 
 class ThemeManager(QtCore.QObject):
@@ -18,7 +18,7 @@ class ThemeManager(QtCore.QObject):
 
     background_theme_changed = QtCore.Signal(str)  # Emits the new background theme (gradient/plain)
 
-    def __init__(self, app: "WritingToolApp"):
+    def __init__(self, app: "WritingToolsApp"):
         super().__init__()
         self.app = app
         self._logger = logging.getLogger(__name__)

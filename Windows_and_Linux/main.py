@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 
-from src.WritingToolApp import WritingToolApp
+from src.writing_tools_app import WritingToolsApp
 
 # Check if we're running in console mode (when console=True in PyInstaller or --console flag)
 CONSOLE_MODE = "--console" in sys.argv or (
@@ -31,7 +31,7 @@ def main():
     The main entry point of the application.
     """
     try:
-        app = WritingToolApp(sys.argv)
+        app = WritingToolsApp(sys.argv)
         app.setQuitOnLastWindowClosed(False)
 
         if CONSOLE_MODE:

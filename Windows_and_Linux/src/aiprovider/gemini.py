@@ -25,7 +25,7 @@ from ..config.data_operations import get_default_model_for_provider
 
 # Type checking imports
 if TYPE_CHECKING:
-    from ..WritingToolApp import WritingToolApp
+    from ..writing_tools_app import WritingToolsApp
 
 
 class GeminiProvider(AIProvider):
@@ -37,7 +37,7 @@ class GeminiProvider(AIProvider):
     Handles safety settings to allow less restricted content.
     """
 
-    def __init__(self, app: "WritingToolApp"):
+    def __init__(self, app: "WritingToolsApp"):
         self.model: Any = None
 
         settings = [

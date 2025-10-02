@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING
 from PySide6 import QtCore, QtGui
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
-from .ui import AboutWindow, HelpWindow
+from .ui import about_window, help_window
 from .ui.ui_utils import ui_utils
 
 if TYPE_CHECKING:
-    from .WritingToolApp import WritingToolApp
+    from .writing_tools_app import WritingToolsApp
 
 
 def _(x):
@@ -17,7 +17,7 @@ def _(x):
 
 
 class SystrayManager:
-    def __init__(self, app: "WritingToolApp"):
+    def __init__(self, app: "WritingToolsApp"):
         self.app = app
         self._logger = logging.getLogger(__name__)
         self.tray_icon = None
@@ -114,7 +114,7 @@ class SystrayManager:
         if self.help_window:
             self.help_window.close()
         if not self.about_window:
-            self.about_window = AboutWindow.AboutWindow(self.app)
+            self.about_window = about_window.AboutWindow(self.app)
             self.about_window.show()
         else:
             ui_utils.existing_window_on_top(self.about_window)
@@ -127,7 +127,7 @@ class SystrayManager:
         if self.about_window:
             self.about_window.close()
         if not self.help_window:
-            self.help_window = HelpWindow.HelpWindow(self.app)
+            self.help_window = help_window.HelpWindow(self.app)
             self.help_window.show()
         else:
             ui_utils.existing_window_on_top(self.help_window)

@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 from .ui_utils import ThemedWidget, ui_utils
 
 if TYPE_CHECKING:
-    from ..WritingToolApp import WritingToolApp
+    from ..writing_tools_app import WritingToolsApp
 
 
 def _(x):
@@ -31,7 +31,7 @@ def _(x):
 class MarkdownTextBrowser(QTextBrowser):
     """Enhanced text browser for displaying Markdown content with improved sizing"""
 
-    def __init__(self, app: "WritingToolApp", parent=None, is_user_message=False):
+    def __init__(self, app: "WritingToolsApp", parent=None, is_user_message=False):
         super().__init__(parent)
         self.app = app
         self.setReadOnly(True)
@@ -192,7 +192,7 @@ class MessageContainer(QWidget):
     """Container for individual messages with copy functionality"""
 
     def __init__(
-        self, app: "WritingToolApp", parent=None, is_user=False, text="", text_display=None
+        self, app: "WritingToolsApp", parent=None, is_user=False, text="", text_display=None
     ):
         super().__init__(parent)
         self.app = app
@@ -300,7 +300,7 @@ class MessageContainer(QWidget):
 class ChatContentScrollArea(QScrollArea):
     """Improved scrollable container for chat messages with dynamic sizing and proper spacing"""
 
-    def __init__(self, app: "WritingToolApp", parent=None):
+    def __init__(self, app: "WritingToolsApp", parent=None):
         super().__init__(parent)
         self.app = app
         self.content_widget: QWidget | None = None
@@ -468,7 +468,7 @@ class ResponseWindow(ThemedWidget):
 
     def __init__(
         self,
-        app: "WritingToolApp",
+        app: "WritingToolsApp",
         title: str = _("Response"),
         parent: QWidget | None = None,
     ):

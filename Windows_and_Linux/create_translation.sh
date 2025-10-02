@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # We generate .pot files from all python scripts...
-xgettext --language=Python --keyword=_ WritingToolApp.py -o pot_files/WritingToolApp.pot
+xgettext --language=Python --keyword=_ writing_tools_app.py -o pot_files/WritingToolsApp.pot
 for file in ui/*.py; do
   output="${file#ui/}"
   output="${output%.py}.pot"

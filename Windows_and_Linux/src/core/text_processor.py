@@ -16,7 +16,7 @@ import pyperclip
 from PySide6 import QtCore
 from PySide6.QtCore import Q_ARG, QObject, Signal, Slot
 
-from ..ui.NonEditableModal import NonEditableModal
+from ..ui.non_editable_modal import NonEditableModal
 
 
 class TextProcessor(QObject):

@@ -11,12 +11,12 @@ from typing import TYPE_CHECKING, Optional
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMessageBox
 
-from ..ui.NonEditableModal import NonEditableModal
-from ..ui.ResponseWindow import ResponseWindow
-from ..ui.SettingsWindow import SettingsWindow
+from ..ui.non_editable_modal import NonEditableModal
+from ..ui.response_window import ResponseWindow
+from ..ui.SettingsWindow.settings_window import SettingsWindow
 
 if TYPE_CHECKING:
-    from ..WritingToolApp import WritingToolApp
+    from ..writing_tools_app import WritingToolsApp
 
 
 class UIManager:
@@ -27,12 +27,12 @@ class UIManager:
     user interface windows in a centralized manner.
     """
 
-    def __init__(self, app: "WritingToolApp"):
+    def __init__(self, app: "WritingToolsApp"):
         """
         Initialize the user interface manager.
 
         Args:
-            app: Main application instance of WritingToolApp
+            app: Main application instance of WritingToolsApp
         """
         self.app = app
         self._logger = logging.getLogger(__name__)
@@ -42,12 +42,11 @@ class UIManager:
         self.response_window: Optional[ResponseWindow] = None
         self.non_editable_modal: Optional[NonEditableModal] = None
 
-    def show_settings(self, providers_only: bool = False, previous_window=None) -> None:
+    def show_settings(self, previous_window=None) -> None:
         """
         Show the settings window with debounce protection against rapid clicks.
 
         Args:
-            providers_only: If True, show only the provider settings section
             previous_window: Previous window for navigation
         """
         import time
@@ -72,7 +71,7 @@ class UIManager:
             self.settings_window.close()
 
         # Always create a new settings window to handle providers_only correctly
-        self.settings_window = SettingsWindow(self.app, providers_only=providers_only)
+        self.settings_window = SettingsWindow(self.app)
 
         # Set reference to previous window for navigation
         if previous_window:

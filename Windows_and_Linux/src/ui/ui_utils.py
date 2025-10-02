@@ -7,7 +7,7 @@ from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication, QLayout, QMessageBox, QVBoxLayout, QWidget
 
 if TYPE_CHECKING:
-    from ..WritingToolApp import WritingToolApp
+    from ..writing_tools_app import WritingToolsApp
 
 
 class ui_utils:
@@ -70,7 +70,7 @@ class ui_utils:
         window.activateWindow()
 
     @staticmethod
-    def get_icon_path(app: "WritingToolApp", icon_name: str, with_theme: bool = True) -> Path:
+    def get_icon_path(app: "WritingToolsApp", icon_name: str, with_theme: bool = True) -> Path:
         """
         Get the correct path for an icon, handling both dev and build modes.
         Supports both PNG and SVG formats, with SVG taking precedence.
@@ -136,7 +136,7 @@ class ui_utils:
 
 
 class ThemedWidget(QWidget):
-    def __init__(self, app: "WritingToolApp"):  # Type hint using forward reference
+    def __init__(self, app: "WritingToolsApp"):  # Type hint using forward reference
         super().__init__()
         self.app = app
         self.setup_window_and_layout()
@@ -287,7 +287,7 @@ class ThemeBackground(QWidget):
 
     def __init__(
         self,
-        app: "WritingToolApp",
+        app: "WritingToolsApp",
         parent=None,
         background_theme="gradient",
         is_popup=False,

@@ -1,5 +1,5 @@
 """
-WritingToolApp - Main application class for Writing Tools.
+WritingToolsApp - Main application class for Writing Tools.
 
 This module contains the core application logic for the Writing Tools application,
 including AI provider management, hotkey handling, and user interface coordination.
@@ -22,7 +22,7 @@ from .aiprovider.mistral import MistralProvider
 from .aiprovider.ollama import OllamaProvider
 from .aiprovider.openAI import OpenAIProvider
 from .aiprovider.openAI_compatible import OpenAICompatibleProvider
-from .AutostartManager import AutostartManager
+from .autostart_manager import AutostartManager
 from .config.settings import SettingsManager
 from .core.ai_processor import AIProcessor
 from .core.clipboard_manager import ClipboardManager
@@ -35,14 +35,14 @@ from .core.popup_manager import PopupManager
 from .core.text_processor import TextProcessor
 from .core.ui_manager import UIManager
 from .systray import SystrayManager
-from .ui.LanguageManager import LanguageManager
-from .ui.ResponseWindow import ResponseWindow
-from .ui.ThemeManager import ThemeManager
+from .ui.language_manager import LanguageManager
+from .ui.response_window import ResponseWindow
+from .ui.theme_manager import ThemeManager
 from .update_checker import UpdateChecker
 
 if TYPE_CHECKING:
     from .aiprovider.aiprovider import AIProvider
-    from .ui.ResponseWindow import ResponseWindow
+    from .ui.response_window import ResponseWindow
 
 os.environ["QT_LOGGING_RULES"] = (
     "qt.qpa.mime.warning=false;qt.qpa.mime.debug=false;qt.qpa.mime.info=false"  # Disable QMimeDatabase warnings
@@ -51,7 +51,7 @@ os.environ["QT_LOGGING_RULES"] = (
 _ = gettext.gettext
 
 
-class WritingToolApp(QApplication):
+class WritingToolsApp(QApplication):
     """
     The main application class for Writing Tools.
     """
@@ -64,7 +64,7 @@ class WritingToolApp(QApplication):
     def __init__(self, argv):
         super().__init__(argv)
         self._logger = logging.getLogger(__name__)
-        self._logger.debug("Initializing WritingToolApp")
+        self._logger.debug("Initializing WritingToolsApp")
 
         try:
             self._logger.debug("Setting up core attributes...")
@@ -91,7 +91,7 @@ class WritingToolApp(QApplication):
             self._handle_normal_launch()
 
         except Exception as e:
-            self._logger.error(f"Critical error during WritingToolApp initialization: {e}")
+            self._logger.error(f"Critical error during WritingToolsApp initialization: {e}")
             import traceback
 
             self._logger.error(f"Full traceback: {traceback.format_exc()}")

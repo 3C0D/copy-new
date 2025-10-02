@@ -6,7 +6,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 if TYPE_CHECKING:
-    from .WritingToolApp import WritingToolApp
+    from .writing_tools_app import WritingToolsApp
 
 CURRENT_VERSION = 7
 UPDATE_CHECK_URL = "https://raw.githubusercontent.com/theJayTea/WritingTools/main/Windows_and_Linux/Latest_Version_for_Update_Check.txt"
@@ -14,7 +14,7 @@ UPDATE_DOWNLOAD_URL = "https://github.com/theJayTea/WritingTools/releases"
 
 
 class UpdateChecker:
-    def __init__(self, app: "WritingToolApp"):
+    def __init__(self, app: "WritingToolsApp"):
         self.app = app
         self._logger = logging.getLogger(__name__)
 

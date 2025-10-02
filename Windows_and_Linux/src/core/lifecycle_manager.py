@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..WritingToolApp import WritingToolApp
+    from ..writing_tools_app import WritingToolsApp
 
 
 class LifecycleManager:
@@ -22,7 +22,7 @@ class LifecycleManager:
     Handles application exit and mode detection.
     """
 
-    def __init__(self, app: "WritingToolApp"):
+    def __init__(self, app: "WritingToolsApp"):
         """
         Initialize the lifecycle manager.
 
@@ -31,7 +31,6 @@ class LifecycleManager:
         """
         self.app = app
         self._logger = logging.getLogger(__name__)
-
 
     def exit_app(self) -> None:
         """

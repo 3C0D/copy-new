@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 if TYPE_CHECKING:
-    from ..WritingToolApp import WritingToolApp
+    from ..writing_tools_app import WritingToolsApp
 
 
 class ProgressWindow(QDialog):
@@ -30,7 +30,7 @@ class ProgressWindow(QDialog):
 
     def __init__(
         self,
-        app: "WritingToolApp",
+        app: "WritingToolsApp",
         title: str = "Operation in progress",
         message: str = "Please wait",
         parent: QWidget | None = None,
@@ -157,7 +157,7 @@ class OllamaInstallProgressWindow(ProgressWindow):
     Specialized progress window for Ollama installation.
     """
 
-    def __init__(self, app: "WritingToolApp", parent: QWidget | None = None) -> None:
+    def __init__(self, app: "WritingToolsApp", parent: QWidget | None = None) -> None:
         self.app = app
         super().__init__(
             self.app,
