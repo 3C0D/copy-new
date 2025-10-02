@@ -461,7 +461,7 @@ class AIProcessor(QObject):
             - Uses chat sessions with proper history formatting
             - Maintains context through chat.send_message()
 
-        b) OpenAI-compatible:
+        b) OpenAi/OpenAI-compatible:
             - Uses standard OpenAI message array format
             - Includes system instruction and full conversation history
             - Properly maps internal roles to OpenAI roles
@@ -612,7 +612,7 @@ class AIProcessor(QObject):
                     )
 
                 elif self.current_provider:
-                    # For OpenAI/compatible providers, prepare messages array
+                    # For OpenAI/OpenAI-compatible providers, prepare messages array
                     # Use Union type to handle both string and list content
 
                     messages: list[dict[str, Any]] = [

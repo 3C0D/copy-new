@@ -2,7 +2,7 @@
 AI Provider Architecture for Writing Tools
 --------------------------------------------
 
-This module handles different AI model providers (Gemini, OpenAI-compatible, Ollama, Anthropic, Mistral)
+This module handles different AI model providers (Gemini, OpenAI, OpenAI-compatible, Ollama, Anthropic, Mistral)
 and manages their interactions with the main application. It uses an abstract base class pattern for
 provider implementations.
 
@@ -19,6 +19,7 @@ Key Components:
 
 3. Provider Implementations:
     • GeminiProvider - Uses Google’s Generative AI API (Gemini) to generate content.
+    • OpenAIProvider - Connects to the official OpenAI API.
     • OpenAICompatibleProvider - Connects to any OpenAI-compatible API (v1/chat/completions)
     • OllamaProvider - Connects to a locally running Ollama server (e.g. for llama.cpp)
     • AnthropicProvider - Uses Anthropic's Claude API
@@ -315,12 +316,6 @@ class DropdownSetting(AIProviderSetting):
             return
 
         try:
-            # Don't refresh if dropdown popup is currently visible to avoid closing it
-            if self.dropdown.view().isVisible():
-                # Just update the options list for next time
-                self.options = new_options
-                return
-
             # Save current selection
             current_value = self.get_value()
             initial_index = self.dropdown.currentIndex()

@@ -257,6 +257,7 @@ DEFAULT_BASE_URLS = {
     "mistral": "https://api.mistral.ai/v1",
     "anthropic": "https://api.anthropic.com/v1",
     "openai": "https://api.openai.com/v1",
+    "openai-compatible": "https://api.openai.com/v1",
 }
 
 DEFAULT_PROVIDER = "gemini"
@@ -481,9 +482,14 @@ DEFAULT_PROVIDER_CONFIGS: dict[tuple[str, ...], ProviderConfig] = {
         "api_model": DEFAULT_MODELS["anthropic"],
         "api_base": DEFAULT_BASE_URLS["anthropic"],
     },
-    ("OpenAI", "OpenAI-Compatible"): {
+    ("OpenAI", "OpenAI"): {
         "api_key": "",
         "api_base": DEFAULT_BASE_URLS["openai"],
         "api_model": DEFAULT_MODELS["openai"],
+    },
+    ("OpenAI", "OpenAI-Compatible"): {
+        "api_key": "",
+        "api_base": DEFAULT_BASE_URLS["openai-compatible"],
+        "api_model": "",
     },
 }
