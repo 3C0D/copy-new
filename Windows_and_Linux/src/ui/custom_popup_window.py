@@ -1521,7 +1521,7 @@ class CustomPopupWindow(QWidget):
         if self.has_image and not self._check_vision_support():
             self.app.ui_manager.show_message_signal.emit(
                 "Vision Not Supported",
-                f"The current AI model {self.app.get_current_model(self.app.settings_manager.provider) or 'Unknown'} does not support image analysis. Please select a model that supports vision capabilities.",
+                f"The current AI model {self.app.ai_processor.get_current_model(self.app.settings_manager.provider) or 'Unknown'} does not support image analysis. Please select a model that supports vision capabilities.",
             )
             return
 
@@ -1551,7 +1551,7 @@ class CustomPopupWindow(QWidget):
             bool: True if the current model supports vision, False otherwise
         """
         provider_name = self.app.settings_manager.provider
-        api_model = self.app.get_current_model(provider_name)
+        api_model = self.app.ai_processor.get_current_model(provider_name)
 
         return self._has_vision_support(provider_name, api_model)
 

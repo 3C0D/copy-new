@@ -364,7 +364,7 @@ class OllamaStateManager(QObject):
         elif system == "linux":
             success = self._install_ollama_linux(app, progress_callback)
         else:
-            app.show_message_signal.emit(
+            app.ui_manager.show_message_signal.emit(
                 "Unsupported platform",
                 f"Automatic installation is not supported on {system}.\n\n"
                 f"Please install manually from https://ollama.com",

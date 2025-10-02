@@ -53,6 +53,11 @@ class AIProcessor(QObject):
         if self.current_provider is not None:
             self.app.settings_manager.provider = self.current_provider.internal_name
 
+    def get_current_model(self, provider_name: str) -> str:
+        """Get the current API model for a specific provider."""
+        provider = self.app.settings_manager.providers.get(provider_name, {})
+        return provider.get("api_model", "")
+
     def get_provider_config(self, provider_name: str) -> ProviderConfig:
         """
         Extract provider-specific configuration from custom_data.
@@ -256,7 +261,9 @@ class AIProcessor(QObject):
                 "action_config": {},
             }
         else:
-            self.show_message_signal.emit("Error", "Please select text to use this option.")
+            self.app.ui_manager.show_message_signal.emit(
+                "Error", "Please select text to use this option."
+            )
             return None
 
     def _handle_text_or_image_selected(
@@ -436,12 +443,12 @@ class AIProcessor(QObject):
         self._logger.error(f"An error occurred: {error}", exc_info=True)
 
         if "Resource has been exhausted" in str(error):
-            self.show_message_signal.emit(
+            self.app.ui_manager.show_message_signal.emit(
                 "Error - Rate Limit Hit",
                 "Whoops! You've hit the per-minute rate limit of the Gemini API. Please try again in a few moments.\n\nIf this happens often, simply switch to a Gemini model with a higher usage limit in Settings.",
             )
         else:
-            self.show_message_signal.emit("Error", f"An error occurred: {error}")
+            self.app.ui_manager.show_message_signal.emit("Error", f"An error occurred: {error}")
 
     def process_followup_question(self, response_window: "ResponseWindow", question: str) -> None:
         """
@@ -491,7 +498,7 @@ class AIProcessor(QObject):
             try:
                 if not response_window.chat_history:
                     self._logger.error("No chat history found")
-                    self.show_message_signal.emit("Error", "Chat history not found")
+                    self.app.ui_manager.show_message_signal.emit("Error", "Chat history not found")
                     return
 
                 # Add current question to chat history
@@ -662,7 +669,7 @@ class AIProcessor(QObject):
                 self._logger.error(f"Error processing follow-up question: {e}", exc_info=True)
 
                 if "Resource has been exhausted" in str(e):
-                    self.show_message_signal.emit(
+                    self.app.ui_manager.show_message_signal.emit(
                         "Error - Rate Limit Hit",
                         "Whoops! You've hit the per-minute rate limit of the API. Please try again in a few moments.\n\nIf this happens often, try switching to a different model in Settings.",
                     )
@@ -670,7 +677,7 @@ class AIProcessor(QObject):
                         "Sorry, an error occurred while processing your question."
                     )
                 else:
-                    self.show_message_signal.emit("Error", f"An error occurred: {e}")
+                    self.app.ui_manager.show_message_signal.emit("Error", f"An error occurred: {e}")
                     self.app.followup_response_signal.emit(
                         "Sorry, an error occurred while processing your question."
                     )

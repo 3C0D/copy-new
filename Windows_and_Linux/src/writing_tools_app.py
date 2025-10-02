@@ -244,14 +244,3 @@ class WritingToolsApp(QApplication):
         """Retranslate the user interface elements."""
         self.systray_manager.update_tray_menu()
 
-    def get_current_model(self, provider_name: str) -> str:
-        provider = self.settings_manager.providers.get(provider_name, {})
-        return provider.get("api_model", "")
-
-    # @Slot(str, str)
-    # def show_message_box(self, title: str, message: str) -> None:
-    #     """
-    #     Show a message box with the given title and message.
-    #     Delegates to the UI manager.
-    #     """
-    #     self.ui_manager.show_message_box(title, message)

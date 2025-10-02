@@ -40,7 +40,7 @@ class UIManager(QObject):
         self._logger = logging.getLogger(__name__)
 
         # Connect signal to slot
-        self.show_message_signal.connect(self.show_message_box)
+        self.app.ui_manager.show_message_signal.connect(self.show_message_box)
 
         # References to active windows
         self.settings_window: Optional[SettingsWindow] = None
