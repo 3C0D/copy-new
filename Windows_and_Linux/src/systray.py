@@ -150,7 +150,9 @@ class SystrayManager:
             self.toggle_action.setText(_("Resume") if self.paused else _("Pause"))
         self._logger.debug("App is paused" if self.paused else "App is resumed")
 
-    def _show_window(self, window_attr: str, window_class, other_window_attr: Optional[str] = None) -> None:
+    def _show_window(
+        self, window_attr: str, window_class, other_window_attr: Optional[str] = None
+    ) -> None:
         """Generic method to show a window and optionally close another."""
         if other_window_attr:
             other_window = getattr(self, other_window_attr, None)

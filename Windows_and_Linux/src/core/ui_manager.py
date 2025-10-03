@@ -14,7 +14,6 @@ from PySide6.QtWidgets import QMessageBox
 from ..ui.non_editable_modal import NonEditableModal
 from ..ui.response_window import ResponseWindow
 from ..ui.SettingsWindow.settings_window import SettingsWindow
-from ..ui.ui_utils import ui_utils
 
 if TYPE_CHECKING:
     from ..writing_tools_app import WritingToolsApp
@@ -74,10 +73,7 @@ class UIManager(QObject):
         response_window = ResponseWindow(self.app, f"{option} Result")
 
         # Configuration for image if available
-        if (
-            hasattr(self.app.popup_manager, "has_image")
-            and self.app.popup_manager.has_image
-        ):
+        if hasattr(self.app.popup_manager, "has_image") and self.app.popup_manager.has_image:
             response_window.image = self.app.popup_manager.image
             self._logger.debug("Image configured in response window")
             response_window.selected_text = None

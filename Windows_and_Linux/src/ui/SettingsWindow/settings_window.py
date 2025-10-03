@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
 if TYPE_CHECKING:
     from ...writing_tools_app import WritingToolsApp
 
-from ..ui_utils import ThemedWidget, ui_utils
+from ..ui_utils import ThemedWidget
 from .general_settings import GeneralSettings
 from .provider_settings import ProviderSettings
 
@@ -45,7 +45,6 @@ class SettingsWindow(ThemedWidget):
         super().__init__(app)
         self.app = app
         self._logger = logging.getLogger(__name__)
-
 
         # Store current background theme
         self.current_background_theme = self.app.settings_manager.background_theme or "gradient"
@@ -242,7 +241,6 @@ class SettingsWindow(ThemedWidget):
             self.save_and_close()
         else:
             super().keyPressEvent(event)
-
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Handle window close event."""
