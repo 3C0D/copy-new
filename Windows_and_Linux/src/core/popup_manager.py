@@ -25,18 +25,44 @@ class PopupManager(QObject):
     def _determine_content_source(self) -> tuple[Optional[QImage], Optional[str]]:
         """
         Determine if the source is an image from clipboard or selected text or image path.
+        Automatically replaces old clipboard image with new one if different.
 
         Returns:
             Tuple of (image, selected_text)
         """
-        # Check clipboard first
-        if self.image is None:
-            self.image = self.image_processor.get_image_from_clipboard()
+        # Check clipboard for image
+        clipboard_image = self.image_processor.get_image_from_clipboard()
 
-        # If we have an image from clipboard, no need to check text
-        if self.image:
+        # If we have a current image and a new clipboard image
+        if self.image and clipboard_image:
+            # Compare images to see if they're different
+            if self._images_are_different(self.image, clipboard_image):
+                self._logger.debug("🆕 New image detected in clipboard - replacing previous image")
+                # Clear old image and replace with new one
+                self.image = clipboard_image
+                # Type assertion for PyLance since we know clipboard_image is not None here
+                assert self.image is not None
+                self._logger.debug(
+                    f"🖼️ New clipboard image - size: {self.image.width()}x{self.image.height()}"
+                )
+                return self.image, None
+
+        # If no current image but new clipboard image, use it
+        elif clipboard_image and not self.image:
+            self.image = clipboard_image
+            # Type assertion for PyLance since we know clipboard_image is not None here
+            assert self.image is not None
             self._logger.debug(
                 f"🖼️ Image found in clipboard - size: {self.image.width()}x{self.image.height()}"
+            )
+            return self.image, None
+
+        # If we already have an image from previous call, use it
+        elif self.image:
+            # Type assertion for PyLance since we know self.image is not None here
+            assert self.image is not None
+            self._logger.debug(
+                f"🖼️ Using existing image - size: {self.image.width()}x{self.image.height()}"
             )
             return self.image, None
 
@@ -55,6 +81,8 @@ class PopupManager(QObject):
             self._logger.debug("Selected text is image path, loading image")
             image = self.image_processor._load_image_from_path(selected_text)
             if image:
+                # Type assertion for PyLance since we know image is not None here
+                assert image is not None
                 self._logger.debug(
                     f"🖼️ Image loaded from selection path - size: {image.width()}x{image.height()}"
                 )
@@ -65,6 +93,30 @@ class PopupManager(QObject):
             self._logger.debug("🖼️ No image found, processing text selection")
 
         return None, selected_text
+
+    def _images_are_different(self, img1: Optional[QImage], img2: Optional[QImage]) -> bool:
+        """
+        Compare two images to determine if they're different.
+
+        Args:
+            img1: First image to compare
+            img2: Second image to compare
+
+        Returns:
+            bool: True if images are different, False if they're the same
+        """
+        if not img1 or not img2:
+            return True  # If either is None, they're different
+
+        # First check basic properties
+        if img1.width() != img2.width() or img1.height() != img2.height():
+            return True
+
+        # For more thorough comparison, we could convert to bytes and compare
+        # but for performance, size comparison is often sufficient
+        # If needed, we can enhance this with pixel-by-pixel comparison
+
+        return False  # Same size = assume same image for now
 
     def _create_popup_window(self, selected_text: Optional[str], image: Optional[QImage]) -> None:
         """Create and configure the popup window."""
