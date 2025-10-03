@@ -112,15 +112,14 @@ class AIProcessor(QObject):
             return
 
         has_image = image is not None
-        is_custom_option = option == "Custom"
-        has_selected_text = bool(selected_text and selected_text.strip() != "")
-        action_config = self.app.settings_manager.actions.get(option, {})
+        # Get action config from appropriate dictionary based on context
+        if has_image and option in self.app.settings_manager.image_actions:
+            action_config = self.app.settings_manager.image_actions.get(option, {})
+        else:
+            action_config = self.app.settings_manager.actions.get(option, {})
 
-        should_setup_response_window = (
-            (is_custom_option and not has_selected_text)
-            or (is_custom_option and has_image)
-            or action_config.get("open_in_window", False)
-            or (force_chat and has_selected_text)  # Force Chat with text
+        should_setup_response_window = self._should_display_in_window(
+            option, selected_text, action_config, has_image
         )
 
         self._logger.debug(f"should_setup_response_window: {should_setup_response_window}")
@@ -156,8 +155,20 @@ class AIProcessor(QObject):
         # Handle chat history based on content type
         if image is not None:
             # Image mode - no selected text
+            # Get the actual prompt text for the action to put in history
+            is_custom = option == "Custom"
+            if is_custom:
+                # For custom, the prompt is the custom_change (handled later)
+                history_content = f"Image analysis request: {option.lower()}"
+            else:
+                # For predefined actions, use the action's prefix as the user-visible request
+                action_config = self.app.settings_manager.image_actions.get(option, {})
+                history_content = action_config.get(
+                    "prefix", f"Image analysis request: {option.lower()}"
+                ) # !!! à voir comment on fait une fois le system compris
+
             self.app.current_response_window.chat_history = [
-                {"role": "user", "content": f"Image analysis request: {option.lower()}"}
+                {"role": "user", "content": history_content}
             ]
         elif is_custom and not selected_text:
             # Custom mode without text
@@ -275,7 +286,12 @@ class AIProcessor(QObject):
         custom_change: str | None,
     ) -> dict | None:
         """Handle case where text is selected or image is available."""
-        action_config: ActionConfig = self.app.settings_manager.actions.get(option, {})
+        # Get action config from appropriate dictionary based on context
+        has_image = image is not None
+        if has_image and option in self.app.settings_manager.image_actions:
+            action_config: ActionConfig = self.app.settings_manager.image_actions.get(option, {})
+        else:
+            action_config: ActionConfig = self.app.settings_manager.actions.get(option, {})
 
         # For image analysis, use a specialized system instruction
         if image is not None:
@@ -291,7 +307,7 @@ class AIProcessor(QObject):
                 prompt = custom_change or "Please analyze this image and describe what you see."
             else:
                 if not action_config:
-                    self._logger.error(f"Action not found: {option}")
+                    self._logger.error(f"Handle image - Action not found: {option}")
                     return None
 
                 # For pre-defined actions with images, adapt the instruction
@@ -337,20 +353,18 @@ class AIProcessor(QObject):
         }
 
     def _should_display_in_window(
-        self, option: str, selected_text: str, action_config: ActionConfig, has_image: bool
+        self, option: str, selected_text: str | None, action_config: ActionConfig, has_image: bool
     ) -> bool:
         """Determine if response should be displayed in a window."""
         is_custom_option = option == "Custom"
-        has_selected_text = selected_text and selected_text.strip() != "" or False
-        force_chat = getattr(self.app, "_current_force_chat", False)
+        has_selected_text = bool(selected_text and selected_text.strip() != "")
+        force_chat = bool(getattr(self.app, "_current_force_chat", False))
 
         return (
-            (
-                is_custom_option and not has_selected_text
-            )  # Custom without text (includes image case)
-            or (has_selected_text and action_config.get("open_in_window", False))  # Window mode
-            or (has_image and action_config.get("open_in_window", False))  # Window mode
-            or (force_chat and has_selected_text)  # Force Chat with text
+            has_image
+            or (force_chat and has_selected_text)
+            or (is_custom_option and not has_selected_text)
+            or bool(action_config.get("open_in_window", True))
         )
 
     def _process_window_response(

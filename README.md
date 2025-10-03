@@ -110,6 +110,7 @@ This version features a complete architectural overhaul with:
 - **Enhanced debugging tools** for development
 - **Improved build system** with console mode support
 - **Better error handling** and logging
+- **Separated action types** - Text and image actions handled independently for better maintainability
 
 ## 🤝 Contributing
 

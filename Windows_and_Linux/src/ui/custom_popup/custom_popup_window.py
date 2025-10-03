@@ -23,7 +23,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ...config.data_operations import create_default_actions_config
+from ...config.data_operations import (
+    create_default_actions_config,
+    create_default_image_actions_config,
+)
 from ...config.interfaces import ActionConfig
 from ..custom_popup.button_edit_dialog import ButtonEditDialog
 from ..custom_popup.draggable_button import DraggableButton
@@ -603,22 +606,25 @@ class CustomPopupWindow(QWidget):
     def get_actions(self) -> dict[str, ActionConfig]:
         """
         Get actions directly from the unified settings system.
-        Returns ActionConfig objects, no conversion needed.
+        Returns ActionConfig objects, combining text and image actions based on context.
+        For image context, returns image_actions; for text context, returns actions.
         """
-        return self.app.settings_manager.actions
+        if self.has_image:
+            return self.app.settings_manager.image_actions
+        else:
+            return self.app.settings_manager.actions
 
-    @staticmethod
-    def action_config_to_dict(action_config: ActionConfig) -> dict:
+    def action_config_to_dict(self, action_config: ActionConfig) -> dict:
         """
         Convert ActionConfig to dict format for ButtonEditDialog compatibility.
         Only use when dict format is specifically needed.
+        For image actions, open_in_window defaults to True since they need chat windows.
         """
         return {
             "prefix": action_config.get("prefix", ""),
             "instruction": action_config.get("instruction", ""),
             "icon": action_config.get("icon", ""),
-            "open_in_window": action_config.get("open_in_window", False),
-            "image": action_config.get("image", False),
+            "open_in_window": action_config.get("open_in_window", True),
         }
 
     def build_buttons_list(self) -> None:
@@ -643,10 +649,6 @@ class CustomPopupWindow(QWidget):
         for name, action_config in actions.items():
             if name == "Custom":
                 continue
-            # Filter actions based on image presence
-            is_image_action = action_config.get("image", False)
-            if self.has_image != is_image_action:  # clever shortcut
-                continue
 
             b = DraggableButton(self.app, self, name, name)
             icon_path = ui_utils.get_icon_path(
@@ -655,9 +657,10 @@ class CustomPopupWindow(QWidget):
             if icon_path.exists():
                 b.setIcon(QtGui.QIcon(icon_path.as_posix()))
 
-            # Set action indicator based on open_in_window
-            open_in_window = action_config.get("open_in_window", False)
-            b.set_action_indicator(open_in_window, is_image_action)
+            # Set action indicator based on open_in_window. Only for text actions.
+            if not self.has_image:
+                open_in_window = action_config.get("open_in_window", True) or False
+                b.set_action_indicator(open_in_window)
 
             # Add tooltip with tool name and description
             tooltip_text = name
@@ -918,8 +921,12 @@ class CustomPopupWindow(QWidget):
                 self._logger.debug("Resetting to default actions")
                 # Reset actions to defaults in unified settings
                 if hasattr(self.app, "settings_manager") and self.app.settings_manager.settings:
-                    # Reset actions to defaults
-                    self.app.settings_manager.actions = create_default_actions_config()
+                    if self.has_image:
+                        # Reset image actions to defaults
+                        self.app.settings_manager.image_actions = create_default_image_actions_config()
+                    else:
+                        # Reset text actions to defaults
+                        self.app.settings_manager.actions = create_default_actions_config()
                 else:
                     self._logger.error("Settings manager not available for reset")
 
@@ -961,11 +968,16 @@ class CustomPopupWindow(QWidget):
                 prefix=bd.get("prefix", ""),
                 instruction=bd.get("instruction", ""),
                 icon=bd.get("icon", ""),
-                open_in_window=bd.get("open_in_window", False),
-                image=bd.get("image", False),
+                open_in_window=bd.get("open_in_window", True),
             )
 
-            success = self.app.settings_manager.update_action(bd.get("name", ""), action_config)
+            # Use appropriate method based on context
+            if self.has_image:
+                success = self.app.settings_manager.update_image_action(
+                    bd.get("name", ""), action_config
+                )
+            else:
+                success = self.app.settings_manager.update_action(bd.get("name", ""), action_config)
 
             if success:
                 # Stay in edit mode and refresh buttons
@@ -1007,8 +1019,11 @@ class CustomPopupWindow(QWidget):
                     ):
                         return  # The user cancelled
 
-                # Delete the old action
-                success = self.app.settings_manager.remove_action(key)
+                # Delete the old action (use appropriate method based on context)
+                if self.has_image:
+                    success = self.app.settings_manager.remove_image_action(key)
+                else:
+                    success = self.app.settings_manager.remove_action(key)
 
             # Create and save new ActionConfig (only if previous operation succeeded)
             if success:
@@ -1016,12 +1031,17 @@ class CustomPopupWindow(QWidget):
                     prefix=new_data.get("prefix", ""),
                     instruction=new_data.get("instruction", ""),
                     icon=new_data.get("icon", ""),
-                    open_in_window=new_data.get("open_in_window", False),
-                    image=new_data.get("image", False),
+                    open_in_window=new_data.get("open_in_window", True),
                 )
-                success = self.app.settings_manager.update_action(
-                    new_data.get("name", ""), action_config
-                )
+                # Use appropriate method based on context
+                if self.has_image:
+                    success = self.app.settings_manager.update_image_action(
+                        new_data.get("name", ""), action_config
+                    )
+                else:
+                    success = self.app.settings_manager.update_action(
+                        new_data.get("name", ""), action_config
+                    )
 
             if success:
                 # Stay in edit mode and refresh buttons
@@ -1037,7 +1057,7 @@ class CustomPopupWindow(QWidget):
                 )
             else:
                 self.app.ui_manager.show_message_signal.emit(
-                    "Error", "Failed to save button changes. Please try again."
+                    "Error", "Failed to save button changes!! Please try again."
                 )
 
     def delete_button_clicked(self, btn: QPushButton) -> None:
@@ -1055,8 +1075,11 @@ class CustomPopupWindow(QWidget):
         confirm.setDefaultButton(QMessageBox.StandardButton.No)
 
         if confirm.exec_() == QMessageBox.StandardButton.Yes:
-            # Remove action using SettingsManager
-            success = self.app.settings_manager.remove_action(key)
+            # Remove action using appropriate SettingsManager method
+            if self.has_image:
+                success = self.app.settings_manager.remove_image_action(key)
+            else:
+                success = self.app.settings_manager.remove_action(key)
 
             if success:
                 # Clean up UI elements and refresh
@@ -1080,8 +1103,8 @@ class CustomPopupWindow(QWidget):
         Called after a drop reorder. Reflect the new order in unified settings,
         so that user's custom arrangement persists.
         """
-        # Get current actions
-        current_actions = self.app.settings_manager.actions
+        # Get current actions (text or image based on context)
+        current_actions = self.get_actions()
 
         # Create new ordered dict based on button order
         new_actions = {}
@@ -1095,8 +1118,11 @@ class CustomPopupWindow(QWidget):
             if b.key in current_actions:
                 new_actions[b.key] = current_actions[b.key]
 
-        # Update settings (auto-saves)
-        self.app.settings_manager.actions = new_actions
+        # Update settings (auto-saves) - use appropriate storage based on context
+        if self.has_image:
+            self.app.settings_manager.image_actions = new_actions
+        else:
+            self.app.settings_manager.actions = new_actions
         self._logger.debug("Button order updated in unified settings")
 
     def reload_window(self) -> None:

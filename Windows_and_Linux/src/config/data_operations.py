@@ -5,6 +5,7 @@ Contains all functions for creating, modifying, and manipulating configuration d
 
 from .constants import (
     DEFAULT_ACTIONS_VALUES,
+    DEFAULT_IMAGE_ACTIONS_VALUES,
     DEFAULT_MODELS,
     DEFAULT_SYSTEM_VALUES,
     PROVIDER_DISPLAY_NAMES,
@@ -45,11 +46,17 @@ def create_default_actions_config() -> dict[str, ActionConfig]:
     return DEFAULT_ACTIONS_VALUES.copy()
 
 
+def create_default_image_actions_config() -> dict[str, ActionConfig]:
+    """Create a dictionary of ActionConfig instances from default image actions values"""
+    return DEFAULT_IMAGE_ACTIONS_VALUES.copy()
+
+
 def create_default_settings() -> UnifiedSettings:
     """Create a complete UnifiedSettings instance with all default configurations"""
     return UnifiedSettings(
         system=create_default_system_config(),
         actions=create_default_actions_config(),
+        image_actions=create_default_image_actions_config(),
         custom_data={},
     )
 
@@ -86,6 +93,22 @@ def merge_actions_data(
     return result
 
 
+def merge_image_actions_data(
+    user_data: dict[str, dict] | None,
+    default_values: dict[str, ActionConfig],
+) -> dict[str, ActionConfig]:
+    """Merge user image actions data with default values and create ActionConfig instances"""
+    result = default_values.copy()
+
+    if user_data and isinstance(user_data, dict):
+        # Convert user data to ActionConfig instances
+        for name, values in user_data.items():
+            if isinstance(values, dict):
+                result[name] = ActionConfig(**values)
+
+    return result
+
+
 def create_unified_settings_from_data(user_data: dict) -> UnifiedSettings:
     """
     Create UnifiedSettings from user data, merging with defaults.
@@ -96,10 +119,14 @@ def create_unified_settings_from_data(user_data: dict) -> UnifiedSettings:
 
     system_data = merge_system_data(system_user_data, DEFAULT_SYSTEM_VALUES)
     actions_data = merge_actions_data(user_data.get("actions"), DEFAULT_ACTIONS_VALUES)
+    image_actions_data = merge_image_actions_data(
+        user_data.get("image_actions"), DEFAULT_IMAGE_ACTIONS_VALUES
+    )
     custom_data = user_data.get("custom_data", {})
 
     return UnifiedSettings(
         system=system_data,
         actions=actions_data,
+        image_actions=image_actions_data,
         custom_data=custom_data,
     )

@@ -86,6 +86,7 @@ class UIManager(QObject):
             message: Message to display
         """
         self._logger.debug(f"Showing message box: {title}")
+        self._logger.info(f"Message: {message}")
 
         msg_box = QMessageBox(None)
         msg_box.setWindowFlags(msg_box.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)

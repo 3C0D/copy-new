@@ -137,6 +137,17 @@ class SettingsManager:
         self.save()
 
     @property
+    def image_actions(self) -> dict[str, ActionConfig]:
+        """Access to image action configurations."""
+        return self.settings.image_actions
+
+    @image_actions.setter
+    def image_actions(self, value: dict[str, ActionConfig]) -> None:
+        """Set image action configurations."""
+        self.settings.image_actions = value
+        self.save()
+
+    @property
     def providers(self) -> dict[str, ProviderConfig]:
         """Access to provider configurations."""
         # Ensure providers key exists in custom_data
@@ -250,8 +261,14 @@ class SettingsManager:
     #
 
     def update_action(self, action_name: str, action_config: ActionConfig) -> bool:
-        """Update or add an action configuration and save immediately."""
+        """Update or add a text action configuration and save immediately."""
         self.settings.actions[action_name] = action_config
+        return self.save()
+
+    def update_image_action(self, action_name: str, action_config: ActionConfig) -> bool:
+        """Update or add an image action configuration and save immediately."""
+        self.settings.image_actions[action_name] = action_config
+        self._logger.debug(f"update_image_action: {action_name} updated/added")
         return self.save()
 
     def remove_action(self, action_name: str) -> bool:
@@ -260,7 +277,16 @@ class SettingsManager:
             del self.settings.actions[action_name]
             return self.save()
 
-        self._logger.warning(f"Action not found: {action_name}")
+        self._logger.warning(f"Remove action - Action not found: {action_name}")
+        return False
+
+    def remove_image_action(self, action_name: str) -> bool:
+        """Remove an image action configuration and save immediately."""
+        if action_name in self.settings.image_actions:
+            del self.settings.image_actions[action_name]
+            return self.save()
+
+        self._logger.warning(f"Image action not found: {action_name}")
         return False
 
     #
@@ -337,6 +363,9 @@ class SettingsManager:
             "system": dict(self.settings.system),  # Convert TypedDict to regular dict
             "actions": {
                 name: dict(action) for name, action in self.settings.actions.items()
+            },  # Convert ActionConfig TypedDict to dict
+            "image_actions": {
+                name: dict(action) for name, action in self.settings.image_actions.items()
             },  # Convert ActionConfig TypedDict to dict
             "custom_data": {
                 "update_available": self.settings.custom_data.get("update_available", False),

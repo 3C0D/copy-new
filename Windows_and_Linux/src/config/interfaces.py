@@ -13,8 +13,7 @@ class ActionConfig(TypedDict, total=False):
     prefix: str
     instruction: str
     icon: str
-    open_in_window: bool
-    image: Optional[bool]
+    open_in_window: Optional[bool]
 
 
 class ActionConfigWithName(ActionConfig, total=False):
@@ -68,6 +67,7 @@ class UnifiedSettings:
 
     system: SystemConfig
     actions: dict[str, ActionConfig] = field(default_factory=dict)
+    image_actions: dict[str, ActionConfig] = field(default_factory=dict)
     custom_data: CustomDataStructure = field(
         default_factory=lambda: CustomDataStructure(
             providers={},

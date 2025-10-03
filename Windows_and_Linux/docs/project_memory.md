@@ -15,7 +15,8 @@ Writing Tools is a cross-platform desktop application that provides AI-powered t
 - **Direct Text Replacement** - AI response replaces selected text directly
 - **Response Windows** - AI responses shown in separate windows (Summary, Key Points)
 - **Multi-Provider Support** - Gemini, OpenAI, Anthropic, Mistral, Ollama
-- **Image Support** - Can process images from clipboard
+- **Image Support** - Can process images from clipboard with dedicated image actions
+- **Separated Action Types** - Text actions and image actions handled separately
 - **Cross-Platform** - Windows/Linux support
 
 ## **🔄 TEXT REPLACEMENT FLOW (Direct Mode)**
@@ -53,6 +54,18 @@ Writing Tools is a cross-platform desktop application that provides AI-powered t
 ```
 
 ## **🔧 RECENT FIXES & IMPORTANT NOTES**
+
+### **Image Actions Separation (Major Architecture Change)**
+- **Feature**: Complete separation of text actions and image actions
+- **Issue Addressed**: Mixed configuration causing confusion between text and image processing
+- **Solution**: Created separate `image_actions` configuration alongside existing `actions`
+- **Implementation**:
+  - New `_DEFAULT_IMAGE_ACTIONS_VALUES_RAW` for image-specific actions
+  - Updated `UnifiedSettings` to include `image_actions` field
+  - Modified UI logic to use appropriate action dictionaries based on context
+  - Simplified response window logic: images always open windows
+- **Location**: `constants.py`, `interfaces.py`, `data_operations.py`, `CustomPopupWindow.py`, `ai_processor.py`
+- **Benefit**: Cleaner architecture, better maintainability, clearer separation of concerns
 
 ### **Chat Window Toggle Feature (Added)**
 - **Feature**: Ctrl+Space now closes existing chat windows and returns to main popup
@@ -93,14 +106,18 @@ When text replacement fails:
 ### **Current State:**
 - ✅ Text replacement working correctly
 - ✅ Multi-provider support functional
+- ✅ Image actions separated from text actions
 - ✅ Interactive documentation created
 - ✅ Code cleaned and organized
+- ✅ Major architecture improvements completed
 
 ### **Architecture Principles:**
 - Separation of UI and business logic
 - Signal/slot pattern for thread communication
 - Provider abstraction for extensibility
 - Clipboard-based text operations for reliability
+- **Separated action types**: Text actions and image actions handled independently
+- **Context-aware processing**: Different logic based on content type (text vs image)
 
 ---
 

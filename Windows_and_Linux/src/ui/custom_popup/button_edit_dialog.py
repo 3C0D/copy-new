@@ -50,11 +50,8 @@ class ButtonEditDialog(QDialog):
                 "instruction": "",
                 "icon": "icons/magnifying-glass",
                 "open_in_window": False,
-                "image": is_image_context,
             }
         )
-        if is_image_context:
-            self.button_data["image"] = True
         self.setWindowTitle(title)
         self.init_ui()
 
@@ -166,5 +163,4 @@ class ButtonEditDialog(QDialog):
             "instruction": self.instruction_input.toPlainText(),
             "icon": "icons/custom",
             "open_in_window": self.window_radio.isChecked() if not self.is_image_context else True,
-            "image": self.is_image_context,
         }

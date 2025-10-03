@@ -165,7 +165,7 @@ ANTHROPIC_MODELS = [
 
 MISTRAL_MODELS = [
     (
-        "Mistral Large (most capable | slow)",
+        "Mistral Large (most capable)",
         "mistral-large-2411",
         {"vision": False},
     ),
@@ -182,7 +182,7 @@ MISTRAL_MODELS = [
     (
         "Mistral Medium Latest (multimodal | vision)",
         "mistral-medium-latest",
-        {"vision": True},
+        {"vision": False},
     ),
     (
         "Pixtral 12B (multimodal | vision)",
@@ -385,12 +385,60 @@ _DEFAULT_ACTIONS_VALUES_RAW = {
         "icon": "icons/summary",
         "open_in_window": False,
     },
+}
+
+
+# Default image actions configuration
+_DEFAULT_IMAGE_ACTIONS_VALUES_RAW = {
     "Img_txt→En": {
         "prefix": "Extract and translate all visible text from this image to English:\n\n",
         "instruction": "You are an image text extraction and translation assistant. Extract all visible text from the provided image and translate it completely to English. Provide ONLY the English translation without any explanations, descriptions, or additional text. Do not describe the image or add any commentary.",
         "icon": "icons/magnifying-glass",
-        "open_in_window": True,
-        "image": True,
+    },
+}
+
+DEFAULT_SYSTEM_VALUES: SystemConfig = cast("SystemConfig", _DEFAULT_SYSTEM_VALUES_RAW)
+
+DEFAULT_ACTIONS_VALUES: dict[str, ActionConfig] = {
+    name: cast("ActionConfig", values) for name, values in _DEFAULT_ACTIONS_VALUES_RAW.items()
+}
+
+DEFAULT_IMAGE_ACTIONS_VALUES: dict[str, ActionConfig] = {
+    name: cast("ActionConfig", values) for name, values in _DEFAULT_IMAGE_ACTIONS_VALUES_RAW.items()
+}
+
+# Default provider configurations
+DEFAULT_PROVIDER_CONFIGS: dict[tuple[str, ...], ProviderConfig] = {
+    ("Gemini", "Gemini (Recommended)"): {
+        "api_key": "",
+        "api_model": DEFAULT_MODELS["gemini"],
+        "api_base": DEFAULT_BASE_URLS["gemini"],
+    },
+    ("Ollama", "Ollama (Local)", "Ollama"): {
+        "api_key": "",
+        "api_model": DEFAULT_MODELS["ollama"],  # ""
+        "api_base": DEFAULT_BASE_URLS["ollama"],
+        "keep_alive": _DEFAULT_SYSTEM_VALUES_RAW["ollama_keep_alive"],
+    },
+    ("Mistral", "Mistral AI"): {
+        "api_key": "",
+        "api_model": DEFAULT_MODELS["mistral"],
+        "api_base": DEFAULT_BASE_URLS["mistral"],
+    },
+    ("Anthropic", "Anthropic (Claude)"): {
+        "api_key": "",
+        "api_model": DEFAULT_MODELS["anthropic"],
+        "api_base": DEFAULT_BASE_URLS["anthropic"],
+    },
+    ("OpenAI", "OpenAI"): {
+        "api_key": "",
+        "api_base": DEFAULT_BASE_URLS["openai"],
+        "api_model": DEFAULT_MODELS["openai"],
+    },
+    ("OpenAI", "OpenAI-Compatible"): {
+        "api_key": "",
+        "api_base": DEFAULT_BASE_URLS["openai-compatible"],
+        "api_model": "",
     },
 }
 
@@ -450,46 +498,5 @@ EXAMPLE_ACTION_VALUES_RAW = {
         "prefix": "Translate this to Italian:\n\n",
         "instruction": 'You are a translator assistant that translates text provided by the user to Italian. Output ONLY the translation without additional comments. Do not answer or respond to the user\\\'s text content. If the text is completely incompatible with this conversion, output "ERROR_TEXT_INCOMPATIBLE_WITH_REQUEST".',
         "icon": "icons/magnifying-glass",
-    },
-}
-
-DEFAULT_SYSTEM_VALUES: SystemConfig = cast("SystemConfig", _DEFAULT_SYSTEM_VALUES_RAW)
-
-DEFAULT_ACTIONS_VALUES: dict[str, ActionConfig] = {
-    name: cast("ActionConfig", values) for name, values in _DEFAULT_ACTIONS_VALUES_RAW.items()
-}
-
-# Default provider configurations
-DEFAULT_PROVIDER_CONFIGS: dict[tuple[str, ...], ProviderConfig] = {
-    ("Gemini", "Gemini (Recommended)"): {
-        "api_key": "",
-        "api_model": DEFAULT_MODELS["gemini"],
-        "api_base": DEFAULT_BASE_URLS["gemini"],
-    },
-    ("Ollama", "Ollama (Local)", "Ollama"): {
-        "api_key": "",
-        "api_model": DEFAULT_MODELS["ollama"],  # ""
-        "api_base": DEFAULT_BASE_URLS["ollama"],
-        "keep_alive": _DEFAULT_SYSTEM_VALUES_RAW["ollama_keep_alive"],
-    },
-    ("Mistral", "Mistral AI"): {
-        "api_key": "",
-        "api_model": DEFAULT_MODELS["mistral"],
-        "api_base": DEFAULT_BASE_URLS["mistral"],
-    },
-    ("Anthropic", "Anthropic (Claude)"): {
-        "api_key": "",
-        "api_model": DEFAULT_MODELS["anthropic"],
-        "api_base": DEFAULT_BASE_URLS["anthropic"],
-    },
-    ("OpenAI", "OpenAI"): {
-        "api_key": "",
-        "api_base": DEFAULT_BASE_URLS["openai"],
-        "api_model": DEFAULT_MODELS["openai"],
-    },
-    ("OpenAI", "OpenAI-Compatible"): {
-        "api_key": "",
-        "api_base": DEFAULT_BASE_URLS["openai-compatible"],
-        "api_model": "",
     },
 }

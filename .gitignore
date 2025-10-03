@@ -26,6 +26,7 @@ Windows_and_Linux/myvenv/
 # Build directories
 Windows_and_Linux/build/
 Windows_and_Linux/dist/
+dist/
 Windows_and_Linux/*.spec
 
 # Translation files

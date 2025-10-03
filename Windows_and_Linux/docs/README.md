@@ -59,6 +59,22 @@ Interactive documentation of text replacement flow
 - Detailed descriptions for LLMs
 - Troubleshooting guide
 
+#### **🖼️ [image_actions_separation_flow.md](image_actions_separation_flow.md)**
+
+Major architectural change: separation of text and image actions
+
+- **Complete separation** of action types
+- **Before/After comparison** with code examples
+- **Architectural benefits** and implementation details
+- **Troubleshooting guide** for the new system
+
+**Content :**
+
+- Why the change was needed
+- Detailed code modifications
+- Logic simplifications
+- Future extension possibilities
+
 ---
 
 ## **🎯 Recommended Usage :**
@@ -91,4 +107,4 @@ Interactive documentation of text replacement flow
 
 ---
 
-*Last update : August 2025*
+*Last update : October 2025*

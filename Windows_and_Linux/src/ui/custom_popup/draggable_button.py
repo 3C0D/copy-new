@@ -135,11 +135,8 @@ class DraggableButton(QPushButton):
         if self.action_indicator:
             self.action_indicator.setGeometry(self.width() - 20, 4, 16, 16)
 
-    def set_action_indicator(self, open_in_window: bool, is_image_action: bool | None) -> None:
+    def set_action_indicator(self, open_in_window: bool) -> None:
         """Set the action indicator (Ⓡ or Ⓒ) based on action type."""
-        if is_image_action:
-            return
-
         if self.action_indicator:
             self.action_indicator.deleteLater()
 
