@@ -93,7 +93,7 @@ class SystrayManager:
 
         # Settings menu item
         settings_action = self.tray_menu.addAction(_("Settings"))
-        settings_action.triggered.connect(lambda: self.app.ui_manager.show_settings)
+        settings_action.triggered.connect(lambda: self.show_settings())
 
         # Start on boot menu item
         self.autostart_action = self.tray_menu.addAction(_("Start on boot"))

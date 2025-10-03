@@ -13,7 +13,6 @@ from PySide6.QtWidgets import QMessageBox
 
 from ..ui.non_editable_modal import NonEditableModal
 from ..ui.response_window import ResponseWindow
-from ..ui.SettingsWindow.settings_window import SettingsWindow
 
 if TYPE_CHECKING:
     from ..writing_tools_app import WritingToolsApp
@@ -44,18 +43,9 @@ class UIManager(QObject):
         self.show_message_signal.connect(self.show_message_box)
 
         # References to active windows
-        self.settings_window: Optional[SettingsWindow] = None
         self.response_window: Optional[ResponseWindow] = None
         self.non_editable_modal: Optional[NonEditableModal] = None
 
-    def show_settings(self) -> None:
-        """
-        Show the settings window.
-        Delegates to systray manager for consistency.
-        """
-        self.app.systray_manager.show_settings()
-        # Update our reference for compatibility
-        self.settings_window = self.app.systray_manager.settings_window
 
     def show_response_window(self, option: str, text: Optional[str] = None) -> ResponseWindow:
         """
@@ -128,7 +118,7 @@ class UIManager(QObject):
 
         # If the settings button was clicked, open settings
         if settings_button and msg_box.clickedButton() == settings_button:
-            self.show_settings()
+            self.app.systray_manager.show_settings()
 
     def _show_non_editable_modal(self, transformed_text: Optional[str] = None) -> None:
         """
@@ -156,7 +146,6 @@ class UIManager(QObject):
         self._logger.debug("Closing all windows")
 
         windows_to_close = [
-            self.settings_window,
             self.response_window,
             self.non_editable_modal,
         ]
@@ -166,6 +155,5 @@ class UIManager(QObject):
                 window.close()
 
         # Reset references
-        self.settings_window = None
         self.response_window = None
         self.non_editable_modal = None
