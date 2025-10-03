@@ -34,11 +34,11 @@ from .core.lifecycle_manager import LifecycleManager
 from .core.popup_manager import PopupManager
 from .core.text_processor import TextProcessor
 from .core.ui_manager import UIManager
+from .core.update_manager import UpdateManager
 from .systray import SystrayManager
 from .ui.language_manager import LanguageManager
 from .ui.response_window import ResponseWindow
 from .ui.theme_manager import ThemeManager
-from .update_checker import UpdateChecker
 
 if TYPE_CHECKING:
     from .aiprovider.aiprovider import AIProvider
@@ -106,6 +106,7 @@ class WritingToolsApp(QApplication):
         self.ui_manager = UIManager(self)
         self.lifecycle_manager = LifecycleManager(self)
         self.config_manager = ConfigManager(self)
+        self.update_manager = UpdateManager(self)
 
     def _setup_signals(self) -> None:
         """Connect application signals to their handlers."""
@@ -223,8 +224,7 @@ class WritingToolsApp(QApplication):
 
     def _initialize_update_checker(self) -> None:
         """Initialize the update checker system."""
-        self.update_checker = UpdateChecker(self)
-        self.update_checker.check_updates_async()
+        self.update_manager.check_updates_async()
 
     def _handle_initialization_error(self, error: Exception) -> None:
         """Handle errors during application initialization."""

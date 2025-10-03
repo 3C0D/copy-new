@@ -1,3 +1,10 @@
+"""
+Update Manager - Manages application updates and version checking.
+
+This module provides an UpdateManager class that handles checking for updates
+from GitHub and managing update availability.
+"""
+
 import logging
 import threading
 import time
@@ -6,15 +13,25 @@ from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 if TYPE_CHECKING:
-    from .writing_tools_app import WritingToolsApp
+    from ..writing_tools_app import WritingToolsApp
 
 CURRENT_VERSION = 7
 UPDATE_CHECK_URL = "https://raw.githubusercontent.com/theJayTea/WritingTools/main/Windows_and_Linux/Latest_Version_for_Update_Check.txt"
 UPDATE_DOWNLOAD_URL = "https://github.com/theJayTea/WritingTools/releases"
 
 
-class UpdateChecker:
+class UpdateManager:
+    """
+    Manager for application update checking and management.
+    """
+
     def __init__(self, app: "WritingToolsApp"):
+        """
+        Initialize the update manager.
+
+        Args:
+            app: Main application instance
+        """
         self.app = app
         self._logger = logging.getLogger(__name__)
 
@@ -72,7 +89,6 @@ class UpdateChecker:
         """
         Perform the update check in a background thread.
         """
-
         def check_thread():
             self.check_updates()
 
