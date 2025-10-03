@@ -78,12 +78,8 @@ class WritingToolsApp(QApplication):
             self._logger.debug("Setting up UI components...")
             self._setup_ui_components()
 
-            self._logger.debug("Setting up hotkey system...")
-
             self._logger.debug("Setting up AI providers...")
             self._setup_ai_providers()
-
-            self._logger.debug("Setting up spam protection...")
 
             # Initialize app based on configuration state
             self._logger.debug("Initializing app with normal launch")
@@ -109,6 +105,7 @@ class WritingToolsApp(QApplication):
         self.popup_manager = PopupManager(self, self._logger)
         self.ui_manager = UIManager(self)
         self.lifecycle_manager = LifecycleManager(self)
+        self.config_manager = ConfigManager(self)
 
     def _setup_signals(self) -> None:
         """Connect application signals to their handlers."""
@@ -126,7 +123,6 @@ class WritingToolsApp(QApplication):
         self.tray_icon = None
         self.non_editable_modal = None
         self.theme_manager = ThemeManager(self)
-        self.config_manager = ConfigManager(self)
         self.language_manager = LanguageManager(self)
         self.styles = self.theme_manager.get_styles()
 
@@ -154,7 +150,7 @@ class WritingToolsApp(QApplication):
                 import traceback
 
                 self._logger.error(f"Traceback: {traceback.format_exc()}")
-                raise
+                continue
 
         if failed_providers:
             self._logger.warning(f"Failed to create providers: {failed_providers}")
