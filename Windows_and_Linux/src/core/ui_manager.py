@@ -46,7 +46,6 @@ class UIManager(QObject):
         self.response_window: Optional[ResponseWindow] = None
         self.non_editable_modal: Optional[NonEditableModal] = None
 
-
     def show_response_window(self, option: str, text: Optional[str] = None) -> ResponseWindow:
         """
         Display a response window to show AI results.

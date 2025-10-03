@@ -72,7 +72,7 @@ class TextProcessor(QObject):
                 self._handle_response_window_output(new_text)
             else:
                 # Handle other options - try clipboard-based replacement with fallback
-                self._handle_clipboard_paste()
+                self._handle_replacement()
 
                 # Check if selection changed (indicating successful paste)
                 new_selection = self.app.input_manager.get_selected_text(sleep_duration=0.1)
@@ -122,7 +122,7 @@ class TextProcessor(QObject):
                 }
             )
 
-    def _handle_clipboard_paste(self) -> None:
+    def _handle_replacement(self) -> None:
         """Handle clipboard-based text replacement with simple pyperclip approach"""
         try:
             clipboard_backup = pyperclip.paste()

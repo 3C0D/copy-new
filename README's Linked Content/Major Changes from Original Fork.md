@@ -273,6 +273,7 @@ Beyond the architectural changes documented above, the following advanced featur
 - **Universal Support**: All providers handle base64-encoded images
 - **Format Conversion**: PIL Image conversion for Gemini, direct base64 for others
 - **Clipboard Priority**: Images take precedence over text in clipboard operations
+- **File Copy Handling**: When image files are copied, their content is placed directly in clipboard as image data
 
 **Provider-Specific Optimizations:**
 - **Gemini**: Complex retry logic for safety filters, fallback text extraction

@@ -469,6 +469,17 @@ class CustomPopupWindow(QWidget):
         self.min_width = 300  # be sure to see action buttons and scrollbar
         self.min_height = 150  # when no selected text or image
         self.setMinimumSize(self.min_width, self.min_height)
+        self._set_window_icon()
+
+    def _set_window_icon(self) -> None:
+        """Set the window icon."""
+        icon_path = ui_utils.get_icon_path(
+            self.app,
+            "app_icon",
+            with_theme=False,
+        )
+        if icon_path.exists():
+            self.setWindowIcon(QtGui.QIcon(icon_path.as_posix()))
 
     def _create_main_layout(self) -> QVBoxLayout:
         """Create and configure the main layout."""

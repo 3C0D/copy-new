@@ -1,7 +1,7 @@
 from typing import Optional
 
 from PySide6.QtCore import QObject, Slot
-from PySide6.QtGui import QCursor, QIcon, QImage
+from PySide6.QtGui import QCursor, QImage
 from PySide6.QtWidgets import QApplication
 
 from ..ui.ui_utils import ui_utils
@@ -22,9 +22,9 @@ class PopupManager(QObject):
         self.original_selection: Optional[str] = None
         self.popup_window = None
 
-    def _determine_image_source(self) -> tuple[Optional[QImage], Optional[str]]:
+    def _determine_content_source(self) -> tuple[Optional[QImage], Optional[str]]:
         """
-        Determine the source of image and selected text.
+        Determine if the source is an image from clipboard or selected text or image path.
 
         Returns:
             Tuple of (image, selected_text)
@@ -72,18 +72,8 @@ class PopupManager(QObject):
 
         # Import here to avoid circular imports
         from ..ui import custom_popup_window
-        from ..ui.ui_utils import ui_utils
 
         self.popup_window = custom_popup_window.CustomPopupWindow(self.app, selected_text, image)
-
-        # Set window icon
-        icon_path = ui_utils.get_icon_path(
-            self.app,
-            "app_icon",
-            with_theme=False,
-        )
-        if icon_path.exists():
-            self.popup_window.setWindowIcon(QIcon(icon_path.as_posix()))
 
     def _display_popup_window(self, selected_text: Optional[str]) -> None:
         """Display and position the popup window."""
@@ -101,8 +91,8 @@ class PopupManager(QObject):
         Show the popup window when the hotkey is pressed.
         """
         try:
-            # Determine image source and selected text
-            self.image, selected_text = self._determine_image_source()
+            # Determine content source
+            self.image, selected_text = self._determine_content_source()
             self.has_image = bool(self.image is not None)
 
             # Create and display popup window

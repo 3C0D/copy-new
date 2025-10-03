@@ -25,6 +25,7 @@ python Windows_and_Linux/scripts/build_dev.py --console
 ## ✨ Features
 
 - **🤖 Multiple AI Providers**: OpenAI, Gemini, Ollama (auto-install), Anthropic, Mistral
+- **🖼️ Image Processing**: Support for clipboard images and copied image files
 - **⚡ Global Hotkeys**: Quick access from anywhere
 - **🎨 Smart Theming**: Auto dark/light mode detection
 - **📋 System Tray**: Unobtrusive background operation
