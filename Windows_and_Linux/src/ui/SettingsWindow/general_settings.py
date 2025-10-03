@@ -163,7 +163,7 @@ class GeneralSettings(QWidget):
         self._logger.debug(f"Autostart changed: {enable}")
 
         # Update systray action state if systray exists
-        if hasattr(self.app, 'systray_manager') and self.app.systray_manager.autostart_action:
+        if self.app.systray_manager.autostart_action:
             self.app.systray_manager.autostart_action.setChecked(enable)
 
     def _on_language_changed(self) -> None:

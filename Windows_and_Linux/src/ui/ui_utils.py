@@ -65,6 +65,8 @@ class ui_utils:
         if window is None:
             return
 
+        # Ensure window is not minimized
+        window.showNormal()
         # window.setWindowState(QtCore.Qt.WindowState.WindowActive) redundant
         window.raise_()
         window.activateWindow()

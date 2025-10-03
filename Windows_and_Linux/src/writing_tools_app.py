@@ -124,7 +124,6 @@ class WritingToolsApp(QApplication):
     def _setup_ui_components(self) -> None:
         """Initialize UI component references."""
         self.tray_icon = None
-        self.settings_window = None
         self.non_editable_modal = None
         self.theme_manager = ThemeManager(self)
         self.config_manager = ConfigManager(self)
@@ -234,13 +233,12 @@ class WritingToolsApp(QApplication):
     def _handle_initialization_error(self, error: Exception) -> None:
         """Handle errors during application initialization."""
         self._logger.exception(f"Error during app initialization: {error}")
-        self._logger.exception("Showing settings for configuration")
+
         import traceback
 
         self._logger.debug(f"Full traceback: {traceback.format_exc()}")
-        self.ui_manager.show_settings()
+        # Removed: self.ui_manager.show_settings() - was a remnant of old onboarding
 
     def retranslate_ui(self) -> None:
         """Retranslate the user interface elements."""
         self.systray_manager.update_tray_menu()
-

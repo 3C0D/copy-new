@@ -14,6 +14,7 @@ from PySide6.QtWidgets import QMessageBox
 from ..ui.non_editable_modal import NonEditableModal
 from ..ui.response_window import ResponseWindow
 from ..ui.SettingsWindow.settings_window import SettingsWindow
+from ..ui.ui_utils import ui_utils
 
 if TYPE_CHECKING:
     from ..writing_tools_app import WritingToolsApp
@@ -48,45 +49,14 @@ class UIManager(QObject):
         self.response_window: Optional[ResponseWindow] = None
         self.non_editable_modal: Optional[NonEditableModal] = None
 
-    def show_settings(self, previous_window=None) -> None:
+    def show_settings(self) -> None:
         """
-        Show the settings window with debounce protection against rapid clicks.
-
-        Args:
-            previous_window: Previous window for navigation
+        Show the settings window.
+        Delegates to systray manager for consistency.
         """
-        import time
-
-        current_time = time.time() * 1000  # Convert to milliseconds
-
-        # Prevent rapid successive clicks that could accidentally open Settings
-        # This fixes the bug where rapid right-clicks on tray icon open Settings accidentally
-        if (
-            hasattr(self.app.systray_manager, "last_tray_click_time")
-            and (current_time - self.app.systray_manager.last_tray_click_time)
-            < self.app.systray_manager.tray_click_debounce_ms
-        ):
-            self._logger.debug("Settings click ignored due to debounce protection")
-            return
-
-        self.app.systray_manager.last_tray_click_time = int(current_time)
-
-        self._logger.debug("Showing settings window")
-
-        if self.settings_window:
-            self.settings_window.close()
-
-        # Always create a new settings window to handle providers_only correctly
-        self.settings_window = SettingsWindow(self.app)
-
-        # Set reference to previous window for navigation
-        if previous_window:
-            self.settings_window.previous_window = previous_window
-
-        # self.settings_window.close_signal.connect(self.app.lifecycle_manager.exit_app)
-
-        self.settings_window.retranslate_ui()
-        self.settings_window.show()
+        self.app.systray_manager.show_settings()
+        # Update our reference for compatibility
+        self.settings_window = self.app.systray_manager.settings_window
 
     def show_response_window(self, option: str, text: Optional[str] = None) -> ResponseWindow:
         """
@@ -107,7 +77,6 @@ class UIManager(QObject):
         if (
             hasattr(self.app.popup_manager, "has_image")
             and self.app.popup_manager.has_image
-            and self.app.popup_manager.image
         ):
             response_window.image = self.app.popup_manager.image
             self._logger.debug("Image configured in response window")

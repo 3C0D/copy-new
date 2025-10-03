@@ -1,310 +1,97 @@
-En regardant le code actuel, je vois encore plusieurs opportunités de refactorisation logiques :
+Je vais analyser le code pour voir s'il y a des améliorations possibles au niveau de l'organisation et de la structure.
 
-## 1. **Text Processing & Clipboard Manager** (priorité élevée)
+## Points positifs 👍
 
-Créer `core/text_processor.py` pour extraire :
-- `replace_text()`
-- `_handle_response_window_output()`
-- `_handle_clipboard_paste()`
-- `_show_non_editable_modal()`
-- `_on_non_editable_modal_closed()`
-- `output_queue` (attribut)
+1. **Bonne séparation des responsabilités** : méthodes spécifiques par OS (Windows/Linux)
+2. **Documentation claire** : docstrings présentes et utiles
+3. **Gestion des erreurs** : try/except appropriés avec logging
+4. **Support multi-plateforme** : Windows et Linux bien gérés
 
-Ces méthodes forment un ensemble cohérent pour le traitement et remplacement de texte.
+## Suggestions d'amélioration 🔧
 
-## 2. **UI Manager** (priorité moyenne)
+### 1. **Réduction de la duplication de code**
 
-Créer `core/ui_manager.py` pour :
-- `show_settings()`
-- `show_response_window()`
-- `show_message_box()`
-- Gestion des références aux fenêtres (`settings_window`, etc.)
+Les méthodes `disable_dev_startup_if_exists()` et `disable_normal_startup_if_exists()` sont quasi-identiques :
 
-## 3. **Configuration Manager** (priorité moyenne)
-
-Créer `core/config_manager.py` pour :
-- `_detect_running_mode()`
-- `setup_translations()`
-- `_update_translation_functions()`
-- `retranslate_ui()`
-- `change_language()`
-- `load_settings()`
-- Gestion des traductions et langues
-
-## 4. **Provider Manager** (priorité faible)
-
-Créer `core/provider_manager.py` pour :
-- `_setup_ai_providers()`
-- `get_current_model()`
-- Gestion de la liste `providers`
-
-**Je recommande de commencer par le TextProcessor** car :
-- Il a des responsabilités bien définies (traitement de texte/clipboard)
-- Il simplifiera significativement la classe principale  
-- Il a peu de dépendances complexes
-- Les méthodes `replace_text()` et `_handle_clipboard_paste()` sont volumineuses
-
-Veux-tu que je crée le module `TextProcessor` ?
-
-//////////////////////////////////////
-
-Application pour texte processeur
-
-Je vais créer le module `TextProcessor` et indiquer les modifications nécessaires dans les autres modules.## Modifications à apporter dans WritingToolApp.py
-
-### 1. Imports à ajouter (en haut du fichier) :
 ```python
-from .core.text_processor import TextProcessor
-```
-
-### 2. Dans `_setup_core_attributes()` :
-```python
-def _setup_core_attributes(self) -> None:
-    """Initialize core application attributes."""
-    self.current_response_window: ResponseWindow | None = None
-    self.current_provider: AIProvider | None = None
-    # Remplacer output_queue par :
-    self.text_processor = TextProcessor(self)
-    self.ai_processor = AIProcessor(self)
-    self.hotkey_manager = HotkeyManager(self)
-    self.systray_manager = SystrayManager(self)
-    self.image_processor = ImageProcessor(self._logger)
-    self.popup_manager = PopupManager(self, self._logger)
-```
-
-### 3. Dans `_setup_signals()` :
-```python
-def _setup_signals(self) -> None:
-    """Connect application signals to their handlers."""
-    # Remplacer par :
-    self.output_ready_signal.connect(self.text_processor.replace_text)
-    self.show_message_signal.connect(self.show_message_box)
-    self.hotkey_triggered_signal.connect(self.hotkey_manager.on_hotkey_pressed)
-    # Connecter les signaux du text_processor
-    self.text_processor.show_message_signal.connect(self.show_message_box)
-```
-
-### 4. Supprimer ces méthodes de WritingToolApp.py (elles sont maintenant dans TextProcessor) :
-- `replace_text()`
-- `_handle_response_window_output()`
-- `_handle_clipboard_paste()`
-- `_show_non_editable_modal()`
-- `_on_non_editable_modal_closed()`
-
-### 5. Supprimer cet attribut de `_setup_core_attributes()` :
-```python
-# Supprimer cette ligne :
-self.output_queue = ""
-# Et supprimer la référence à non_editable_modal (maintenant dans TextProcessor)
-self.non_editable_modal = None
-```
-
-## Modifications à apporter dans AIProcessor
-
-### Dans `__init__()` :
-```python
-def __init__(self, app):
-    super().__init__()
-    self.app = app
-    self._logger = logging.getLogger(__name__)
-    self.current_provider: AIProvider | None = None
-    # Supprimer cette ligne car output_queue est maintenant dans TextProcessor :
-    # self.output_queue = ""
-
-    # Connect signals - modifier pour utiliser text_processor :
-    self.output_ready_signal.connect(self.app.text_processor.replace_text)
-```
-
-### Dans toute référence à `self.app.output_queue` :
-Remplacer par `self.app.text_processor.output_queue`
-
-Ces modifications déplacent toute la logique de traitement de texte et de gestion du clipboard vers le nouveau module `TextProcessor`, simplifiant ainsi la classe principale `WritingToolApp`.
-
-"""
-Text Processing Manager - Handles text replacement, clipboard operations and output display.
-
-This module manages all text processing operations including:
-- Text replacement through clipboard operations
-- Response window output handling
-- Non-editable modal display
-- Output queue management
-"""
-
-import time
-import logging
-from typing import Optional
-
-from pynput import keyboard
-from PySide6 import QtCore, QtGui
-from PySide6.QtCore import QObject, Signal, Slot, Q_ARG
-from PySide6.QtWidgets import QApplication
-
-from ..ui.NonEditableModal import NonEditableModal
-from ..ui.ResponseWindow import ResponseWindow
-
-
-class TextProcessor(QObject):
-    """
-    Handles text processing operations including clipboard management and output display.
-    """
+# Pourrait être refactorisé en :
+@staticmethod
+def _disable_windows_startup_entry(key_name: str) -> bool:
+    """Disable a Windows startup entry by name."""
+    if winreg is None:
+        return True
     
-    show_message_signal = Signal(str, str)
-    
-    def __init__(self, app):
-        super().__init__()
-        self.app = app
-        self._logger = logging.getLogger(__name__)
-        self.output_queue = ""
-        self.non_editable_modal: Optional[NonEditableModal] = None
-    
-    @Slot(str)
-    def replace_text(self, new_text: str) -> None:
-        """
-        Replaces the text by pasting in the LLM generated text. With "Key Points" and "Summary", 
-        invokes a window with the output instead.
-        If pasting fails (non-editable page), shows the text in a modal window.
-        """
-        self._logger.debug(
-            f"replace_text called with text length: {len(new_text) if new_text else 0}"
-        )
+    try:
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Run",
+            0,
+            winreg.KEY_WRITE,
+        ) as key:
+            try:
+                winreg.DeleteValue(key, key_name)
+                logging.info(f"Disabled {key_name} startup entry")
+                return True
+            except OSError:
+                return True
+    except Exception as e:
+        logging.warning(f"Could not disable {key_name}: {e}")
+        return False
+```
 
-        # Early return if no valid text
-        if not new_text or not isinstance(new_text, str):
-            self._logger.debug("No new text to process")
-            return
+### 2. **Constantes magiques**
 
-        error_message = "ERROR_TEXT_INCOMPATIBLE_WITH_REQUEST"
-        self.output_queue += new_text
-        current_output = self.output_queue
+Les chaînes répétées devraient être des constantes de classe :
 
-        # Handle error message
-        if current_output.strip() == error_message:
-            self.show_message_signal.emit(
-                "Error", "The text is incompatible with the requested change."
-            )
-            return
+```python
+class AutostartManager:
+    # Constantes
+    REGISTRY_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
+    REGISTRY_KEY_COMPILED = "WritingTools"
+    REGISTRY_KEY_DEV = "WritingToolsDevStartup"
+    DESKTOP_FILE_NAME = "writing-tools.desktop"
+```
 
-        # Check if we're building up to the error message (to prevent partial pasting)
-        if len(current_output.strip()) <= len(error_message):
-            clean_current = "".join(current_output.split())
-            clean_error = "".join(error_message.split())
-            if clean_current == clean_error[: len(clean_current)]:
-                return
+### 3. **Méthode `get_startup_command()` ambiguë**
 
-        self._logger.debug("Processing output text")
+Cette méthode retourne soit un path (compilé) soit une commande complète (dev), ce qui peut prêter à confusion. Pourrait être plus clair avec deux méthodes distinctes ou un type de retour plus explicite.
 
-        try:
-            # Handle Summary and Key Points - show in response window
-            if hasattr(self.app, "current_response_window") and self.app.current_response_window:
-                self._handle_response_window_output(new_text)
-            else:
-                # Handle other options - try clipboard-based replacement with fallback
-                self._handle_clipboard_paste()
+### 4. **Gestion de `winreg`**
 
-                # Check if selection changed (indicating successful paste)
-                new_selection = self.app.popup_manager.get_selected_text(sleep_duration=0.1)
+Le check `if winreg is None` est répété dans presque toutes les méthodes Windows. Pourrait être centralisé :
 
-                # If selection is the same, paste failed (non-editable page)
-                if (
-                    self.app.popup_manager.original_selection == new_selection
-                    and self.app.popup_manager.original_selection
-                    and self.app.popup_manager.original_selection.strip()
-                ):
-                    # Fallback to modal window for non-editable pages
-                    cleaned_text = self.output_queue.rstrip("\n")
-                    QtCore.QMetaObject.invokeMethod(
-                        self,
-                        "_show_non_editable_modal",
-                        QtCore.Qt.ConnectionType.QueuedConnection,
-                        Q_ARG(str, cleaned_text),
-                    )
-                self.app.popup_manager.original_selection = None
-                self.output_queue = ""
+```python
+@staticmethod
+def _ensure_windows_registry_available() -> bool:
+    if winreg is None:
+        logging.warning("Windows registry module not available")
+        return False
+    return True
+```
 
-        except Exception as e:
-            self._logger.exception(f"Error processing output: {e}")
+### 5. **Méthode `_needs_autostart_migration()`**
 
-    def _handle_response_window_output(self, new_text: str) -> None:
-        """Handle output for response window (Summary/Key Points)"""
-        # Check if current_response_window exists and is not None
-        current_window = getattr(self.app, "current_response_window", None)
-        if not current_window:
-            self._logger.warning("No current_response_window to handle output")
-            return
+Cette méthode est longue et complexe. Pourrait être divisée en sous-méthodes :
+- `_needs_windows_migration()`
+- `_needs_linux_migration()`
 
-        # Check if chat_area exists and is not None
-        chat_area = getattr(current_window, "chat_area", None)
-        if chat_area:
-            chat_area.add_message(new_text)
-        else:
-            self._logger.warning("No chat_area found in current_response_window")
-            return
+### 6. **Commentaire "not used. used for testing?"**
 
-        # If this is the initial response, add it to chat history
-        if len(current_window.chat_history) == 1:  # Only original text exists
-            current_window.chat_history.append(
-                {
-                    "role": "assistant",
-                    "content": self.output_queue.rstrip("\n"),
-                }
-            )
+```python
+# not used. used for testing?
+@staticmethod
+def get_platform_info() -> dict:
+```
 
-    def _handle_clipboard_paste(self) -> None:
-        """Handle clipboard-based text replacement with simple pyperclip approach"""
-        try:
-            import pyperclip
+Si c'est pour les tests, soit le documenter clairement, soit le supprimer si vraiment inutilisé.
 
-            clipboard_backup = pyperclip.paste()
-            cleaned_text = self.output_queue.rstrip("\n")
-            pyperclip.copy(cleaned_text)
+## Verdict global ✅
 
-            kbrd = keyboard.Controller()
+Le code est **globalement bien structuré** et fonctionnel. Les améliorations suggérées sont mineures et portent surtout sur :
+- La réduction de duplication
+- L'utilisation de constantes
+- La clarification de quelques méthodes
 
-            def press_ctrl_v():
-                with kbrd.pressed(keyboard.Key.ctrl):
-                    kbrd.press("v")
-                    kbrd.release("v")
+**Ce n'est pas urgent de refactoriser**, mais si tu veux améliorer la maintenabilité à long terme, ces changements seraient bénéfiques. Le code actuel est tout à fait acceptable pour de la production.
 
-            press_ctrl_v()
-            time.sleep(0.2)
-            pyperclip.copy(clipboard_backup)
-
-        except Exception as e:
-            self._logger.error(f"Error in clipboard paste: {e}")
-            # Fallback to modal window for non-editable pages
-            cleaned_text = self.output_queue.rstrip("\n")
-            QtCore.QMetaObject.invokeMethod(
-                self,
-                "_show_non_editable_modal",
-                QtCore.Qt.ConnectionType.QueuedConnection,
-                Q_ARG(str, cleaned_text),
-            )
-
-    @Slot(str)
-    def _show_non_editable_modal(self, transformed_text: str) -> None:
-        """
-        Show a modal window with the transformed text when pasting fails (non-editable page).
-        """
-        self._logger.debug("Showing non-editable modal window")
-        try:
-            # Close existing modal if any
-            if self.non_editable_modal is not None:
-                self.non_editable_modal.close()
-                self.non_editable_modal = None
-
-            # Create and show the modal window
-            self.non_editable_modal = NonEditableModal(self.app, transformed_text)
-            self.non_editable_modal.close_signal.connect(self._on_non_editable_modal_closed)
-            self.non_editable_modal.show()
-
-        except Exception as e:
-            self._logger.error(f"Error showing non-editable modal: {e}", exc_info=True)
-
-    @Slot()
-    def _on_non_editable_modal_closed(self) -> None:
-        """Clean up modal reference when it's closed"""
-        self.non_editable_modal = None
-
-    def clear_output_queue(self) -> None:
-        """Clear the output queue"""
-        self.output_queue = ""
+Tu veux que je te montre une version refactorisée d'une partie spécifique ?

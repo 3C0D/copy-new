@@ -46,8 +46,6 @@ class SettingsWindow(ThemedWidget):
         self.app = app
         self._logger = logging.getLogger(__name__)
 
-        # Reference to previous window for navigation
-        self.previous_window = None
 
         # Store current background theme
         self.current_background_theme = self.app.settings_manager.background_theme or "gradient"
@@ -241,18 +239,14 @@ class SettingsWindow(ThemedWidget):
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         """Handle key press events."""
         if event.key() == QtCore.Qt.Key.Key_Escape:
-            self.close_to_previous_window()
+            self.save_and_close()
         else:
             super().keyPressEvent(event)
 
-    def close_to_previous_window(self) -> None:
-        """Close and return to previous window if available."""
-        self.save_all_settings()
-        ui_utils.existing_window_on_top(self.previous_window)
-        self.close()
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Handle window close event."""
-        self._logger.debug("SettingsWindow closing")
         super().closeEvent(event)
-        self.app.settings_window = None
+        # Update references in both managers
+        self.app.systray_manager.settings_window = None
+        self._logger.debug("SettingsWindow closing")
