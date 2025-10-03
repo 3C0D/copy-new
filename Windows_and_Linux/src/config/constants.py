@@ -282,36 +282,7 @@ SUPPORTED_LANGUAGES = [
 LANGUAGE_NAMES = {code: name for name, code in SUPPORTED_LANGUAGES}
 
 
-def get_available_languages() -> list[tuple[str, str]]:
-    """
-    Get list of available languages by reading locales directory.
-    Returns list of (display_name, code) tuples for languages that have translations.
-    """
-    from pathlib import Path
 
-    # Get the locales directory path (relative to this file, up to Windows_and_Linux root)
-    locales_dir = Path(__file__).parent.parent.parent / "locales"
-
-    available_languages = []
-
-    if locales_dir.exists() and locales_dir.is_dir():
-        # Read all subdirectories in locales (each represents a language code)
-        for item in locales_dir.iterdir():
-            if item.is_dir():
-                lang_code = item.name
-                # Get display name from our mapping, fallback to capitalized code
-                display_name = LANGUAGE_NAMES.get(lang_code, lang_code.upper())
-                available_languages.append((display_name, lang_code))
-
-    # Always include English as fallback
-    if not any(code == "en" for _, code in available_languages):
-        available_languages.insert(0, ("English", "en"))
-
-    return available_languages
-
-
-# Dynamic list of available languages based on locales directory
-AVAILABLE_LANGUAGES = get_available_languages()
 
 # Default system configuration VALUES - Raw data, not objects
 _DEFAULT_SYSTEM_VALUES_RAW = {

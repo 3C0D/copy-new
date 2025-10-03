@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from .settings_window import SettingsWindow
 
 from ...autostart_manager import AutostartManager
-from ...config.constants import AVAILABLE_LANGUAGES
+from ...config.data_operations import get_available_languages
 
 
 def _(x):
@@ -89,7 +89,8 @@ class GeneralSettings(QWidget):
         current_language = self.app.settings_manager.language or "en"
 
         # Populate with available languages
-        for display_name, lang_code in AVAILABLE_LANGUAGES:
+        available_languages = get_available_languages()
+        for display_name, lang_code in available_languages:
             self.language_dropdown.addItem(display_name, lang_code)
 
         # Set current selection
