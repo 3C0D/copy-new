@@ -23,17 +23,15 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ...config.constants import (
-    ANTHROPIC_MODELS,
-    GEMINI_MODELS,
-    MISTRAL_MODELS,
-    OPENAI_MODELS,
-)
 from ...config.data_operations import create_default_actions_config
 from ...config.interfaces import ActionConfig
 from ..custom_popup.button_edit_dialog import ButtonEditDialog
 from ..custom_popup.draggable_button import DraggableButton
+from ..custom_popup.edit_mode_controller import EditModeController
 from ..custom_popup.toggle_switch import ToggleSwitch
+from ..custom_popup.top_bar_builder import TopBarBuilder
+from ..custom_popup.vision_support_validator import VisionSupportValidator
+from ..custom_popup.widget_visibility_manager import WidgetVisibilityManager
 from ..ui_utils import ThemeBackground, ui_utils
 
 if TYPE_CHECKING:
@@ -59,6 +57,12 @@ class CustomPopupWindow(QWidget):
         self.edit_mode = False
         self.has_sel_text = bool(selected_text.strip() if selected_text else False)
         self.has_image = bool(image is not None)
+
+        # Managers/Controllers
+        self.visibility_manager = WidgetVisibilityManager(self)
+        self.top_bar_builder = TopBarBuilder(self.app, self)
+        self.vision_validator = VisionSupportValidator()
+        self.edit_controller = EditModeController(self, self.visibility_manager)
 
         # UI Components - initialized to None
         self._init_ui_components()
@@ -795,47 +799,11 @@ class CustomPopupWindow(QWidget):
 
     def enter_edit_mode(self) -> None:
         """Enter edit mode - called when user clicks the pencil icon."""
-        self.edit_mode = True
-        self._logger.debug("Entering edit mode")
-
-        # Show edit mode UI elements
-        if self.edit_button is not None:
-            if self.edit_button is not None:
-                self.edit_button.hide()
-        if self.close_button is not None:
-            self.close_button.hide()
-        if self.reset_button is not None:
-            self.reset_button.show()
-        if self.edit_close_button is not None:
-            self.edit_close_button.show()
-        if self.drag_label is not None:
-            self.drag_label.show()
-        if self.input_area is not None:
-            self.input_area.hide()
-        if self.force_chat_area is not None:
-            self.force_chat_area.hide()
-        if self.update_label is not None:
-            self.update_label.hide()
-        if self.image_preview_container is not None:
-            self.image_preview_container.hide()
-
-        self.rebuild_grid_layout(force_edit_mode=True)
-
-        # Add edit overlays to buttons
-        self.add_edit_overlays_to_buttons()
-
-        # Force height to 400 for image edit mode to eliminate empty spaces
-        if self.has_image:
-            self.resize(self.width(), 420)
+        self.edit_controller.enter_edit_mode()
 
     def exit_edit_mode(self) -> None:
         """Exit edit mode - called when user clicks the close button in edit mode."""
-        self.edit_mode = False
-        self._logger.debug("Exiting edit mode")
-
-        # Reload the window to ensure clean state and proper layout
-        # Note: reload_window creates a new window, so adjustSize is not needed here
-        self.reload_window()
+        self.edit_controller.exit_edit_mode()
 
     def rebuild_edit_mode_with_scroll(self) -> None:
         """Rebuild layout for edit mode while preserving scroll functionality."""
@@ -926,28 +894,7 @@ class CustomPopupWindow(QWidget):
         """Initialize button visibility for normal (non-edit) mode."""
         self.edit_mode = False
         self._logger.debug("Initializing button visibility")
-        if hasattr(self, "reset_button") and self.reset_button is not None:
-            self.reset_button.hide()
-        if hasattr(self, "edit_close_button") and self.edit_close_button is not None:
-            self.edit_close_button.hide()
-        if hasattr(self, "drag_label") and self.drag_label is not None:
-            self.drag_label.hide()
-        if (
-            (self.has_sel_text or self.has_image)
-            and hasattr(self, "edit_button")
-            and self.edit_button is not None
-        ):
-            self.edit_button.show()
-        if hasattr(self, "close_button") and self.close_button is not None:
-            self.close_button.show()
-        if hasattr(self, "input_area") and self.input_area is not None:
-            self.input_area.setVisible(True)
-        if hasattr(self, "force_chat_area") and self.force_chat_area is not None:
-            self.force_chat_area.setVisible(not self.edit_mode)
-        if hasattr(self, "image_preview_container") and self.image_preview_container is not None:
-            self.image_preview_container.setVisible(True)
-        if hasattr(self, "update_label") and self.update_label is not None:
-            self.update_label.setVisible(True)
+        self.visibility_manager.set_edit_mode(False)
 
     def on_reset_clicked(self) -> None:
         """
@@ -1210,47 +1157,7 @@ class CustomPopupWindow(QWidget):
         provider_name = self.app.settings_manager.provider
         api_model = self.app.ai_processor.get_current_model(provider_name)
 
-        return self._has_vision_support(provider_name, api_model)
-
-    def _has_vision_support(self, provider_name: str, api_model: str) -> bool:
-        """
-        Common function to check vision support for a given provider and model.
-
-        Args:
-            provider_name: The internal provider name
-            api_model: The model identifier
-
-        Returns:
-            bool: True if the model supports vision, False otherwise
-        """
-        self._logger.debug(
-            f"Checking vision support for provider: {provider_name}, model: {api_model}"
-        )
-
-        if not provider_name or not api_model:
-            return False
-
-        # Map providers to their model lists
-        provider_models = {
-            "gemini": GEMINI_MODELS,
-            "openai": OPENAI_MODELS,
-            "anthropic": ANTHROPIC_MODELS,
-            "mistral": MISTRAL_MODELS,
-        }
-
-        # Check standard providers
-        if provider_name in provider_models:
-            return any(
-                model_tuple[1] == api_model and model_tuple[2].get("vision", False)
-                for model_tuple in provider_models[provider_name]
-            )
-
-        # Special case for Ollama
-        if provider_name == "ollama":
-            vision_indicators = ["llava", "bakllava", "moondream", "minicpm-v", "qwen2.5vl"]
-            return any(indicator in api_model.lower() for indicator in vision_indicators)
-
-        return False
+        return self.vision_validator.has_vision_support(provider_name, api_model)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key.Key_Escape:

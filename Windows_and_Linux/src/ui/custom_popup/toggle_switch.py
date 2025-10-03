@@ -55,7 +55,7 @@ class ToggleSwitch(QtWidgets.QCheckBox):
         if e.button() == QtCore.Qt.MouseButton.LeftButton:
             self.setChecked(not self.isChecked())
 
-    def paintEvent(self, arg__1: QtGui.QPaintEvent) -> None:
+    def paintEvent(self, _event: QtGui.QPaintEvent) -> None:  # type: ignore
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
 
