@@ -71,7 +71,7 @@ class PopupManager(QObject):
         self._logger.debug("🆕🪟 Creating new popup window")
 
         # Import here to avoid circular imports
-        from ..ui import custom_popup_window
+        from ..ui.custom_popup import custom_popup_window
 
         self.popup_window = custom_popup_window.CustomPopupWindow(self.app, selected_text, image)
 

@@ -11,7 +11,8 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QLocale
 from PySide6.QtWidgets import QApplication
 
-from ..ui import about_window, custom_popup_window, help_window
+from ..ui import about_window, help_window
+from ..ui.custom_popup import custom_popup_window
 from ..ui.SettingsWindow import settings_window
 
 if TYPE_CHECKING:
