@@ -923,7 +923,9 @@ class CustomPopupWindow(QWidget):
                 if hasattr(self.app, "settings_manager") and self.app.settings_manager.settings:
                     if self.has_image:
                         # Reset image actions to defaults
-                        self.app.settings_manager.image_actions = create_default_image_actions_config()
+                        self.app.settings_manager.image_actions = (
+                            create_default_image_actions_config()
+                        )
                     else:
                         # Reset text actions to defaults
                         self.app.settings_manager.actions = create_default_actions_config()

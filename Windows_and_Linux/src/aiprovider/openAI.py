@@ -3,11 +3,10 @@ from typing import TYPE_CHECKING, Any, Union
 
 from openai import OpenAI
 
-from ..aiprovider.aiprovider import AIProvider, DropdownSetting, TextSetting
-
 # Local imports
 from ..config.constants import OPENAI_MODELS
 from ..config.data_operations import get_default_model_for_provider
+from . import AIProvider, DropdownSetting, TextSetting
 
 # Type checking imports
 if TYPE_CHECKING:

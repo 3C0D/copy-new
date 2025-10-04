@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, Any, Union
 
 from PIL import Image as PILImage
 
-from ..aiprovider.aiprovider import AIProvider, DropdownSetting, TextSetting
 from ..config.constants import GEMINI_MODELS
+from . import AIProvider, DropdownSetting, TextSetting
 
 # Disable Pylance reportPrivateImportUsage for google.generativeai
 # pyright: reportPrivateImportUsage=false

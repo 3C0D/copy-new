@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any, Union, cast
 
 from openai import OpenAI
 
-from ..aiprovider.aiprovider import AIProvider, AIProviderSetting, TextSetting
+from . import AIProvider, AIProviderSetting, TextSetting
 
 # Local imports
 

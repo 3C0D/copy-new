@@ -8,11 +8,9 @@ including AI provider management, hotkey handling, and user interface coordinati
 import gettext
 import logging
 import os
-import sys
 from typing import TYPE_CHECKING
 
 from pynput import keyboard as keyboard
-from PySide6 import QtCore
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QApplication
 
@@ -188,7 +186,6 @@ class WritingToolsApp(QApplication):
         self._sync_autostart_settings()
         self.systray_manager.create_tray_icon_with_startup_delay()
         self.hotkey_manager.register_hotkey()
-
 
     def _sync_autostart_settings(self) -> None:
         """Synchronize autostart settings between registry and configuration."""

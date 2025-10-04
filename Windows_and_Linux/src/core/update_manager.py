@@ -89,6 +89,7 @@ class UpdateManager:
         """
         Perform the update check in a background thread.
         """
+
         def check_thread():
             self.check_updates()
 

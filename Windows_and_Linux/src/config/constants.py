@@ -282,8 +282,6 @@ SUPPORTED_LANGUAGES = [
 LANGUAGE_NAMES = {code: name for name, code in SUPPORTED_LANGUAGES}
 
 
-
-
 # Default system configuration VALUES - Raw data, not objects
 _DEFAULT_SYSTEM_VALUES_RAW = {
     "provider": "gemini",  # Internal provider name

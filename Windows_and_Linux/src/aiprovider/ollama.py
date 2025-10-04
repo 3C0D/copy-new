@@ -23,8 +23,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from ..aiprovider.aiprovider import AIProvider, DropdownSetting, TextSetting
 from ..ui.progress_window import OllamaInstallProgressWindow
+from . import AIProvider, DropdownSetting, TextSetting
 
 if TYPE_CHECKING:
     from ..writing_tools_app import WritingToolsApp
@@ -525,8 +525,8 @@ class OllamaProvider(AIProvider):
         """Handle state updates from the state manager."""
         self.refresh_configuration()
         # Update button text in settings window if it's open
-        if hasattr(self.app, "settings_window") and self.app.settings_window:
-            self.app.settings_window.update_provider_button_text()
+        if hasattr(self.app, "settings_window") and self.app.systray_manager.settings_window:
+            self.app.systray_manager.settings_window.update_provider_button_text()
 
     def _on_models_updated(self, models: list[tuple[str, str]]):
         """Handle model list updates."""
@@ -576,8 +576,8 @@ class OllamaProvider(AIProvider):
                 )
                 # Refresh UI
                 self.refresh_configuration()
-                if hasattr(self.app, "settings_window") and self.app.settings_window:
-                    self.app.settings_window._on_provider_changed()
+                if hasattr(self.app, "settings_window") and self.app.systray_manager.settings_window:
+                    self.app.systray_manager.settings_window._on_provider_changed()
             else:
                 self.app.ui_manager.show_message_signal.emit(
                     "Installation Failed",

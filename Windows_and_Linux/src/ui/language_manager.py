@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 from PySide6 import QtCore
 
 if TYPE_CHECKING:
-    pass
+    from ..writing_tools_app import WritingToolsApp
 
 
 class LanguageManager(QtCore.QObject):

@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING, Any, Union
 
 from openai import OpenAI
 
-from ..aiprovider.aiprovider import AIProvider, DropdownSetting, TextSetting
 from ..config.constants import ANTHROPIC_MODELS
 from ..config.data_operations import get_default_model_for_provider
+from . import AIProvider, DropdownSetting, TextSetting
 
 if TYPE_CHECKING:
     from ..writing_tools_app import WritingToolsApp

@@ -165,7 +165,7 @@ class AIProcessor(QObject):
                 action_config = self.app.settings_manager.image_actions.get(option, {})
                 history_content = action_config.get(
                     "prefix", f"Image analysis request: {option.lower()}"
-                ) # !!! à voir comment on fait une fois le system compris
+                )  # !!! à voir comment on fait une fois le system compris
 
             self.app.current_response_window.chat_history = [
                 {"role": "user", "content": history_content}
