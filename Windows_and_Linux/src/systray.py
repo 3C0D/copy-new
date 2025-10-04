@@ -1,8 +1,9 @@
 import logging
+import sys
 import time
 from typing import TYPE_CHECKING, Optional
 
-from PySide6 import QtGui
+from PySide6 import QtCore, QtGui
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
 from .autostart_manager import AutostartManager
@@ -273,3 +274,29 @@ class SystrayManager:
             self.tray_icon.show()  # Try showing again as last attempt
         elif success:
             self._logger.debug("Tray icon visibility verification completed")
+
+    def create_tray_icon_with_startup_delay(self) -> None:
+        """
+        Create tray icon with a delay if we're likely starting at boot.
+        This helps with Windows startup timing issues.
+        """
+        # Check if we might be starting at boot
+        is_frozen = getattr(sys, "frozen", False)
+        startup_delay_needed = (
+            len(self.app.topLevelWidgets()) == 0
+            or getattr(self.app.settings_manager, "start_on_boot", False)
+            or is_frozen  # Frozen builds (exe) are more likely to be autostart
+        )
+
+        if startup_delay_needed:
+            # Longer delay for Windows startup - systray needs more time to be ready
+            delay = 5000 if is_frozen else 2000  # 5s for exe, 2s for dev
+            self._logger.debug(
+                f"Startup delay detected - waiting {delay / 1000}s for system tray to be ready"
+            )
+            self._logger.debug(
+                f"Detected potential startup scenario, delaying tray icon creation by {delay}ms"
+            )
+            QtCore.QTimer.singleShot(delay, self.create_tray_icon)
+        else:
+            self.create_tray_icon()

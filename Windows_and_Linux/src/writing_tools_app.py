@@ -23,7 +23,6 @@ from .aiprovider.ollama import OllamaProvider
 from .aiprovider.openAI import OpenAIProvider
 from .aiprovider.openAI_compatible import OpenAICompatibleProvider
 from .autostart_manager import AutostartManager
-from .config.settings import SettingsManager
 from .core.ai_processor import AIProcessor
 from .core.clipboard_manager import ClipboardManager
 from .core.config_manager import ConfigManager
@@ -32,6 +31,7 @@ from .core.image_processor import ImageProcessor
 from .core.input_manager import InputManager
 from .core.lifecycle_manager import LifecycleManager
 from .core.popup_manager import PopupManager
+from .core.settings_manager import SettingsManager
 from .core.text_processor import TextProcessor
 from .core.ui_manager import UIManager
 from .core.update_manager import UpdateManager
@@ -186,34 +186,9 @@ class WritingToolsApp(QApplication):
     def _setup_user_interface(self) -> None:
         """Setup user interface components."""
         self._sync_autostart_settings()
-        self._create_tray_icon_with_startup_delay()
+        self.systray_manager.create_tray_icon_with_startup_delay()
         self.hotkey_manager.register_hotkey()
 
-    def _create_tray_icon_with_startup_delay(self) -> None:
-        """
-        Create tray icon with a delay if we're likely starting at boot.
-        This helps with Windows startup timing issues.
-        """
-        # Check if we might be starting at boot
-        is_frozen = getattr(sys, "frozen", False)
-        startup_delay_needed = (
-            len(QApplication.topLevelWidgets()) == 0
-            or getattr(self.settings_manager, "start_on_boot", False)
-            or is_frozen  # Frozen builds (exe) are more likely to be autostart
-        )
-
-        if startup_delay_needed:
-            # Longer delay for Windows startup - systray needs more time to be ready
-            delay = 5000 if is_frozen else 2000  # 5s for exe, 2s for dev
-            self._logger.debug(
-                f"Startup delay detected - waiting {delay / 1000}s for system tray to be ready"
-            )
-            self._logger.debug(
-                f"Detected potential startup scenario, delaying tray icon creation by {delay}ms"
-            )
-            QtCore.QTimer.singleShot(delay, self.systray_manager.create_tray_icon)
-        else:
-            self.systray_manager.create_tray_icon()
 
     def _sync_autostart_settings(self) -> None:
         """Synchronize autostart settings between registry and configuration."""

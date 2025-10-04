@@ -12,11 +12,11 @@ from typing import Any
 
 import darkdetect
 
-from .data_operations import (
+from ..config.data_operations import (
     create_default_settings,
     create_unified_settings_from_data,
 )
-from .interfaces import ActionConfig, ProviderConfig, UnifiedSettings
+from ..config.interfaces import ActionConfig, ProviderConfig, UnifiedSettings
 
 
 class SettingsManager:

@@ -24,7 +24,7 @@ import os
 import sys
 from pathlib import Path
 
-from .config.settings import SettingsManager
+from .core.settings_manager import SettingsManager
 
 try:
     if sys.platform.startswith("win32"):
