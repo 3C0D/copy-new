@@ -57,7 +57,7 @@ except ImportError:
     HarmCategory = None  # type: ignore
 
 # Local imports
-from . import AIProviderSetting
+from .settings import AIProviderSetting
 
 # Type checking imports
 if TYPE_CHECKING:
