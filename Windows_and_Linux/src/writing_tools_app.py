@@ -53,7 +53,6 @@ class WritingToolsApp(QApplication):
     The main application class for Writing Tools.
     """
 
-    output_ready_signal = Signal(str)
     hotkey_triggered_signal = Signal()
     followup_response_signal = Signal(str)
 
@@ -106,7 +105,6 @@ class WritingToolsApp(QApplication):
 
     def _setup_signals(self) -> None:
         """Connect application signals to their handlers."""
-        self.output_ready_signal.connect(self.text_processor.replace_text)
         self.hotkey_triggered_signal.connect(self.hotkey_manager.on_hotkey_pressed)
 
     def _setup_settings(self) -> None:

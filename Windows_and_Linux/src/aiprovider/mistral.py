@@ -210,7 +210,7 @@ class MistralProvider(AIProvider):
                     if return_response:
                         return response_text
                     # Emit the response via signal for direct replacement
-                    self.app.output_ready_signal.emit(response_text)
+                    self.app.text_processor.output_ready_signal.emit(response_text)
                     return response_text
                 error_msg = "Mistral API returned no content in response."
                 self.app.ui_manager.show_message_signal.emit(

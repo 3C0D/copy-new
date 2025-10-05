@@ -13,8 +13,7 @@ import time
 from typing import Optional
 
 import pyperclip
-from PySide6 import QtCore
-from PySide6.QtCore import Q_ARG, QObject, Slot
+from PySide6.QtCore import Q_ARG, QMetaObject, QObject, Qt, Signal, Slot
 
 from ..ui.non_editable_modal import NonEditableModal
 
@@ -24,10 +23,13 @@ class TextProcessor(QObject):
     Handles text processing operations including clipboard management and output display.
     """
 
+    output_ready_signal = Signal(str)
+
     def __init__(self, app):
         super().__init__()
         self.app = app
         self._logger = logging.getLogger(__name__)
+        self.output_ready_signal.connect(self.replace_text)
         self.non_editable_modal: Optional[NonEditableModal] = None
 
     @Slot(str)
@@ -85,10 +87,10 @@ class TextProcessor(QObject):
                 ):
                     # Fallback to modal window for non-editable pages
                     cleaned_text = self.app.ai_processor.output_queue.rstrip("\n")
-                    QtCore.QMetaObject.invokeMethod(
+                    QMetaObject.invokeMethod(
                         self,
                         "_show_non_editable_modal",
-                        QtCore.Qt.ConnectionType.QueuedConnection,
+                        Qt.ConnectionType.QueuedConnection,
                         Q_ARG(str, cleaned_text),
                     )
                 self.app.popup_manager.original_selection = None
@@ -137,10 +139,10 @@ class TextProcessor(QObject):
             self._logger.error(f"Error in clipboard paste: {e}")
             # Fallback to modal window for non-editable pages
             cleaned_text = self.app.ai_processor.output_queue.rstrip("\n")
-            QtCore.QMetaObject.invokeMethod(
+            QMetaObject.invokeMethod(
                 self,
                 "_show_non_editable_modal",
-                QtCore.Qt.ConnectionType.QueuedConnection,
+                Qt.ConnectionType.QueuedConnection,
                 Q_ARG(str, cleaned_text),
             )
 

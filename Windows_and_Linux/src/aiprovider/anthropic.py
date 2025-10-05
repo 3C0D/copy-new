@@ -152,7 +152,7 @@ class AnthropicProvider(AIProvider):
             self._logger.debug(
                 f"AnthropicProvider: Emitting output_ready_signal with text (length: {len(response_text)})"
             )
-            self.app.output_ready_signal.emit(response_text)
+            self.app.text_processor.output_ready_signal.emit(response_text)
             self._logger.debug("AnthropicProvider: Signal emitted successfully")
             return response_text
 

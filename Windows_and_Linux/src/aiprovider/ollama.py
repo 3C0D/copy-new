@@ -782,7 +782,7 @@ class OllamaProvider(AIProvider):
             response_text = response["message"]["content"].rstrip("\n")
 
             if not return_response and not hasattr(self.app, "current_response_window"):
-                self.app.output_ready_signal.emit(response_text)
+                self.app.text_processor.output_ready_signal.emit(response_text)
 
             return response_text
 
