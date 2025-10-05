@@ -59,7 +59,6 @@ class SettingsWindow(ThemedWidget):
         self.close_button = None
 
         self.init_ui()
-        self.retranslate_ui()
 
     def init_ui(self) -> None:
         """Initialize the user interface with scroll support."""
@@ -121,10 +120,6 @@ class SettingsWindow(ThemedWidget):
         # Set focus
         self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.setFocus()
-
-    def retranslate_ui(self) -> None:
-        """Retranslate UI elements."""
-        self.setWindowTitle(_("Settings"))
 
     def add_close_button(self, main_layout: QVBoxLayout) -> None:
         """Add close button at the bottom."""
@@ -232,8 +227,6 @@ class SettingsWindow(ThemedWidget):
 
         if self.provider_settings:
             self.provider_settings.refresh_language()
-
-        self.retranslate_ui()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         """Handle key press events."""

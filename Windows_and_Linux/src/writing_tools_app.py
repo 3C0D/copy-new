@@ -23,7 +23,6 @@ from .aiprovider.openAI_compatible import OpenAICompatibleProvider
 from .autostart_manager import AutostartManager
 from .core.ai_processor import AIProcessor
 from .core.clipboard_manager import ClipboardManager
-from .core.config_manager import ConfigManager
 from .core.hotkey_manager import HotkeyManager
 from .core.image_processor import ImageProcessor
 from .core.input_manager import InputManager
@@ -103,7 +102,6 @@ class WritingToolsApp(QApplication):
         self.popup_manager = PopupManager(self, self._logger)
         self.ui_manager = UIManager(self)
         self.lifecycle_manager = LifecycleManager(self)
-        self.config_manager = ConfigManager(self)
         self.update_manager = UpdateManager(self)
 
     def _setup_signals(self) -> None:
@@ -206,7 +204,3 @@ class WritingToolsApp(QApplication):
 
         self._logger.debug(f"Full traceback: {traceback.format_exc()}")
         # Removed: self.ui_manager.show_settings() - was a remnant of old onboarding
-
-    def retranslate_ui(self) -> None:
-        """Retranslate the user interface elements."""
-        self.systray_manager.update_tray_menu()

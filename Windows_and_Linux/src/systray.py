@@ -139,9 +139,9 @@ class SystrayManager:
         """
         self._logger.debug("Showing settings window")
         self._show_window("settings_window", SettingsWindow, None)
-        # Apply retranslate_ui for settings window specifically
+        # Apply refresh_language for settings window specifically
         if self.settings_window:
-            self.settings_window.retranslate_ui()
+            self.settings_window.refresh_language()
 
     def toggle_paused(self) -> None:
         """Toggle the paused state of the application."""
