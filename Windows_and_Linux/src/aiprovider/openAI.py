@@ -98,7 +98,6 @@ class OpenAIProvider(AIProvider):
             self._logger.debug(f"🔄 API model configured: {bool(self.api_model)}")
 
             if self.client is None:
-                self._logger.error("❌ OpenAI client is None - provider not properly initialized")
                 self.app.ui_manager.show_message_signal.emit(
                     "Error",
                     "OpenAI client not initialized. Please check your API settings.",

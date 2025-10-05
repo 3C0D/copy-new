@@ -115,7 +115,6 @@ class AnthropicProvider(AIProvider):
                 error_msg = (
                     "Anthropic client could not be initialized. Please check your API settings."
                 )
-                self._logger.error(error_msg)
                 self.app.ui_manager.show_message_signal.emit(
                     "Initialization Error",
                     error_msg,
@@ -138,7 +137,6 @@ class AnthropicProvider(AIProvider):
             # Handle empty or None response
             if not response_text or response_text.strip() == "":
                 error_msg = "Anthropic API returned an empty response. This might be due to insufficient credits or API limits."
-                self._logger.warning(error_msg)
                 self.app.ui_manager.show_message_signal.emit(
                     "Empty Response",
                     error_msg,

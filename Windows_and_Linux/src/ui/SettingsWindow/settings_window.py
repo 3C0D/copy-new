@@ -8,7 +8,8 @@ All settings auto-save when changed.
 import logging
 from typing import TYPE_CHECKING
 
-from PySide6 import QtCore, QtGui
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QCloseEvent, QFocusEvent, QKeyEvent
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -39,7 +40,7 @@ class SettingsWindow(ThemedWidget):
     Auto-saves all changes immediately.
     """
 
-    close_signal = QtCore.Signal()
+    close_signal = Signal()
 
     def __init__(self, app: "WritingToolsApp"):
         super().__init__(app)
@@ -87,7 +88,7 @@ class SettingsWindow(ThemedWidget):
         title_label.setStyleSheet(self.app.styles["label_title"])
         content_layout.addWidget(
             title_label,
-            alignment=QtCore.Qt.AlignmentFlag.AlignCenter,
+            alignment=Qt.AlignmentFlag.AlignCenter,
         )
 
         # General settings section
@@ -118,7 +119,7 @@ class SettingsWindow(ThemedWidget):
         self.add_close_button(main_layout)
 
         # Set focus
-        self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setFocus()
 
     def add_close_button(self, main_layout: QVBoxLayout) -> None:
@@ -156,12 +157,12 @@ class SettingsWindow(ThemedWidget):
 
         self._logger.debug("All settings saved")
 
-    def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
+    def focusOutEvent(self, event: QFocusEvent) -> None:
         """Handle focus out event - manage focus carefully for dropdowns."""
         super().focusOutEvent(event)
         focused_widget = QApplication.focusWidget()
         if focused_widget and not self.isAncestorOf(focused_widget):
-            QtCore.QTimer.singleShot(500, self.regain_focus_if_needed)
+            QTimer.singleShot(500, self.regain_focus_if_needed)
 
     def regain_focus_if_needed(self) -> None:
         """Regain focus only when appropriate."""
@@ -228,14 +229,14 @@ class SettingsWindow(ThemedWidget):
         if self.provider_settings:
             self.provider_settings.refresh_language()
 
-    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+    def keyPressEvent(self, event: QKeyEvent) -> None:
         """Handle key press events."""
-        if event.key() == QtCore.Qt.Key.Key_Escape:
+        if event.key() == Qt.Key.Key_Escape:
             self.save_and_close()
         else:
             super().keyPressEvent(event)
 
-    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+    def closeEvent(self, event: QCloseEvent) -> None:
         """Handle window close event."""
         super().closeEvent(event)
         # Update references in both managers

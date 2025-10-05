@@ -27,3 +27,5 @@ self.popup_window = custom_popup_window.CustomPopupWindow(self.app, selected_tex
 settings window toujours présence ancienne structure provider only... ?
 --------------------------
 instances de provider
+----
+show_message_signal, message_box error level pour log?

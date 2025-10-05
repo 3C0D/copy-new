@@ -34,17 +34,14 @@ Response Flow:
 
 """
 
-# Disable Pylance reportPrivateImportUsage for google.generativeai
-# pyright: reportPrivateImportUsage=false
-
 # Standard library imports
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import CancelledError, ThreadPoolExecutor
 from typing import TYPE_CHECKING, Callable, Union, cast
 
-# Third-party imports (with fallbacks for optional dependencies)
-# PySide6 imports
+# Disable Pylance reportPrivateImportUsage for google.generativeai
+# pyright: reportPrivateImportUsage=false
 
 # Google Generative AI imports (with fallbacks)
 try:
@@ -166,8 +163,8 @@ class AIProvider(ABC):
         except Exception as e:
             logging.error(f"Error in {self.provider_name} request: {e}")
             if not return_response and not hasattr(self.app, "current_response_window"):
-                self.app.output_ready_signal.emit(
-                    "An error occurred while processing the response."
+                self.app.ui_manager.show_message_signal.emit(
+                    "Error", "An error occurred while processing the response."
                 )
             return ""
 

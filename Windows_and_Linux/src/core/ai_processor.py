@@ -27,7 +27,6 @@ class AIProcessor(QObject):
     Handles AI request processing and response management.
     """
 
-    output_ready_signal = Signal(str)
     followup_response_signal = Signal(str)
 
     def __init__(self, app):
@@ -511,7 +510,6 @@ class AIProcessor(QObject):
             self._logger.debug("Starting follow-up processing thread")
             try:
                 if not response_window.chat_history:
-                    self._logger.error("No chat history found")
                     self.app.ui_manager.show_message_signal.emit("Error", "Chat history not found")
                     return
 

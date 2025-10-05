@@ -93,12 +93,11 @@ class GeminiProvider(AIProvider):
 
         # Check if model is configured
         if not self.model:
-            error_msg = "Gemini API key not configured. Please add your API key in settings."
-            self._logger.error(error_msg)
+            error_msg = "Your Gemini API key is not configured or invalid. Please go to Settings and add a valid API key."
             if not return_response:
                 self.app.ui_manager.show_message_signal.emit(
                     "API Key Missing",
-                    "Your Gemini API key is not configured or invalid. Please go to Settings and add a valid API key.",
+                    error_msg,
                 )
                 return ""
             return error_msg
@@ -223,9 +222,8 @@ class GeminiProvider(AIProvider):
                     error_detail = f"🔥 Unexpected error code (code {candidate.finish_reason})"
                     self._logger.warning(f"🔥 Attempt {attempt_num}: {error_detail} - No retry")
                     error_msg = f"Gemini could not complete the response (reason code: {candidate.finish_reason}). Please try again."
-                    self._logger.warning(f"Gemini unusual finish reason: {candidate.finish_reason}")
                     self.app.ui_manager.show_message_signal.emit(
-                        "Response Incomplete",
+                        f"Gemini unusual finish reason: {candidate.finish_reason}",
                         error_msg,
                     )
                     return ""

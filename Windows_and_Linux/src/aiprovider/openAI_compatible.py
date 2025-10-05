@@ -116,7 +116,6 @@ class OpenAICompatibleProvider(AIProvider):
             self._logger.debug(f"🔄 API model configured: {bool(self.api_model)}")
 
             if not self.api_model or not self.api_model.strip():
-                self._logger.error("❌ Added model is not configured")
                 self.app.ui_manager.show_message_signal.emit(
                     "Model Not Configured",
                     "Please enter a model name in the 'Added Model' field in OpenAI Compatible settings.",
@@ -124,7 +123,6 @@ class OpenAICompatibleProvider(AIProvider):
                 return ""
 
             if self.client is None:
-                self._logger.error("❌ OpenAI client is None - provider not properly initialized")
                 self.app.ui_manager.show_message_signal.emit(
                     "Error",
                     "OpenAI client not initialized. Please check your API settings.",

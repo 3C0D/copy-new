@@ -946,7 +946,6 @@ class CustomPopupWindow(QWidget):
                 success_msg.exec_()
 
             except Exception as e:
-                self._logger.exception(f"Error resetting options: {e}")
                 self.app.ui_manager.show_message_signal.emit(
                     "Error", f"An error occurred while resetting: {e!s}"
                 )

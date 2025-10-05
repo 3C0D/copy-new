@@ -33,7 +33,7 @@ class TextProcessor(QObject):
     @Slot(str)
     def replace_text(self, new_text: str) -> None:
         """
-        Replaces the text by pasting in the LLM generated text. With "Key Points" and "Summary",
+        Replaces the text by pasting in the LLM generated text. With actions,
         invokes a window with the output instead.
         If pasting fails (non-editable page), shows the text in a modal window.
         """
