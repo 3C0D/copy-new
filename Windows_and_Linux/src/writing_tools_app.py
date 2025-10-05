@@ -161,8 +161,8 @@ class WritingToolsApp(QApplication):
         try:
             self._initialize_ai_provider()
             self._setup_user_interface()
-            self.language_manager.change_language(self.settings_manager.language or "en")
-            self._initialize_update_checker()
+            self.language_manager.set_language(self.settings_manager.language or "en")
+            self.update_manager.check_updates_async()
         except Exception as e:
             self._handle_initialization_error(e)
 
@@ -181,20 +181,9 @@ class WritingToolsApp(QApplication):
 
     def _setup_user_interface(self) -> None:
         """Setup user interface components."""
-        self._sync_autostart_settings()
+        AutostartManager.sync_with_settings(self.settings_manager)
         self.systray_manager.create_tray_icon_with_startup_delay()
         self.hotkey_manager.register_hotkey()
-
-    def _sync_autostart_settings(self) -> None:
-        """Synchronize autostart settings between registry and configuration."""
-        try:
-            AutostartManager.sync_with_settings(self.settings_manager)
-        except Exception as e:
-            self._logger.warning(f"Could not sync autostart settings: {e}")
-
-    def _initialize_update_checker(self) -> None:
-        """Initialize the update checker system."""
-        self.update_manager.check_updates_async()
 
     def _handle_initialization_error(self, error: Exception) -> None:
         """Handle errors during application initialization."""

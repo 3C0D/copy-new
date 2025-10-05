@@ -179,7 +179,7 @@ class GeneralSettings(QWidget):
         if selected_lang_code:
             self._changing_language = True
             try:
-                self.app.language_manager.change_language(selected_lang_code)
+                self.app.language_manager.set_language(selected_lang_code)
                 self._logger.debug(f"Language changed to: {selected_lang_code}")
             finally:
                 self._changing_language = False

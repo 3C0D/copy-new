@@ -42,7 +42,7 @@ class LanguageManager(QtCore.QObject):
         if widget in self._registered_widgets:
             self._registered_widgets.remove(widget)
 
-    def change_language(self, new_language: str) -> None:
+    def set_language(self, new_language: str) -> None:
         """Change the language and notify all registered widgets."""
         # Save to settings
         self.app.settings_manager.language = new_language

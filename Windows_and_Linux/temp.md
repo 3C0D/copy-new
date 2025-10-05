@@ -23,3 +23,7 @@ self.popup_window.show()
 _create_popup_window() dans popup_manager.PopupManager
 self.popup_window = custom_popup_window.CustomPopupWindow(self.app, selected_text, image)
 
+-------------------------
+settings window toujours présence ancienne structure provider only... ?
+--------------------------
+instances de provider
