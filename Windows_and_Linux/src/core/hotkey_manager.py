@@ -12,16 +12,18 @@ import types
 from typing import TYPE_CHECKING, Optional
 
 from pynput import keyboard as keyboard
-from PySide6 import QtCore
+from PySide6.QtCore import QMetaObject, QObject, Qt, QTimer, Signal, Slot
 
 if TYPE_CHECKING:
     pass
 
 
-class HotkeyManager:
+class HotkeyManager(QObject):
     """
     Manages global hotkey registration, keyboard listeners, and spam protection.
     """
+
+    hotkey_triggered_signal = Signal()
 
     def __init__(self, app):
         self.app = app
@@ -29,12 +31,14 @@ class HotkeyManager:
 
         # Hotkey system attributes
         self.hotkey_listener: Optional[keyboard.Listener] = None
-        self.ctrl_c_timer: Optional[QtCore.QTimer] = None
+        self.ctrl_c_timer: Optional[QTimer] = None
 
         # Spam protection attributes
         self.recent_triggers: list[float] = []
         self.TRIGGER_WINDOW = 1.5  # Time window in seconds
         self.MAX_TRIGGERS = 3  # Max allowed triggers in window
+
+        self.hotkey_triggered_signal.connect(self.on_hotkey_pressed)
 
         # Setup Ctrl+C listener
         self.setup_ctrl_c_listener()
@@ -48,7 +52,7 @@ class HotkeyManager:
         # without it, the sigint handle would trigger only when an event is triggered, either by a hotkey combination
         # or by another GUI event like spawning a new window. With this we trigger it every 100ms with an empy lambda
         # so that the signal handler gets checked regularly.
-        self.ctrl_c_timer = QtCore.QTimer()
+        self.ctrl_c_timer = QTimer()
         self.ctrl_c_timer.start(100)
         self.ctrl_c_timer.timeout.connect(lambda: None)
 
@@ -131,6 +135,7 @@ class HotkeyManager:
         self.start_hotkey_listener()
         self._logger.debug("Hotkey registered")
 
+    @Slot()
     def on_hotkey_pressed(self) -> None:
         """
         Handle the hotkey press event.
@@ -171,8 +176,8 @@ class HotkeyManager:
             self.app.ai_processor.output_queue = ""
 
         # noinspection PyTypeChecker
-        QtCore.QMetaObject.invokeMethod(
-            self.app.popup_manager, "show_popup", QtCore.Qt.ConnectionType.QueuedConnection
+        QMetaObject.invokeMethod(
+            self.app.popup_manager, "show_popup", Qt.ConnectionType.QueuedConnection
         )
 
     def cleanup(self) -> None:

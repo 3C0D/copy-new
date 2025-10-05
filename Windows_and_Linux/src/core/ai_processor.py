@@ -10,7 +10,7 @@ import threading
 from typing import TYPE_CHECKING, Any
 
 from PySide6 import QtCore, QtGui
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject
 
 from ..aiprovider.gemini import GeminiProvider
 from ..aiprovider.mistral import MistralProvider
@@ -26,8 +26,6 @@ class AIProcessor(QObject):
     """
     Handles AI request processing and response management.
     """
-
-    followup_response_signal = Signal(str)
 
     def __init__(self, app):
         super().__init__()
@@ -675,7 +673,7 @@ class AIProcessor(QObject):
                 response_window.chat_history.append({"role": "assistant", "content": response_text})
 
                 # Emit response via signal
-                self.app.followup_response_signal.emit(response_text)
+                self.app.current_response_window.followup_response_signal.emit(response_text)
 
             except Exception as e:
                 self._logger.error(f"Error processing follow-up question: {e}", exc_info=True)
@@ -685,12 +683,12 @@ class AIProcessor(QObject):
                         "Error - Rate Limit Hit",
                         "Whoops! You've hit the per-minute rate limit of the API. Please try again in a few moments.\n\nIf this happens often, try switching to a different model in Settings.",
                     )
-                    self.app.followup_response_signal.emit(
+                    self.app.current_response_window.followup_response_signal.emit(
                         "Sorry, an error occurred while processing your question."
                     )
                 else:
                     self.app.ui_manager.show_message_signal.emit("Error", f"An error occurred: {e}")
-                    self.app.followup_response_signal.emit(
+                    self.app.current_response_window.followup_response_signal.emit(
                         "Sorry, an error occurred while processing your question."
                     )
 

@@ -53,9 +53,6 @@ class WritingToolsApp(QApplication):
     The main application class for Writing Tools.
     """
 
-    hotkey_triggered_signal = Signal()
-    followup_response_signal = Signal(str)
-
     def __init__(self, argv):
         super().__init__(argv)
         self._logger = logging.getLogger(__name__)
@@ -66,7 +63,6 @@ class WritingToolsApp(QApplication):
             self._setup_core_attributes()
 
             self._logger.debug("Setting up signals...")
-            self._setup_signals()
 
             self._logger.debug("Setting up settings...")
             self._setup_settings()
@@ -102,10 +98,6 @@ class WritingToolsApp(QApplication):
         self.ui_manager = UIManager(self)
         self.lifecycle_manager = LifecycleManager(self)
         self.update_manager = UpdateManager(self)
-
-    def _setup_signals(self) -> None:
-        """Connect application signals to their handlers."""
-        self.hotkey_triggered_signal.connect(self.hotkey_manager.on_hotkey_pressed)
 
     def _setup_settings(self) -> None:
         """Initialize settings manager and load configuration."""
@@ -161,8 +153,10 @@ class WritingToolsApp(QApplication):
             self._setup_user_interface()
             self.language_manager.set_language(self.settings_manager.language or "en")
             self.update_manager.check_updates_async()
-        except Exception as e:
-            self._handle_initialization_error(e)
+        except Exception as error:
+            self._logger.exception(f"Error during app initialization: {error}")
+            import traceback
+            self._logger.debug(f"Full traceback: {traceback.format_exc()}")
 
     def _initialize_ai_provider(self) -> None:
         """Initialize and configure the current AI provider."""
@@ -182,12 +176,3 @@ class WritingToolsApp(QApplication):
         AutostartManager.sync_with_settings(self.settings_manager)
         self.systray_manager.create_tray_icon_with_startup_delay()
         self.hotkey_manager.register_hotkey()
-
-    def _handle_initialization_error(self, error: Exception) -> None:
-        """Handle errors during application initialization."""
-        self._logger.exception(f"Error during app initialization: {error}")
-
-        import traceback
-
-        self._logger.debug(f"Full traceback: {traceback.format_exc()}")
-        # Removed: self.ui_manager.show_settings() - was a remnant of old onboarding

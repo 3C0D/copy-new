@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Optional, Union
 from ollama import Client as OllamaClient
 
 # PySide6 imports
-from PySide6.QtCore import QObject, QTimer, Signal
+from PySide6.QtCore import QObject, QTimer, Signal, Slot
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -521,6 +521,7 @@ class OllamaProvider(AIProvider):
         # Start async refresh on initialization
         self.state_manager.refresh_state_async()
 
+    @Slot()
     def _on_state_updated(self):
         """Handle state updates from the state manager."""
         self.refresh_configuration()
@@ -528,6 +529,7 @@ class OllamaProvider(AIProvider):
         if hasattr(self.app, "settings_window") and self.app.systray_manager.settings_window:
             self.app.systray_manager.settings_window.update_provider_button_text()
 
+    @Slot(list)
     def _on_models_updated(self, models: list[tuple[str, str]]):
         """Handle model list updates."""
         for setting in self.settings:
@@ -576,7 +578,10 @@ class OllamaProvider(AIProvider):
                 )
                 # Refresh UI
                 self.refresh_configuration()
-                if hasattr(self.app, "settings_window") and self.app.systray_manager.settings_window:
+                if (
+                    hasattr(self.app, "settings_window")
+                    and self.app.systray_manager.settings_window
+                ):
                     self.app.systray_manager.settings_window._on_provider_changed()
             else:
                 self.app.ui_manager.show_message_signal.emit(

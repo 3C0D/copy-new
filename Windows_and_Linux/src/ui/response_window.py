@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 import markdown2
 from PySide6 import QtCore, QtGui
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import QObject, Qt, Signal, Slot
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -466,6 +466,8 @@ class ChatContentScrollArea(QScrollArea):
 class ResponseWindow(ThemedWidget):
     """Enhanced response window"""
 
+    followup_response_signal = Signal(str)
+
     def __init__(
         self,
         app: "WritingToolsApp",
@@ -497,7 +499,7 @@ class ResponseWindow(ThemedWidget):
 
         self.init_ui()
         self._logger.debug("Connecting response signals")
-        self.app.followup_response_signal.connect(self.handle_followup_response)
+        self.followup_response_signal.connect(self.handle_followup_response)
         self._logger.debug("Response signals connected")
 
         # Set initial size for "Thinking..." state

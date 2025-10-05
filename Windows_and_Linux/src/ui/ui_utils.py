@@ -2,8 +2,22 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6 import QtCore, QtGui
-from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtCore import QRect, Qt, Slot
+from PySide6.QtGui import (
+    QBrush,
+    QCloseEvent,
+    QColor,
+    QIcon,
+    QImage,
+    QKeyEvent,
+    QPainter,
+    QPainterPath,
+    QPaintEvent,
+    QPen,
+    QPixmap,
+    QResizeEvent,
+    QShowEvent,
+)
 from PySide6.QtWidgets import QApplication, QLayout, QMessageBox, QVBoxLayout, QWidget
 
 if TYPE_CHECKING:
@@ -29,7 +43,7 @@ class ui_utils:
         cls, image: QImage, image_size: int = 100, rounding_amount: int = 50
     ) -> QPixmap:
         image = image.scaledToWidth(image_size)
-        clipPath = QtGui.QPainterPath()
+        clipPath = QPainterPath()
         clipPath.addRoundedRect(
             0,
             0,
@@ -39,9 +53,9 @@ class ui_utils:
             rounding_amount,
         )
         target = QImage(image_size, image_size, QImage.Format.Format_ARGB32)
-        target.fill(QtCore.Qt.GlobalColor.transparent)
-        painter = QtGui.QPainter(target)
-        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        target.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(target)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setClipPath(clipPath)
         painter.drawImage(0, 0, image)
         painter.end()
@@ -52,7 +66,7 @@ class ui_utils:
     def show_confirmation_dialog(title: str, message: str, parent=None) -> bool:
         """Show a confirmation dialog and return True if user confirms."""
         confirm = QMessageBox(parent)
-        confirm.setWindowFlags(confirm.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
+        confirm.setWindowFlags(confirm.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
         confirm.setWindowTitle(title)
         confirm.setText(message)
         confirm.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
@@ -67,7 +81,7 @@ class ui_utils:
 
         # Ensure window is not minimized
         window.showNormal()
-        # window.setWindowState(QtCore.Qt.WindowState.WindowActive) redundant
+        # window.setWindowState(Qt.WindowState.WindowActive) redundant
         window.raise_()
         window.activateWindow()
 
@@ -171,15 +185,15 @@ class ThemedWidget(QWidget):
     def setup_window_and_layout(self) -> None:
         # Configure window flags for standard minimize/close/title behavior
         self.setWindowFlags(
-            self.windowFlags() & ~QtCore.Qt.WindowType.WindowSystemMenuHint
-            | QtCore.Qt.WindowType.WindowCloseButtonHint
-            | QtCore.Qt.WindowType.WindowMinimizeButtonHint
+            self.windowFlags() & ~Qt.WindowType.WindowSystemMenuHint
+            | Qt.WindowType.WindowCloseButtonHint
+            | Qt.WindowType.WindowMinimizeButtonHint
         )
 
         # Set window icon
         icon_path = ui_utils.get_icon_path(self.app, "app_icon", with_theme=False)
         if icon_path.exists():
-            self.setWindowIcon(QtGui.QIcon(icon_path.as_posix()))
+            self.setWindowIcon(QIcon(icon_path.as_posix()))
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -189,12 +203,12 @@ class ThemedWidget(QWidget):
         self.background = ThemeBackground(self.app, self, current_background_theme)
         main_layout.addWidget(self.background)
 
-    def showEvent(self, event: QtGui.QShowEvent) -> None:
+    def showEvent(self, event: QShowEvent) -> None:
         """Handle window show event to ensure focus."""
         super().showEvent(event)
         ui_utils.existing_window_on_top(self)
 
-    def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
+    def resizeEvent(self, event: QResizeEvent) -> None:
         """Handle window resize events to maintain minimum size."""
         if self.width() < self.min_width or self.height() < self.min_height:
             self.resize(max(self.width(), self.min_width), max(self.height(), self.min_height))
@@ -203,9 +217,9 @@ class ThemedWidget(QWidget):
         """Get the current background theme from settings."""
         return self.app.settings_manager.background_theme or "gradient"
 
-    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Handle key press events with common shortcuts for all windows."""
-        if event.key() == QtCore.Qt.Key.Key_Escape:
+        if event.key() == Qt.Key.Key_Escape:
             self.close()
         else:
             super().keyPressEvent(event)
@@ -217,9 +231,9 @@ class ThemedWidget(QWidget):
 
     def set_transparent_icon(self) -> None:
         """Set a transparent window icon."""
-        pixmap = QtGui.QPixmap(32, 32)
-        pixmap.fill(QtCore.Qt.GlobalColor.transparent)
-        self.setWindowIcon(QtGui.QIcon(pixmap))
+        pixmap = QPixmap(32, 32)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        self.setWindowIcon(QIcon(pixmap))
 
     def center_on_screen(self) -> None:
         """Center the window on the primary screen."""
@@ -240,10 +254,12 @@ class ThemedWidget(QWidget):
         self.app.language_manager.register_widget(self)
         self.app.language_manager.language_changed.connect(self._on_language_changed)
 
+    @Slot()
     def _on_color_mode_changed(self) -> None:
         """Automatically called when the color mode changes."""
         self.refresh_theme()
 
+    @Slot(str)
     def _on_background_theme_changed(self, style: str) -> None:
         """Automatically called when the background style changes."""
         if self.background is not None:
@@ -276,7 +292,7 @@ class ThemedWidget(QWidget):
         """Get current theme styles as a shortcut."""
         return self.app.theme_manager.get_styles()
 
-    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+    def closeEvent(self, event: QCloseEvent) -> None:
         """Handle window close event and unregister from theme manager."""
         self.app.theme_manager.unregister_widget(self)
         self.app.language_manager.unregister_widget(self)
@@ -297,18 +313,18 @@ class ThemeBackground(QWidget):
     ):
         self.app = app
         super().__init__(parent)
-        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.background_theme = background_theme
         self.is_popup = is_popup
         self.border_radius = border_radius
 
-    def paintEvent(self, event: QtGui.QPaintEvent) -> None:
+    def paintEvent(self, event: QPaintEvent) -> None:
         """
         Override the paint event to draw the background based on the selected background theme.
         """
-        painter = QtGui.QPainter(self)
-        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, True)
-        painter.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform, True)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
         if self.background_theme == "gradient":
             # Determine background file paths (check multiple locations)
             if getattr(sys, "frozen", False):
@@ -343,21 +359,19 @@ class ThemeBackground(QWidget):
             background_image = None
             for path in possible_paths:
                 if path.exists():
-                    background_image = QtGui.QPixmap(str(path))
+                    background_image = QPixmap(str(path))
                     break
 
             # Fallback to solid color if no background found
             if background_image is None:
-                background_image = QtGui.QPixmap(self.width(), self.height())
+                background_image = QPixmap(self.width(), self.height())
                 fallback_color = (
-                    QtGui.QColor(50, 50, 50)
-                    if current_mode == "dark"
-                    else QtGui.QColor(240, 240, 240)
+                    QColor(50, 50, 50) if current_mode == "dark" else QColor(240, 240, 240)
                 )
                 background_image.fill(fallback_color)
 
             # Create rounded rectangle path for clipping
-            path = QtGui.QPainterPath()
+            path = QPainterPath()
             path.addRoundedRect(
                 0,
                 0,
@@ -373,23 +387,21 @@ class ThemeBackground(QWidget):
             # Solid color theme
             current_mode = self.app.settings_manager.color_mode
             color = (
-                QtGui.QColor(35, 35, 35)
+                QColor(35, 35, 35)
                 if current_mode == "dark"  # Dark mode color
-                else QtGui.QColor(
-                    255, 255, 255
-                )  # Light mode color - pure white for better contrast
+                else QColor(255, 255, 255)  # Light mode color - pure white for better contrast
             )
 
-            brush = QtGui.QBrush(color)
+            brush = QBrush(color)
             painter.setBrush(brush)
 
             # Transparent pen
-            pen = QtGui.QPen(QtGui.QColor(0, 0, 0, 0))
+            pen = QPen(QColor(0, 0, 0, 0))
             pen.setWidth(0)
             painter.setPen(pen)
 
             painter.drawRoundedRect(
-                QtCore.QRect(0, 0, self.width(), self.height()),
+                QRect(0, 0, self.width(), self.height()),
                 self.border_radius,
                 self.border_radius,
             )

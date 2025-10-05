@@ -120,24 +120,6 @@ class UIManager(QObject):
         if settings_button and msg_box.clickedButton() == settings_button:
             self.app.systray_manager.show_settings()
 
-    def _show_non_editable_modal(self, transformed_text: Optional[str] = None) -> None:
-        """
-        Display a modal for non-editable text.
-
-        Used when direct pasting fails and the transformed text needs to be displayed
-        in a modal.
-
-        Args:
-            transformed_text: Transformed text to display
-        """
-        self._logger.debug("Showing non-editable modal")
-
-        if self.non_editable_modal:
-            self.non_editable_modal.close()
-
-        self.non_editable_modal = NonEditableModal(self.app, transformed_text)
-        self.non_editable_modal.show()
-
     # not used? !!!
     def close_all_windows(self) -> None:
         """
