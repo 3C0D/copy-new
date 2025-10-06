@@ -408,7 +408,7 @@ class AIProcessor(QObject):
         is_custom_option = option == "Custom"
         has_image = image_data is not None
 
-        if not self.app.current_response_window or not is_custom_option:
+        if not hasattr(self.app, "current_response_window") or not self.app.current_response_window or not is_custom_option:
             return
 
         if has_image:

@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 import markdown2
 from PySide6 import QtCore, QtGui
-from PySide6.QtCore import QObject, Qt, Signal, Slot
+from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
