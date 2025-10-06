@@ -103,7 +103,8 @@ class AIProcessor(QObject):
             custom_change: Optional custom instruction text entered by the user in the input field
             image: Optional image copied from the clipboard
         """
-        self._logger.debug(f"Processing option: {option}")
+        message = f"Processing option: {option}{' - force chat' if force_chat else ''}"
+        self._logger.debug(message)
 
         if self.current_provider is not None and not self.current_provider.validate_connection():
             return
@@ -116,7 +117,7 @@ class AIProcessor(QObject):
             action_config = self.app.settings_manager.actions.get(option, {})
 
         should_setup_response_window = self._should_display_in_window(
-            option, selected_text, action_config, has_image
+            option, selected_text, action_config, has_image, force_chat
         )
 
         self._logger.debug(f"should_setup_response_window: {should_setup_response_window}")
@@ -350,17 +351,17 @@ class AIProcessor(QObject):
         }
 
     def _should_display_in_window(
-        self, option: str, selected_text: str | None, action_config: ActionConfig, has_image: bool
+        self, option: str, selected_text: str | None, action_config: ActionConfig, has_image: bool, forceChat: bool | None = None
     ) -> bool:
         """Determine if response should be displayed in a window."""
         is_custom_option = option == "Custom"
         has_selected_text = bool(selected_text and selected_text.strip() != "")
-        force_chat = bool(getattr(self.app, "_current_force_chat", False))
+        force_chat = forceChat if forceChat else bool(getattr(self.app, "_current_force_chat", False))
 
         return (
             has_image
-            or (force_chat and has_selected_text)
-            or (is_custom_option and not has_selected_text)
+            or force_chat and has_selected_text
+            or is_custom_option and not has_selected_text
             or bool(action_config.get("open_in_window", True))
         )
 
