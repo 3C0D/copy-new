@@ -150,7 +150,7 @@ class SettingsWindow(ThemedWidget):
 
         # Save provider settings
         if self.provider_settings:
-            self.provider_settings.save_settings()
+            self.provider_settings.save_current_provider_settings()
 
         # Re-register hotkey
         self.app.hotkey_manager.register_hotkey()

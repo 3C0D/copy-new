@@ -349,11 +349,6 @@ class ProviderSettings(QWidget):
 
         self._logger.debug(f"Saved settings: {self.current_provider.internal_name}")
 
-    def save_settings(self) -> None:
-        """Save all provider settings."""
-        self.save_current_provider_settings()
-        self._logger.debug("Provider settings saved")
-
     def update_provider_button_text(self) -> None:
         """Update main button text when provider state changes."""
         if hasattr(self, "main_button") and self.main_button and self.current_provider:
