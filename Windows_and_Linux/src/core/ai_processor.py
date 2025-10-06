@@ -128,13 +128,10 @@ class AIProcessor(QObject):
         elif hasattr(self.app, "current_response_window"):
             delattr(self.app, "current_response_window")
 
-        # Store force_chat state for the thread
-        self.app._current_force_chat = force_chat
-
         # Start processing thread
         threading.Thread(
             target=self.process_option_thread,
-            args=(option, selected_text, image, custom_change),
+            args=(option, selected_text, image, custom_change, force_chat),
             daemon=True,
         ).start()
 
@@ -192,6 +189,7 @@ class AIProcessor(QObject):
         selected_text: str,
         image: QtGui.QImage | None = None,
         custom_change: str | None = None,
+        force_chat: bool = False,
     ) -> None:
         """
         Thread function to process the selected writing option using the AI model.
@@ -202,6 +200,7 @@ class AIProcessor(QObject):
             selected_text: The text selected by the user
             image: Optional image copied from the clipboard
             custom_change: Optional custom change description for Custom option
+            force_chat: If True, force response to open in ResponseWindow (chat mode)
         """
         self._logger.debug(f"Starting processing thread for option: {option}")
 
@@ -212,7 +211,7 @@ class AIProcessor(QObject):
 
             self.output_queue = ""
             should_open_window = self._should_display_in_window(
-                option, selected_text, prompt_data["action_config"], image is not None
+                option, selected_text, prompt_data["action_config"], image is not None, force_chat
             )
 
             if should_open_window:
@@ -351,12 +350,11 @@ class AIProcessor(QObject):
         }
 
     def _should_display_in_window(
-        self, option: str, selected_text: str | None, action_config: ActionConfig, has_image: bool, forceChat: bool | None = None
+        self, option: str, selected_text: str | None, action_config: ActionConfig, has_image: bool, force_chat: bool
     ) -> bool:
         """Determine if response should be displayed in a window."""
         is_custom_option = option == "Custom"
         has_selected_text = bool(selected_text and selected_text.strip() != "")
-        force_chat = forceChat if forceChat else bool(getattr(self.app, "_current_force_chat", False))
 
         return (
             has_image
