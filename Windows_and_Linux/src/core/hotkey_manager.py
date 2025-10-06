@@ -26,6 +26,7 @@ class HotkeyManager(QObject):
     hotkey_triggered_signal = Signal()
 
     def __init__(self, app):
+        super().__init__()
         self.app = app
         self._logger = logging.getLogger(__name__)
 
@@ -103,7 +104,7 @@ class HotkeyManager(QObject):
                 if self.app.systray_manager.paused:
                     return
                 self._logger.debug("triggered hotkey")
-                self.app.hotkey_triggered_signal.emit()  # Emit the signal when hotkey is pressed
+                self.hotkey_triggered_signal.emit()  # Emit the signal when hotkey is pressed
 
             # Define the hotkey combination
             hotkey = keyboard.HotKey(keyboard.HotKey.parse(shortcut), on_activate)

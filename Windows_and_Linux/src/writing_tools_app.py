@@ -62,8 +62,6 @@ class WritingToolsApp(QApplication):
             self._logger.debug("Setting up core attributes...")
             self._setup_core_attributes()
 
-            self._logger.debug("Setting up signals...")
-
             self._logger.debug("Setting up settings...")
             self._setup_settings()
 
