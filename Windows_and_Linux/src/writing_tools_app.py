@@ -11,7 +11,6 @@ import os
 from typing import TYPE_CHECKING
 
 from pynput import keyboard as keyboard
-from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QApplication
 
 from .aiprovider.anthropic import AnthropicProvider
@@ -154,6 +153,7 @@ class WritingToolsApp(QApplication):
         except Exception as error:
             self._logger.exception(f"Error during app initialization: {error}")
             import traceback
+
             self._logger.debug(f"Full traceback: {traceback.format_exc()}")
 
     def _initialize_ai_provider(self) -> None:
@@ -171,6 +171,6 @@ class WritingToolsApp(QApplication):
 
     def _setup_user_interface(self) -> None:
         """Setup user interface components."""
-        AutostartManager.sync_with_settings(self.settings_manager)
+        AutostartManager.sync_with_settings(self.settings_manager) # Synchronize autostart state between system and settings
         self.systray_manager.create_tray_icon_with_startup_delay()
         self.hotkey_manager.register_hotkey()
