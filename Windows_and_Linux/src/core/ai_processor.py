@@ -18,7 +18,7 @@ from ..aiprovider.mistral import MistralProvider
 from ..aiprovider.ollama import OllamaProvider
 from ..aiprovider.openAI import OpenAIProvider
 from ..aiprovider.openAI_compatible import OpenAICompatibleProvider
-from ..config.constants import DEFAULT_PROVIDER, DEFAULT_PROVIDER_CONFIGS
+from ..config.constants import DEFAULT_PROVIDER, DEFAULT_PROVIDER_CONFIGS, SYSTEM_INSTRUCTIONS
 from ..config.interfaces import ActionConfig, ProviderConfig
 
 # Mapping of internal provider names to their classes
@@ -294,7 +294,7 @@ class AIProcessor(QObject):
         if is_custom_option:
             return {
                 "prompt": custom_change,
-                "system_instruction": "You are a friendly, helpful, compassionate, and endearing AI conversational assistant. Avoid making assumptions or generating harmful, biased, or inappropriate content. When in doubt, do not make up information. Ask the user for clarification if needed. Try not be unnecessarily repetitive in your response. You can, and should as appropriate, use Markdown formatting to make your response nicely readable. Always respond in the same language that the user used in their question.",
+                "system_instruction": SYSTEM_INSTRUCTIONS["chat_no_text"],
                 "action_config": {},
             }
         else:
@@ -322,14 +322,7 @@ class AIProcessor(QObject):
         # For image analysis, use a specialized system instruction
         if image is not None:
             if is_custom_option:
-                system_instruction = (
-                    "You are a helpful AI assistant specialized in image analysis. "
-                    "Analyze the provided image and respond to the user's specific request."
-                    "If it is about a translation of the text in the image, please provide the translation and nothing else."
-                    "Be detailed, accurate, and helpful in your analysis."
-                    "Use clear, well-structured responses with markdown formatting when appropriate. "
-                    "Always respond in the same language that the user used in their question."
-                )
+                system_instruction = SYSTEM_INSTRUCTIONS["image_custom"]
                 prompt = custom_change or "Please analyze this image and describe what you see."
             else:
                 if not action_config:
@@ -337,8 +330,8 @@ class AIProcessor(QObject):
                     return None
 
                 # For pre-defined actions with images, adapt the instruction
-                system_instruction = action_config.get("instruction", "") + (
-                    " Analyze the provided image in the context of this request."
+                system_instruction = SYSTEM_INSTRUCTIONS["image_action"].format(
+                    action_instruction=action_config.get("instruction", "")
                 )
                 prompt = action_config.get("prefix", "") + (custom_change or "")
         else:
@@ -558,19 +551,9 @@ class AIProcessor(QObject):
 
                 # System instruction based on context (image vs text)
                 if response_window.image:
-                    system_instruction = (
-                        "You are a helpful AI assistant specialized in image analysis and visual understanding. "
-                        "Continue the conversation about the image, providing detailed and accurate responses. "
-                        "Use clear, well-structured responses with markdown formatting when appropriate. "
-                        "Always respond in the same language that the user used in their question."
-                    )
+                    system_instruction = SYSTEM_INSTRUCTIONS["response_window_image"]
                 else:
-                    system_instruction = (
-                        "You are a helpful AI assistant. Provide clear and direct responses, "
-                        "maintaining the same format and style as your previous responses. "
-                        "If appropriate, use Markdown formatting to make your response more readable. "
-                        "Always respond in the same language that the user used in their question."
-                    )
+                    system_instruction = SYSTEM_INSTRUCTIONS["response_window_text"]
 
                 self._logger.debug("Sending request to AI provider")
 
