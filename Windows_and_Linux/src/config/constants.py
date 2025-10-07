@@ -8,6 +8,49 @@ from typing import cast
 
 from .interfaces import ActionConfig, ProviderConfig, SystemConfig
 
+# ============================================================================
+# PROVIDER CONFIGURATION
+# ============================================================================
+
+
+class ProviderDefaults:
+    """Default values for AI providers."""
+
+    PROVIDER = "gemini"
+
+    MODELS = {
+        "gemini": "gemini-2.5-flash",
+        "openai": "gpt-4o-mini",
+        "anthropic": "claude-3-5-haiku-20241022",
+        "mistral": "mistral-small-2503",
+        "ollama": "",  # Empty because dynamically generated from ollama list
+    }
+
+    BASE_URLS = {
+        "gemini": "https://generativelanguage.googleapis.com/v1beta",
+        "ollama": "http://localhost:11434",
+        "mistral": "https://api.mistral.ai/v1",
+        "anthropic": "https://api.anthropic.com/v1",
+        "openai": "https://api.openai.com/v1",
+        "openai-compatible": "https://api.openai.com/v1",
+    }
+
+
+# ============================================================================
+# UI CONFIGURATION
+# ============================================================================
+
+
+class UIDefaults:
+    """Default UI settings."""
+
+    HOTKEY = "ctrl+space"
+    BACKGROUND_THEME = "gradient"
+    COLOR_MODE = "auto"  # Color mode: "auto", "light", or "dark"
+    RESPONSE_WINDOW_ZOOM = 1.2  # Default zoom factor for response window
+    LANGUAGE = "en"
+
+
 GEMINI_MODELS = [
     (
         "Gemini 2.5 Pro (most intelligent | slow | 2 uses/min, 50 uses/day)",
@@ -105,10 +148,6 @@ OPENAI_MODELS = [
     ("GPT-4 (Most Capable)", "gpt-4", {"vision": False}),
     ("GPT-3.5 Turbo (Fast)", "gpt-3.5-turbo", {"vision": False}),
 ]
-
-# ("moonshotai/kimi-k2:free", "moonshotai/kimi-k2:free", {"vision": False}),
-# ("x-ai/grok-4-fast:free", "x-ai/grok-4-fast:free", {"vision": False}),
-# ("google/gemini-2.0-flash-exp:free", "google/gemini-2.0-flash-exp:free", {"vision": True}),
 
 ANTHROPIC_MODELS = [
     (
@@ -243,24 +282,11 @@ PROVIDER_DISPLAY_NAMES = {
 }
 
 # Default models for each provider
-DEFAULT_MODELS = {
-    "gemini": "gemini-2.5-flash",
-    "openai": "gpt-4o-mini",
-    "anthropic": "claude-3-5-haiku-20241022",
-    "mistral": "mistral-small-2503",
-    "ollama": "",  # Empty because dynamically generated from ollama list
-}
+DEFAULT_MODELS = ProviderDefaults.MODELS
 
-DEFAULT_BASE_URLS = {
-    "gemini": "https://generativelanguage.googleapis.com/v1beta",
-    "ollama": "http://localhost:11434",
-    "mistral": "https://api.mistral.ai/v1",
-    "anthropic": "https://api.anthropic.com/v1",
-    "openai": "https://api.openai.com/v1",
-    "openai-compatible": "https://api.openai.com/v1",
-}
+DEFAULT_BASE_URLS = ProviderDefaults.BASE_URLS
 
-DEFAULT_PROVIDER = "gemini"
+DEFAULT_PROVIDER = ProviderDefaults.PROVIDER
 
 # Supported languages for UI and AI prompts
 SUPPORTED_LANGUAGES = [
@@ -284,18 +310,18 @@ LANGUAGE_NAMES = {code: name for name, code in SUPPORTED_LANGUAGES}
 
 # Default system configuration VALUES - Raw data, not objects
 _DEFAULT_SYSTEM_VALUES_RAW = {
-    "provider": "gemini",  # Internal provider name
-    "hotkey": "ctrl+space",
-    "background_theme": "gradient",
-    "color_mode": "auto",  # Color mode: "auto", "light", or "dark"
-    "response_window_zoom": 1.2,  # Default zoom factor for response window
-    "language": "en",
+    "provider": ProviderDefaults.PROVIDER,  # Internal provider name
+    "hotkey": UIDefaults.HOTKEY,
+    "background_theme": UIDefaults.BACKGROUND_THEME,
+    "color_mode": UIDefaults.COLOR_MODE,  # Color mode: "auto", "light", or "dark"
+    "response_window_zoom": UIDefaults.RESPONSE_WINDOW_ZOOM,  # Default zoom factor for response window
+    "language": UIDefaults.LANGUAGE,
     "run_mode": "dev",
     "update_available": False,
     "start_on_boot": False,  # Whether the application should start on system boot
-    "ollama_base_url": DEFAULT_BASE_URLS["ollama"],
+    "ollama_base_url": ProviderDefaults.BASE_URLS["ollama"],
     "ollama_keep_alive": "5",
-    "openai_base_url": DEFAULT_BASE_URLS["openai"],
+    "openai_base_url": ProviderDefaults.BASE_URLS["openai"],
 }
 
 # Default actions configuration
@@ -430,8 +456,7 @@ SYSTEM_INSTRUCTIONS = {
         "Always respond in the same language that the user used in their question."
     ),
     "image_action": (
-        "{action_instruction} "
-        "Analyze the provided image in the context of this request."
+        "{action_instruction} Analyze the provided image in the context of this request."
     ),
     "response_window_text": (
         "You are a helpful AI assistant. "

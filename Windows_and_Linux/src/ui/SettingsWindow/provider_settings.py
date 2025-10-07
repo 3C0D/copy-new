@@ -34,6 +34,64 @@ def _(x):
     return x
 
 
+class ProviderButtonManager:
+    """Manages provider action buttons."""
+
+    def __init__(self, app: "WritingToolsApp"):
+        self.app = app
+
+    def create_button_layout(self, provider: "AIProvider") -> QWidget | None:
+        """Create button layout for provider."""
+        if not provider.button_text and not (
+            hasattr(provider, "additional_buttons") and provider.additional_buttons
+        ):
+            return None
+
+        button_container = QHBoxLayout()
+        button_container.setSpacing(10)
+
+        # Main button
+        if provider.button_text:
+            main_button = QPushButton(provider.button_text)
+            main_button.setStyleSheet(self.app.styles["primary_button"])
+            main_button.clicked.connect(provider.button_action)
+            button_container.addWidget(main_button)
+
+        # Additional buttons
+        if hasattr(provider, "additional_buttons"):
+            for button_config in provider.additional_buttons:
+                button = QPushButton(button_config["text"])
+                style = (
+                    self.app.styles["secondary_button"]
+                    if button_config.get("style") == "secondary"
+                    else self.app.styles["primary_button"]
+                )
+                button.setStyleSheet(style)
+                button.clicked.connect(button_config["action"])
+                button_container.addWidget(button)
+
+        # Center button container
+        button_widget = QWidget()
+        button_widget.setLayout(button_container)
+        return button_widget
+
+    def update_button_styles(self, layout: QLayout) -> None:
+        """Update button styles recursively."""
+        for i in range(layout.count()):
+            item = layout.itemAt(i)
+            if item.widget() and isinstance(item.widget(), QPushButton):
+                button = cast(QPushButton, item.widget())
+                button_text = button.text().lower() if button.text() else ""
+
+                secondary_keywords = ["cancel", "reset", "clear", "remove", "delete"]
+                if any(kw in button_text for kw in secondary_keywords):
+                    button.setStyleSheet(self.app.styles["secondary_button"])
+                else:
+                    button.setStyleSheet(self.app.styles["primary_button"])
+            elif item.layout():
+                self.update_button_styles(item.layout())
+
+
 class ProviderSettings(QWidget):
     """Widget for AI provider selection and configuration."""
 
@@ -42,6 +100,7 @@ class ProviderSettings(QWidget):
         self.app = app
         self.parent_window = parent
         self._logger = logging.getLogger(__name__)
+        self.button_manager = ProviderButtonManager(app)
 
         self.current_provider_layout = None
 
@@ -135,7 +194,32 @@ class ProviderSettings(QWidget):
 
         self.current_provider_layout = QVBoxLayout()
 
-        # Provider header (logo + name)
+        # Composants UI
+        self._add_provider_header(provider)
+        self._add_provider_description(provider)
+
+        # Buttons
+        button_widget = self.button_manager.create_button_layout(provider)
+        if button_widget and self.current_provider_layout is not None:
+            self.current_provider_layout.addWidget(
+                button_widget,
+                alignment=QtCore.Qt.AlignmentFlag.AlignCenter,
+            )
+
+        self._add_provider_settings(provider)
+
+        layout.addLayout(self.current_provider_layout)
+
+        # Disable dropdown scroll interference
+        self._disable_dropdown_scroll(self.current_provider_layout)
+
+        self._logger.debug(f"Provider UI initialized: {provider.internal_name}")
+
+    def _add_provider_header(self, provider: "AIProvider") -> None:
+        """Add provider header (logo + name)."""
+        if self.current_provider_layout is None:
+            return
+
         provider_header_layout = QHBoxLayout()
         provider_header_layout.setSpacing(10)
         provider_header_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -162,37 +246,34 @@ class ProviderSettings(QWidget):
 
         self.current_provider_layout.addLayout(provider_header_layout)
 
-        # Description
+    def _add_provider_description(self, provider: "AIProvider") -> None:
+        """Add provider description."""
+        if self.current_provider_layout is None:
+            return
+
         if provider.description:
             self.description_label = QLabel(provider.description)
             self.description_label.setStyleSheet(f"{self.app.styles['label']}; text-align: center;")
             self.description_label.setWordWrap(True)
             self.current_provider_layout.addWidget(self.description_label)
 
-        # Buttons
-        self._add_provider_buttons(provider)
+    def _add_provider_settings(self, provider: "AIProvider") -> None:
+        """Add provider settings controls."""
+        if self.current_provider_layout is None:
+            return
 
-        # Initialize provider settings
         if not self.app.settings_manager.providers:
             self.app.settings_manager.providers = {}
 
         if provider.internal_name not in self.app.settings_manager.providers:
             self.app.settings_manager.providers[provider.internal_name] = {}
 
-        # Build settings UI
         provider_config = self.app.settings_manager.providers[provider.internal_name]
         for setting in provider.settings:
             saved_value = provider_config.get(setting.name, setting.default_value)
             setting.set_value(saved_value)
             setting.set_auto_save_callback(self.save_current_provider_settings)
             setting.render_to_layout(self.current_provider_layout)
-
-        layout.addLayout(self.current_provider_layout)
-
-        # Disable dropdown scroll interference
-        self._disable_dropdown_scroll(self.current_provider_layout)
-
-        self._logger.debug(f"Provider UI initialized: {provider.internal_name}")
 
     def _refresh_provider_config(self, provider: "AIProvider") -> None:
         """Refresh provider configuration if supported."""
@@ -228,44 +309,6 @@ class ProviderSettings(QWidget):
         ui_utils.clear_layout(self.current_provider_layout)
         self.current_provider_layout.deleteLater()
 
-    def _add_provider_buttons(self, provider: "AIProvider") -> None:
-        """Add provider action buttons."""
-        if not provider.button_text and not (
-            hasattr(provider, "additional_buttons") and provider.additional_buttons
-        ):
-            return
-
-        button_container = QHBoxLayout()
-        button_container.setSpacing(10)
-
-        # Main button
-        if provider.button_text:
-            self.main_button = QPushButton(provider.button_text)
-            self.main_button.setStyleSheet(self.app.styles["primary_button"])
-            self.main_button.clicked.connect(provider.button_action)
-            button_container.addWidget(self.main_button)
-
-        # Additional buttons
-        if hasattr(provider, "additional_buttons"):
-            for button_config in provider.additional_buttons:
-                additional_button = QPushButton(button_config["text"])
-
-                if button_config.get("style") == "secondary":
-                    additional_button.setStyleSheet(self.app.styles["secondary_button"])
-                else:
-                    additional_button.setStyleSheet(self.app.styles["primary_button"])
-
-                additional_button.clicked.connect(button_config["action"])
-                button_container.addWidget(additional_button)
-
-        # Center button container
-        button_widget = QWidget()
-        button_widget.setLayout(button_container)
-        if self.current_provider_layout is not None:
-            self.current_provider_layout.addWidget(
-                button_widget,
-                alignment=QtCore.Qt.AlignmentFlag.AlignCenter,
-            )
 
     def _disable_dropdown_scroll(self, layout: QLayout) -> None:
         """Disable wheel events on dropdowns to prevent scroll interference."""
@@ -392,7 +435,8 @@ class ProviderSettings(QWidget):
             self._update_provider_labels()
 
         # Update buttons
-        self._update_provider_buttons()
+        if self.current_provider_layout:
+            self.button_manager.update_button_styles(self.current_provider_layout)
 
         # Refresh provider styles
         if self.app.ai_processor.current_provider:
@@ -420,29 +464,6 @@ class ProviderSettings(QWidget):
             if widget.text() and len(widget.text()) <= 50:
                 widget.setStyleSheet(self.app.styles["label"])
 
-    def _update_provider_buttons(self) -> None:
-        """Update button styles in provider layout."""
-        if not self.current_provider_layout:
-            return
-
-        def update_buttons(layout):
-            for i in range(layout.count()):
-                item = layout.itemAt(i)
-                if item.widget() and isinstance(item.widget(), QPushButton):
-                    button = item.widget()
-                    button_text = button.text().lower() if button.text() else ""
-
-                    # Determine button type
-                    secondary_keywords = ["cancel", "reset", "clear", "remove", "delete"]
-                    if any(kw in button_text for kw in secondary_keywords):
-                        button.setStyleSheet(self.app.styles["secondary_button"])
-                    else:
-                        button.setStyleSheet(self.app.styles["primary_button"])
-
-                elif item.layout():
-                    update_buttons(item.layout())
-
-        update_buttons(self.current_provider_layout)
 
     def refresh_language(self) -> None:
         """Refresh language for all components."""

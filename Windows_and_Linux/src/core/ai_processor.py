@@ -36,6 +36,37 @@ if TYPE_CHECKING:
     from ..ui.response_window import ResponseWindow
 
 
+class ContextDetector:
+    """Determines the context and system instruction for AI requests."""
+
+    @staticmethod
+    def get_system_instruction(
+        has_image: bool,
+        is_custom: bool,
+        action_config: ActionConfig,
+        context: str = "initial"  # "initial" or "followup"
+    ) -> str:
+        """Get appropriate system instruction based on context."""
+        if context == "followup":
+            return (
+                SYSTEM_INSTRUCTIONS["response_window_image"] if has_image
+                else SYSTEM_INSTRUCTIONS["response_window_text"]
+            )
+
+        if has_image:
+            if is_custom:
+                return SYSTEM_INSTRUCTIONS["image_custom"]
+            else:
+                return SYSTEM_INSTRUCTIONS["image_action"].format(
+                    action_instruction=action_config.get("instruction", "")
+                )
+
+        if is_custom:
+            return SYSTEM_INSTRUCTIONS["chat_no_text"]
+
+        return action_config.get("instruction", "")
+
+
 class MessageFormatter:
     """Formats conversation history for different AI providers."""
 
@@ -411,20 +442,23 @@ class AIProcessor(QObject):
         else:
             action_config: ActionConfig = self.app.settings_manager.actions.get(option, {})
 
-        # For image analysis, use a specialized system instruction
+        # Determine system instruction based on context
+        system_instruction = ContextDetector.get_system_instruction(
+            has_image=image is not None,
+            is_custom=is_custom_option,
+            action_config=action_config,
+            context="initial"
+        )
+
         if image is not None:
+            # Image processing
+            if not action_config:
+                self._logger.error(f"Action not found: {option}")
+                return None
+
             if is_custom_option:
-                system_instruction = SYSTEM_INSTRUCTIONS["image_custom"]
                 prompt = custom_change or "Please analyze this image and describe what you see."
             else:
-                if not action_config:
-                    self._logger.error(f"Handle image - Action not found: {option}")
-                    return None
-
-                # For pre-defined actions with images, adapt the instruction
-                system_instruction = SYSTEM_INSTRUCTIONS["image_action"].format(
-                    action_instruction=action_config.get("instruction", "")
-                )
                 prompt = action_config.get("prefix", "") + (custom_change or "")
         else:
             # Text-based processing
@@ -433,7 +467,6 @@ class AIProcessor(QObject):
                 return None
 
             prompt_prefix = action_config.get("prefix", "")
-            system_instruction = action_config.get("instruction", "")
 
             if is_custom_option:
                 prompt = (
@@ -642,10 +675,12 @@ class AIProcessor(QObject):
                 history = response_window.chat_history.copy()
 
                 # System instruction based on context (image vs text)
-                if response_window.image:
-                    system_instruction = SYSTEM_INSTRUCTIONS["response_window_image"]
-                else:
-                    system_instruction = SYSTEM_INSTRUCTIONS["response_window_text"]
+                system_instruction = ContextDetector.get_system_instruction(
+                    has_image=response_window.image is not None,
+                    is_custom=False,  # Follow-up questions are always in context
+                    action_config={},  # Not needed for follow-up
+                    context="followup"
+                )
 
                 self._logger.debug("Sending request to AI provider")
 
