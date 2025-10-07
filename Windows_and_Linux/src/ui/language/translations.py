@@ -61,7 +61,7 @@ class Translations:
         from .. import (
             response_window,
         )
-        from ..SettingsWindow import general_settings
+        from ..SettingsWindow import general_settings, provider_settings
 
         about_window._ = self._
         settings_window._ = self._
@@ -69,6 +69,7 @@ class Translations:
         custom_popup_window._ = self._
         help_window._ = self._
         general_settings._ = self._
+        provider_settings._ = self._
         systray._ = self._
 
     def _update_widget_translations(self) -> None:
