@@ -31,8 +31,8 @@ PROVIDER_CLASSES = {
     "ollama": OllamaProvider,
     "anthropic": AnthropicProvider,
     "mistral": MistralProvider,
-    "openAIcompatible": OpenAICompatibleProvider,
-    "openAI": OpenAIProvider,
+    "openai-compatible": OpenAICompatibleProvider,
+    "openai": OpenAIProvider,
 }
 
 if TYPE_CHECKING:
