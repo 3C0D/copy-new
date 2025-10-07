@@ -168,7 +168,9 @@ class ProviderSettings(QWidget):
                     try:
                         provider_instance = provider_class(self.app)
                     except Exception as e:
-                        self._logger.error(f"Failed to create default provider {default_provider_name}: {e}")
+                        self._logger.error(
+                            f"Failed to create default provider {default_provider_name}: {e}"
+                        )
                         provider_instance = None
 
             if provider_instance:
@@ -309,7 +311,6 @@ class ProviderSettings(QWidget):
         ui_utils.clear_layout(self.current_provider_layout)
         self.current_provider_layout.deleteLater()
 
-
     def _disable_dropdown_scroll(self, layout: QLayout) -> None:
         """Disable wheel events on dropdowns to prevent scroll interference."""
         for i in range(layout.count()):
@@ -339,7 +340,9 @@ class ProviderSettings(QWidget):
             return
 
         # Cleanup old provider
-        if self.app.ai_processor.current_provider and hasattr(self.app.ai_processor.current_provider, "before_load"):
+        if self.app.ai_processor.current_provider and hasattr(
+            self.app.ai_processor.current_provider, "before_load"
+        ):
             self.app.ai_processor.current_provider.before_load()
         self.app.settings_manager.provider = current_internal_name
 
@@ -402,11 +405,17 @@ class ProviderSettings(QWidget):
         )
         self.app.ai_processor.current_provider.load_config(provider_config)
 
-        self._logger.debug(f"Saved settings: {self.app.ai_processor.current_provider.internal_name}")
+        self._logger.debug(
+            f"Saved settings: {self.app.ai_processor.current_provider.internal_name}"
+        )
 
     def update_provider_button_text(self) -> None:
         """Update main button text when provider state changes."""
-        if hasattr(self, "main_button") and self.main_button and self.app.ai_processor.current_provider:
+        if (
+            hasattr(self, "main_button")
+            and self.main_button
+            and self.app.ai_processor.current_provider
+        ):
             self.main_button.setText(self.app.ai_processor.current_provider.button_text)
 
     def refresh_theme(self) -> None:
@@ -464,7 +473,6 @@ class ProviderSettings(QWidget):
             if widget.text() and len(widget.text()) <= 50:
                 widget.setStyleSheet(self.app.styles["label"])
 
-
     def refresh_language(self) -> None:
         """Refresh language for all components."""
         if self.provider_dropdown:
@@ -521,8 +529,11 @@ class ProviderSettings(QWidget):
                         self.app.ai_processor.current_provider is not None
                         and hasattr(self.app.ai_processor.current_provider, "additional_buttons")
                         and self.app.ai_processor.current_provider.additional_buttons
-                        and button_index < len(self.app.ai_processor.current_provider.additional_buttons)
+                        and button_index
+                        < len(self.app.ai_processor.current_provider.additional_buttons)
                     ):
-                        config = self.app.ai_processor.current_provider.additional_buttons[button_index]
+                        config = self.app.ai_processor.current_provider.additional_buttons[
+                            button_index
+                        ]
                         button.setText(config["text"])
                         button_index += 1

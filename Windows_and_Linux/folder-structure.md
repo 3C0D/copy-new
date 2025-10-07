@@ -18,6 +18,7 @@ src
 │   ├── data_operations.py
 │   └── interfaces.py
 ├── core/
+│   ├── ai/  # Nouveau dossier pour refactoriser ai_processor.py
 │   ├── __init__.py
 │   ├── ai_processor.py
 │   ├── clipboard_manager.py
@@ -60,7 +61,6 @@ src
 ├── __init__.py
 ├── autostart_manager.py
 ├── systray.py
-├── update_checker.py
 └── writing_tools_app.py
 
 ---
@@ -93,7 +93,7 @@ Configurations statiques et ressources: constantes, interfaces TypeScript, opér
 Logique cœur app: traitement IA, gestion I/O, cycle vie, popups, paramètres.
 
 - `__init__.py`: Package initializer pour core.
-- `ai_processor.py`: AIProcessor: traitement requêtes IA. ContextDetector (instructions système), MessageFormatter (format messages pour providers), process_option (orchestration requêtes), _setup_response_window, process_option_thread, _prepare_prompt_data, _handle_no_text_selected.
+- `ai_processor.py`: Module ~400 lignes avec 3 classes principales. AIProcessor (orchestration principale), ContextDetector (instructions système), MessageFormatter (formatage messages OpenAI/Gemini/Mistral). Réf.: process_option_thread (thrading), _prepare_prompt_data (préparation requêtes IA), _process_window_response/_process_direct_replacement (résponses), process_followup_question (questions complémentaires avec historique).
 - `clipboard_manager.py`: ClipboardManager: sauvegarde/restore/vide clipboard. backup_clipboard, restore_clipboard, clear_clipboard.
 - `hotkey_manager.py`: HotkeyManager: gestion raccourcis clavier. register_hotkey (raccourci activation), on_hotkey_pressed (action), check_trigger_spam (anti-spam), setup_ctrl_c_listener (SIGINT).
 - `image_processor.py`: ImageProcessor: traitement images clipboard/chemin. get_image_from_clipboard, qimage_to_base64 (encodage), _normalize_path_text.
@@ -145,7 +145,6 @@ Interface paramètres: général, providers.
 - `__init__.py`: Package initializer pour src.
 - `autostart_manager.py`: Gestion autostart app (sync_with_settings).
 - `systray.py`: Gestion icône systray (create_tray_icon_with_startup_delay).
-- `update_checker.py`: Vérification mises à jour (fonctions non listées, probablement vérif version/MAJ async).
 - `writing_tools_app.py`: Classe principale WritingToolsApp: orchestre tout (__init__, _setup_core_attributes, _setup_settings, _setup_ui_components, _initialize_ai_provider, _setup_user_interface).
 
 ---
@@ -208,3 +207,18 @@ Cette approche favorise l'évolutivité et la testabilité sans disruption majeu
 - **Performance** : Utiliser le lazy loading pour les composants lourds (providers IA, fenêtres UI).
 
 Cette approche vise à améliorer la clarté et la maintenabilité du code sans changements radicaux.
+
+---
+
+## Suggestions de refactorisation après analyse approfondie
+
+### Division des modules trop longs
+- ~~**`ai_processor.py` (~400 lignes, 3 classes)**: Séparer en `core/ai/ai_processor.py` (orchestration), `core/ai/context_detector.py` (instructions système), `core/ai/message_formatter.py` (formatage par provider). Permettra de désencombrer et tester indépendamment.~~ ✅ Fait : classes déménagées vers `core/ai/` avec maintient de compatibilité.
+- **`response_window.py` (~500 lignes, 4 classes)**: Diviser en `ui/windows/response_window.py` (classe principale), `ui/components/markdown_browser.py` (affichage MD), `ui/components/message_container.py` (conteneurs messages), `ui/components/chat_scroll_area.py` (scroll chat).
+- **`ollama.py` (~400 lignes, OllamaStateManager + OllamaProvider)**: Séparer en `aiprovider/ollama_provider.py` et `aiprovider/ollama_state.py`. Réduira la complexité et améliorera la lisibilité.
+- **`language_manager.py` (~200 lignes)**: Extraire la logique de traduction en `ui/language/translations.py` et les widgets enregistrés en `ui/language/widget_manager.py`.
+
+### Améliorations immédiates
+- ~~**Supprimer les classes déplacées** : `update_checker.py` est devenu `core/update_manager.py`, mettre à jour les imports et supprimer l'ancien fichier.~~ ✅ Fait : fichier supprimé de l'arbre et descriptions.
+- **Consolidation des managers** : Regrouper `theme_manager.py` et `language_manager.py` en `ui/ui_managers.py` car ils gèrent l'état global UI.
+- **`writing_tools_app.py`** : Déplacer les méthodes de setup vers des modules dédiés (ex. `core/setup/providers.py`, `core/setup/ui_components.py`).

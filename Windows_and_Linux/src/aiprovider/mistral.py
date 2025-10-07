@@ -213,10 +213,7 @@ class MistralProvider(AIProvider):
                     self.app.text_processor.output_ready_signal.emit(response_text)
                     return response_text
                 error_msg = "Mistral API returned no content in response."
-                self.app.ui_manager.show_message_signal.emit(
-                    "No content",
-                    error_msg
-                )
+                self.app.ui_manager.show_message_signal.emit("No content", error_msg)
                 return ""
             error_msg = f"Mistral API error {response.status_code}: {response.text}"
             self._logger.error(error_msg)

@@ -162,7 +162,7 @@ class SystrayManager:
 
         window = getattr(self, window_attr, None)
         if not window:
-            window = window_class(self.app) # instantiate
+            window = window_class(self.app)  # instantiate
             setattr(self, window_attr, window)
             window.show()
         else:
