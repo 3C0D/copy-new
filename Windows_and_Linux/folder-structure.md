@@ -147,3 +147,64 @@ Interface paramètres: général, providers.
 - `systray.py`: Gestion icône systray (create_tray_icon_with_startup_delay).
 - `update_checker.py`: Vérification mises à jour (fonctions non listées, probablement vérif version/MAJ async).
 - `writing_tools_app.py`: Classe principale WritingToolsApp: orchestre tout (__init__, _setup_core_attributes, _setup_settings, _setup_ui_components, _initialize_ai_provider, _setup_user_interface).
+
+---
+
+## Suggestions de refactorisation grok_code_fast_1
+
+### Mises à jour de structure
+- `update_checker.py` (fichier racine dans l'arbre) n'existe plus dans la réalité ; il a été déplacé vers `core/update_manager.py`. Mettre à jour l'arbre pour refléter la structure actuelle.
+
+### Réorganisation en logique de modules
+- **core/ extensif** : Avec 11 fichiers, envisager sous-groupes comme `core/io/` (clipboard_manager, hotkey_manager, input_manager), `core/processing/` (ai_processor, text_processor, image_processor), `core/system/` (lifecycle_manager, settings_manager, ui_manager, popup_manager).
+- **ui/custom_popup/** : 8 fichiers, possiblement fusionner les managers (edit_mode_controller, widget_visibility_manager) en un module unique si faiblement couplé. Groupe logiciellement `vision_support_validator` avec image-related.
+- **aiprovider/settings.py** : Tant de logique UI, envisager le déplacer vers `ui/provider_settings/` ou regrouper avec `ui/SettingsWindow/`.
+- **config/** : Bien séparé, mais envisager centraliser toutes les interfaces (interfaces.py + api.ts) dans un sous-dossier `types/`.
+
+### Simplifications mineures
+- Plusieurs `__init__.py` vides pourraient être supprimés si non essentiels.
+- `ui/ui_utils.py` regroupe utilitaires ; envisager extraire `ThemedWidget` en module séparé si réutilisé.
+
+Ces suggestions visent une meilleure maintenabilité sans bouleversements majeurs.
+
+---
+
+## Suggestions de refactorisation (supernova)
+
+### Réorganisation architecturale
+- **Séparation claire des responsabilités** : Créer `core/services/` pour les services externes (update_manager, autostart_manager, systray) actuellement éparpillés. Ces services système méritent leur propre domaine.
+- **Modularité des providers IA** : Regrouper tous les providers dans `aiprovider/providers/` et extraire la logique commune dans `aiprovider/base/`. Créer `aiprovider/utils/` pour les helpers partagés (parsing, validation).
+- **UI modulaire** : Fusionner `ui/SettingsWindow/` et `aiprovider/settings.py` en `ui/settings/` unifié. Créer `ui/components/` pour les éléments réutilisables (boutons, toggles, dialogs).
+
+### Optimisations techniques
+- **Réduction des dépendances circulaires** : Le `writing_tools_app.py` importe trop de modules directement. Créer des facades dans `core/facades/` pour exposer uniquement les interfaces nécessaires.
+- **Gestion d'état centralisée** : Créer `core/state/` avec un StateManager pour remplacer les références croisées entre managers (settings_manager, theme_manager, language_manager).
+- **Configuration typée** : Fusionner `config/interfaces.py` et `config/api.ts` en `config/types/` avec génération automatique des types Python depuis TypeScript.
+
+### Améliorations de maintenabilité
+- **Tests-friendly** : Ajouter `tests/` à chaque module majeur avec des mocks pour faciliter les tests unitaires.
+- **Documentation intégrée** : Générer automatiquement la documentation depuis les docstrings avec des outils comme Sphinx.
+- **Performance** : Lazy loading pour les providers IA et les composants UI lourds.
+
+Cette approche favorise l'évolutivité et la testabilité sans disruption majeure du code existant.
+
+---
+
+## Suggestions de refactorisation (devstral)
+
+### Réorganisation par domaine
+- **Domaines fonctionnels** : Créer `core/ai/` pour tout ce qui est traitement IA (ai_processor, text_processor, image_processor), `core/io/` pour les managers d'entrée/sortie (clipboard_manager, input_manager), et `core/system/` pour les services système (lifecycle_manager, settings_manager, update_manager).
+- **UI structurée** : Regrouper les composants UI en `ui/components/` (boutons, toggles, dialogs), `ui/windows/` (about_window, help_window, response_window), et `ui/managers/` (theme_manager, language_manager).
+- **Providers IA** : Créer `aiprovider/providers/` pour les implémentations spécifiques (anthropic, gemini, etc.) et `aiprovider/base/` pour la logique commune.
+
+### Optimisations de code
+- **Réduction des imports circulaires** : Utiliser des interfaces dans `core/interfaces/` pour éviter les dépendances directes entre modules.
+- **Gestion d'état centralisée** : Créer un `core/state/` avec un StateManager pour gérer les états globaux (settings, theme, language).
+- **Configuration typée** : Fusionner `config/interfaces.py` et `config/api.ts` en `config/types/` avec des types partagés entre Python et TypeScript.
+
+### Améliorations de maintenabilité
+- **Tests unitaires** : Ajouter des tests pour chaque module avec des mocks pour les dépendances externes.
+- **Documentation** : Générer la documentation depuis les docstrings avec Sphinx ou un outil similaire.
+- **Performance** : Utiliser le lazy loading pour les composants lourds (providers IA, fenêtres UI).
+
+Cette approche vise à améliorer la clarté et la maintenabilité du code sans changements radicaux.
