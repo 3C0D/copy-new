@@ -21,8 +21,6 @@ from typing import Optional
 
 from PySide6.QtCore import QObject, QTimer, Signal
 
-from ..ui.progress_window import OllamaInstallProgressWindow
-
 
 class OllamaStateManager(QObject):
     """

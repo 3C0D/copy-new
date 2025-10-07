@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING
 from pynput import keyboard as keyboard
 from PySide6.QtWidgets import QApplication
 
-from .autostart_manager import AutostartManager
 from .core.ai_processor import AIProcessor
 from .core.clipboard_manager import ClipboardManager
 from .core.hotkey_manager import HotkeyManager
@@ -22,16 +21,18 @@ from .core.input_manager import InputManager
 from .core.lifecycle_manager import LifecycleManager
 from .core.popup_manager import PopupManager
 from .core.settings_manager import SettingsManager
+from .core.setup.providers import initialize_ai_provider
+from .core.setup.ui_components import setup_ui_components, setup_user_interface
 from .core.text_processor import TextProcessor
 from .core.ui_manager import UIManager
 from .core.update_manager import UpdateManager
 from .systray import SystrayManager
-from .ui.language_manager import LanguageManager
 from .ui.response_window import ResponseWindow
-from .ui.theme_manager import ThemeManager
 
 if TYPE_CHECKING:
+    from .ui.language_manager import LanguageManager
     from .ui.response_window import ResponseWindow
+    from .ui.theme_manager import ThemeManager
 
 os.environ["QT_LOGGING_RULES"] = (
     "qt.qpa.mime.warning=false;qt.qpa.mime.debug=false;qt.qpa.mime.info=false"  # Disable QMimeDatabase warnings
@@ -44,6 +45,13 @@ class WritingToolsApp(QApplication):
     """
     The main application class for Writing Tools.
     """
+
+    # UI components (set in setup_ui_components)
+    language_manager: LanguageManager
+    theme_manager: ThemeManager
+    tray_icon: object | None = None
+    non_editable_modal: object | None = None
+    styles: dict
 
     def __init__(self, argv):
         super().__init__(argv)
@@ -58,7 +66,7 @@ class WritingToolsApp(QApplication):
             self._setup_settings()
 
             self._logger.debug("Setting up UI components...")
-            self._setup_ui_components()
+            setup_ui_components(self)
 
             # Initialize app based on configuration state
             self._logger.debug("Initializing app with normal launch")
@@ -92,21 +100,13 @@ class WritingToolsApp(QApplication):
         self._logger.debug(f"Running mode: {mode}")
         self.settings_manager = SettingsManager(mode=mode)
 
-    def _setup_ui_components(self) -> None:
-        """Initialize UI component references."""
-        self.tray_icon = None
-        self.non_editable_modal = None
-        self.theme_manager = ThemeManager(self)
-        self.language_manager = LanguageManager(self)
-        self.styles = self.theme_manager.get_styles()
-
     def _handle_normal_launch(self) -> None:
         """Handle normal application launch with configured providers."""
         self._logger.debug("Providers configured, setting up hotkey and tray icon")
 
         try:
-            self._initialize_ai_provider()
-            self._setup_user_interface()
+            initialize_ai_provider(self)
+            setup_user_interface(self)
             self.language_manager.set_language(self.settings_manager.language or "en")
             self.update_manager.check_updates_async()
         except Exception as error:
@@ -114,24 +114,3 @@ class WritingToolsApp(QApplication):
             import traceback
 
             self._logger.debug(f"Full traceback: {traceback.format_exc()}")
-
-    def _initialize_ai_provider(self) -> None:
-        """Initialize and configure the current AI provider."""
-        self.ai_processor.set_current_provider()
-
-        if self.ai_processor.current_provider:
-            self._logger.debug(
-                f"Current provider: {self.ai_processor.current_provider.provider_name}"
-            )
-            provider_config = self.ai_processor.get_provider_config(self.settings_manager.provider)
-            self._logger.debug(f"Provider config: {provider_config}")
-            self.ai_processor.current_provider.load_config(provider_config)
-            self._logger.debug("Provider config loaded successfully")
-
-    def _setup_user_interface(self) -> None:
-        """Setup user interface components."""
-        AutostartManager.sync_with_settings(
-            self.settings_manager
-        )  # Synchronize autostart state between system and settings
-        self.systray_manager.create_tray_icon_with_startup_delay()
-        self.hotkey_manager.register_hotkey()
