@@ -5,6 +5,8 @@ This module contains the core application logic for the Writing Tools applicatio
 including AI provider management, hotkey handling, and user interface coordination.
 """
 
+from __future__ import annotations
+
 import gettext
 import logging
 import os

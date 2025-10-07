@@ -162,7 +162,7 @@ class AIProvider(ABC):
             return ""
         except Exception as e:
             logging.error(f"Error in {self.provider_name} request: {e}")
-            if not return_response and not hasattr(self.app, "current_response_window"):
+            if not return_response and self.app.current_response_window is None:
                 self.app.ui_manager.show_message_signal.emit(
                     "Error", "An error occurred while processing the response."
                 )

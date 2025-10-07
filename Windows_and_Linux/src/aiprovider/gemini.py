@@ -289,7 +289,7 @@ class GeminiProvider(AIProvider):
                 self._logger.debug(f"Gemini response length: {len(response_text)}")
 
                 # Direct replacement
-                if not return_response and not hasattr(self.app, "current_response_window"):
+                if not return_response and self.app.current_response_window is None:
                     self._logger.debug(
                         f"🔥 Gemini emitting signal with response_text length: {len(response_text)}"
                     )

@@ -385,7 +385,7 @@ class OllamaProvider(AIProvider):
             response = self.client.chat(model=self.api_model, messages=messages)
             response_text = response["message"]["content"].rstrip("\n")
 
-            if not return_response and not hasattr(self.app, "current_response_window"):
+            if not return_response and self.app.current_response_window is None:
                 self.app.text_processor.output_ready_signal.emit(response_text)
 
             return response_text

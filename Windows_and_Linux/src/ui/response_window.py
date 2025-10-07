@@ -1054,7 +1054,7 @@ class ResponseWindow(ThemedWidget):
 
         self.chat_history = []
 
-        if hasattr(self.app, "current_response_window"):
-            delattr(self.app, "current_response_window")
+        if self.app.current_response_window is not None:
+            self.app.current_response_window = None
 
         super().closeEvent(event)

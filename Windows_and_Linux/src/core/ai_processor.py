@@ -158,8 +158,8 @@ class AIProcessor(QObject):
 
         if should_setup_response_window:
             self._setup_response_window(option, selected_text, image)
-        elif hasattr(self.app, "current_response_window"):
-            delattr(self.app, "current_response_window")
+        elif self.app.current_response_window is not None:
+            self.app.current_response_window = None
 
         # Start processing thread
         threading.Thread(
@@ -442,11 +442,7 @@ class AIProcessor(QObject):
         is_custom_option = option == "Custom"
         has_image = image_data is not None
 
-        if (
-            not hasattr(self.app, "current_response_window")
-            or not self.app.current_response_window
-            or not is_custom_option
-        ):
+        if not self.app.current_response_window or not is_custom_option:
             return
 
         if has_image:
