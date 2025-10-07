@@ -58,13 +58,12 @@ class GeminiProvider(AIProvider):
         ]
         super().__init__(
             app,
-            "Gemini (Recommended)",
+            "Gemini",
             settings,
-            "• Google's Gemini is a powerful AI model available for free!\n"
-            "• An API key is required to connect to Gemini on your behalf.\n"
-            "• Safety filters are set to 'Block Only High' (most permissive setting available).\n"
-            "• If content is still blocked, try rephrasing your request more neutrally.\n"
-            "• Click the button below to get your API key.",
+            "• Google's Gemini provides high-performance AI models with generous free tier access.\n"
+            "• An API key is required for authentication.\n"
+            "• Safety filters are configured to 'Block Only High' for maximum permissiveness.\n"
+            "• If content is blocked, consider rephrasing requests more neutrally.",
             "gemini",
             "Get API Key",
             lambda: webbrowser.open("https://aistudio.google.com/app/apikey"),

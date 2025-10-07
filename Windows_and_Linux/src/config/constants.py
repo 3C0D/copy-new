@@ -255,25 +255,9 @@ MISTRAL_MODELS = [
     ),
 ]
 
-# Common Ollama models (users can add custom ones)
-# NOTE: Ollama models are now automatically detected from the system
-OLLAMA_COMMON_MODELS = [
-    ("Llama 3.1 8B (Recommended)", "llama3.1:8b", {"vision": False}),
-    ("Llama 3.1 70B (More Capable)", "llama3.1:70b", {"vision": False}),
-    ("Llama 3.2 3B (Lightweight)", "llama3.2:3b", {"vision": False}),
-    ("Gemma 2 9B", "gemma2:9b", {"vision": False}),
-    ("Gemma 2 27B", "gemma2:27b", {"vision": False}),
-    ("Gemma 3N 2B", "gemma3n:e2b", {"vision": False}),
-    ("Gemma 3N 4B", "gemma3n:4b", {"vision": False}),
-    ("Qwen 2.5 7B", "qwen2.5:7b", {"vision": False}),
-    ("Qwen 2.5 14B", "qwen2.5:14b", {"vision": False}),
-    ("CodeLlama 7B", "codellama:7b", {"vision": False}),
-    ("CodeLlama 13B", "codellama:13b", {"vision": False}),
-]
-
 # Provider internal names to display names mapping
 PROVIDER_DISPLAY_NAMES = {
-    "gemini": "Gemini (Recommended)",
+    "gemini": "Gemini",
     "openai": "OpenAI",
     "openai-compatible": "OpenAI Compatible",
     "anthropic": "Anthropic (Claude)",
@@ -404,7 +388,7 @@ DEFAULT_IMAGE_ACTIONS_VALUES: dict[str, ActionConfig] = {
 
 # Default provider configurations
 DEFAULT_PROVIDER_CONFIGS: dict[tuple[str, ...], ProviderConfig] = {
-    ("Gemini", "Gemini (Recommended)"): {
+    ("Gemini", "Gemini"): {
         "api_key": "",
         "api_model": DEFAULT_MODELS["gemini"],
         "api_base": DEFAULT_BASE_URLS["gemini"],

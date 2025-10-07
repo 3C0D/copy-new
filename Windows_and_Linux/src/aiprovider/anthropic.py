@@ -45,9 +45,8 @@ class AnthropicProvider(AIProvider):
             app,
             "Anthropic (Claude)",
             settings,
-            "• Claude is Anthropic's powerful AI assistant.\n"
-            "• An API key is required to connect to Claude on your behalf.\n"
-            "• Click the button below to get your API key.",
+            "• Anthropic's Claude provides advanced AI capabilities with strong safety alignment.\n"
+            "• An API key is required for authentication.",
             "anthropic",
             "Get API Key",
             lambda: webbrowser.open("https://console.anthropic.com/"),

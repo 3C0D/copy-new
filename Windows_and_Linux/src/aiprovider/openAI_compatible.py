@@ -64,7 +64,8 @@ class OpenAICompatibleProvider(AIProvider):
             app,
             "OpenAI Compatible",
             cast(list[AIProviderSetting], settings),
-            "• Connect to ANY OpenAI-compatible API (v1/chat/completions).\n"
+            "• Connect to any OpenAI-compatible API (v1/chat/completions).\n"
+            "• An API key is required for authentication.\n"
             "• You must abide by the service's Terms of Service.",
             "openai-compatible",
             "Get OpenAI API Key",

@@ -44,9 +44,8 @@ class MistralProvider(AIProvider):
             app,
             "Mistral AI",
             settings,
-            "• Mistral AI provides powerful open-source language models.\n"
-            "• An API key is required to connect to Mistral on your behalf.\n"
-            "• Click the button below to get your API key.",
+            "• Mistral AI provides high-performance open-source language models.\n"
+            "• An API key is required for authentication.",
             "mistral",
             "Get API Key",
             lambda: webbrowser.open("https://console.mistral.ai/"),

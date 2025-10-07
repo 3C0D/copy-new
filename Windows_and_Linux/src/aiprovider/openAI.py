@@ -45,9 +45,8 @@ class OpenAIProvider(AIProvider):
             "OpenAI (Official)",
             settings,
             "• Connect to the official OpenAI API.\n"
-            "• Supports all official OpenAI models including GPT-5, GPT-4, and reasoning models.\n"
-            "• API key required - get yours from the OpenAI platform.\n"
-            "• Click the button below to get your API key.",
+            "• Supports all official OpenAI models including GPT-4, GPT-3.5, and reasoning models.\n"
+            "• An API key is required for authentication.",
             "openai",
             "Get OpenAI API Key",
             lambda: webbrowser.open("https://platform.openai.com/account/api-keys"),
