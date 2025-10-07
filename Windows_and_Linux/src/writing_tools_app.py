@@ -67,8 +67,6 @@ class WritingToolsApp(QApplication):
             self._logger.debug("Setting up UI components...")
             self._setup_ui_components()
 
-            self._logger.debug("Setting up AI providers...")
-            self._setup_ai_providers()
 
             # Initialize app based on configuration state
             self._logger.debug("Initializing app with normal launch")
@@ -110,36 +108,6 @@ class WritingToolsApp(QApplication):
         self.language_manager = LanguageManager(self)
         self.styles = self.theme_manager.get_styles()
 
-    def _setup_ai_providers(self) -> None:
-        """Initialize available AI providers."""
-        provider_classes = [
-            ("Gemini", GeminiProvider),
-            ("Ollama", OllamaProvider),
-            ("Anthropic", AnthropicProvider),
-            ("Mistral", MistralProvider),
-            ("OpenAICompatible", OpenAICompatibleProvider),
-            ("OpenAI", OpenAIProvider),
-        ]
-
-        self.providers: list[AIProvider] = []
-
-        failed_providers = []
-        for name, provider_class in provider_classes:
-            try:
-                provider = provider_class(self)
-                self.providers.append(provider)
-            except BaseException as e:
-                self._logger.error(f"Failed to create {name}Provider: {e}")
-                failed_providers.append(name)
-                import traceback
-
-                self._logger.error(f"Traceback: {traceback.format_exc()}")
-                continue
-
-        if failed_providers:
-            self._logger.warning(f"Failed to create providers: {failed_providers}")
-        else:
-            self._logger.debug(f"All {len(self.providers)} providers initialized successfully")
 
     def _handle_normal_launch(self) -> None:
         """Handle normal application launch with configured providers."""

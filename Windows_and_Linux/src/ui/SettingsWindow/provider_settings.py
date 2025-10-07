@@ -24,9 +24,25 @@ if TYPE_CHECKING:
     from ...writing_tools_app import WritingToolsApp
     from .settings_window import SettingsWindow
 
+from ...aiprovider.anthropic import AnthropicProvider
+from ...aiprovider.gemini import GeminiProvider
+from ...aiprovider.mistral import MistralProvider
+from ...aiprovider.ollama import OllamaProvider
+from ...aiprovider.openAI import OpenAIProvider
+from ...aiprovider.openAI_compatible import OpenAICompatibleProvider
 from ...config.constants import PROVIDER_DISPLAY_NAMES
 from ...config.data_operations import get_provider_display_name
 from ..ui_utils import ui_utils
+
+# Mapping of internal provider names to their classes
+PROVIDER_CLASSES = {
+    "gemini": GeminiProvider,
+    "ollama": OllamaProvider,
+    "anthropic": AnthropicProvider,
+    "mistral": MistralProvider,
+    "openAIcompatible": OpenAICompatibleProvider,
+    "openAI": OpenAIProvider,
+}
 
 
 def _(x):
@@ -42,7 +58,6 @@ class ProviderSettings(QWidget):
         self.parent_window = parent
         self._logger = logging.getLogger(__name__)
 
-        self.current_provider = self.app.ai_processor.current_provider
         self.current_provider_layout = None
 
         # UI components
@@ -93,17 +108,28 @@ class ProviderSettings(QWidget):
         self.provider_container = QVBoxLayout()
         layout.addLayout(self.provider_container)
 
-        # Initial provider UI
-        current_internal_name = self.provider_dropdown.currentData()
-        provider_instance = self._find_provider_by_name(current_internal_name)
+        # Initial provider UI - use ai_processor's current provider
+        if self.app.ai_processor.current_provider:
+            self.init_provider_ui(self.app.ai_processor.current_provider, self.provider_container)
+        else:
+            # Fallback if no provider is set
+            current_internal_name = self.provider_dropdown.currentData()
+            provider_instance = self._find_provider_by_name(current_internal_name)
 
-        if not provider_instance:
-            provider_instance = self.app.providers[0]
+            if not provider_instance:
+                # Fallback to first available provider
+                default_provider_name = list(PROVIDER_CLASSES.keys())[0]
+                provider_class = PROVIDER_CLASSES.get(default_provider_name)
+                if provider_class:
+                    try:
+                        provider_instance = provider_class(self.app)
+                    except Exception as e:
+                        self._logger.error(f"Failed to create default provider {default_provider_name}: {e}")
+                        provider_instance = None
 
-        if not self.current_provider:
-            self.current_provider = provider_instance
-
-        self.init_provider_ui(provider_instance, self.provider_container)
+            if provider_instance:
+                self.app.ai_processor.current_provider = provider_instance
+                self.init_provider_ui(provider_instance, self.provider_container)
 
         # Connect provider change
         self.provider_dropdown.currentIndexChanged.connect(self._on_provider_changed)
@@ -285,23 +311,20 @@ class ProviderSettings(QWidget):
             return
 
         # Cleanup old provider
-        if self.current_provider and hasattr(self.current_provider, "before_load"):
-            self.current_provider.before_load()
-
-        # Update provider
-        self.current_provider = new_provider
+        if self.app.ai_processor.current_provider and hasattr(self.app.ai_processor.current_provider, "before_load"):
+            self.app.ai_processor.current_provider.before_load()
         self.app.settings_manager.provider = current_internal_name
 
         # Reload config
         provider_config = self.app.settings_manager.providers.get(current_internal_name, {})
         new_provider.load_config(provider_config)
 
+        # Update AI processor with the same instance
+        self.app.ai_processor.current_provider = new_provider
+
         # Rebuild UI
         if self.provider_container is not None:
             self.init_provider_ui(new_provider, self.provider_container)
-
-        # Update AI processor
-        self.app.ai_processor.set_current_provider()
 
         self._logger.debug(f"Switched to provider: {current_internal_name}")
 
@@ -329,30 +352,34 @@ class ProviderSettings(QWidget):
             )
 
     def _find_provider_by_name(self, internal_name: str) -> "AIProvider | None":
-        """Find provider by internal name."""
-        return next(
-            (p for p in self.app.providers if p.internal_name == internal_name),
-            None,
-        )
+        """Create provider instance by internal name."""
+        provider_class = PROVIDER_CLASSES.get(internal_name)
+        if provider_class:
+            try:
+                return provider_class(self.app)
+            except Exception as e:
+                self._logger.error(f"Failed to create provider {internal_name}: {e}")
+                return None
+        return None
 
     def save_current_provider_settings(self) -> None:
         """Save settings for current provider."""
-        if not self.current_provider:
+        if not self.app.ai_processor.current_provider:
             return
 
-        self.current_provider.save_config()
+        self.app.ai_processor.current_provider.save_config()
 
         provider_config = self.app.settings_manager.providers.get(
-            self.current_provider.internal_name, {}
+            self.app.ai_processor.current_provider.internal_name, {}
         )
-        self.current_provider.load_config(provider_config)
+        self.app.ai_processor.current_provider.load_config(provider_config)
 
-        self._logger.debug(f"Saved settings: {self.current_provider.internal_name}")
+        self._logger.debug(f"Saved settings: {self.app.ai_processor.current_provider.internal_name}")
 
     def update_provider_button_text(self) -> None:
         """Update main button text when provider state changes."""
-        if hasattr(self, "main_button") and self.main_button and self.current_provider:
-            self.main_button.setText(self.current_provider.button_text)
+        if hasattr(self, "main_button") and self.main_button and self.app.ai_processor.current_provider:
+            self.main_button.setText(self.app.ai_processor.current_provider.button_text)
 
     def refresh_theme(self) -> None:
         """Refresh theme for all components."""
@@ -383,8 +410,8 @@ class ProviderSettings(QWidget):
         self._update_provider_buttons()
 
         # Refresh provider styles
-        if self.current_provider:
-            self.current_provider.refresh_styles()
+        if self.app.ai_processor.current_provider:
+            self.app.ai_processor.current_provider.refresh_styles()
 
     def _update_provider_labels(self) -> None:
         """Update labels in provider layout."""
@@ -445,15 +472,15 @@ class ProviderSettings(QWidget):
                 self.vision_comment.setText(_("* Models with vision support"))
 
             # Update main button
-            if self.main_button and self.current_provider:
-                if hasattr(self.current_provider, "button_text"):
-                    self.main_button.setText(self.current_provider.button_text)
+            if self.main_button and self.app.ai_processor.current_provider:
+                if hasattr(self.app.ai_processor.current_provider, "button_text"):
+                    self.main_button.setText(self.app.ai_processor.current_provider.button_text)
 
             # Update additional buttons
             if (
-                self.current_provider
-                and hasattr(self.current_provider, "additional_buttons")
-                and self.current_provider.additional_buttons
+                self.app.ai_processor.current_provider
+                and hasattr(self.app.ai_processor.current_provider, "additional_buttons")
+                and self.app.ai_processor.current_provider.additional_buttons
             ):
                 self._refresh_additional_buttons()
 
@@ -485,11 +512,11 @@ class ProviderSettings(QWidget):
                 if isinstance(sub_item.widget(), QPushButton):
                     button = cast(QPushButton, sub_item.widget())
                     if (
-                        self.current_provider is not None
-                        and hasattr(self.current_provider, "additional_buttons")
-                        and self.current_provider.additional_buttons
-                        and button_index < len(self.current_provider.additional_buttons)
+                        self.app.ai_processor.current_provider is not None
+                        and hasattr(self.app.ai_processor.current_provider, "additional_buttons")
+                        and self.app.ai_processor.current_provider.additional_buttons
+                        and button_index < len(self.app.ai_processor.current_provider.additional_buttons)
                     ):
-                        config = self.current_provider.additional_buttons[button_index]
+                        config = self.app.ai_processor.current_provider.additional_buttons[button_index]
                         button.setText(config["text"])
                         button_index += 1

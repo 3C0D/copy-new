@@ -12,14 +12,29 @@ from typing import TYPE_CHECKING, Any
 from PySide6 import QtCore, QtGui
 from PySide6.QtCore import QObject
 
+from ..aiprovider.anthropic import AnthropicProvider
 from ..aiprovider.gemini import GeminiProvider
 from ..aiprovider.mistral import MistralProvider
+from ..aiprovider.ollama import OllamaProvider
+from ..aiprovider.openAI import OpenAIProvider
+from ..aiprovider.openAI_compatible import OpenAICompatibleProvider
 from ..config.constants import DEFAULT_PROVIDER, DEFAULT_PROVIDER_CONFIGS
 from ..config.interfaces import ActionConfig, ProviderConfig
 
 if TYPE_CHECKING:
     from ..aiprovider.aiprovider import AIProvider
     from ..ui.response_window import ResponseWindow
+
+
+# Mapping of internal provider names to their classes
+PROVIDER_CLASSES = {
+    "gemini": GeminiProvider,
+    "ollama": OllamaProvider,
+    "anthropic": AnthropicProvider,
+    "mistral": MistralProvider,
+    "openAIcompatible": OpenAICompatibleProvider,
+    "openAI": OpenAIProvider,
+}
 
 
 class AIProcessor(QObject):
@@ -38,17 +53,30 @@ class AIProcessor(QObject):
         """Set the current provider and save settings."""
         provider_name: str = self.app.settings_manager.provider or DEFAULT_PROVIDER
 
-        self.current_provider = next(
-            (
-                provider
-                for provider in self.app.providers
-                if provider.internal_name == provider_name
-            ),
-            self.app.providers[0],  # Fallback to first provider
-        )
-
-        if self.current_provider is not None:
-            self.app.settings_manager.provider = self.current_provider.internal_name
+        # Create provider instance
+        provider_class = PROVIDER_CLASSES.get(provider_name)
+        if provider_class:
+            try:
+                self.current_provider = provider_class(self.app)
+                if self.current_provider is not None:
+                    self.app.settings_manager.provider = self.current_provider.internal_name
+            except Exception as e:
+                self._logger.error(f"Failed to create provider {provider_name}: {e}")
+                # Fallback to default provider
+                default_class = PROVIDER_CLASSES.get(DEFAULT_PROVIDER)
+                if default_class and default_class != provider_class:
+                    try:
+                        self.current_provider = default_class(self.app)
+                        if self.current_provider is not None:
+                            self.app.settings_manager.provider = self.current_provider.internal_name
+                    except Exception as e2:
+                        self._logger.error(f"Failed to create default provider {DEFAULT_PROVIDER}: {e2}")
+                        self.current_provider = None
+                else:
+                    self.current_provider = None
+        else:
+            self._logger.error(f"Unknown provider: {provider_name}")
+            self.current_provider = None
 
     def get_current_model(self, provider_name: str) -> str:
         """Get the current API model for a specific provider."""
