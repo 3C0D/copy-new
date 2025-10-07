@@ -33,7 +33,7 @@ class Translations:
             lang = QLocale.system().name().split("_")[0]
 
         try:
-            locales_dir = Path(__file__).parent.parent.parent / "locales"
+            locales_dir = Path(__file__).parent.parent.parent.parent / "locales"
             translation = gettext.translation(
                 "messages",
                 localedir=str(locales_dir),
@@ -56,16 +56,20 @@ class Translations:
         """
         self._ = translation.gettext
 
-        # Import and update UI modules
+        # Import and update UI modules. Avoid circular imports.
+        from ... import systray
         from .. import (
             response_window,
         )
+        from ..SettingsWindow import general_settings
 
         about_window._ = self._
         settings_window._ = self._
         response_window._ = self._
         custom_popup_window._ = self._
         help_window._ = self._
+        general_settings._ = self._
+        systray._ = self._
 
     def _update_widget_translations(self) -> None:
         """Update translations for all top-level widgets."""
