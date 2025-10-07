@@ -21,11 +21,6 @@ from ..aiprovider.openAI_compatible import OpenAICompatibleProvider
 from ..config.constants import DEFAULT_PROVIDER, DEFAULT_PROVIDER_CONFIGS
 from ..config.interfaces import ActionConfig, ProviderConfig
 
-if TYPE_CHECKING:
-    from ..aiprovider.aiprovider import AIProvider
-    from ..ui.response_window import ResponseWindow
-
-
 # Mapping of internal provider names to their classes
 PROVIDER_CLASSES = {
     "gemini": GeminiProvider,
@@ -35,6 +30,12 @@ PROVIDER_CLASSES = {
     "openAIcompatible": OpenAICompatibleProvider,
     "openAI": OpenAIProvider,
 }
+
+if TYPE_CHECKING:
+    from ..aiprovider.aiprovider import AIProvider
+    from ..ui.response_window import ResponseWindow
+
+
 
 
 class AIProcessor(QObject):
@@ -57,7 +58,7 @@ class AIProcessor(QObject):
         provider_class = PROVIDER_CLASSES.get(provider_name)
         if provider_class:
             try:
-                self.current_provider = provider_class(self.app)
+                self.current_provider = provider_class(self.app) # instance
                 if self.current_provider is not None:
                     self.app.settings_manager.provider = self.current_provider.internal_name
             except Exception as e:
@@ -66,7 +67,7 @@ class AIProcessor(QObject):
                 default_class = PROVIDER_CLASSES.get(DEFAULT_PROVIDER)
                 if default_class and default_class != provider_class:
                     try:
-                        self.current_provider = default_class(self.app)
+                        self.current_provider = default_class(self.app) # instance
                         if self.current_provider is not None:
                             self.app.settings_manager.provider = self.current_provider.internal_name
                     except Exception as e2:

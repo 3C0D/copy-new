@@ -13,12 +13,6 @@ from typing import TYPE_CHECKING
 from pynput import keyboard as keyboard
 from PySide6.QtWidgets import QApplication
 
-from .aiprovider.anthropic import AnthropicProvider
-from .aiprovider.gemini import GeminiProvider
-from .aiprovider.mistral import MistralProvider
-from .aiprovider.ollama import OllamaProvider
-from .aiprovider.openAI import OpenAIProvider
-from .aiprovider.openAI_compatible import OpenAICompatibleProvider
 from .autostart_manager import AutostartManager
 from .core.ai_processor import AIProcessor
 from .core.clipboard_manager import ClipboardManager
@@ -37,7 +31,6 @@ from .ui.response_window import ResponseWindow
 from .ui.theme_manager import ThemeManager
 
 if TYPE_CHECKING:
-    from .aiprovider.aiprovider import AIProvider
     from .ui.response_window import ResponseWindow
 
 os.environ["QT_LOGGING_RULES"] = (
@@ -66,7 +59,6 @@ class WritingToolsApp(QApplication):
 
             self._logger.debug("Setting up UI components...")
             self._setup_ui_components()
-
 
             # Initialize app based on configuration state
             self._logger.debug("Initializing app with normal launch")
@@ -108,7 +100,6 @@ class WritingToolsApp(QApplication):
         self.language_manager = LanguageManager(self)
         self.styles = self.theme_manager.get_styles()
 
-
     def _handle_normal_launch(self) -> None:
         """Handle normal application launch with configured providers."""
         self._logger.debug("Providers configured, setting up hotkey and tray icon")
@@ -139,6 +130,8 @@ class WritingToolsApp(QApplication):
 
     def _setup_user_interface(self) -> None:
         """Setup user interface components."""
-        AutostartManager.sync_with_settings(self.settings_manager) # Synchronize autostart state between system and settings
+        AutostartManager.sync_with_settings(
+            self.settings_manager
+        )  # Synchronize autostart state between system and settings
         self.systray_manager.create_tray_icon_with_startup_delay()
         self.hotkey_manager.register_hotkey()
