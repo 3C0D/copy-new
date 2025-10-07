@@ -21,6 +21,7 @@ from .core.input_manager import InputManager
 from .core.lifecycle_manager import LifecycleManager
 from .core.popup_manager import PopupManager
 from .core.settings_manager import SettingsManager
+from .core.setup.core_attributes import setup_core_attributes
 from .core.setup.providers import initialize_ai_provider
 from .core.setup.ui_components import setup_ui_components, setup_user_interface
 from .core.text_processor import TextProcessor
@@ -30,6 +31,17 @@ from .systray import SystrayManager
 from .ui.response_window import ResponseWindow
 
 if TYPE_CHECKING:
+    from .core.ai_processor import AIProcessor
+    from .core.clipboard_manager import ClipboardManager
+    from .core.hotkey_manager import HotkeyManager
+    from .core.image_processor import ImageProcessor
+    from .core.input_manager import InputManager
+    from .core.lifecycle_manager import LifecycleManager
+    from .core.popup_manager import PopupManager
+    from .core.text_processor import TextProcessor
+    from .core.ui_manager import UIManager
+    from .core.update_manager import UpdateManager
+    from .systray import SystrayManager
     from .ui.language_manager import LanguageManager
     from .ui.response_window import ResponseWindow
     from .ui.theme_manager import ThemeManager
@@ -46,6 +58,20 @@ class WritingToolsApp(QApplication):
     The main application class for Writing Tools.
     """
 
+    # Core attributes (set in setup_core_attributes)
+    current_response_window: ResponseWindow | None = None
+    ai_processor: AIProcessor
+    text_processor: TextProcessor
+    hotkey_manager: HotkeyManager
+    systray_manager: SystrayManager
+    image_processor: ImageProcessor
+    clipboard_manager: ClipboardManager
+    input_manager: InputManager
+    popup_manager: PopupManager
+    ui_manager: UIManager
+    lifecycle_manager: LifecycleManager
+    update_manager: UpdateManager
+
     # UI components (set in setup_ui_components)
     language_manager: LanguageManager
     theme_manager: ThemeManager
@@ -60,7 +86,7 @@ class WritingToolsApp(QApplication):
 
         try:
             self._logger.debug("Setting up core attributes...")
-            self._setup_core_attributes()
+            setup_core_attributes(self)
 
             self._logger.debug("Setting up settings...")
             self._setup_settings()
@@ -78,21 +104,6 @@ class WritingToolsApp(QApplication):
 
             self._logger.error(f"Full traceback: {traceback.format_exc()}")
             raise
-
-    def _setup_core_attributes(self) -> None:
-        """Initialize core application attributes."""
-        self.current_response_window: ResponseWindow | None = None
-        self.ai_processor = AIProcessor(self)
-        self.text_processor = TextProcessor(self)
-        self.hotkey_manager = HotkeyManager(self)
-        self.systray_manager = SystrayManager(self)
-        self.image_processor = ImageProcessor(self, self._logger)
-        self.clipboard_manager = ClipboardManager(self, self._logger)
-        self.input_manager = InputManager(self, self._logger)
-        self.popup_manager = PopupManager(self, self._logger)
-        self.ui_manager = UIManager(self)
-        self.lifecycle_manager = LifecycleManager(self)
-        self.update_manager = UpdateManager(self)
 
     def _setup_settings(self) -> None:
         """Initialize settings manager and load configuration."""
