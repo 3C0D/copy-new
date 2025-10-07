@@ -47,6 +47,10 @@ src
 │   │   ├── vision_support_validator.py
 │   │   └── widget_visibility_manager.py
 │   ├── help_window.py
+│   ├── language/
+│   │   ├── __init__.py
+│   │   ├── translations.py
+│   │   └── widget_manager.py
 │   ├── language_manager.py
 │   ├── non_editable_modal.py
 │   ├── progress_window.py
@@ -120,12 +124,20 @@ Interfaces utilisateur: fenêtres, popups, thèmes, langues, utils.
 - `__init__.py`: Package initializer pour ui.
 - `about_window.py`: AboutWindow: fenêtre 'à propos'. init_ui,_create_layout,_load_content, check_for_updates, refresh_theme/language.
 - `help_window.py`: HelpWindow: fenêtre aide. init_ui,_load_content, refresh_theme, closeEvent.
-- `language_manager.py`: LanguageManager: gestion langues. register_widget, set_language, setup_translations,_update_translation_functions.
+- `language_manager.py`: LanguageManager: gestion langues. Orchestre translations et widget_manager pour la gestion des langues.
 - `non_editable_modal.py`: NonEditableModal: modal texte non-éditable. setup_ui, refresh_theme, copy_text, keyPressEvent.
 - `progress_window.py`: ProgressWindow: fenêtres progression. _setup_ui, start_animation/stop_animation, OllamaInstallProgressWindow pour install Ollama.
 - `response_window.py`: ResponseWindow: fenêtre réponses IA/chat. init_ui, send_message, copy_as_markdown, MarkdownTextBrowser (affichage MD), MessageContainer, ChatContentScrollArea (scroll chat).
 - `theme_manager.py`: ThemeManager: gestion thèmes. change_color_mode, change_background_theme, register_widget, get_styles.
 - `ui_utils.py`: Classes utilitaires UI: ui_utils (clear_layout, resize_and_round_image, show_confirmation_dialog), ThemedWidget (base widgets themés), ThemeBackground.
+
+#### language/
+
+Composants de gestion des langues: traductions et widgets enregistrés.
+
+- `__init__.py`: Package initializer.
+- `translations.py`: Translations: gestion des traductions. setup_translations, _update_translation_functions, _update_widget_translations.
+- `widget_manager.py`: WidgetManager: gestion widgets enregistrés. register_widget, unregister_widget, refresh_registered_widgets.
 
 #### custom_popup/
 
@@ -236,7 +248,7 @@ Cette approche vise à améliorer la clarté et la maintenabilité du code sans 
 - ~~__`ai_processor.py` (~400 lignes, 3 classes)__: Séparer en `core/ai/ai_processor.py` (orchestration), `core/ai/context_detector.py` (instructions système), `core/ai/message_formatter.py` (formatage par provider). Permettra de désencombrer et tester indépendamment.~~ ✅ Fait : classes déménagées vers `core/ai/` avec maintient de compatibilité.
 - __`response_window.py` (~500 lignes, 4 classes)__: Diviser en `ui/windows/response_window.py` (classe principale), `ui/components/markdown_browser.py` (affichage MD), `ui/components/message_container.py` (conteneurs messages), `ui/components/chat_scroll_area.py` (scroll chat).
 - ~~__`ollama.py` (~400 lignes, OllamaStateManager + OllamaProvider)__: Séparer en `aiprovider/ollama_provider.py` et `aiprovider/ollama_state.py`. Réduira la complexité et améliorera la lisibilité.~~ ✅ Fait : Séparation réussie avec maintien de la compatibilité backward-compatible.
-- __`language_manager.py` (~200 lignes)__: Extraire la logique de traduction en `ui/language/translations.py` et les widgets enregistrés en `ui/language/widget_manager.py`.
+- ~~__`language_manager.py` (~200 lignes)__: Extraire la logique de traduction en `ui/language/translations.py` et les widgets enregistrés en `ui/language/widget_manager.py`.~~ ✅ Fait : Logique extraite avec maintien de la compatibilité.
 
 ### Améliorations immédiates
 

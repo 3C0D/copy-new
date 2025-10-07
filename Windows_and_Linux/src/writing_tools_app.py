@@ -25,7 +25,7 @@ from .core.popup_manager import PopupManager
 from .core.settings_manager import SettingsManager
 from .core.setup.core_attributes import setup_core_attributes
 from .core.setup.providers import initialize_ai_provider
-from .core.setup.ui_components import setup_ui_components, setup_user_interface
+from .core.setup.ui_initialization import setup_ui_components, setup_user_interface
 from .core.text_processor import TextProcessor
 from .core.ui_manager import UIManager
 from .core.update_manager import UpdateManager
