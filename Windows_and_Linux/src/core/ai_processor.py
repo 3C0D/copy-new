@@ -36,8 +36,6 @@ if TYPE_CHECKING:
     from ..ui.response_window import ResponseWindow
 
 
-
-
 class AIProcessor(QObject):
     """
     Handles AI request processing and response management.
@@ -58,7 +56,7 @@ class AIProcessor(QObject):
         provider_class = PROVIDER_CLASSES.get(provider_name)
         if provider_class:
             try:
-                self.current_provider = provider_class(self.app) # instance
+                self.current_provider = provider_class(self.app)  # instance
                 if self.current_provider is not None:
                     self.app.settings_manager.provider = self.current_provider.internal_name
             except Exception as e:
@@ -67,11 +65,13 @@ class AIProcessor(QObject):
                 default_class = PROVIDER_CLASSES.get(DEFAULT_PROVIDER)
                 if default_class and default_class != provider_class:
                     try:
-                        self.current_provider = default_class(self.app) # instance
+                        self.current_provider = default_class(self.app)  # instance
                         if self.current_provider is not None:
                             self.app.settings_manager.provider = self.current_provider.internal_name
                     except Exception as e2:
-                        self._logger.error(f"Failed to create default provider {DEFAULT_PROVIDER}: {e2}")
+                        self._logger.error(
+                            f"Failed to create default provider {DEFAULT_PROVIDER}: {e2}"
+                        )
                         self.current_provider = None
                 else:
                     self.current_provider = None
@@ -379,7 +379,12 @@ class AIProcessor(QObject):
         }
 
     def _should_display_in_window(
-        self, option: str, selected_text: str | None, action_config: ActionConfig, has_image: bool, force_chat: bool
+        self,
+        option: str,
+        selected_text: str | None,
+        action_config: ActionConfig,
+        has_image: bool,
+        force_chat: bool,
     ) -> bool:
         """Determine if response should be displayed in a window."""
         is_custom_option = option == "Custom"
@@ -387,8 +392,10 @@ class AIProcessor(QObject):
 
         return (
             has_image
-            or force_chat and has_selected_text
-            or is_custom_option and not has_selected_text
+            or force_chat
+            and has_selected_text
+            or is_custom_option
+            and not has_selected_text
             or bool(action_config.get("open_in_window", True))
         )
 
@@ -436,7 +443,11 @@ class AIProcessor(QObject):
         is_custom_option = option == "Custom"
         has_image = image_data is not None
 
-        if not hasattr(self.app, "current_response_window") or not self.app.current_response_window or not is_custom_option:
+        if (
+            not hasattr(self.app, "current_response_window")
+            or not self.app.current_response_window
+            or not is_custom_option
+        ):
             return
 
         if has_image:

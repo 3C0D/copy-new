@@ -24,25 +24,10 @@ if TYPE_CHECKING:
     from ...writing_tools_app import WritingToolsApp
     from .settings_window import SettingsWindow
 
-from ...aiprovider.anthropic import AnthropicProvider
-from ...aiprovider.gemini import GeminiProvider
-from ...aiprovider.mistral import MistralProvider
-from ...aiprovider.ollama import OllamaProvider
-from ...aiprovider.openAI import OpenAIProvider
-from ...aiprovider.openAI_compatible import OpenAICompatibleProvider
 from ...config.constants import PROVIDER_DISPLAY_NAMES
 from ...config.data_operations import get_provider_display_name
+from ...core.ai_processor import PROVIDER_CLASSES
 from ..ui_utils import ui_utils
-
-# Mapping of internal provider names to their classes
-PROVIDER_CLASSES = {
-    "gemini": GeminiProvider,
-    "ollama": OllamaProvider,
-    "anthropic": AnthropicProvider,
-    "mistral": MistralProvider,
-    "openAIcompatible": OpenAICompatibleProvider,
-    "openAI": OpenAIProvider,
-}
 
 
 def _(x):
