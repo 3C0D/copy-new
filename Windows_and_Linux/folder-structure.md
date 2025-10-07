@@ -75,7 +75,9 @@ Dossier regroupant tous les modules d'intégration IA (Anthropic, Gemini, etc.).
 - `anthropic.py`: Provider Anthropic: implémente _get_response_impl pour appels Claude API. Hooks: after_load/before_load (setup API).
 - `gemini.py`: Provider Gemini: _get_response_impl via Vertex/Google AI. _extract_response_text (parsing réponses), _contains_safety_filter_message (détection filtres). Hooks after_load/before_load.
 - `mistral.py`: Provider Mistral: _get_response_impl pour Mistral API. Hooks after_load/before_load.
-- `ollama.py`: Provider Ollama: gestion serveurs locaux. OllamaStateManager: exécutable Ollama, installation, modèles, états. Provider: _on_state_updated/_on_models_updated, _refresh_models, refresh_configuration, install_ollama_async, _get_response_impl.
+- `ollama.py`: Provider Ollama (compatibilité): fichier de compatibilité maintenant allégé (18 lignes) important les classes séparées depuis ollama_provider.py et ollama_state.py.
+- `ollama_provider.py`: Provider Ollama: implémentation du provider IA pour serveur Ollama (_on_state_updated/_on_models_updated, _refresh_models, refresh_configuration, _get_response_impl).
+- `ollama_state.py`: Gestionnaire d'état Ollama: exécutable Ollama, installation, modèles, états, cache, opérations asynchrones (OllamaStateManager).
 - `openAI_compatible.py`: Provider générique OpenAI-compatible: _get_response_impl flexible pour APIs similaires. Hooks after_load/before_load.
 - `openAI.py`: Provider OpenAI officiel: _get_response_impl pour GPT. Hooks after_load/before_load.
 - `settings.py`: Paramètres UI providers: AIProviderSetting (ABC), TextSetting/DropdownSetting: render_to_layout (UI), set_value/get_value, refresh_styles. DropdownSetting avec refresh_options.
@@ -215,7 +217,7 @@ Cette approche vise à améliorer la clarté et la maintenabilité du code sans 
 ### Division des modules trop longs
 - ~~**`ai_processor.py` (~400 lignes, 3 classes)**: Séparer en `core/ai/ai_processor.py` (orchestration), `core/ai/context_detector.py` (instructions système), `core/ai/message_formatter.py` (formatage par provider). Permettra de désencombrer et tester indépendamment.~~ ✅ Fait : classes déménagées vers `core/ai/` avec maintient de compatibilité.
 - **`response_window.py` (~500 lignes, 4 classes)**: Diviser en `ui/windows/response_window.py` (classe principale), `ui/components/markdown_browser.py` (affichage MD), `ui/components/message_container.py` (conteneurs messages), `ui/components/chat_scroll_area.py` (scroll chat).
-- **`ollama.py` (~400 lignes, OllamaStateManager + OllamaProvider)**: Séparer en `aiprovider/ollama_provider.py` et `aiprovider/ollama_state.py`. Réduira la complexité et améliorera la lisibilité.
+- ~~**`ollama.py` (~400 lignes, OllamaStateManager + OllamaProvider)**: Séparer en `aiprovider/ollama_provider.py` et `aiprovider/ollama_state.py`. Réduira la complexité et améliorera la lisibilité.~~ ✅ Fait : Séparation réussie avec maintien de la compatibilité backward-compatible.
 - **`language_manager.py` (~200 lignes)**: Extraire la logique de traduction en `ui/language/translations.py` et les widgets enregistrés en `ui/language/widget_manager.py`.
 
 ### Améliorations immédiates
