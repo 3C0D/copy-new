@@ -7,7 +7,7 @@ This module contains setup functions for UI components.
 from typing import TYPE_CHECKING
 
 from ...autostart_manager import AutostartManager
-from ...ui.language_manager import LanguageManager
+from ..language_manager import LanguageManager
 from ..theme_manager import ThemeManager
 
 if TYPE_CHECKING:

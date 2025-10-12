@@ -9,9 +9,9 @@ from pathlib import Path
 from PySide6.QtCore import QLocale
 from PySide6.QtWidgets import QApplication
 
-from .. import about_window, help_window
-from ..custom_popup import custom_popup_window
-from ..SettingsWindow import settings_window
+from ...ui import about_window, help_window
+from ...ui.custom_popup import custom_popup_window
+from ...ui.SettingsWindow import settings_window
 
 
 class Translations:
@@ -76,10 +76,10 @@ class Translations:
 
         # Import and update UI modules. Avoid circular imports.
         from ... import systray
-        from .. import (
+        from ...ui import (
             response_window,
         )
-        from ..SettingsWindow import general_settings, provider_settings
+        from ...ui.SettingsWindow import general_settings, provider_settings
 
         about_window._ = self._
         settings_window._ = self._

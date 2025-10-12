@@ -25,6 +25,7 @@ src
 │   ├── hotkey_manager.py
 │   ├── image_processor.py
 │   ├── input_manager.py
+│   ├── language_manager.py
 │   ├── lifecycle_manager.py
 │   ├── popup_manager.py
 │   ├── settings_manager.py
@@ -52,7 +53,6 @@ src
 │   │   ├── __init__.py
 │   │   ├── translations.py
 │   │   └── widget_manager.py
-│   ├── language_manager.py
 │   ├── non_editable_modal.py
 │   ├── progress_window.py
 │   ├── response_window.py
@@ -106,6 +106,7 @@ Logique cœur app: traitement IA, gestion I/O, cycle vie, popups, paramètres.
 - `clipboard_manager.py`: ClipboardManager: sauvegarde/restore/vide clipboard. backup_clipboard, restore_clipboard, clear_clipboard.
 - `hotkey_manager.py`: HotkeyManager: gestion raccourcis clavier. register_hotkey (raccourci activation), on_hotkey_pressed (action), check_trigger_spam (anti-spam), setup_ctrl_c_listener (SIGINT).
 - `image_processor.py`: ImageProcessor: traitement images clipboard/chemin. get_image_from_clipboard, qimage_to_base64 (encodage),_normalize_path_text.
+- `language_manager.py`: LanguageManager: gestion langues. Orchestre translations et widget_manager pour la gestion des langues.
 - `input_manager.py`: InputManager: capture texte sélectionné/entrées. get_selected_text, simulate_ctrl_key, _is_file_path.
 - `lifecycle_manager.py`: LifecycleManager: gestion cycle vie app. exit_app,_detect_running_mode (détecte mode dev/final).
 - `popup_manager.py`: PopupManager: gestion fenêtres popup. show_popup, position_popup_window, clean_image.
@@ -125,7 +126,6 @@ Interfaces utilisateur: fenêtres, popups, thèmes, langues, utils.
 - `__init__.py`: Package initializer pour ui.
 - `about_window.py`: AboutWindow: fenêtre 'à propos'. init_ui,_create_layout,_load_content, check_for_updates, refresh_theme/language.
 - `help_window.py`: HelpWindow: fenêtre aide. init_ui,_load_content, refresh_theme, closeEvent.
-- `language_manager.py`: LanguageManager: gestion langues. Orchestre translations et widget_manager pour la gestion des langues.
 - `non_editable_modal.py`: NonEditableModal: modal texte non-éditable. setup_ui, refresh_theme, copy_text, keyPressEvent.
 - `progress_window.py`: ProgressWindow: fenêtres progression. _setup_ui, start_animation/stop_animation, OllamaInstallProgressWindow pour install Ollama.
 - `response_window.py`: ResponseWindow: fenêtre réponses IA/chat. init_ui, send_message, copy_as_markdown, MarkdownTextBrowser (affichage MD), MessageContainer, ChatContentScrollArea (scroll chat).
@@ -253,5 +253,5 @@ Cette approche vise à améliorer la clarté et la maintenabilité du code sans 
 ### Améliorations immédiates
 
 - ~~__Supprimer les classes déplacées__ : `update_checker.py` est devenu `core/update_manager.py`, mettre à jour les imports et supprimer l'ancien fichier.~~ ✅ Fait : fichier supprimé de l'arbre et descriptions.
-- __Consolidation des managers__ : Regrouper `theme_manager.py` (dans core/) et `language_manager.py` en `core/ui_managers.py` car ils gèrent l'état global UI.
+- __Consolidation des managers__ : Regrouper `theme_manager.py` et `language_manager.py` (tous deux dans core/) en `core/ui_managers.py` car ils gèrent l'état global UI.
 - ~~__`writing_tools_app.py`__ : Déplacer les méthodes de setup vers des modules dédiés (ex. `core/setup/providers.py`, `core/setup/ui_components.py`).~~ ✅ Fait : méthodes déplacées vers `core/setup/` avec maintien de la compatibilité.

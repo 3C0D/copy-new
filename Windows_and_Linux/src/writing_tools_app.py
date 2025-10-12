@@ -44,7 +44,7 @@ if TYPE_CHECKING:
     from .core.ui_manager import UIManager
     from .core.update_manager import UpdateManager
     from .systray import SystrayManager
-    from .ui.language_manager import LanguageManager
+    from .core.language_manager import LanguageManager
     from .ui.response_window import ResponseWindow
     from .core.theme_manager import ThemeManager
 
