@@ -29,6 +29,7 @@ src
 │   ├── popup_manager.py
 │   ├── settings_manager.py
 │   ├── text_processor.py
+│   ├── theme_manager.py
 │   └── ui_manager.py
 ├── locales/
 │   └── fr/
@@ -60,7 +61,6 @@ src
 │   │   ├── general_settings.py
 │   │   ├── provider_settings.py
 │   │   └── settings_window.py
-│   ├── theme_manager.py
 │   └── ui_utils.py
 ├── __init__.py
 ├── autostart_manager.py
@@ -111,6 +111,7 @@ Logique cœur app: traitement IA, gestion I/O, cycle vie, popups, paramètres.
 - `popup_manager.py`: PopupManager: gestion fenêtres popup. show_popup, position_popup_window, clean_image.
 - `settings_manager.py`: SettingsManager: chargement/sauvegarde settings. load_settings, save, has_providers_configured, update_action, _serialize_settings, _setup_logging.
 - `text_processor.py`: TextProcessor: traitement texte/output. replace_text, clear_output_queue,_handle_replacement.
+- `theme_manager.py`: ThemeManager: gestion thèmes. change_color_mode, change_background_theme, register_widget, get_styles.
 - `ui_manager.py`: UIManager: gestion UI global. show_response_window, show_message_box, close_all_windows.
 
 ### locales/
@@ -128,7 +129,6 @@ Interfaces utilisateur: fenêtres, popups, thèmes, langues, utils.
 - `non_editable_modal.py`: NonEditableModal: modal texte non-éditable. setup_ui, refresh_theme, copy_text, keyPressEvent.
 - `progress_window.py`: ProgressWindow: fenêtres progression. _setup_ui, start_animation/stop_animation, OllamaInstallProgressWindow pour install Ollama.
 - `response_window.py`: ResponseWindow: fenêtre réponses IA/chat. init_ui, send_message, copy_as_markdown, MarkdownTextBrowser (affichage MD), MessageContainer, ChatContentScrollArea (scroll chat).
-- `theme_manager.py`: ThemeManager: gestion thèmes. change_color_mode, change_background_theme, register_widget, get_styles.
 - `ui_utils.py`: Classes utilitaires UI: ui_utils (clear_layout, resize_and_round_image, show_confirmation_dialog), ThemedWidget (base widgets themés), ThemeBackground.
 
 #### language/
@@ -253,5 +253,5 @@ Cette approche vise à améliorer la clarté et la maintenabilité du code sans 
 ### Améliorations immédiates
 
 - ~~__Supprimer les classes déplacées__ : `update_checker.py` est devenu `core/update_manager.py`, mettre à jour les imports et supprimer l'ancien fichier.~~ ✅ Fait : fichier supprimé de l'arbre et descriptions.
-- __Consolidation des managers__ : Regrouper `theme_manager.py` et `language_manager.py` en `ui/ui_managers.py` car ils gèrent l'état global UI.
+- __Consolidation des managers__ : Regrouper `theme_manager.py` (dans core/) et `language_manager.py` en `core/ui_managers.py` car ils gèrent l'état global UI.
 - ~~__`writing_tools_app.py`__ : Déplacer les méthodes de setup vers des modules dédiés (ex. `core/setup/providers.py`, `core/setup/ui_components.py`).~~ ✅ Fait : méthodes déplacées vers `core/setup/` avec maintien de la compatibilité.

@@ -46,7 +46,7 @@ if TYPE_CHECKING:
     from .systray import SystrayManager
     from .ui.language_manager import LanguageManager
     from .ui.response_window import ResponseWindow
-    from .ui.theme_manager import ThemeManager
+    from .core.theme_manager import ThemeManager
 
 os.environ["QT_LOGGING_RULES"] = (
     "qt.qpa.mime.warning=false;qt.qpa.mime.debug=false;qt.qpa.mime.info=false"  # Disable QMimeDatabase warnings

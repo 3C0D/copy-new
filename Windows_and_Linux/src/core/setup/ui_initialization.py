@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from ...autostart_manager import AutostartManager
 from ...ui.language_manager import LanguageManager
-from ...ui.theme_manager import ThemeManager
+from ..theme_manager import ThemeManager
 
 if TYPE_CHECKING:
     from ...writing_tools_app import WritingToolsApp
