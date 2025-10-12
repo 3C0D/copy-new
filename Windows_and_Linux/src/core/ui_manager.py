@@ -6,7 +6,7 @@ windows and modals of the Writing Tools application.
 """
 
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QObject, Qt, Signal, Slot
 from PySide6.QtWidgets import QMessageBox
@@ -43,10 +43,10 @@ class UIManager(QObject):
         self.show_message_signal.connect(self.show_message_box)
 
         # References to active windows
-        self.response_window: Optional[ResponseWindow] = None
-        self.non_editable_modal: Optional[NonEditableModal] = None
+        self.response_window: ResponseWindow | None = None
+        self.non_editable_modal: NonEditableModal | None = None
 
-    def show_response_window(self, option: str, text: Optional[str] = None) -> ResponseWindow:
+    def show_response_window(self, option: str, text: str | None = None) -> ResponseWindow:
         """
         Display a response window to show AI results.
 

@@ -1,5 +1,5 @@
 import webbrowser
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any
 
 from openai import OpenAI
 
@@ -56,7 +56,7 @@ class OpenAIProvider(AIProvider):
     def _get_response_impl(
         self,
         system_instruction: str,
-        prompt: Union[str, list],
+        prompt: str | list,
         return_response: bool = False,
         **kwargs,
     ) -> str:

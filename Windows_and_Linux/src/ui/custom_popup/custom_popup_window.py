@@ -324,7 +324,7 @@ class CustomPopupWindow(QWidget):
             )
             self.image_display.setPixmap(scaled_pixmap)
         else:
-            self.image_display.setText("No image preview available")
+            self.image_display.setText(_("No image preview available"))
 
         preview_layout.addWidget(self.image_display)
         content_layout.addWidget(preview_container)
@@ -907,7 +907,7 @@ class CustomPopupWindow(QWidget):
         confirm_box.setWindowFlags(
             confirm_box.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
         )
-        confirm_box.setWindowTitle("Confirm Reset to Defaults?")
+        confirm_box.setWindowTitle(_("Confirm Reset to Defaults?"))
         confirm_box.setText(
             "This will reset all buttons to their original configuration.\nYour custom buttons will be removed.\n\nAre you sure you want to continue?",
         )
@@ -941,7 +941,7 @@ class CustomPopupWindow(QWidget):
                 success_msg.setWindowFlags(
                     success_msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
                 )
-                success_msg.setWindowTitle("Reset Complete")
+                success_msg.setWindowTitle(_("Reset Complete"))
                 success_msg.setText("Buttons have been reset to their default configuration.")
                 success_msg.exec_()
 
@@ -1070,8 +1070,8 @@ class CustomPopupWindow(QWidget):
 
         confirm = QMessageBox()
         confirm.setWindowFlags(confirm.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint)
-        confirm.setWindowTitle("Confirm Delete?")
-        confirm.setText("Are you sure you want to continue?")
+        confirm.setWindowTitle(_("Confirm Delete?"))
+        confirm.setText(_("Are you sure you want to continue?"))
         confirm.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         confirm.setDefaultButton(QMessageBox.StandardButton.No)
 

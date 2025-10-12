@@ -17,7 +17,6 @@ import tempfile
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Optional
 
 from PySide6.QtCore import QObject, Signal
 
@@ -50,9 +49,9 @@ class OllamaStateManager(QObject):
             self._logger = logging.getLogger(self.__class__.__name__)
 
             # Cache states
-            self._ollama_path: Optional[str] = None
-            self._is_installed: Optional[bool] = None
-            self._is_running: Optional[bool] = None
+            self._ollama_path: str | None = None
+            self._is_installed: bool | None = None
+            self._is_running: bool | None = None
             self._models_list: list[tuple[str, str]] = []
 
             # Cache timestamps (in seconds)
@@ -77,7 +76,7 @@ class OllamaStateManager(QObject):
         """Check if cached value is still valid."""
         return (self._get_current_time() - check_time) < duration
 
-    def find_ollama_executable(self, force_refresh: bool = False) -> Optional[str]:
+    def find_ollama_executable(self, force_refresh: bool = False) -> str | None:
         """
         Find the Ollama executable with caching.
         """

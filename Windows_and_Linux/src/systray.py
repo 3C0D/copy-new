@@ -1,7 +1,8 @@
 import logging
 import sys
 import time
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from PySide6 import QtCore, QtGui
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
@@ -154,7 +155,7 @@ class SystrayManager:
         self,
         window_attr: str,
         window_class: Callable[["WritingToolsApp"], Any],
-        other_window_attr: Optional[str] = None,
+        other_window_attr: str | None = None,
     ) -> None:
         """Generic method to show a window and optionally close another."""
         if other_window_attr:

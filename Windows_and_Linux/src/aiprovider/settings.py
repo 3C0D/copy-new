@@ -12,7 +12,8 @@ Settings are UI components that allow users to configure API keys, models, etc.
 # Standard library imports
 import logging
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 # Third-party imports (with fallbacks for optional dependencies)
 # PySide6 imports

@@ -210,7 +210,6 @@ class GeneralSettings(QWidget):
         self.app.theme_manager.change_color_mode(color_mode)
         self.parent_window.refresh_theme()
 
-
     def refresh_theme(self) -> None:
         """Refresh theme for all UI components."""
         if self.language_label:

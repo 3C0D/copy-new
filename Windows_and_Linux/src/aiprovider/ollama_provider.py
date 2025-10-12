@@ -9,7 +9,7 @@ This module contains the OllamaProvider class that handles:
 """
 
 import logging
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 from ollama import Client as OllamaClient
 from PySide6.QtCore import Slot
@@ -314,7 +314,7 @@ class OllamaProvider(AIProvider):
     def _get_response_impl(
         self,
         system_instruction: str,
-        prompt: Union[str, list],
+        prompt: str | list,
         return_response: bool = False,
         **kwargs,
     ) -> str:

@@ -10,7 +10,6 @@ This module manages all text processing operations including:
 
 import logging
 import time
-from typing import Optional
 
 import pyperclip
 from PySide6.QtCore import Q_ARG, QMetaObject, QObject, Qt, Signal, Slot
@@ -30,7 +29,7 @@ class TextProcessor(QObject):
         self.app = app
         self._logger = logging.getLogger(__name__)
         self.output_ready_signal.connect(self.replace_text)
-        self.non_editable_modal: Optional[NonEditableModal] = None
+        self.non_editable_modal: NonEditableModal | None = None
 
     @Slot(str)
     def replace_text(self, new_text: str) -> None:

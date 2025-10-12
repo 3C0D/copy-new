@@ -79,7 +79,7 @@ class WritingToolsApp(QApplication):
     theme_manager: ThemeManager
     tray_icon: object | None = None
     non_editable_modal: object | None = None
-    styles: dict # updated from theme_manager
+    styles: dict  # updated from theme_manager
 
     def __init__(self, argv: list[str]):
         super().__init__(argv)

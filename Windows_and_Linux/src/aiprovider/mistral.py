@@ -1,6 +1,6 @@
 import copy
 import webbrowser
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any
 
 import requests
 
@@ -55,7 +55,7 @@ class MistralProvider(AIProvider):
     def _get_response_impl(
         self,
         system_instruction,
-        prompt: Union[str, list],
+        prompt: str | list,
         return_response: bool = False,
         **kwargs,
     ) -> str:

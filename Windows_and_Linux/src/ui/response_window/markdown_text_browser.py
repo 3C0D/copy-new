@@ -48,7 +48,9 @@ class MarkdownTextBrowser(QTextBrowser):
     def _apply_zoom(self) -> None:
         new_size = int(self.base_font_size * self.zoom_factor)
 
-        style_key = "markdown_text_browser_user" if self.is_user_message else "markdown_text_browser_ai"
+        style_key = (
+            "markdown_text_browser_user" if self.is_user_message else "markdown_text_browser_ai"
+        )
         base_style = self.app.styles[style_key]
 
         # Add dynamic font-size to the base style

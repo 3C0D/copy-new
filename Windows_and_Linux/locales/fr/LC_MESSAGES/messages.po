@@ -8,353 +8,381 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 msgid "(Chat icon) → Opens chat window regardless of text type"
-msgstr "(Chat icon) → Opens chat window regardless of text type"
+msgstr ""
+"(Icône de discussion) → Ouvre la fenêtre de discussion quel que soit le type"
+" de texte"
 
 msgid ""
 "(Replace icon) → Replaces editable text, opens modal for non-editable text"
 msgstr ""
-"(Replace icon) → Replaces editable text, opens modal for non-editable text"
+"(Remplacer l'icône) → Remplace le texte modifiable, ouvre le modal pour le "
+"texte non modifiable"
 
 msgid "* Models with vision support"
-msgstr "* Models with vision support"
+msgstr "* Modèles avec support visuel"
 
 msgid "About"
-msgstr "About"
+msgstr "À propos"
 
 msgid "About Writing Tools"
-msgstr "About Writing Tools"
+msgstr "À propos de Writing Tools"
 
 msgid "Always opens in modal window without modifying original"
-msgstr "Always opens in modal window without modifying original"
+msgstr "S'ouvre toujours dans la fenêtre modale sans modifier l'original"
 
 msgid "Amazing Contributors"
-msgstr "Amazing Contributors"
+msgstr "Des contributeurs incroyables"
 
 msgid "Are you sure you want to continue?"
-msgstr "Are you sure you want to continue?"
+msgstr "Êtes-vous sûr de vouloir continuer ?"
 
 msgid "Ask a follow-up question"
-msgstr "Ask a follow-up question"
+msgstr "Poser une question complémentaire"
 
 msgid "Ask a follow-up question about this image"
-msgstr "Ask a follow-up question about this image"
+msgstr "Poser une question complémentaire sur cette image"
 
 msgid "Ask anything about this image..."
-msgstr "Ask anything about this image..."
+msgstr "Demandez n'importe quoi à propos de cette image..."
 
 msgid "Ask your AI..."
-msgstr "Ask your AI..."
+msgstr "Demandez à votre IA..."
 
 msgid "Auto"
 msgstr "Auto"
 
 msgid "Auto-install Ollama and open chat interface immediately"
-msgstr "Auto-install Ollama and open chat interface immediately"
+msgstr ""
+"Installez automatiquement Ollama et ouvrez immédiatement l'interface de "
+"discussion"
 
 msgid "Background Theme:"
-msgstr "Background Theme:"
+msgstr "Thème de fond :"
 
 msgid "Blurry Gradient"
-msgstr "Blurry Gradient"
+msgstr "Dégradé flou"
 
 msgid "Can be replaced or opened in chat mode"
-msgstr "Can be replaced or opened in chat mode"
+msgstr "Peut être remplacé ou ouvert en mode chat"
 
 msgid "Chat Mode:"
-msgstr "Chat Mode:"
+msgstr "Mode de discussion :"
 
 msgid "Check for updates"
-msgstr "Check for updates"
+msgstr "Vérifier les mises à jour"
 
 msgid "Choose AI Provider:"
-msgstr "Choose AI Provider:"
+msgstr "Choisissez le fournisseur d'IA :"
 
 msgid ""
 "Choose from available AI models. Models marked with ⭐ support image "
 "processing across all providers"
 msgstr ""
-"Choose from available AI models. Models marked with ⭐ support image "
-"processing across all providers"
+"Choisissez parmi les modèles d’IA disponibles. Les modèles marqués d'un ⭐ "
+"prennent en charge le traitement d'image chez tous les fournisseurs"
 
 msgid "Click Force Chat or use Ctrl+Enter to open chat window"
-msgstr "Click Force Chat or use Ctrl+Enter to open chat window"
+msgstr ""
+"Cliquez sur Forcer le chat ou utilisez Ctrl+Entrée pour ouvrir la fenêtre de"
+" discussion"
 
 msgid ""
 "Click action buttons with predefined prompts → Behavior indicated by icons:"
 msgstr ""
-"Click action buttons with predefined prompts → Behavior indicated by icons:"
+"Cliquez sur les boutons d'action avec des invites prédéfinies → Comportement"
+" indiqué par des icônes :"
 
 msgid "Click models in chat interface to test and install directly"
-msgstr "Click models in chat interface to test and install directly"
+msgstr ""
+"Cliquez sur les modèles dans l'interface de chat pour tester et installer "
+"directement"
 
 msgid "Clipboard Images:"
-msgstr "Clipboard Images:"
+msgstr "Images du Presse-papiers :"
 
 msgid "Clipboard Management:"
-msgstr "Clipboard Management:"
+msgstr "Gestion du presse-papiers :"
 
 msgid "Close Settings"
-msgstr "Close Settings"
+msgstr "Fermer les paramètres"
 
 msgid "Color Mode:"
-msgstr "Color Mode:"
+msgstr "Mode couleur :"
 
 msgid "Confirm Delete?"
-msgstr "Confirm Delete?"
+msgstr "Confirmer la suppression ?"
 
 msgid "Confirm Reset to Defaults?"
-msgstr "Confirm Reset to Defaults?"
+msgstr "Confirmer la réinitialisation des paramètres par défaut ?"
 
 msgid "Contact me"
-msgstr "Contact me"
+msgstr "Contactez-moi"
 
 msgid "Copy as Markdown"
-msgstr "Copy as Markdown"
+msgstr "Copier en Markdown"
 
 msgid ""
 "Copy text to clipboard\n"
 "Shortcut: Ctrl+R"
 msgstr ""
-"Copy text to clipboard\n"
-"Shortcut: Ctrl+R"
+"Copier le texte dans le presse-papiers\n"
+"Raccourci : Ctrl+R"
 
 msgid "Created with care by Jesai, a high school student."
-msgstr "Created with care by Jesai, a high school student."
+msgstr "Créé avec soin par Jesai, un lycéen."
 
 msgid "Customize appearance, themes, and window behavior"
-msgstr "Customize appearance, themes, and window behavior"
+msgstr "Personnaliser l'apparence, les thèmes et le comportement des fenêtres"
 
 msgid "Dark"
-msgstr "Dark"
+msgstr "Sombre"
 
 msgid "Describe your change..."
-msgstr "Describe your change..."
+msgstr "Décrivez votre changement..."
 
 msgid "Edit Tools Layout"
-msgstr "Edit Tools Layout"
+msgstr "Modifier la disposition des outils"
 
 msgid "Editable Text:"
-msgstr "Editable Text:"
+msgstr "Texte modifiable :"
 
 msgid "Exit"
-msgstr "Exit"
+msgstr "Sortie"
 
 msgid "Exit Edit Mode"
-msgstr "Exit Edit Mode"
+msgstr "Quitter le mode édition"
 
 msgid "Feel free to check out my other AI app"
-msgstr "Feel free to check out my other AI app"
+msgstr "N'hésitez pas à consulter mon autre application IA"
 
 msgid "Flow:"
-msgstr "Flow:"
+msgstr "Couler:"
 
 msgid "Force Chat Button:"
-msgstr "Force Chat Button:"
+msgstr "Bouton Forcer le chat :"
 
 msgid "Force Chat Mode"
-msgstr "Force Chat Mode"
+msgstr "Forcer le mode de discussion"
 
 msgid ""
 "Free & lightweight AI writing assistant, similar to Apple's Apple "
 "Intelligence. Works with many AI models, online and local."
 msgstr ""
-"Free & lightweight AI writing assistant, similar to Apple's Apple "
-"Intelligence. Works with many AI models, online and local."
+"Assistant d'écriture IA gratuit et léger, similaire à Apple Intelligence "
+"d'Apple. Fonctionne avec de nombreux modèles d'IA, en ligne et locaux."
 
 msgid "Global Shortcut:"
-msgstr "Global Shortcut:"
+msgstr "Raccourci global :"
 
 msgid "Help"
-msgstr "Help"
+msgstr "Aide"
 
 msgid ""
 "Helped add dark mode, the plain theme, tray menu fixes, and UI improvements."
 msgstr ""
-"Helped add dark mode, the plain theme, tray menu fixes, and UI improvements."
+"Aide à l'ajout du mode sombre, du thème simple, des correctifs du menu de la"
+" barre d'état système et des améliorations de l'interface utilisateur."
 
 msgid "Helped add the start-on-boot setting."
-msgstr "Helped add the start-on-boot setting."
+msgstr "A aidé à ajouter le paramètre de démarrage au démarrage."
 
 msgid "Helped improve the reliability of text selection."
-msgstr "Helped improve the reliability of text selection."
+msgstr "A contribué à améliorer la fiabilité de la sélection de texte."
 
 msgid "Hover over assistant responses for individual copy buttons"
-msgstr "Hover over assistant responses for individual copy buttons"
+msgstr ""
+"Passez la souris sur les réponses de l'assistant pour les boutons de copie "
+"individuels"
 
 msgid "How to Use Writing Tools"
-msgstr "How to Use Writing Tools"
+msgstr "Comment utiliser Writing Tools"
 
 msgid "Icons show default behavior when Force Chat is not active"
-msgstr "Icons show default behavior when Force Chat is not active"
+msgstr ""
+"Les icônes affichent le comportement par défaut lorsque Force Chat n'est pas"
+" actif"
 
 msgid "Icons:"
-msgstr "Icons:"
+msgstr "Icônes :"
 
 msgid "Image Processing Priority"
-msgstr "Image Processing Priority"
+msgstr "Priorité de traitement des images"
 
 msgid ""
 "Images in clipboard take priority over text. Press Ctrl+Space for image "
 "analysis (OCR, translation, description, etc.)."
 msgstr ""
-"Images in clipboard take priority over text. Press Ctrl+Space for image "
-"analysis (OCR, translation, description, etc.)."
+"Les images du presse-papiers ont priorité sur le texte. Appuyez sur "
+"Ctrl+Espace pour l'analyse de l'image (OCR, traduction, description, etc.)."
 
 msgid "Installation:"
 msgstr "Installation:"
 
 msgid "Installed models appear immediately in settings dropdown"
-msgstr "Installed models appear immediately in settings dropdown"
+msgstr ""
+"Les modèles installés apparaissent immédiatement dans la liste déroulante "
+"des paramètres"
 
 msgid "Interface Settings:"
-msgstr "Interface Settings:"
+msgstr "Paramètres de l'interface :"
 
 msgid "It's a novel AI tutor that's free on the Google Play Store :)"
-msgstr "It's a novel AI tutor that's free on the Google Play Store :)"
+msgstr "C'est un nouveau tuteur d'IA gratuit sur le Google Play Store :)"
 
 msgid "Keep Force Chat permanently active for sensitive editable text"
-msgstr "Keep Force Chat permanently active for sensitive editable text"
+msgstr ""
+"Gardez Force Chat actif en permanence pour le texte modifiable sensible"
 
 msgid "LLM Selection:"
-msgstr "LLM Selection:"
+msgstr "Sélection LLM :"
 
 msgid "Language:"
-msgstr "Language:"
+msgstr "Langue:"
 
 msgid "Light"
-msgstr "Light"
+msgstr "Lumière"
 
 msgid "Lockable Mode:"
-msgstr "Lockable Mode:"
+msgstr "Mode verrouillable :"
 
 msgid "Made the rounded corners anti-aliased & prettier."
-msgstr "Made the rounded corners anti-aliased & prettier."
+msgstr "J'ai rendu les coins arrondis anticrénelés et plus jolis."
 
 msgid "Manual Prompt Input"
-msgstr "Manual Prompt Input"
+msgstr "Saisie manuelle rapide"
 
 msgid "Model Management:"
-msgstr "Model Management:"
+msgstr "Gestion des modèles :"
 
 msgid "Model Testing:"
-msgstr "Model Testing:"
+msgstr "Test sur modèle :"
 
 msgid "No Selection:"
-msgstr "No Selection:"
+msgstr "Aucune sélection :"
 
 msgid "No image preview available"
-msgstr "No image preview available"
+msgstr "Aucun aperçu d'image disponible"
 
 msgid "Non-Editable Text:"
-msgstr "Non-Editable Text:"
+msgstr "Texte non modifiable :"
 
 msgid "Ollama Integration"
-msgstr "Ollama Integration"
+msgstr "Intégration Ollama"
 
 msgid "Opens prompt that directly enters chat mode"
-msgstr "Opens prompt that directly enters chat mode"
+msgstr "Ouvre une invite qui passe directement en mode chat"
 
 msgid "Overrides default behavior to always open chat mode"
-msgstr "Overrides default behavior to always open chat mode"
+msgstr ""
+"Remplace le comportement par défaut pour toujours ouvrir le mode de "
+"discussion"
 
 msgid "Pause"
 msgstr "Pause"
 
 msgid "Plain"
-msgstr "Plain"
+msgstr "Plaine"
 
 msgid "Predefined Action Buttons"
-msgstr "Predefined Action Buttons"
+msgstr "Boutons d'action prédéfinis"
 
 msgid "Press Enter to replace selected text (editable text only)"
-msgstr "Press Enter to replace selected text (editable text only)"
+msgstr ""
+"Appuyez sur Entrée pour remplacer le texte sélectionné (texte modifiable "
+"uniquement)"
 
 msgid "Quick Reference:"
-msgstr "Quick Reference:"
+msgstr "Référence rapide :"
 
 msgid "Replace Text:"
-msgstr "Replace Text:"
+msgstr "Remplacer le texte :"
 
 msgid "Reset Complete"
-msgstr "Reset Complete"
+msgstr "Réinitialisation terminée"
 
 msgid "Reset to Default Buttons"
-msgstr "Reset to Default Buttons"
+msgstr "Réinitialiser les boutons par défaut"
 
 msgid "Response"
-msgstr "Response"
+msgstr "Réponse"
 
 msgid "Resume"
-msgstr "Resume"
+msgstr "CV"
 
 msgid "Right-click icon for quick access to settings, help, and mode toggles"
-msgstr "Right-click icon for quick access to settings, help, and mode toggles"
+msgstr ""
+"Cliquez avec le bouton droit sur l'icône pour accéder rapidement aux "
+"paramètres, à l'aide et aux basculements de mode"
 
 msgid "Screenshot Workflow:"
-msgstr "Screenshot Workflow:"
+msgstr "Flux de travail de capture d'écran :"
 
 msgid "Set your preferred keyboard shortcut (default: Ctrl+Space)"
-msgstr "Set your preferred keyboard shortcut (default: Ctrl+Space)"
+msgstr "Définissez votre raccourci clavier préféré (par défaut : Ctrl+Espace)"
 
 msgid "Settings"
-msgstr "Settings"
+msgstr "Paramètres"
 
 msgid "Settings & Configuration"
-msgstr "Settings & Configuration"
+msgstr "Paramètres et configuration"
 
 msgid "Shortcut Key:"
-msgstr "Shortcut Key:"
+msgstr "Touche de raccourci :"
 
 msgid "Start on Boot"
-msgstr "Start on Boot"
+msgstr "Lancer au démarrage"
 
 msgid "Start on boot"
-msgstr "Start on boot"
+msgstr "Lancer au démarrage"
 
 msgid "System Tray Menu:"
-msgstr "System Tray Menu:"
+msgstr "Menu de la barre d'état système :"
 
 msgid "Systray/Settings"
-msgstr "Systray/Settings"
+msgstr "Barre d'état système/Paramètres"
 
 msgid ""
 "Take a screenshot (Ctrl+Shift+S or Print Screen) → Image copied to clipboard"
 " → Ctrl+Space → Enter prompt → Chat window opens with AI response → Continue"
 " discussion about the image."
 msgstr ""
-"Take a screenshot (Ctrl+Shift+S or Print Screen) → Image copied to clipboard"
-" → Ctrl+Space → Enter prompt → Chat window opens with AI response → Continue"
-" discussion about the image."
+"Prendre une capture d'écran (Ctrl+Shift+S ou Impr écran) → Image copiée dans"
+" le presse-papiers → Ctrl+Espace → Entrer l'invite → La fenêtre de "
+"discussion s'ouvre avec la réponse de l'IA → Poursuivre la discussion sur "
+"l'image."
 
 msgid "Text Selection & Interaction Modes"
-msgstr "Text Selection & Interaction Modes"
+msgstr "Modes de sélection de texte et d'interaction"
 
 msgid "Text Type Behavior"
-msgstr "Text Type Behavior"
+msgstr "Comportement du type de texte"
 
 msgid "Thinking"
-msgstr "Thinking"
+msgstr "Pensée"
 
 msgid "Type your custom prompt in the text area → Choose behavior:"
-msgstr "Type your custom prompt in the text area → Choose behavior:"
+msgstr ""
+"Tapez votre invite personnalisée dans la zone de texte → Choisissez un "
+"comportement :"
 
 msgid ""
 "Validated prompts clear clipboard to prevent reuse. Cancelled prompts keep "
 "the image."
 msgstr ""
-"Validated prompts clear clipboard to prevent reuse. Cancelled prompts keep "
-"the image."
+"Les invites validées effacent le presse-papiers pour empêcher la "
+"réutilisation. Les invites annulées conservent l’image."
 
 msgid "When no image in clipboard:"
-msgstr "When no image in clipboard:"
+msgstr "Lorsqu'il n'y a pas d'image dans le presse-papier :"
 
 msgid ""
 "With no image in clipboard, text selection works with two interaction paths:"
 msgstr ""
-"With no image in clipboard, text selection works with two interaction paths:"
+"Sans image dans le presse-papiers, la sélection de texte fonctionne avec "
+"deux chemins d'interaction :"
 
 msgid "Writing Tools"
 msgstr "Writing Tools"
 
 msgid "Writing Tools Help"
-msgstr "Writing Tools Help"
+msgstr "Aide de Writing Tools"

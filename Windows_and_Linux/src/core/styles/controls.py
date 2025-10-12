@@ -309,11 +309,11 @@ def copy_button(palette: ColorPalette) -> str:
 
 def copy_button_success(palette: ColorPalette) -> str:
     """Copy button success feedback style."""
-    return f"""
-        QToolButton {{
+    return """
+        QToolButton {
             background-color: rgba(76, 175, 80, 0.9);
             border: 1px solid #4CAF50;
             border-radius: 6px;
             padding: 2px;
-        }}
+        }
     """

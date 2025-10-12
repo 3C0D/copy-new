@@ -12,16 +12,13 @@ from pathlib import Path
 DEFAULT_VENV_NAME = "myvenv"
 REQUIREMENTS_FILE = "requirements.txt"
 
-if os.name == "nt":  # Windows
-    from utils import (  # type: ignore
-        get_project_root,
-        setup_environment,
-    )
-else:  # Linux/Unix
-    from .utils import (  # type: ignore
-        get_project_root,
-        setup_environment,
-    )
+# Add parent directory to path to import utils
+script_dir = Path(__file__).parent
+project_root = script_dir.parent.parent  # Go up to Windows_and_Linux
+sys.path.insert(0, str(project_root))
+
+# Import after path setup
+from utils import get_project_root, setup_environment  # noqa: E402
 
 
 def install_requirements() -> bool:

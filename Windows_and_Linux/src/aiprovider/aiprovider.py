@@ -38,8 +38,9 @@ Response Flow:
 # Standard library imports
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from concurrent.futures import CancelledError, ThreadPoolExecutor
-from typing import TYPE_CHECKING, Callable, Union, cast
+from typing import TYPE_CHECKING, cast
 
 # Disable Pylance reportPrivateImportUsage for google.generativeai
 # pyright: reportPrivateImportUsage=false
@@ -137,7 +138,7 @@ class AIProvider(ABC):
     def get_response(
         self,
         system_instruction: str,
-        prompt: Union[str, list],
+        prompt: str | list,
         return_response: bool = False,
         **kwargs,
     ) -> str:
@@ -174,7 +175,7 @@ class AIProvider(ABC):
     def _get_response_impl(
         self,
         system_instruction: str,
-        prompt: Union[str, list],
+        prompt: str | list,
         return_response: bool = False,
         **kwargs,
     ) -> str:

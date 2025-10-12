@@ -147,15 +147,38 @@ def calculate_file_hash(file_path: Path) -> str | None:
 
 
 def create_virtual_environment(venv_path: str, python_cmd: str) -> bool:
-    """Create a virtual environment if it doesn't exist"""
-    if os.path.exists(venv_path):
-        print("Virtual environment already exists.")
-        return True
+    """Create a virtual environment if it doesn't exist
 
-    print("Creating virtual environment...")
+    Always creates the venv in the project root (Windows_and_Linux directory)
+    regardless of where the script is called from.
+    """
+    # Get project root to ensure venv is always in the right place
+    project_root = get_project_root()
+
+    # Build absolute path for venv
+    venv_absolute_path = project_root / venv_path
+
+    # Check if venv already exists
+    if venv_absolute_path.exists():
+        print(
+            f"Virtual environment already exists at: {venv_absolute_path.relative_to(project_root.parent)}"
+        )
+
+        # Verify it's a valid venv by checking for Python executable
+        python_exe = get_python_executable(str(venv_absolute_path))
+        if python_exe.exists():
+            return True
+        else:
+            print("Warning: Virtual environment exists but Python executable not found.")
+            print("The venv might be corrupted. Please delete it and run again.")
+            return False
+
+    print(
+        f"Creating virtual environment at: {venv_absolute_path.relative_to(project_root.parent)}..."
+    )
     try:
-        # Try using venv module first (preferred)
-        subprocess.run([python_cmd, "-m", "venv", venv_path], check=True)
+        # Create venv using absolute path
+        subprocess.run([python_cmd, "-m", "venv", str(venv_absolute_path)], check=True)
         print("Virtual environment created successfully.")
         return True
     except subprocess.CalledProcessError:
@@ -166,7 +189,7 @@ def create_virtual_environment(venv_path: str, python_cmd: str) -> bool:
                 [python_cmd, "-m", "pip", "install", "virtualenv"],
                 check=True,
             )
-            subprocess.run([python_cmd, "-m", "virtualenv", venv_path], check=True)
+            subprocess.run([python_cmd, "-m", "virtualenv", str(venv_absolute_path)], check=True)
             print("Virtual environment created with virtualenv.")
             return True
         except subprocess.CalledProcessError as e:
@@ -175,16 +198,41 @@ def create_virtual_environment(venv_path: str, python_cmd: str) -> bool:
 
 
 def get_python_executable(venv_path: str) -> Path:
-    """Get the appropriate activation script path for the platform"""
-    venv_dir = Path(venv_path)
+    """Get the Python executable path from virtual environment
+
+    Args:
+        venv_path: Can be relative or absolute path to venv
+
+    Returns:
+        Absolute path to Python executable
+    """
+    venv = Path(venv_path)
+
+    # If relative path, make it relative to project root
+    if not venv.is_absolute():
+        project_root = get_project_root()
+        venv = project_root / venv
+
     if sys.platform.startswith("win"):
-        return venv_dir / "Scripts" / "python.exe"
-    return venv_dir / "bin" / "python"
+        return (venv / "Scripts" / "python.exe").resolve()
+    return (venv / "bin" / "python").resolve()
 
 
 def get_pip_executable(venv_path: str) -> Path:
-    """Get the pip executable path for the virtual environment"""
+    """Get the pip executable path from virtual environment
+
+    Args:
+        venv_path: Can be relative or absolute path to venv
+
+    Returns:
+        Absolute path to pip executable
+    """
     venv = Path(venv_path)
+
+    # If relative path, make it relative to project root
+    if not venv.is_absolute():
+        project_root = get_project_root()
+        venv = project_root / venv
 
     if sys.platform.startswith("win"):
         return (venv / "Scripts" / "pip.exe").resolve()

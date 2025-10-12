@@ -88,9 +88,9 @@ class HelpWindow(ThemedWidget):
             <h2 style='color: {text_color};'>🎯 {_("How to Use Writing Tools")}</h2>
 
             <h3 style='color: {text_color};'> 🖼️  {_("Image Processing Priority")}</h3>
-            <p><strong>{_("Clipboard Images:")}</strong> {_("When an image is in your clipboard, it takes priority over selected text. Press Ctrl+Space to open a prompt window for image analysis (OCR, translation, description, etc.).")}</p>
+            <p><strong>{_("Clipboard Images:")}</strong> {_("Images in clipboard take priority over text. Press Ctrl+Space for image analysis (OCR, translation, description, etc.).")}</p>
             <p><strong>{_("Screenshot Workflow:")}</strong> {_("Take a screenshot (Ctrl+Shift+S or Print Screen) → Image copied to clipboard → Ctrl+Space → Enter prompt → Chat window opens with AI response → Continue discussion about the image.")}</p>
-            <p><strong>{_("Clipboard Management:")}</strong> <b>{_("Once you validate the prompt and enter chat mode, the image is cleared from clipboard to prevent accidental reuse. If you cancel the prompt, the image remains in clipboard.")}</b></p>
+            <p><strong>{_("Clipboard Management:")}</strong> <b>{_("Validated prompts clear clipboard to prevent reuse. Cancelled prompts keep the image.")}</b></p>
 
             <h3 style='color: {text_color};'>📝 {_("Text Selection & Interaction Modes")}</h3>
             <p><strong>{_("When no image in clipboard:")}</strong> {_("With no image in clipboard, text selection works with two interaction paths:")}</p>
@@ -133,7 +133,7 @@ class HelpWindow(ThemedWidget):
             <p><strong>{_("LLM Selection:")}</strong> {_("Choose from available AI models. Models marked with ⭐ support image processing across all providers")}</p>
 
             <h4 style='color: {text_color};'>🔧 {_("Ollama Integration")}</h4>
-            <p><strong>{_("Installation:")}</strong> {_("Writing Tools can install Ollama automatically, opening chat interface immediately")}</p>
+            <p><strong>{_("Installation:")}</strong> {_("Auto-install Ollama and open chat interface immediately")}</p>
             <p><strong>{_("Model Testing:")}</strong> {_("Click models in chat interface to test and install directly")}</p>
             <p><strong>{_("Model Management:")}</strong> {_("Installed models appear immediately in settings dropdown")}</p>
 

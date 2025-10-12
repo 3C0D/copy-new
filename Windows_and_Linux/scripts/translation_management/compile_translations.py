@@ -9,14 +9,47 @@ import os
 import sys
 from pathlib import Path
 
+# Add parent directory to path to import utils
+script_dir = Path(__file__).parent
+project_root = script_dir.parent.parent  # Go up to Windows_and_Linux
+sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(script_dir.parent))  # Add scripts directory
+
+from utils import get_project_root, get_python_executable  # noqa: E402
+
+
+def verify_environment():
+    """Verify that the virtual environment exists"""
+    # This will change to project root and return the path
+    project_root = get_project_root()
+
+    # Check for venv
+    python_cmd = get_python_executable("myvenv")
+    if not python_cmd.exists():
+        print("=" * 60)
+        print("ERROR: Virtual environment not found!")
+        print("=" * 60)
+        print()
+        print(f"Expected location: {project_root / 'myvenv'}")
+        print()
+        print("Please run one of these commands first:")
+        print("  - python dev_script.py          (to setup and run)")
+        print("  - python scripts/update_deps.py (to setup only)")
+        print()
+        return False
+
+    return True
+
 
 def compile_language(lang_code):
     """Compile translations for a given language"""
-    po_file = Path(f"locales/{lang_code}/LC_MESSAGES/messages.po")
-    mo_file = Path(f"locales/{lang_code}/LC_MESSAGES/messages.mo")
+    # Use absolute paths from project root
+    project_root = get_project_root()
+    po_file = project_root / f"locales/{lang_code}/LC_MESSAGES/messages.po"
+    mo_file = project_root / f"locales/{lang_code}/LC_MESSAGES/messages.mo"
 
     if not po_file.exists():
-        print(f"ERROR {lang_code}: File {po_file} not found")
+        print(f"ERROR {lang_code}: File {po_file.relative_to(project_root)} not found")
         return False
 
     try:
@@ -48,7 +81,7 @@ def compile_language(lang_code):
 def get_available_languages():
     """Get the list of available languages"""
     languages = []
-    locales_dir = Path("locales")
+    locales_dir = Path(__file__).parent.parent.parent / "locales"
 
     if not locales_dir.exists():
         return languages

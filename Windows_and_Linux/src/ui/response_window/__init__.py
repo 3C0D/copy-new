@@ -14,3 +14,7 @@ __all__ = [
     "MessageContainer",
     "ResponseWindow",
 ]
+
+
+def _(x):
+    return x

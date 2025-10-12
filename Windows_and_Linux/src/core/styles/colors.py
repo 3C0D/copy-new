@@ -52,27 +52,22 @@ DARK_PALETTE = ColorPalette(
     bg_primary="#2d2d2d",
     bg_secondary="#3a3a3a",
     bg_control="#444444",
-
     # Text
     fg_primary="#ffffff",
     fg_secondary="#cccccc",
     fg_control="#ffffff",
     fg_control_text="#ffffff",
-
     # Borders and accents
     border="#666666",
     border_checkbox="#666666",
     selection="#666",
-
     # Buttons
     primary_default="#4CAF50",
     primary_hover="#45a049",
     primary_pressed="#3d8b40",
-
     secondary_default="#666666",
     secondary_hover="#555555",
     secondary_pressed="#444444",
-
     # Special states
     close_default="#3d8b40",
     close_hover="#2e7d32",
@@ -85,27 +80,22 @@ LIGHT_PALETTE = ColorPalette(
     bg_primary="#ffffff",
     bg_secondary="#f8f9fa",
     bg_control="white",
-
     # Text
     fg_primary="#000000",
     fg_secondary="#333333",
     fg_control="#000000",
     fg_control_text="#333333",
-
     # Borders and accents
     border="#cccccc",
     border_checkbox="#cccccc",
     selection="#e0e0e0",
-
     # Buttons
     primary_default="#008CBA",
     primary_hover="#007095",
     primary_pressed="#005f7a",
-
     secondary_default="#cccccc",
     secondary_hover="#bbbbbb",
     secondary_pressed="#aaaaaa",
-
     # Special states
     close_default="#0277bd",
     close_hover="#01579b",

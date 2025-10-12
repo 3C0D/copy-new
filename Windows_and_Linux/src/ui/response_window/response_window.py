@@ -272,7 +272,6 @@ class ResponseWindow(ThemedWidget):
                 self.toggle_button.setText("▶")
                 self.image_display_collapsed = True
 
-
     def update_thinking_dots(self) -> None:
         """Update the thinking animation dots with proper cycling"""
         self.thinking_dots_state = (self.thinking_dots_state + 1) % len(self.thinking_dots)

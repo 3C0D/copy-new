@@ -214,7 +214,9 @@ Hidden=false
         venv_python: Path = project_root / "myvenv" / "Scripts" / "python.exe"
         dev_script: Path = project_root / "scripts" / "dev_script.py"
         debug_args: str = "--console"
-        command: str = f'cmd /k "cd /d "{project_root}" && "{venv_python}" "{dev_script}" {debug_args}"'
+        command: str = (
+            f'cmd /k "cd /d "{project_root}" && "{venv_python}" "{dev_script}" {debug_args}"'
+        )
         return command
 
     @staticmethod

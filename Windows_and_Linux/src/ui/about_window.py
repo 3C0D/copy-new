@@ -81,7 +81,7 @@ class AboutWindow(ThemedWidget):
         return f"""
         <div style='text-align: center; line-height: 1.6;'>
             <p style='margin-bottom: 20px;'>
-                {_("Writing Tools is a free & lightweight tool that helps you improve your writing with AI, similar to Apple's new Apple Intelligence feature. It works with an extensive range of AI LLMs, both online and locally run.")}
+                {_("Free & lightweight AI writing assistant, similar to Apple's Apple Intelligence. Works with many AI models, online and local.")}
             </p>
 
             <p style='margin-bottom: 20px;'>

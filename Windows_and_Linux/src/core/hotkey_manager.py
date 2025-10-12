@@ -9,7 +9,7 @@ import logging
 import signal
 import time
 import types
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from pynput import keyboard as keyboard
 from PySide6.QtCore import QMetaObject, QObject, Qt, QTimer, Signal, Slot
@@ -31,8 +31,8 @@ class HotkeyManager(QObject):
         self._logger = logging.getLogger(__name__)
 
         # Hotkey system attributes
-        self.hotkey_listener: Optional[keyboard.Listener] = None
-        self.ctrl_c_timer: Optional[QTimer] = None
+        self.hotkey_listener: keyboard.Listener | None = None
+        self.ctrl_c_timer: QTimer | None = None
 
         # Spam protection attributes
         self.recent_triggers: list[float] = []
@@ -57,7 +57,7 @@ class HotkeyManager(QObject):
         self.ctrl_c_timer.start(100)
         self.ctrl_c_timer.timeout.connect(lambda: None)
 
-    def handle_sigint(self, signum: int, frame: Optional[types.FrameType]) -> None:
+    def handle_sigint(self, signum: int, frame: types.FrameType | None) -> None:
         """
         Handle the SIGINT signal (Ctrl+C) to exit the app gracefully.
 

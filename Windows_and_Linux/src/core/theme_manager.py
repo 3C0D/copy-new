@@ -149,7 +149,9 @@ class ThemeManager(QtCore.QObject):
             "checkbox": checkbox(palette),
             "radio": radio_button(palette),
             # ----------  BUTTONS  ----------
-            "button": neutral_button(palette),  # Legacy compatibility - neutral colors for action buttons
+            "button": neutral_button(
+                palette
+            ),  # Legacy compatibility - neutral colors for action buttons
             "primary_button": primary_button(palette),
             "secondary_button": secondary_button(palette),
             "close_button": close_button(palette),

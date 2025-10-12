@@ -3,8 +3,9 @@ Writing Tools - Configuration Interfaces
 Defines the data structures for unified settings management
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, Optional, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 if TYPE_CHECKING:
     from ..writing_tools_app import WritingToolsApp
@@ -21,7 +22,7 @@ class ActionConfig(TypedDict, total=False):
     prefix: str
     instruction: str
     icon: str
-    open_in_window: Optional[bool]
+    open_in_window: bool | None
 
 
 class ActionConfigWithName(ActionConfig, total=False):
@@ -59,10 +60,10 @@ class SystemConfig(TypedDict, total=False):
 class ProviderConfig(TypedDict, total=False):
     api_key: str
     api_model: str
-    api_base: Optional[str]
-    keep_alive: Optional[str]
-    api_project: Optional[str]
-    api_organisation: Optional[str]
+    api_base: str | None
+    keep_alive: str | None
+    api_project: str | None
+    api_organisation: str | None
 
 
 class CustomDataStructure(TypedDict, total=False):

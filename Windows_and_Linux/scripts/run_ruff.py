@@ -5,28 +5,25 @@ This script is cross-platform for Windows and Linux.
 Uses standardized environment setup from utils.py
 """
 
-import os
 import subprocess
 import sys
 from pathlib import Path
 
+# Import after path setup
+from utils import (
+    clear_console,
+    get_project_root,
+    get_python_executable,
+    setup_environment,
+)
+
 # Configuration
 DEFAULT_VENV_NAME = "myvenv"
 
-if os.name == "nt":  # Windows
-    from utils import (  # type: ignore
-        clear_console,
-        get_project_root,
-        get_python_executable,
-        setup_environment,
-    )
-else:  # Linux/Unix
-    from .utils import (  # type: ignore
-        clear_console,
-        get_project_root,
-        get_python_executable,
-        setup_environment,
-    )
+# Add parent directory to path to import utils
+script_dir = Path(__file__).parent
+project_root = script_dir.parent.parent  # Go up to Windows_and_Linux
+sys.path.insert(0, str(project_root))
 
 
 def main():

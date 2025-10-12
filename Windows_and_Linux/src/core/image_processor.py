@@ -3,7 +3,6 @@ import tempfile
 import time
 import urllib.parse
 from pathlib import Path
-from typing import Optional
 
 from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
@@ -29,7 +28,7 @@ class ImageProcessor:
         self.app = app
         self._logger = logger
 
-    def _normalize_path_text(self, text: str) -> Optional[str]:
+    def _normalize_path_text(self, text: str) -> str | None:
         """
         Normalize text that might be a file path by removing quotes and handling URLs.
 
@@ -91,7 +90,7 @@ class ImageProcessor:
             self._logger.debug(f"Error validating image path: {e}")
             return False
 
-    def _load_image_from_path(self, text: str) -> Optional[QImage]:
+    def _load_image_from_path(self, text: str) -> QImage | None:
         """
         Load an image from a file path.
 
@@ -122,7 +121,7 @@ class ImageProcessor:
             self._logger.error(f"Error loading image from path {text}: {e}")
             return None
 
-    def _process_clipboard_image_data(self, mime_data) -> Optional[QImage]:
+    def _process_clipboard_image_data(self, mime_data) -> QImage | None:
         """Process image data from clipboard MIME data."""
         try:
             available_formats = mime_data.formats()
@@ -154,7 +153,7 @@ class ImageProcessor:
             self._logger.error(f"Error processing clipboard image data: {e}")
             return None
 
-    def get_image_from_clipboard(self) -> Optional[QImage]:
+    def get_image_from_clipboard(self) -> QImage | None:
         """
         Get image data from clipboard (screenshots, copied images, or image file paths).
 

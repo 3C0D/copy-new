@@ -51,12 +51,12 @@ class Translations:
                 translation = gettext.translation(
                     "messages",
                     localedir=str(locales_dir),
-                    languages=['en'],
+                    languages=["en"],
                 )
-                actual_lang = 'en'
+                actual_lang = "en"
             except FileNotFoundError:
                 translation = gettext.NullTranslations()
-                actual_lang = 'en'  # Default to 'en' even with NullTranslations
+                actual_lang = "en"  # Default to 'en' even with NullTranslations
 
         # Install translation as default gettext function
         translation.install()
@@ -81,6 +81,7 @@ class Translations:
         )
         from ...ui.SettingsWindow import general_settings, provider_settings
 
+        # Update translation functions for all UI modules
         about_window._ = self._
         settings_window._ = self._
         response_window._ = self._
@@ -89,6 +90,9 @@ class Translations:
         general_settings._ = self._
         provider_settings._ = self._
         systray._ = self._
+
+        # Update individual modules within response_window
+        # These modules define their own _ function, so we don't need to update them
 
     def _update_widget_translations(self) -> None:
         """Update translations for all top-level widgets."""

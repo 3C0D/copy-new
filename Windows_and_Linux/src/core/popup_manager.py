@@ -1,5 +1,3 @@
-from typing import Optional
-
 from PySide6.QtCore import QObject, Slot
 from PySide6.QtGui import QCursor, QImage
 from PySide6.QtWidgets import QApplication
@@ -17,12 +15,12 @@ class PopupManager(QObject):
         self.image_processor = app.image_processor
 
         # State variables
-        self.image: Optional[QImage] = None
+        self.image: QImage | None = None
         self.has_image: bool = False
-        self.original_selection: Optional[str] = None
+        self.original_selection: str | None = None
         self.popup_window = None
 
-    def _determine_content_source(self) -> tuple[Optional[QImage], Optional[str]]:
+    def _determine_content_source(self) -> tuple[QImage | None, str | None]:
         """
         Determine if the source is an image from clipboard or selected text or image path.
         Automatically replaces old clipboard image with new one if different.
@@ -94,7 +92,7 @@ class PopupManager(QObject):
 
         return None, selected_text
 
-    def _images_are_different(self, img1: Optional[QImage], img2: Optional[QImage]) -> bool:
+    def _images_are_different(self, img1: QImage | None, img2: QImage | None) -> bool:
         """
         Compare two images to determine if they're different.
 
@@ -118,7 +116,7 @@ class PopupManager(QObject):
 
         return False  # Same size = assume same image for now
 
-    def _create_popup_window(self, selected_text: Optional[str], image: Optional[QImage]) -> None:
+    def _create_popup_window(self, selected_text: str | None, image: QImage | None) -> None:
         """Create and configure the popup window."""
         self._logger.debug("🆕🪟 Creating new popup window")
 
@@ -127,7 +125,7 @@ class PopupManager(QObject):
 
         self.popup_window = custom_popup_window.CustomPopupWindow(self.app, selected_text, image)
 
-    def _display_popup_window(self, selected_text: Optional[str]) -> None:
+    def _display_popup_window(self, selected_text: str | None) -> None:
         """Display and position the popup window."""
         if not self.popup_window:
             return

@@ -31,4 +31,4 @@ Windows_and_Linux/*.spec
 
 # Translation files
 **/pot_files
-**/locales
+# **/locales
