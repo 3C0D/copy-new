@@ -48,49 +48,11 @@ class MarkdownTextBrowser(QTextBrowser):
     def _apply_zoom(self) -> None:
         new_size = int(self.base_font_size * self.zoom_factor)
 
-        current_mode = self.app.settings_manager.color_mode
+        style_key = "markdown_text_browser_user" if self.is_user_message else "markdown_text_browser_ai"
+        base_style = self.app.styles[style_key]
 
-        self.setStyleSheet(
-            f"""
-            QTextBrowser {{
-                background-color: {("transparent" if self.is_user_message else "#333" if current_mode == "dark" else "#f8f9fa")};
-                color: {"#ffffff" if current_mode == "dark" else "#212529"};
-                border: {("none" if self.is_user_message else "1px solid " + ("#555" if current_mode == "dark" else "#dee2e6"))};
-                border-radius: 8px;
-                padding: 8px;
-                margin: 0px;
-                font-size: {new_size}px;
-                line-height: 1.3;
-                width: 100%;
-            }}
-
-            /* Table styles */
-            table {{
-                border-collapse: collapse;
-                width: 100%;
-                margin: 10px 0;
-            }}
-
-            th, td {{
-                border: 1px solid {"#555" if current_mode == "dark" else "#dee2e6"};
-                padding: 8px;
-                text-align: left;
-            }}
-
-            th {{
-                background-color: {"#444" if current_mode == "dark" else "#e9ecef"};
-                font-weight: bold;
-            }}
-
-            tr:nth-child(even) {{
-                background-color: {"#3a3a3a" if current_mode == "dark" else "#f8f9fa"};
-            }}
-
-            tr:hover {{
-                background-color: {"#484848" if current_mode == "dark" else "#e9ecef"};
-            }}
-        """,
-        )
+        # Add dynamic font-size to the base style
+        self.setStyleSheet(f"{base_style} QTextBrowser {{ font-size: {new_size}px; }}")
 
     def _update_size(self) -> None:
         # Calculate correct document width

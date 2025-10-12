@@ -171,13 +171,7 @@ class HelpWindow(ThemedWidget):
         self.content_widget.setWordWrap(True)
         self.content_widget.setOpenExternalLinks(True)
         self.content_widget.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-        self.content_widget.setStyleSheet("""
-            QLabel {
-                background: transparent;
-                padding: 10px;
-                font-size: 14px;
-            }
-        """)
+        self.content_widget.setStyleSheet(self.app.styles["help_content_label"])
 
         scroll_area.setWidget(self.content_widget)
         return scroll_area

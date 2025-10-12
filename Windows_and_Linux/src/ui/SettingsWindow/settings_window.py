@@ -77,7 +77,7 @@ class SettingsWindow(ThemedWidget):
 
         # Create scrollable content widget
         scroll_content = QWidget()
-        scroll_content.setStyleSheet("background: transparent;")
+        scroll_content.setStyleSheet(self.app.styles["transparent_background"])
         content_layout = QVBoxLayout(scroll_content)
         content_layout.setContentsMargins(30, 30, 30, 30)
         content_layout.setSpacing(20)

@@ -38,15 +38,15 @@ if TYPE_CHECKING:
     from .core.hotkey_manager import HotkeyManager
     from .core.image_processor import ImageProcessor
     from .core.input_manager import InputManager
+    from .core.language_manager import LanguageManager
     from .core.lifecycle_manager import LifecycleManager
     from .core.popup_manager import PopupManager
     from .core.text_processor import TextProcessor
+    from .core.theme_manager import ThemeManager
     from .core.ui_manager import UIManager
     from .core.update_manager import UpdateManager
     from .systray import SystrayManager
-    from .core.language_manager import LanguageManager
     from .ui.response_window import ResponseWindow
-    from .core.theme_manager import ThemeManager
 
 os.environ["QT_LOGGING_RULES"] = (
     "qt.qpa.mime.warning=false;qt.qpa.mime.debug=false;qt.qpa.mime.info=false"  # Disable QMimeDatabase warnings
@@ -79,7 +79,7 @@ class WritingToolsApp(QApplication):
     theme_manager: ThemeManager
     tray_icon: object | None = None
     non_editable_modal: object | None = None
-    styles: dict
+    styles: dict # updated from theme_manager
 
     def __init__(self, argv: list[str]):
         super().__init__(argv)

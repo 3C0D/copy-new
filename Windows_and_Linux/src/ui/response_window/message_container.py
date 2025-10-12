@@ -55,24 +55,7 @@ class MessageContainer(QWidget):
             if icon_path.exists():
                 self.copy_btn.setIcon(QtGui.QIcon(icon_path.as_posix()))
 
-            current_mode = self.app.settings_manager.color_mode
-
-            self.copy_btn.setStyleSheet(
-                f"""
-                QToolButton {{
-                    background-color: {"rgba(68, 68, 68, 0.9)" if current_mode == "dark" else "rgba(248, 249, 250, 0.95)"};
-                    border: 1px solid {"#666" if current_mode == "dark" else "#dee2e6"};
-                    border-radius: 6px;
-                    padding: 2px;
-                    margin: 0px;
-                    spacing: 0px;
-                }}
-                QToolButton:hover {{
-                    background-color: {"rgba(85, 85, 85, 0.9)" if current_mode == "dark" else "rgba(233, 236, 239, 0.95)"};
-                    border: 1px solid {"#777" if current_mode == "dark" else "#adb5bd"};
-                }}
-            """,
-            )
+            self.copy_btn.setStyleSheet(self.app.styles["copy_button"])
             self.copy_btn.setToolTip(_("Copy as Markdown"))
             self.copy_btn.clicked.connect(self.copy_content)
             self.copy_btn.setFixedSize(32, 32)
@@ -112,18 +95,8 @@ class MessageContainer(QWidget):
         if hasattr(self, "copy_btn"):
             original_style = self.copy_btn.styleSheet()
 
-            # Success feedback style
-            success_style = """
-                QToolButton {
-                    background-color: rgba(76, 175, 80, 0.9);
-                    border: 1px solid #4CAF50;
-                    border-radius: 6px;
-                    padding: 2px;
-                }
-            """
-
             # Apply success style
-            self.copy_btn.setStyleSheet(success_style)
+            self.copy_btn.setStyleSheet(self.app.styles["copy_button_success"])
 
             # Reset to original style after 500ms
             QtCore.QTimer.singleShot(

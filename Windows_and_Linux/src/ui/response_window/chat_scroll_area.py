@@ -45,41 +45,7 @@ class ChatContentScrollArea(QScrollArea):
         self.content_layout.addStretch()
 
         # Enhanced scroll area styling - consistent with SettingsWindow
-        self.setStyleSheet(
-            """
-            QScrollArea {
-                background-color: transparent;
-                border: none;
-            }
-            QScrollArea > QWidget > QWidget {
-                background-color: transparent;
-            }
-            QScrollBar:vertical {
-                background-color: rgba(0, 0, 0, 0.1);
-                width: 12px;
-                margin: 0px;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: rgba(128, 128, 128, 0.6);
-                min-height: 20px;
-                border-radius: 6px;
-                margin: 2px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: rgba(128, 128, 128, 0.8);
-            }
-            QScrollBar::handle:vertical:pressed {
-                background-color: rgba(128, 128, 128, 1.0);
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                height: 0px;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                background: transparent;
-            }
-        """,
-        )
+        self.setStyleSheet(self.app.styles["chat_scroll_area"])
 
     def add_message(self, text: str, is_user: bool = False) -> "MarkdownTextBrowser | None":
         """Add a new message to the chat area and return the text display widget"""

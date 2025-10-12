@@ -464,4 +464,311 @@ class ThemeManager(QtCore.QObject):
                     {"" if dark else "color: #ffffff;"}
                 }}
             """,
+            "progress_window": f"""
+                QDialog {{
+                    background-color: {"#2b2b2b" if dark else "#ffffff"};
+                    color: {"#ffffff" if dark else "#333333"};
+                }}
+                QLabel {{
+                    font-size: 14px;
+                    color: {"#ffffff" if dark else "#333333"};
+                }}
+                QPushButton {{
+                    background-color: {"#4CAF50" if dark else "#008CBA"};
+                    color: white;
+                    padding: 8px 16px;
+                    font-size: 12px;
+                    border: none;
+                    border-radius: 4px;
+                }}
+                QPushButton:hover {{
+                    background-color: {"#45a049" if dark else "#007095"};
+                }}
+                QProgressBar {{
+                    background-color: {"#444444" if dark else "#f0f0f0"};
+                    border: 1px solid #cccccc;
+                    border-radius: 4px;
+                    text-align: center;
+                }}
+                QProgressBar::chunk {{
+                    background-color: {"#4CAF50" if dark else "#008CBA"};
+                    border-radius: 3px;
+                }}
+            """,
+            "chat_scroll_area": f"""
+                QScrollArea {{
+                    background-color: transparent;
+                    border: none;
+                }}
+                QScrollArea > QWidget > QWidget {{
+                    background-color: transparent;
+                }}
+                QScrollBar:vertical {{
+                    background-color: {"rgba(0, 0, 0, 0.1)" if not dark else "rgba(255, 255, 255, 0.1)"};
+                    width: 12px;
+                    margin: 0px;
+                    border-radius: 6px;
+                }}
+                QScrollBar::handle:vertical {{
+                    background-color: {"rgba(128, 128, 128, 0.6)" if not dark else "rgba(200, 200, 200, 0.6)"};
+                    min-height: 20px;
+                    border-radius: 6px;
+                    margin: 2px;
+                }}
+                QScrollBar::handle:vertical:hover {{
+                    background-color: {"rgba(128, 128, 128, 0.8)" if not dark else "rgba(220, 220, 220, 0.8)"};
+                }}
+                QScrollBar::handle:vertical:pressed {{
+                    background-color: {"rgba(128, 128, 128, 1.0)" if not dark else "rgba(240, 240, 240, 1.0)"};
+                }}
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                    height: 0px;
+                }}
+                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                    background: transparent;
+                }}
+            """,
+            "markdown_text_browser_ai": f"""
+                QTextBrowser {{
+                    background-color: {"#333" if dark else "#f8f9fa"};
+                    color: {"#ffffff" if dark else "#212529"};
+                    border: 1px solid {"#555" if dark else "#dee2e6"};
+                    border-radius: 8px;
+                    padding: 8px;
+                    margin: 0px;
+                    line-height: 1.3;
+                    width: 100%;
+                }}
+                table {{
+                    border-collapse: collapse;
+                    width: 100%;
+                    margin: 10px 0;
+                }}
+                th, td {{
+                    border: 1px solid {"#555" if dark else "#dee2e6"};
+                    padding: 8px;
+                    text-align: left;
+                }}
+                th {{
+                    background-color: {"#444" if dark else "#e9ecef"};
+                    font-weight: bold;
+                }}
+                tr:nth-child(even) {{
+                    background-color: {"#3a3a3a" if dark else "#f8f9fa"};
+                }}
+                tr:hover {{
+                    background-color: {"#484848" if dark else "#e9ecef"};
+                }}
+            """,
+            "markdown_text_browser_user": f"""
+                QTextBrowser {{
+                    background-color: transparent;
+                    color: {"#ffffff" if dark else "#212529"};
+                    border: none;
+                    border-radius: 8px;
+                    padding: 8px;
+                    margin: 0px;
+                    line-height: 1.3;
+                    width: 100%;
+                }}
+                table {{
+                    border-collapse: collapse;
+                    width: 100%;
+                    margin: 10px 0;
+                }}
+                th, td {{
+                    border: 1px solid {"#555" if dark else "#dee2e6"};
+                    padding: 8px;
+                    text-align: left;
+                }}
+                th {{
+                    background-color: {"#444" if dark else "#e9ecef"};
+                    font-weight: bold;
+                }}
+                tr:nth-child(even) {{
+                    background-color: {"#3a3a3a" if dark else "#f8f9fa"};
+                }}
+                tr:hover {{
+                    background-color: {"#484848" if dark else "#e9ecef"};
+                }}
+            """,
+            "copy_button": f"""
+                QToolButton {{
+                    background-color: {"rgba(68, 68, 68, 0.9)" if dark else "rgba(248, 249, 250, 0.95)"};
+                    border: 1px solid {"#666" if dark else "#dee2e6"};
+                    border-radius: 6px;
+                    padding: 2px;
+                    margin: 0px;
+                    spacing: 0px;
+                }}
+                QToolButton:hover {{
+                    background-color: {"rgba(85, 85, 85, 0.9)" if dark else "rgba(233, 236, 239, 0.95)"};
+                    border: 1px solid {"#777" if dark else "#adb5bd"};
+                }}
+            """,
+            "copy_button_success": """
+                QToolButton {
+                    background-color: rgba(76, 175, 80, 0.9);
+                    border: 1px solid #4CAF50;
+                    border-radius: 6px;
+                    padding: 2px;
+                }
+            """,
+            "response_window_title": f"""
+                QLabel {{
+                    font-size: 20px;
+                    font-weight: bold;
+                    color: {"#ffffff" if dark else "#333333"};
+                }}
+            """,
+            "response_window_image_indicator": f"""
+                QLabel {{
+                    color: {"#aaaaaa" if dark else "#666666"};
+                    font-size: 16px;
+                    margin-left: 10px;
+                }}
+            """,
+            "response_window_zoom_label": f"""
+                QLabel {{
+                    color: {"#aaaaaa" if dark else "#666666"};
+                    font-size: 14px;
+                    margin-right: 5px;
+                }}
+            """,
+            "response_window_copy_hint": f"""
+                QLabel {{
+                    color: {"#aaaaaa" if dark else "#666666"};
+                    font-size: 14px;
+                }}
+            """,
+            "response_window_loading_label": f"""
+                QLabel {{
+                    color: {"#ffffff" if dark else "#333333"};
+                    font-size: 18px;
+                    padding: 20px;
+                }}
+            """,
+            "response_window_input": f"""
+                QLineEdit {{
+                    padding: 8px;
+                    border: 1px solid {"#777" if dark else "#dee2e6"};
+                    border-radius: 8px;
+                    background-color: {"#333" if dark else "#f8f9fa"};
+                    color: {"#ffffff" if dark else "#212529"};
+                    font-size: 14px;
+                }}
+            """,
+            "response_window_send_button": f"""
+                QPushButton {{
+                    background-color: {"#2e7d32" if dark else "#4CAF50"};
+                    border: none;
+                    border-radius: 8px;
+                    padding: 5px;
+                }}
+                QPushButton:hover {{
+                    background-color: {"#1b5e20" if dark else "#45a049"};
+                }}
+            """,
+            "response_window_image_section": f"""
+                QWidget {{
+                    background-color: {"#2a2a2a" if dark else "#f8f9fa"};
+                    border: 1px solid {"#555" if dark else "#dee2e6"};
+                    border-radius: 8px;
+                    margin: 5px 0;
+                }}
+            """,
+            "response_window_toggle_button": f"""
+                QPushButton {{
+                    background: transparent;
+                    border: none;
+                    color: {"#ffffff" if dark else "#333333"};
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: {"#404040" if dark else "#e9ecef"};
+                    border-radius: 10px;
+                }}
+            """,
+            "response_window_header_label": f"""
+                QLabel {{
+                    color: {"#ffffff" if dark else "#333333"};
+                    font-size: 14px;
+                    font-weight: bold;
+                }}
+            """,
+            "response_window_info_label": f"""
+                QLabel {{
+                    color: {"#aaaaaa" if dark else "#666666"};
+                    font-size: 12px;
+                }}
+            """,
+            "response_window_image_display": """
+                QLabel {
+                    border: 1px solid #999;
+                    border-radius: 4px;
+                    padding: 5px;
+                    background-color: rgba(255, 255, 255, 0.05);
+                }
+            """,
+            "response_window_zoom_button": f"""
+                QPushButton {{
+                    background-color: {"#444" if dark else "#f8f9fa"};
+                    color: {"#ffffff" if dark else "#212529"};
+                    border: 1px solid {"#666" if dark else "#dee2e6"};
+                    border-radius: 5px;
+                    padding: 8px;
+                    font-size: 14px;
+                }}
+                QPushButton:hover {{
+                    background-color: {"#555" if dark else "#e9ecef"};
+                }}
+            """,
+            "help_content_label": """
+                QLabel {
+                    background: transparent;
+                    padding: 10px;
+                    font-size: 14px;
+                }
+            """,
+            "about_content_label": """
+                QLabel {
+                    font-size: 14px;
+                    color: #e8dcc0;
+                    background-color: rgba(45, 45, 45, 0.95);
+                    padding: 10px;
+                    border-radius: 8px;
+                }
+            """,
+            "about_update_button": f"""
+                QPushButton {{
+                    background-color: {"#4CAF50" if dark else "#008CBA"};
+                    border: 1px solid {"#3d8b40" if dark else "none"};
+                    color: white;
+                    padding: 10px 20px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    border-radius: 8px;
+                }}
+                QPushButton:hover {{
+                    background-color: {"#45a049" if dark else "#007095"};
+                }}
+                QPushButton:pressed {{
+                    background-color: {"#3d8b40" if dark else "#005f7a"};
+                }}
+                QPushButton:disabled {{
+                    background-color: {"#3d8b40" if dark else "#005f7a"};
+                    color: #bdbdbd;
+                    border-color: {"#3d8b40" if dark else "#005f7a"};
+                }}
+            """,
+            "transparent_background": """
+                QWidget {
+                    background: transparent;
+                }
+            """,
+            "margin_top_10": """
+                QLabel {
+                    margin-top: 10px;
+                }
+            """,
         }

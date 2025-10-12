@@ -74,52 +74,7 @@ class ProgressWindow(QDialog):
 
     def _apply_theme(self) -> None:
         """Apply the current theme to the window."""
-        current_mode = self.app.settings_manager.color_mode
-
-        if current_mode == "dark":
-            bg_color = "#2b2b2b"
-            text_color = "#ffffff"
-            button_bg = "#4CAF50"
-            button_hover = "#45a049"
-            progress_bg = "#444444"
-        else:
-            bg_color = "#ffffff"
-            text_color = "#333333"
-            button_bg = "#008CBA"
-            button_hover = "#007095"
-            progress_bg = "#f0f0f0"
-
-        self.setStyleSheet(f"""
-            QDialog {{
-                background-color: {bg_color};
-                color: {text_color};
-            }}
-            QLabel {{
-                font-size: 14px;
-                color: {text_color};
-            }}
-            QPushButton {{
-                background-color: {button_bg};
-                color: white;
-                padding: 8px 16px;
-                font-size: 12px;
-                border: none;
-                border-radius: 4px;
-            }}
-            QPushButton:hover {{
-                background-color: {button_hover};
-            }}
-            QProgressBar {{
-                background-color: {progress_bg};
-                border: 1px solid #cccccc;
-                border-radius: 4px;
-                text-align: center;
-            }}
-            QProgressBar::chunk {{
-                background-color: {button_bg};
-                border-radius: 3px;
-            }}
-        """)
+        self.setStyleSheet(self.app.styles["progress_window"])
 
     def start_animation(self) -> None:
         """Start the dots animation."""

@@ -400,7 +400,7 @@ class CustomPopupWindow(QWidget):
         buttons_scroll.setMaximumHeight(250)
 
         buttons_widget = QWidget()
-        buttons_widget.setStyleSheet("background: transparent;")
+        buttons_widget.setStyleSheet(self.app.styles["transparent_background"])
         buttons_layout = QVBoxLayout(buttons_widget)
         buttons_layout.setContentsMargins(0, 0, 0, 0)
         buttons_layout.setSpacing(5)
@@ -434,7 +434,7 @@ class CustomPopupWindow(QWidget):
                 "There's an update! :D Download now."
                 "</a>"
             )
-            self.update_label.setStyleSheet("margin-top: 10px;")
+            self.update_label.setStyleSheet(self.app.styles["margin_top_10"])
             content_layout.addWidget(
                 self.update_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter
             )
@@ -705,7 +705,7 @@ class CustomPopupWindow(QWidget):
             buttons_scroll.setMaximumHeight(250)
 
             buttons_widget = QWidget()
-            buttons_widget.setStyleSheet("background: transparent;")
+            buttons_widget.setStyleSheet(self.app.styles["transparent_background"])
             buttons_layout = QVBoxLayout(buttons_widget)
             buttons_layout.setContentsMargins(0, 0, 0, 0)
             buttons_layout.setSpacing(5)

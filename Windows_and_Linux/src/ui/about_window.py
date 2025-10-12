@@ -193,16 +193,11 @@ class AboutWindow(ThemedWidget):
 
     def apply_update_button_style(self, button: QPushButton) -> None:
         """Apply modern styling to a button."""
-        dark = self.app.settings_manager.color_mode == "dark"
-        button.setStyleSheet(
-            f"{self.app.styles['primary_button']} font-weight: bold; padding: 10px 20px;border-radius: 8px;border: 1px solid {'#3d8b40' if dark else 'none'};"
-        )
+        button.setStyleSheet(self.app.styles["about_update_button"])
 
     def _get_content_style(self) -> str:
         """Get the content styling with fixed dark colors for better readability."""
-        color = "#e8dcc0"
-        background = "rgba(45, 45, 45, 0.95)"
-        return f"font-size: 14px; color: {color}; background-color: {background}; padding: 10px; border-radius: 8px;"
+        return self.app.styles["about_content_label"]
 
     def check_for_updates(self) -> None:
         """Open the GitHub releases page to check for updates."""

@@ -19,7 +19,7 @@ from .markdown_text_browser import MarkdownTextBrowser
 from .message_container import MessageContainer
 
 if TYPE_CHECKING:
-    from ..writing_tools_app import WritingToolsApp
+    from ...writing_tools_app import WritingToolsApp
 
 
 def _(x):
@@ -82,24 +82,13 @@ class ResponseWindow(ThemedWidget):
         top_bar = QHBoxLayout()
 
         title_label = QLabel(self.option)
-        current_mode = self.app.settings_manager.color_mode
-        title_label.setStyleSheet(
-            f"font-size: 20px; font-weight: bold; color: {'#ffffff' if current_mode == 'dark' else '#333333'};",
-        )
+        title_label.setStyleSheet(self.app.styles["response_window_title"])
         top_bar.addWidget(title_label)
 
         # Add image indicator in title bar if we have an image
         if self.image:
             image_indicator = QLabel("📷")
-            image_indicator.setStyleSheet(
-                f"""
-                QLabel {{
-                    color: {"#aaaaaa" if current_mode == "dark" else "#666666"};
-                    font-size: 16px;
-                    margin-left: 10px;
-                }}
-                """
-            )
+            image_indicator.setStyleSheet(self.app.styles["response_window_image_indicator"])
             image_indicator.setToolTip("Image analysis mode")
             top_bar.addWidget(image_indicator)
 
@@ -107,13 +96,7 @@ class ResponseWindow(ThemedWidget):
 
         # Zoom label with matched size
         zoom_label = QLabel("Zoom:")
-        zoom_label.setStyleSheet(
-            f"""
-            color: {"#aaaaaa" if current_mode == "dark" else "#666666"};
-            font-size: 14px;
-            margin-right: 5px;
-        """,
-        )
+        zoom_label.setStyleSheet(self.app.styles["response_window_zoom_label"])
         top_bar.addWidget(zoom_label)
 
         # Enhanced zoom controls with swapped order
@@ -129,7 +112,7 @@ class ResponseWindow(ThemedWidget):
             btn.setIcon(
                 QtGui.QIcon(ui_utils.get_icon_path(self.app, icon, with_theme=True).as_posix())
             )
-            btn.setStyleSheet(self.get_button_style())
+            btn.setStyleSheet(self.app.styles["response_window_zoom_button"])
             btn.setToolTip(tooltip)
             btn.clicked.connect(action)
             btn.setFixedSize(30, 30)
@@ -146,9 +129,7 @@ class ResponseWindow(ThemedWidget):
         copy_hint = QLabel(
             _("Hover over assistant responses for individual copy buttons"),
         )
-        copy_hint.setStyleSheet(
-            f"color: {'#aaaaaa' if current_mode == 'dark' else '#666666'}; font-size: 14px;",
-        )
+        copy_hint.setStyleSheet(self.app.styles["response_window_copy_hint"])
         copy_bar.addWidget(copy_hint)
         copy_bar.addStretch()
         self.content_layout.addLayout(copy_bar)
@@ -159,15 +140,7 @@ class ResponseWindow(ThemedWidget):
         loading_layout.setContentsMargins(0, 0, 0, 0)
 
         self.loading_label = QLabel(_("Analyzing image" if self.image else "Thinking"))
-        self.loading_label.setStyleSheet(
-            f"""
-            QLabel {{
-                color: {"#ffffff" if current_mode == "dark" else "#333333"};
-                font-size: 18px;
-                padding: 20px;
-            }}
-        """,
-        )
+        self.loading_label.setStyleSheet(self.app.styles["response_window_loading_label"])
         self.loading_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
 
         loading_inner_container = QWidget()
@@ -200,18 +173,7 @@ class ResponseWindow(ThemedWidget):
             else _("Ask a follow-up question") + "..."
         )
         self.input_field.setPlaceholderText(placeholder_text)
-        self.input_field.setStyleSheet(
-            f"""
-            QLineEdit {{
-                padding: 8px;
-                border: 1px solid {"#777" if current_mode == "dark" else "#dee2e6"};
-                border-radius: 8px;
-                background-color: {"#333" if current_mode == "dark" else "#f8f9fa"};
-                color: {"#ffffff" if current_mode == "dark" else "#212529"};
-                font-size: 14px;
-            }}
-        """,
-        )
+        self.input_field.setStyleSheet(self.app.styles["response_window_input"])
         self.input_field.returnPressed.connect(self.send_message)
         self.input_field.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         bottom_bar.addWidget(self.input_field)
@@ -221,19 +183,7 @@ class ResponseWindow(ThemedWidget):
         send_button.setIcon(
             QtGui.QIcon(ui_utils.get_icon_path(self.app, "send", with_theme=True).as_posix())
         )
-        send_button.setStyleSheet(
-            f"""
-            QPushButton {{
-                background-color: {"#2e7d32" if current_mode == "dark" else "#4CAF50"};
-                border: none;
-                border-radius: 8px;
-                padding: 5px;
-            }}
-            QPushButton:hover {{
-                background-color: {"#1b5e20" if current_mode == "dark" else "#45a049"};
-            }}
-        """,
-        )
+        send_button.setStyleSheet(self.app.styles["response_window_send_button"])
         send_button.setFixedSize(
             self.input_field.sizeHint().height(),
             self.input_field.sizeHint().height(),
@@ -256,20 +206,9 @@ class ResponseWindow(ThemedWidget):
         if not self.image:
             return
 
-        current_mode = self.app.settings_manager.color_mode
-
         # Create collapsible section
         image_section = QWidget()
-        image_section.setStyleSheet(
-            f"""
-            QWidget {{
-                background-color: {"#2a2a2a" if current_mode == "dark" else "#f8f9fa"};
-                border: 1px solid {"#555" if current_mode == "dark" else "#dee2e6"};
-                border-radius: 8px;
-                margin: 5px 0;
-            }}
-            """
-        )
+        image_section.setStyleSheet(self.app.styles["response_window_image_section"])
 
         section_layout = QVBoxLayout(image_section)
         section_layout.setContentsMargins(10, 10, 10, 10)
@@ -280,33 +219,12 @@ class ResponseWindow(ThemedWidget):
 
         self.toggle_button = QPushButton("▼")
         self.toggle_button.setFixedSize(20, 20)
-        self.toggle_button.setStyleSheet(
-            f"""
-            QPushButton {{
-                background: transparent;
-                border: none;
-                color: {"#ffffff" if current_mode == "dark" else "#333333"};
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                background-color: {"#404040" if current_mode == "dark" else "#e9ecef"};
-                border-radius: 10px;
-            }}
-            """
-        )
+        self.toggle_button.setStyleSheet(self.app.styles["response_window_toggle_button"])
         self.toggle_button.clicked.connect(self._toggle_image_preview)
         header_layout.addWidget(self.toggle_button)
 
         header_label = QLabel("Source Image")
-        header_label.setStyleSheet(
-            f"""
-            QLabel {{
-                color: {"#ffffff" if current_mode == "dark" else "#333333"};
-                font-size: 14px;
-                font-weight: bold;
-            }}
-            """
-        )
+        header_label.setStyleSheet(self.app.styles["response_window_header_label"])
         header_layout.addWidget(header_label)
 
         header_layout.addStretch()
@@ -314,14 +232,7 @@ class ResponseWindow(ThemedWidget):
         # Image info
         info_text = f"{self.image.width()}×{self.image.height()} pixels"
         info_label = QLabel(info_text)
-        info_label.setStyleSheet(
-            f"""
-            QLabel {{
-                color: {"#aaaaaa" if current_mode == "dark" else "#666666"};
-                font-size: 12px;
-            }}
-            """
-        )
+        info_label.setStyleSheet(self.app.styles["response_window_info_label"])
         header_layout.addWidget(info_label)
 
         section_layout.addLayout(header_layout)
@@ -329,16 +240,7 @@ class ResponseWindow(ThemedWidget):
         # Image display
         self.image_display_widget = QLabel()
         self.image_display_widget.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.image_display_widget.setStyleSheet(
-            """
-            QLabel {
-                border: 1px solid #999;
-                border-radius: 4px;
-                padding: 5px;
-                background-color: rgba(255, 255, 255, 0.05);
-            }
-            """
-        )
+        self.image_display_widget.setStyleSheet(self.app.styles["response_window_image_display"])
 
         # Scale image for display
         pixmap = QtGui.QPixmap.fromImage(self.image)
@@ -370,21 +272,6 @@ class ResponseWindow(ThemedWidget):
                 self.toggle_button.setText("▶")
                 self.image_display_collapsed = True
 
-    def get_button_style(self) -> str:
-        current_mode = self.app.settings_manager.color_mode
-        return f"""
-            QPushButton {{
-                background-color: {"#444" if current_mode == "dark" else "#f8f9fa"};
-                color: {"#ffffff" if current_mode == "dark" else "#212529"};
-                border: 1px solid {"#666" if current_mode == "dark" else "#dee2e6"};
-                border-radius: 5px;
-                padding: 8px;
-                font-size: 14px;
-            }}
-            QPushButton:hover {{
-                background-color: {"#555" if current_mode == "dark" else "#e9ecef"};
-            }}
-        """
 
     def update_thinking_dots(self) -> None:
         """Update the thinking animation dots with proper cycling"""
