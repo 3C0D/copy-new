@@ -3,11 +3,13 @@ Centralized theme manager for the entire application.
 """
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from PySide6 import QtCore
 
 if TYPE_CHECKING:
+    from PySide6.QtWidgets import QWidget
+
     from ..writing_tools_app import WritingToolsApp
 
 
@@ -22,20 +24,24 @@ class ThemeManager(QtCore.QObject):
         super().__init__()
         self.app = app
         self._logger = logging.getLogger(__name__)
-        self._registered_widgets = []
+        self._registered_widgets: list[QWidget] = []
 
-    def register_widget(self, widget: Any) -> None:
+    def register_widget(self, widget: "QWidget") -> None:
         """Register a widget to receive theme updates."""
         if widget not in self._registered_widgets:
             self._registered_widgets.append(widget)
 
-    def unregister_widget(self, widget: Any) -> None:
+    def unregister_widget(self, widget: "QWidget") -> None:
         """Unregister a widget."""
         if widget in self._registered_widgets:
             self._registered_widgets.remove(widget)
 
     def change_color_mode(self, new_mode: str) -> None:
         """Change the color mode and notify all registered widgets."""
+        # Log color mode change with distinctive icon
+        theme_icon = "🌙" if new_mode == "dark" else ("☀️" if new_mode == "light" else "🔄")
+        self._logger.debug(f"🎨 ThemeManager color mode: {theme_icon} Color={new_mode}")
+
         # Save to settings
         self.app.settings_manager.color_mode = new_mode
 
@@ -48,7 +54,7 @@ class ThemeManager(QtCore.QObject):
         for widget in self._registered_widgets[:]:  # Copy to avoid modifications during iteration
             if hasattr(widget, "refresh_theme"):
                 try:
-                    widget.refresh_theme()
+                    widget.refresh_theme() # type: ignore
                 except RuntimeError:
                     # Widget destroyed, remove it from the list
                     self._registered_widgets.remove(widget)

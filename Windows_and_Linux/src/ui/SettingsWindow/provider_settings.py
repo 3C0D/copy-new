@@ -278,7 +278,9 @@ class ProviderSettings(QWidget):
             setting.render_to_layout(self.current_provider_layout)
 
     def _refresh_provider_config(self, provider: "AIProvider") -> None:
-        """Refresh provider configuration if supported."""
+        """Refresh provider configuration if supported.
+        For Ollama, triggers async refresh without blocking.
+        """
         if not hasattr(provider, "refresh_configuration"):
             return
 
@@ -286,17 +288,24 @@ class ProviderSettings(QWidget):
             from ...aiprovider.ollama import OllamaStateManager
 
             state_manager = OllamaStateManager()
+
+            # Check installation (non-blocking)
             if state_manager.is_ollama_installed():
                 try:
+                    # This will trigger async refresh in background
                     provider.refresh_configuration()
-                    self._logger.debug(f"Refreshed config: {provider.internal_name}")
+                    self._logger.debug(f"Triggered async refresh for: {provider.internal_name}")
                 except Exception as e:
                     self._logger.warning(f"Failed to refresh Ollama config: {e}")
             else:
                 self._logger.debug("Skipped Ollama refresh - not installed")
         else:
-            provider.refresh_configuration()
-            self._logger.debug(f"Refreshed config: {provider.internal_name}")
+            # Other providers can refresh synchronously
+            try:
+                provider.refresh_configuration()
+                self._logger.debug(f"Refreshed config: {provider.internal_name}")
+            except Exception as e:
+                self._logger.warning(f"Failed to refresh {provider.internal_name} config: {e}")
 
     def _cleanup_provider_layout(self) -> None:
         """Clean up previous provider layout."""
@@ -329,6 +338,8 @@ class ProviderSettings(QWidget):
         if not current_internal_name:
             return
 
+        self._logger.debug(f"Provider changed to: {current_internal_name}")  # AJOUTER
+
         # Ollama-specific handling
         if current_internal_name == "ollama":
             self._handle_ollama_selection()
@@ -360,13 +371,19 @@ class ProviderSettings(QWidget):
         self._logger.debug(f"Switched to provider: {current_internal_name}")
 
     def _handle_ollama_selection(self) -> None:
-        """Handle Ollama provider selection with status checks."""
+        """
+        Handle Ollama provider selection with status checks.
+        Uses cached status to avoid redundant async operations.
+        """
         from ...aiprovider.ollama import OllamaStateManager
 
         state_manager = OllamaStateManager()
-        ollama_installed = state_manager.is_ollama_installed()
-        ollama_running = state_manager.is_ollama_running()
 
+        # Get cached status (non-blocking) - don't trigger async refresh here
+        # to avoid debug spam when switching providers
+        ollama_installed = state_manager.is_ollama_installed()
+
+        # Only show message for installation issues
         if not ollama_installed:
             self.app.ui_manager.show_message_signal.emit(
                 "Ollama Not Installed",
@@ -374,20 +391,18 @@ class ProviderSettings(QWidget):
                 "You can install it using the 'Install Ollama' button in the provider settings below.\n\n"
                 "Once installed and running, Ollama will be ready to use.",
             )
-        elif not ollama_running:
-            self.app.ui_manager.show_message_signal.emit(
-                "Ollama Not Running",
-                "Ollama is installed but not currently running.\n\n"
-                "Please start Ollama from the command line with: ollama serve\n\n"
-                "Or use the provider interface to manage Ollama.",
-            )
 
     def _find_provider_by_name(self, internal_name: str) -> "AIProvider | None":
         """Create provider instance by internal name."""
         provider_class = PROVIDER_CLASSES.get(internal_name)
         if provider_class:
             try:
-                return provider_class(self.app)
+                # Skip initial refresh for Ollama when switching providers
+                # to avoid debug spam - refreshes will be handled by provider switching logic
+                if internal_name == "ollama":
+                    return provider_class(self.app, skip_initial_refresh=True)
+                else:
+                    return provider_class(self.app)
             except Exception as e:
                 self._logger.error(f"Failed to create provider {internal_name}: {e}")
                 return None

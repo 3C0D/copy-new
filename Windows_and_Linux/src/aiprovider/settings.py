@@ -219,6 +219,7 @@ class DropdownSetting(AIProviderSetting):
         if self.refresh_callback:
             # Override showPopup to call refresh before showing
             # QComboBox doesn't have aboutToShow signal, so we override showPopup
+            # Save original showPopup
             original_show_popup = self.dropdown.showPopup
 
             def show_popup_with_refresh():
@@ -226,6 +227,7 @@ class DropdownSetting(AIProviderSetting):
                     self.refresh_callback()
                 original_show_popup()
 
+            # Override
             self.dropdown.showPopup = show_popup_with_refresh
 
         row_layout.addWidget(self.dropdown)

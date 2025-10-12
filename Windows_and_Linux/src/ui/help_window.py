@@ -1,4 +1,5 @@
 import logging
+from typing import TYPE_CHECKING
 
 from PySide6 import QtCore, QtGui
 from PySide6.QtWidgets import (
@@ -9,6 +10,9 @@ from PySide6.QtWidgets import (
 )
 
 from .ui_utils import ThemedWidget
+
+if TYPE_CHECKING:
+    from ..writing_tools_app import WritingToolsApp
 
 
 def _(x):
@@ -23,7 +27,9 @@ class HelpWindow(ThemedWidget):
 
     content_layout: QVBoxLayout
 
-    def __init__(self, app=None) -> None:
+    def __init__(self, app: "WritingToolsApp | None" = None) -> None:
+        if app is None:
+            raise ValueError("HelpWindow requires a WritingToolsApp instance")
         super().__init__(app)
         self._logger = logging.getLogger(__name__)
         self.min_width = 600

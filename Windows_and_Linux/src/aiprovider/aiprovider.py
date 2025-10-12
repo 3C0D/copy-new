@@ -7,6 +7,7 @@ and manages their interactions with the main application. It uses an abstract ba
 provider implementations.
 
 Key Components:
+# Moved to settings.py
 1. AIProviderSetting - Base class for provider settings (e.g. API keys, model names)
     • TextSetting      - A simple text input for settings
     • DropdownSetting  - A dropdown selection setting
@@ -54,6 +55,7 @@ except ImportError:
     HarmCategory = None  # type: ignore
 
 # Local imports
+from ..ui.custom_popup.vision_support_validator import VisionSupportValidator
 from .settings import AIProviderSetting
 
 # Type checking imports
@@ -201,7 +203,9 @@ class AIProvider(ABC):
         """
         for setting in self.settings:
             if setting.name in config:
+                # Create dynamic attribute on provider instance for code access (e.g., self.api_key)
                 setattr(self, setting.name, config[setting.name])
+                # Update the UI widget and internal storage of the setting object
                 setting.set_value(config[setting.name])
             else:
                 setattr(self, setting.name, setting.default_value)
@@ -270,9 +274,12 @@ class AIProvider(ABC):
             # Ignore errors during cleanup
             pass
 
-    def validate_connection(self) -> bool:
+    def validate_connection(self, has_image: bool = False) -> bool:
         """
         Validate the provider configuration before processing. Used from process_option().
+
+        Args:
+            has_image: Whether the request includes an image that requires vision support
 
         Returns:
             bool: True if the provider is properly configured, False otherwise
@@ -293,4 +300,25 @@ class AIProvider(ABC):
             )
             return False
 
+        # Check vision support if image is being processed
+        if has_image and not self._supports_vision():
+            self.app.ui_manager.show_message_signal.emit(
+                "Vision Not Supported",
+                f"The selected model '{self.api_model}' does not support image processing.\n\n"
+                f"Please select a vision-capable model in {self.provider_name} settings.",
+            )
+            return False
+
         return True
+
+    def _supports_vision(self) -> bool:
+        """
+        Check if the current model supports vision/image processing.
+
+        Returns:
+            bool: True if the model supports vision, False otherwise
+        """
+        if not hasattr(self, "api_model") or not self.api_model:
+            return False
+
+        return VisionSupportValidator.has_vision_support(self.internal_name, self.api_model)

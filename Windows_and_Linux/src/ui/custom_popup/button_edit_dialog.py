@@ -68,8 +68,6 @@ class ButtonEditDialog(QDialog):
         layout.addWidget(name_label)
         layout.addWidget(self.name_input)
 
-        # No checkbox - image context is determined by popup context
-
         # Instruction (changed to a multiline QPlainTextEdit)
         content_type = "image" if self.is_image_context else "selected text"
         instruction_label = QLabel(

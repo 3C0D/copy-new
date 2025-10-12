@@ -24,7 +24,7 @@ from .core.lifecycle_manager import LifecycleManager
 from .core.popup_manager import PopupManager
 from .core.settings_manager import SettingsManager
 from .core.setup.core_attributes import setup_core_attributes
-from .core.setup.providers import initialize_ai_provider
+from .core.setup.provider import initialize_ai_provider
 from .core.setup.ui_initialization import setup_ui_components, setup_user_interface
 from .core.text_processor import TextProcessor
 from .core.ui_manager import UIManager
@@ -81,7 +81,7 @@ class WritingToolsApp(QApplication):
     non_editable_modal: object | None = None
     styles: dict
 
-    def __init__(self, argv):
+    def __init__(self, argv: list[str]):
         super().__init__(argv)
         self._logger = logging.getLogger(__name__)
         self._logger.debug("Initializing WritingToolsApp")
@@ -109,7 +109,7 @@ class WritingToolsApp(QApplication):
 
     def _setup_settings(self) -> None:
         """Initialize settings manager and load configuration."""
-        mode = self.lifecycle_manager._detect_running_mode()
+        mode: str = self.lifecycle_manager._detect_running_mode()
         self._logger.debug(f"Running mode: {mode}")
         self.settings_manager = SettingsManager(mode=mode)
 
@@ -120,7 +120,7 @@ class WritingToolsApp(QApplication):
         try:
             initialize_ai_provider(self)
             setup_user_interface(self)
-            self.language_manager.set_language(self.settings_manager.language or "en")
+            self.language_manager.set_language(self.settings_manager.language)
             self.update_manager.check_updates_async()
         except Exception as error:
             self._logger.exception(f"Error during app initialization: {error}")

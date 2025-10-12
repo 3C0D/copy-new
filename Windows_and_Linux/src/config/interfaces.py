@@ -4,7 +4,15 @@ Defines the data structures for unified settings management
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, TypedDict
+from typing import TYPE_CHECKING, Any, Callable, Optional, TypedDict
+
+if TYPE_CHECKING:
+    from ..writing_tools_app import WritingToolsApp
+    from .aiprovider.aiprovider import AIProvider
+
+# Type aliases for better code maintainability
+ProviderFactory = Callable[["WritingToolsApp"], "AIProvider"]
+PromptData = dict[str, Any]
 
 
 class ActionConfig(TypedDict, total=False):

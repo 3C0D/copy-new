@@ -1,8 +1,5 @@
 """
-Chat Scroll Area - Scrollable container for chat messages with dynamic sizing.
-
-This module contains the ChatContentScrollArea class for managing the display
-of chat messages with proper scrolling and sizing.
+Chat Scroll Area - Scrollable container for chat messages.
 """
 
 from typing import TYPE_CHECKING
@@ -11,16 +8,17 @@ from PySide6 import QtCore, QtGui
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QScrollArea, QSizePolicy, QVBoxLayout, QWidget
 
-from ..response_window import MarkdownTextBrowser, MessageContainer
-
 if TYPE_CHECKING:
     from ...writing_tools_app import WritingToolsApp
+    from .markdown_text_browser import MarkdownTextBrowser
+
+# Using hasattr checks instead of isinstance to avoid circular imports
 
 
 class ChatContentScrollArea(QScrollArea):
     """Improved scrollable container for chat messages with dynamic sizing and proper spacing"""
 
-    def __init__(self, app: "WritingToolsApp", parent=None):
+    def __init__(self, app: "WritingToolsApp", parent: QWidget | None = None):
         super().__init__(parent)
         self.app = app
         self.content_widget: QWidget | None = None
@@ -83,8 +81,11 @@ class ChatContentScrollArea(QScrollArea):
         """,
         )
 
-    def add_message(self, text: str, is_user: bool = False) -> MarkdownTextBrowser | None:
+    def add_message(self, text: str, is_user: bool = False) -> "MarkdownTextBrowser | None":
         """Add a new message to the chat area and return the text display widget"""
+        from .markdown_text_browser import MarkdownTextBrowser
+        from .message_container import MessageContainer
+
         if not self.content_layout:
             return None
 
@@ -92,10 +93,10 @@ class ChatContentScrollArea(QScrollArea):
         self.content_layout.takeAt(self.content_layout.count() - 1)
 
         # Create text display first
-        from markdown2 import markdown
+        import markdown2
 
-        html = markdown(text, extras=["tables"])
         text_display = MarkdownTextBrowser(self.app, self.content_widget, is_user_message=is_user)
+        html = markdown2.markdown(text, extras=["tables"])
         text_display.setHtml(html)
 
         # Wrap in MessageContainer for copy functionality
@@ -111,8 +112,7 @@ class ChatContentScrollArea(QScrollArea):
         self.content_layout.addStretch()
 
         parent = self.parent()
-        if parent and hasattr(parent, "current_text_display"):
-            # Type checking: we know parent is a ResponseWindow in this context
+        if hasattr(parent, "current_text_display") and hasattr(parent, "_adjust_window_height"):
             parent.current_text_display = text_display  # type: ignore
 
         QtCore.QTimer.singleShot(50, self.post_message_updates)
@@ -123,7 +123,7 @@ class ChatContentScrollArea(QScrollArea):
         """Handle updates after adding a message with proper timing"""
         self.scroll_to_bottom()
         parent = self.parent()
-        if parent and hasattr(parent, "_adjust_window_height"):
+        if hasattr(parent, "_adjust_window_height"):
             parent._adjust_window_height()  # type: ignore
 
     def update_content_height(self) -> None:
@@ -155,7 +155,7 @@ class ChatContentScrollArea(QScrollArea):
 
         # Update window height if needed
         parent = self.parent()
-        if parent and hasattr(parent, "_adjust_window_height"):
+        if hasattr(parent, "_adjust_window_height"):
             parent._adjust_window_height()  # type: ignore
 
     def scroll_to_bottom(self) -> None:
@@ -176,6 +176,8 @@ class ChatContentScrollArea(QScrollArea):
             item = self.content_layout.itemAt(i)
             if item and item.widget():
                 container = item.widget()
+                from .message_container import MessageContainer
+
                 if isinstance(container, MessageContainer):
                     # Recalculate text width and height for MessageContainer
                     text_display = container.text_display

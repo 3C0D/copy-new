@@ -70,7 +70,7 @@ class TextProcessor(QObject):
 
         try:
             # Handle Summary and Key Points - show in response window
-            if hasattr(self.app, "current_response_window") and self.app.current_response_window:
+            if self.app.current_response_window:
                 self._handle_response_window_output(new_text)
             else:
                 # Handle other options - try clipboard-based replacement with fallback

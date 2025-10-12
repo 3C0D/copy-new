@@ -1,7 +1,7 @@
 import logging
 import sys
 import time
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from PySide6 import QtCore, QtGui
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from .writing_tools_app import WritingToolsApp
 
 
-# Placeholder for future i18n (internationalization)
 def _(x):
     return x
 
@@ -61,7 +60,7 @@ class SystrayManager:
             # Use a default icon if not found
             self.tray_icon = QSystemTrayIcon(self.app)
         else:
-            icon = QtGui.QIcon(icon_path.as_posix())
+            icon: QtGui.QIcon = QtGui.QIcon(icon_path.as_posix())
             if icon.isNull():
                 self._logger.warning(f"Failed to load icon from {icon_path}")
             self.tray_icon = QSystemTrayIcon(icon, self.app)
@@ -152,7 +151,10 @@ class SystrayManager:
         self._logger.debug("App is paused" if self.paused else "App is resumed")
 
     def _show_window(
-        self, window_attr: str, window_class, other_window_attr: Optional[str] = None
+        self,
+        window_attr: str,
+        window_class: Callable[["WritingToolsApp"], Any],
+        other_window_attr: Optional[str] = None,
     ) -> None:
         """Generic method to show a window and optionally close another."""
         if other_window_attr:
@@ -193,7 +195,7 @@ class SystrayManager:
         # Update settings checkbox state if settings window is open
         self._update_settings_checkbox(enable)
 
-    def apply_tray_menu_styles(self, menu) -> None:
+    def apply_tray_menu_styles(self, menu: QMenu) -> None:
         """
         Apply styles to the tray menu based on current color mode.
         """
@@ -202,7 +204,7 @@ class SystrayManager:
 
     def _retry_with_delay(
         self,
-        check_func,
+        check_func: Callable[[], bool | None],
         max_retries: int = DEFAULT_MAX_RETRIES,
         delay_ms: int = DEFAULT_RETRY_DELAY_MS,
         operation_name: str = "operation",

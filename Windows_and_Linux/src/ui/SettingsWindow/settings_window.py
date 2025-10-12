@@ -144,10 +144,6 @@ class SettingsWindow(ThemedWidget):
 
     def save_all_settings(self) -> None:
         """Save all current settings."""
-        # Save general settings
-        if self.general_settings:
-            self.general_settings.save_settings()
-
         # Save provider settings
         if self.provider_settings:
             self.provider_settings.save_current_provider_settings()

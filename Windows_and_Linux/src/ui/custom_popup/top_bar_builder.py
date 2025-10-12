@@ -1,6 +1,6 @@
 """
 TopBarBuilder module
-Construit la barre supérieure avec ses composants.
+Builds the top bar with its components.
 """
 
 from typing import TYPE_CHECKING
@@ -17,14 +17,14 @@ if TYPE_CHECKING:
 
 
 class TopBarBuilder:
-    """Construit la barre supérieure avec ses composants."""
+    """Builds the top bar with its components."""
 
     def __init__(self, app: "WritingToolsApp", parent: "CustomPopupWindow"):
         self.app = app
         self.parent = parent
 
     def build(self, layout: QHBoxLayout) -> dict[str, QPushButton]:
-        """Construit tous les boutons et retourne un dictionnaire."""
+        """Builds all buttons and returns a dictionary."""
         buttons = {}
 
         if self.parent.has_sel_text or self.parent.has_image:

@@ -206,24 +206,24 @@ Hidden=false
         )
 
     @staticmethod
-    def get_dev_startup_command():
+    def get_dev_startup_command() -> str:
         """
         Get the command for development startup.
         """
-        project_root = Path(__file__).parent.parent
-        venv_python = project_root / "myvenv" / "Scripts" / "python.exe"
-        dev_script = project_root / "scripts" / "dev_script.py"
-        debug_args = "--console"
-        command = f'cmd /k "cd /d "{project_root}" && "{venv_python}" "{dev_script}" {debug_args}"'
+        project_root: Path = Path(__file__).parent.parent
+        venv_python: Path = project_root / "myvenv" / "Scripts" / "python.exe"
+        dev_script: Path = project_root / "scripts" / "dev_script.py"
+        debug_args: str = "--console"
+        command: str = f'cmd /k "cd /d "{project_root}" && "{venv_python}" "{dev_script}" {debug_args}"'
         return command
 
     @staticmethod
-    def get_startup_command():
+    def get_startup_command() -> str | None:
         """
         Get the command/path for autostart.
         Returns the exe path if compiled, or the dev command if in dev mode.
         """
-        compiled = AutostartManager.is_compiled()
+        compiled: bool = AutostartManager.is_compiled()
         if compiled:
             return AutostartManager.get_startup_path()
         else:
@@ -246,13 +246,13 @@ Hidden=false
         assert winreg is not None  # Type narrowing for type checker
 
         try:
-            command = AutostartManager.get_startup_command()
+            command: str | None = AutostartManager.get_startup_command()
             if not command:
                 logging.warning("Cannot determine startup command")
                 return False
 
-            compiled = AutostartManager.is_compiled()
-            key_name = "WritingTools" if compiled else "WritingToolsDevStartup"
+            compiled: bool = AutostartManager.is_compiled()
+            key_name: str = "WritingTools" if compiled else "WritingToolsDevStartup"
 
             if compiled:
                 # Disable dev startup if exists

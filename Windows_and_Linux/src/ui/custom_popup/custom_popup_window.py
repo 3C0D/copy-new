@@ -1181,7 +1181,7 @@ class CustomPopupWindow(QWidget):
         Returns:
             bool: True if the current model supports vision, False otherwise
         """
-        provider_name = self.app.settings_manager.provider
+        provider_name: str = self.app.settings_manager.provider
         api_model = self.app.ai_processor.get_current_model(provider_name)
 
         return self.vision_validator.has_vision_support(provider_name, api_model)

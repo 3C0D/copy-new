@@ -1,6 +1,6 @@
 """
 EditModeController module
-Contrôle le mode édition.
+Controls the edit mode.
 """
 
 from typing import TYPE_CHECKING
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class EditModeController:
-    """Contrôle le mode édition."""
+    """Controls the edit mode."""
 
     def __init__(self, window: "CustomPopupWindow", visibility_manager: "WidgetVisibilityManager"):
         self.window = window

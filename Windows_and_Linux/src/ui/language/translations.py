@@ -19,33 +19,51 @@ class Translations:
 
     def __init__(self):
         self._logger = logging.getLogger(__name__)
-        self._current_translation: gettext.NullTranslations | None = None
         self._ = gettext.gettext
 
-    def setup_translations(self, lang: str | None = None) -> None:
+    def setup_translations(self, lang: str | None = None) -> str:
         """
         Setup translations for the specified language.
 
         Args:
             lang: Language code (e.g., 'en', 'fr'). If None, uses system language.
+
+        Returns:
+            The language code that was actually set (may be default 'en' if requested not found).
         """
+        # If no language specified, use system language code (e.g., 'fr' from 'fr_FR')
         if not lang:
             lang = QLocale.system().name().split("_")[0]
 
+        locales_dir = Path(__file__).parent.parent.parent.parent / "locales"
+
         try:
-            locales_dir = Path(__file__).parent.parent.parent.parent / "locales"
+            # Load gettext translation object for the specified language
             translation = gettext.translation(
                 "messages",
                 localedir=str(locales_dir),
                 languages=[lang],
             )
+            actual_lang = lang
         except FileNotFoundError:
-            translation = gettext.NullTranslations()
+            # Try default language 'en'
+            try:
+                translation = gettext.translation(
+                    "messages",
+                    localedir=str(locales_dir),
+                    languages=['en'],
+                )
+                actual_lang = 'en'
+            except FileNotFoundError:
+                translation = gettext.NullTranslations()
+                actual_lang = 'en'  # Default to 'en' even with NullTranslations
 
+        # Install translation as default gettext function
         translation.install()
-        self._current_translation = translation
+        # Update translation functions in all UI modules
         self._update_translation_functions(translation)
-        self._logger.debug(f"Translations set up for language: {lang}")
+        self._logger.debug(f"Translations set up for language: {actual_lang}")
+        return actual_lang
 
     def _update_translation_functions(self, translation: gettext.NullTranslations) -> None:
         """

@@ -35,25 +35,40 @@ class OllamaProvider(AIProvider):
     Optimized Ollama provider with async operations and state caching.
     """
 
-    def __init__(self, app: "WritingToolsApp"):
+    def __init__(self, app: "WritingToolsApp", skip_initial_refresh: bool = False):
         self.app = app
-        self.client: Union[OllamaClient, None] = None
+        self.client: OllamaClient | None = None
         self._logger = logging.getLogger(self.__class__.__name__)
 
         # Use the singleton state manager
         self.state_manager = OllamaStateManager()
 
         # Connect to state updates
+        # Refresh config when Ollama installation state changes
         self.state_manager.state_updated.connect(self._on_state_updated)
+        # Update model dropdown when model list changes
         self.state_manager.models_updated.connect(self._on_models_updated)
+        # Refresh models when Ollama starts running
+        self.state_manager.running_status_updated.connect(self._on_running_status_updated)
 
         # Get initial state (using cached values if available)
         ollama_installed = self.state_manager.is_ollama_installed()
-        ollama_models = self.state_manager.get_ollama_models()
+
+        # Get models without blocking
+        if ollama_installed:
+            # Trigger async check to see if Ollama is running and get models
+            # Skip if we're just switching providers (refreshes will be handled elsewhere)
+            if not skip_initial_refresh:
+                self.state_manager.refresh_state_async()
+                self.state_manager.refresh_models_async()
+            ollama_models = self.state_manager.get_ollama_models()
+        else:
+            # Not installed - show appropriate message
+            ollama_models = [("Ollama not installed", "")]
 
         # Set default model
         default_ollama_model = ""
-        if ollama_models and ollama_models[0][1]:
+        if ollama_models and ollama_models[0][1] and "not" not in ollama_models[0][0].lower():
             default_ollama_model = ollama_models[0][1]
 
         settings = [
@@ -111,16 +126,23 @@ class OllamaProvider(AIProvider):
         if ollama_installed:
             self.add_button("🗑️ Delete Model", self._delete_model, "secondary")
 
-        # Start async refresh on initialization
-        self.state_manager.refresh_state_async()
+        # No automatic refresh here - already done above
 
     @Slot()
     def _on_state_updated(self):
         """Handle state updates from the state manager."""
         self.refresh_configuration()
         # Update button text in settings window if it's open
-        if hasattr(self.app, "settings_window") and self.app.systray_manager.settings_window:
+        if self.app.systray_manager.settings_window:
             self.app.systray_manager.settings_window.update_provider_button_text()
+
+    @Slot(bool)
+    def _on_running_status_updated(self, is_running: bool):
+        """Handle running status updates."""
+        self._logger.debug(f"Ollama running status updated: {is_running}")
+        if is_running:
+            # Ollama just started - refresh models
+            self.state_manager.refresh_models_async()
 
     @Slot(list)
     def _on_models_updated(self, models: list[tuple[str, str]]):
@@ -135,14 +157,13 @@ class OllamaProvider(AIProvider):
                 break
 
     def _refresh_models(self):
-        """Refresh models asynchronously if cache is stale."""
-        if not self.state_manager._is_cache_valid(
-            self.state_manager._models_check_time, self.state_manager.CACHE_DURATION
-        ):
-            self.state_manager.refresh_models_async()
-        else:
-            # Cache is valid, emit current cached models to update UI if needed
-            self.state_manager.models_updated.emit(self.state_manager.get_ollama_models())
+        """
+        Refresh models - called when user clicks on dropdown.
+        Always trigger async refresh to get fresh data.
+        """
+        self._logger.debug("Manual model refresh requested")
+        # Always refresh when user explicitly requests it
+        self.state_manager.refresh_models_async()
 
     def _install_ollama_async(self):
         """Install Ollama asynchronously."""
@@ -192,12 +213,12 @@ class OllamaProvider(AIProvider):
         import threading
 
         thread = threading.Thread(target=install_thread)
+        thread.daemon = True
         thread.start()
 
     def refresh_configuration(self):
         """Refresh configuration based on current state."""
         ollama_installed = self.state_manager.is_ollama_installed()
-        ollama_running = self.state_manager.is_ollama_running() if ollama_installed else False
 
         if ollama_installed:
             self.description = (
@@ -217,22 +238,35 @@ class OllamaProvider(AIProvider):
         if ollama_installed:
             self.add_button("🗑️ Delete Model", self._delete_model, "secondary")
 
-        # Refresh models if installed and running
-        if ollama_installed and ollama_running:
-            self._refresh_models()
+        # Trigger async model refresh if installed and running
+        if ollama_installed:
+            # Check if running first (non-blocking)
+            ollama_running = self.state_manager.is_ollama_running()
+            if ollama_running:
+                self.state_manager.refresh_models_async()
+            else:
+                # Not running - trigger state check in background
+                self.state_manager.refresh_state_async()
 
     def _delete_model(self):
-        """Delete model implementation - same as before but using state_manager."""
-        # Get models from state manager
+        """Delete model implementation."""
+        # Get models from state manager (cached values)
+        all_models = self.state_manager.get_ollama_models()
+
+        # Filter out invalid models
         valid_models = [
             (display, model)
-            for display, model in self.state_manager.get_ollama_models()
-            if model and model.strip()
+            for display, model in all_models
+            if model
+            and model.strip()
+            and "not" not in display.lower()
+            and "click" not in display.lower()
         ]
 
         if not valid_models:
             self.app.ui_manager.show_message_signal.emit(
-                "No Models Available", "No Ollama models are available to delete."
+                "No Models Available",
+                "No Ollama models are available to delete.\n\nPlease ensure Ollama is running and has models installed.",
             )
             return
 

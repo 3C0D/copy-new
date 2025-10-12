@@ -4,6 +4,8 @@ Core attributes setup module for Writing Tools application.
 This module contains setup functions for core application attributes.
 """
 
+from typing import TYPE_CHECKING
+
 from ...core.ai_processor import AIProcessor
 from ...core.clipboard_manager import ClipboardManager
 from ...core.hotkey_manager import HotkeyManager
@@ -16,8 +18,11 @@ from ...core.ui_manager import UIManager
 from ...core.update_manager import UpdateManager
 from ...systray import SystrayManager
 
+if TYPE_CHECKING:
+    from ...writing_tools_app import WritingToolsApp
 
-def setup_core_attributes(app) -> None:
+
+def setup_core_attributes(app: "WritingToolsApp") -> None:
     """Initialize core application attributes."""
     app.current_response_window = None
     app.ai_processor = AIProcessor(app)

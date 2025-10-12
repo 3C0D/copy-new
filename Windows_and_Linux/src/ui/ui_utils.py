@@ -268,6 +268,7 @@ class ThemedWidget(QWidget):
 
         self.refresh_theme()
 
+    @Slot(str)
     def _on_language_changed(self, language: str) -> None:
         """Automatically called when the language changes."""
         self.refresh_language()
@@ -287,11 +288,6 @@ class ThemedWidget(QWidget):
         """
         pass
 
-    # not used currently
-    def get_theme_styles(self) -> dict[str, str]:
-        """Get current theme styles as a shortcut."""
-        return self.app.theme_manager.get_styles()
-
     def closeEvent(self, event: QCloseEvent) -> None:
         """Handle window close event and unregister from theme manager."""
         self.app.theme_manager.unregister_widget(self)
@@ -306,10 +302,10 @@ class ThemeBackground(QWidget):
     def __init__(
         self,
         app: "WritingToolsApp",
-        parent=None,
-        background_theme="gradient",
-        is_popup=False,
-        border_radius=0,
+        parent: QWidget | None = None,
+        background_theme: str = "gradient",
+        is_popup: bool = False,
+        border_radius: int = 0,
     ):
         self.app = app
         super().__init__(parent)

@@ -1,6 +1,6 @@
 """
 VisionSupportValidator module
-Valide le support vision des modèles AI.
+Validates AI model vision support.
 """
 
 from ...config.constants import (
@@ -12,7 +12,7 @@ from ...config.constants import (
 
 
 class VisionSupportValidator:
-    """Valide le support vision des modèles."""
+    """Validates model vision support."""
 
     VISION_MODELS = {
         "gemini": GEMINI_MODELS,
@@ -25,7 +25,7 @@ class VisionSupportValidator:
 
     @classmethod
     def has_vision_support(cls, provider_name: str, api_model: str) -> bool:
-        """Vérifie si le modèle supporte la vision."""
+        """Checks if the model supports vision."""
         if not provider_name or not api_model:
             return False
 
@@ -43,4 +43,4 @@ class VisionSupportValidator:
 
     @classmethod
     def _check_ollama_model(cls, model: str) -> bool:
-        return any(ind in model.lower() for ind in cls.OLLAMA_VISION_INDICATORS)
+        return any(indicator in model.lower() for indicator in cls.OLLAMA_VISION_INDICATORS)

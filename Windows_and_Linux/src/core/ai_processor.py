@@ -7,7 +7,7 @@ managing responses, and coordinating with different AI providers.
 
 import logging
 import threading
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from PySide6 import QtCore, QtGui
 from PySide6.QtCore import QObject
@@ -19,14 +19,19 @@ from ..aiprovider.ollama import OllamaProvider
 from ..aiprovider.openAI import OpenAIProvider
 from ..aiprovider.openAI_compatible import OpenAICompatibleProvider
 from ..config.constants import DEFAULT_PROVIDER, DEFAULT_PROVIDER_CONFIGS, SYSTEM_INSTRUCTIONS
-from ..config.interfaces import ActionConfig, ProviderConfig
+from ..config.interfaces import ActionConfig, PromptData, ProviderConfig, ProviderFactory
 
 # Import refactored classes
 from .ai.context_detector import ContextDetector
 from .ai.message_formatter import MessageFormatter
 
+if TYPE_CHECKING:
+    from ..aiprovider.aiprovider import AIProvider
+    from ..ui.response_window import ResponseWindow
+    from ..writing_tools_app import WritingToolsApp
+
 # Mapping of internal provider names to their classes
-PROVIDER_CLASSES = {
+PROVIDER_CLASSES: dict[str, ProviderFactory] = {
     "gemini": GeminiProvider,
     "ollama": OllamaProvider,
     "anthropic": AnthropicProvider,
@@ -35,17 +40,13 @@ PROVIDER_CLASSES = {
     "openai": OpenAIProvider,
 }
 
-if TYPE_CHECKING:
-    from ..aiprovider.aiprovider import AIProvider
-    from ..ui.response_window import ResponseWindow
-
 
 class AIProcessor(QObject):
     """
     Handles AI request processing and response management.
     """
 
-    def __init__(self, app):
+    def __init__(self, app: "WritingToolsApp"):
         super().__init__()
         self.app = app
         self._logger = logging.getLogger(__name__)
@@ -57,7 +58,7 @@ class AIProcessor(QObject):
         provider_name: str = self.app.settings_manager.provider or DEFAULT_PROVIDER
 
         # Create provider instance
-        provider_class = PROVIDER_CLASSES.get(provider_name)
+        provider_class: ProviderFactory | None = PROVIDER_CLASSES.get(provider_name)
         if provider_class:
             try:
                 self.current_provider = provider_class(self.app)  # instance
@@ -66,7 +67,7 @@ class AIProcessor(QObject):
             except Exception as e:
                 self._logger.error(f"Failed to create provider {provider_name}: {e}")
                 # Fallback to default provider
-                default_class = PROVIDER_CLASSES.get(DEFAULT_PROVIDER)
+                default_class: ProviderFactory | None = PROVIDER_CLASSES.get(DEFAULT_PROVIDER)
                 if default_class and default_class != provider_class:
                     try:
                         self.current_provider = default_class(self.app)  # instance
@@ -85,7 +86,7 @@ class AIProcessor(QObject):
 
     def get_current_model(self, provider_name: str) -> str:
         """Get the current API model for a specific provider."""
-        provider = self.app.settings_manager.providers.get(provider_name, {})
+        provider: ProviderConfig = self.app.settings_manager.providers.get(provider_name, {})
         return provider.get("api_model", "")
 
     def get_provider_config(self, provider_name: str) -> ProviderConfig:
@@ -112,7 +113,7 @@ class AIProcessor(QObject):
                 break
 
         # Override with saved config
-        saved_config = self.app.settings_manager.providers.get(provider_name, {})
+        saved_config: ProviderConfig = self.app.settings_manager.providers.get(provider_name, {})
         if saved_config:
             config.update(saved_config)
 
@@ -139,15 +140,17 @@ class AIProcessor(QObject):
         message = f"Processing option: {option}{' - force chat' if force_chat else ''}"
         self._logger.debug(message)
 
-        if self.current_provider is not None and not self.current_provider.validate_connection():
-            return
-
         has_image = image is not None
+
+        if self.current_provider is not None and not self.current_provider.validate_connection(
+            has_image=has_image
+        ):
+            return
         # Get action config from appropriate dictionary based on context
         if has_image and option in self.app.settings_manager.image_actions:
-            action_config = self.app.settings_manager.image_actions.get(option, {})
+            action_config: ActionConfig = self.app.settings_manager.image_actions.get(option, {})
         else:
-            action_config = self.app.settings_manager.actions.get(option, {})
+            action_config: ActionConfig = self.app.settings_manager.actions.get(option, {})
 
         should_setup_response_window = self._should_display_in_window(
             option, selected_text, action_config, has_image, force_chat
@@ -190,7 +193,9 @@ class AIProcessor(QObject):
                 history_content = f"Image analysis request: {option.lower()}"
             else:
                 # For predefined actions, use the action's prefix as the user-visible request
-                action_config = self.app.settings_manager.image_actions.get(option, {})
+                action_config: ActionConfig = self.app.settings_manager.image_actions.get(
+                    option, {}
+                )
                 history_content = action_config.get(
                     "prefix", f"Image analysis request: {option.lower()}"
                 )  # !!! à voir comment on fait une fois le system compris
@@ -238,7 +243,9 @@ class AIProcessor(QObject):
         self._logger.debug(f"Starting processing thread for option: {option}")
 
         try:
-            prompt_data = self._prepare_prompt_data(option, selected_text, image, custom_change)
+            prompt_data: PromptData | None = self._prepare_prompt_data(
+                option, selected_text, image, custom_change
+            )
             if not prompt_data:
                 return
 
@@ -264,7 +271,7 @@ class AIProcessor(QObject):
         selected_text: str,
         image: QtGui.QImage | None,
         custom_change: str | None,
-    ) -> dict | None:
+    ) -> "PromptData | None":
         """
         Prepare prompt data for AI processing including image support.
 
@@ -290,7 +297,7 @@ class AIProcessor(QObject):
 
     def _handle_no_text_selected(
         self, is_custom_option: bool, custom_change: str | None
-    ) -> dict | None:
+    ) -> "PromptData | None":
         """Handle case where no text is selected."""
         if custom_change is None:
             custom_change = ""
@@ -314,7 +321,7 @@ class AIProcessor(QObject):
         image: QtGui.QImage | None,
         is_custom_option: bool,
         custom_change: str | None,
-    ) -> dict | None:
+    ) -> "PromptData | None":
         """Handle case where text is selected or image is available."""
         # Get action config from appropriate dictionary based on context
         has_image = image is not None
@@ -403,7 +410,7 @@ class AIProcessor(QObject):
         option: str,
         selected_text: str,
         custom_change: str | None,
-        prompt_data: dict,
+        prompt_data: "PromptData",
     ) -> None:
         """Process AI response for window display with image support."""
         if not self.current_provider:
@@ -473,7 +480,7 @@ class AIProcessor(QObject):
         else:
             self._logger.warning("No current_response_window to update")
 
-    def _process_direct_replacement(self, prompt_data: dict) -> None:
+    def _process_direct_replacement(self, prompt_data: "PromptData") -> None:
         """Process AI response for direct text replacement."""
         if not self.current_provider:
             return
@@ -549,10 +556,10 @@ class AIProcessor(QObject):
                 response_window.chat_history.append({"role": "user", "content": question})
 
                 # Get chat history
-                history = response_window.chat_history.copy()
+                history: list[dict[str, str]] = response_window.chat_history.copy()
 
                 # System instruction based on context (image vs text)
-                system_instruction = ContextDetector.get_system_instruction(
+                system_instruction: str = ContextDetector.get_system_instruction(
                     has_image=response_window.image is not None,
                     is_custom=False,  # Follow-up questions are always in context
                     action_config={},  # Not needed for follow-up
@@ -562,7 +569,7 @@ class AIProcessor(QObject):
                 self._logger.debug("Sending request to AI provider")
 
                 # Get image data if available
-                image_data = None
+                image_data: str | None = None
                 if response_window.image:
                     self._logger.debug(
                         f" 🖼️  Processing follow-up with image - size: {response_window.image.width()}x{response_window.image.height()}"
@@ -589,18 +596,18 @@ class AIProcessor(QObject):
 
                         # Send the latest question
                         response = chat.send_message(question)
-                        response_text = response.text
+                        response_text: str = response.text
                     else:
-                        response_text = "Error: Provider model not available"
+                        response_text: str = "Error: Provider model not available"
 
                 elif self.current_provider and isinstance(self.current_provider, MistralProvider):
-                    messages = MessageFormatter.format_for_mistral(
+                    messages: list[dict[str, Any]] = MessageFormatter.format_for_mistral(
                         history, system_instruction, image_data
                     )
                     messages.append({"role": "user", "content": question})
 
                     # Get response from Mistral
-                    response_text = self.current_provider.get_response(
+                    response_text: str = self.current_provider.get_response(
                         "",  # system_instruction already in messages
                         messages,
                         return_response=True,
@@ -608,18 +615,18 @@ class AIProcessor(QObject):
                     )
 
                 elif self.current_provider:
-                    messages = MessageFormatter.format_for_openai(
+                    messages: list[dict[str, Any]] = MessageFormatter.format_for_openai(
                         history, system_instruction, image_data
                     )
 
                     # Get response by passing the full messages array
-                    response_text = self.current_provider.get_response(
+                    response_text: str = self.current_provider.get_response(
                         "",  # system_instruction already in messages
                         messages,
                         return_response=True,
                     )
                 else:
-                    response_text = "Error: No provider available"
+                    response_text: str = "Error: No provider available"
 
                 self._logger.debug(f"Got response of length: {len(response_text)}")
 
@@ -627,7 +634,8 @@ class AIProcessor(QObject):
                 response_window.chat_history.append({"role": "assistant", "content": response_text})
 
                 # Emit response via signal
-                self.app.current_response_window.followup_response_signal.emit(response_text)
+                if self.app.current_response_window:
+                    self.app.current_response_window.followup_response_signal.emit(response_text)
 
             except Exception as e:
                 self._logger.error(f"Error processing follow-up question: {e}", exc_info=True)
@@ -637,14 +645,16 @@ class AIProcessor(QObject):
                         "Error - Rate Limit Hit",
                         "Whoops! You've hit the per-minute rate limit of the API. Please try again in a few moments.\n\nIf this happens often, try switching to a different model in Settings.",
                     )
-                    self.app.current_response_window.followup_response_signal.emit(
-                        "Sorry, an error occurred while processing your question."
-                    )
+                    if self.app.current_response_window:
+                        self.app.current_response_window.followup_response_signal.emit(
+                            "Sorry, an error occurred while processing your question."
+                        )
                 else:
                     self.app.ui_manager.show_message_signal.emit("Error", f"An error occurred: {e}")
-                    self.app.current_response_window.followup_response_signal.emit(
-                        "Sorry, an error occurred while processing your question."
-                    )
+                    if self.app.current_response_window:
+                        self.app.current_response_window.followup_response_signal.emit(
+                            "Sorry, an error occurred while processing your question."
+                        )
 
         # Start the thread
         threading.Thread(target=process_thread, daemon=True).start()

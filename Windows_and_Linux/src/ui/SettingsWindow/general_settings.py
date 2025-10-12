@@ -161,7 +161,6 @@ class GeneralSettings(QWidget):
         """Handle autostart toggle and auto-save."""
         enable = state == 2  # Qt.Checked
         AutostartManager.set_autostart_with_sync(enable, self.app.settings_manager)
-        self._logger.debug(f"Autostart changed: {enable}")
 
         # Update systray action state if systray exists
         if self.app.systray_manager.autostart_action:
@@ -180,7 +179,6 @@ class GeneralSettings(QWidget):
             self._changing_language = True
             try:
                 self.app.language_manager.set_language(selected_lang_code)
-                self._logger.debug(f"Language changed to: {selected_lang_code}")
             finally:
                 self._changing_language = False
 
@@ -191,7 +189,6 @@ class GeneralSettings(QWidget):
 
         self.app.settings_manager.hotkey = self.shortcut_input.text() or "ctrl+space"
         self.app.hotkey_manager.register_hotkey()
-        self._logger.debug(f"Shortcut changed: {self.app.settings_manager.hotkey}")
 
     def _on_theme_changed(self) -> None:
         """Handle theme change and auto-save."""
@@ -199,8 +196,6 @@ class GeneralSettings(QWidget):
             return
 
         theme = "gradient" if self.gradient_radio.isChecked() else "plain"
-        bg_icon = "🌈" if theme == "gradient" else "⚽"
-        self._logger.debug(f"🎛️ Background theme change: {bg_icon} BG={theme}")
         self.app.theme_manager.change_background_theme(theme)
 
     def _on_color_mode_changed(self) -> None:
@@ -212,17 +207,9 @@ class GeneralSettings(QWidget):
         mode_mapping = {_("Auto"): "auto", _("Light"): "light", _("Dark"): "dark"}
         color_mode = mode_mapping.get(selected_text, "auto")
 
-        theme_icon = "🌙" if color_mode == "dark" else ("☀️" if color_mode == "light" else "🔄")
-        self._logger.debug(f"🎨 Color mode change: {theme_icon} Color={color_mode}")
-
         self.app.theme_manager.change_color_mode(color_mode)
         self.parent_window.refresh_theme()
 
-    def save_settings(self) -> None:
-        """Save all general settings (most are already auto-saved)."""
-        if self.shortcut_input:
-            self.app.settings_manager.hotkey = self.shortcut_input.text() or "ctrl+space"
-        self._logger.debug("General settings saved")
 
     def refresh_theme(self) -> None:
         """Refresh theme for all UI components."""

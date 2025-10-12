@@ -1,6 +1,6 @@
 """
 WidgetVisibilityManager module
-Gère la visibilité des widgets selon le mode d'édition.
+Manages widget visibility according to the edit mode.
 """
 
 from typing import TYPE_CHECKING
@@ -10,13 +10,13 @@ if TYPE_CHECKING:
 
 
 class WidgetVisibilityManager:
-    """Gère la visibilité des widgets selon le mode."""
+    """Manages widget visibility according to the mode."""
 
     def __init__(self, window: "CustomPopupWindow"):
         self.window = window
 
     def set_edit_mode(self, enabled: bool) -> None:
-        """Configure tous les widgets pour le mode édition."""
+        """Configures all widgets for edit mode."""
         visibility_map = {
             "edit_button": not enabled,
             "close_button": not enabled,

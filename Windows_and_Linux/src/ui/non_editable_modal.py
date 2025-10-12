@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 from .ui_utils import ThemedWidget
 
 if TYPE_CHECKING:
-    pass
+    from ..writing_tools_app import WritingToolsApp
 
 
 def _(x):
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     from ..writing_tools_app import WritingToolsApp
 
     app = QApplication([])
-    writing_app = WritingToolsApp(None)
+    writing_app = WritingToolsApp([])
 
     # Test text with markdown
     test_text = """# Test Title
