@@ -1,0 +1,360 @@
+# Translation template for Writing Tools
+# Generated automatically - do not edit manually
+#
+msgid ""
+msgstr ""
+"Language: \n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "(Chat icon) → Opens chat window regardless of text type"
+msgstr "(Chat icon) → Opens chat window regardless of text type"
+
+msgid ""
+"(Replace icon) → Replaces editable text, opens modal for non-editable text"
+msgstr ""
+"(Replace icon) → Replaces editable text, opens modal for non-editable text"
+
+msgid "* Models with vision support"
+msgstr "* Models with vision support"
+
+msgid "About"
+msgstr "About"
+
+msgid "About Writing Tools"
+msgstr "About Writing Tools"
+
+msgid "Always opens in modal window without modifying original"
+msgstr "Always opens in modal window without modifying original"
+
+msgid "Amazing Contributors"
+msgstr "Amazing Contributors"
+
+msgid "Are you sure you want to continue?"
+msgstr "Are you sure you want to continue?"
+
+msgid "Ask a follow-up question"
+msgstr "Ask a follow-up question"
+
+msgid "Ask a follow-up question about this image"
+msgstr "Ask a follow-up question about this image"
+
+msgid "Ask anything about this image..."
+msgstr "Ask anything about this image..."
+
+msgid "Ask your AI..."
+msgstr "Ask your AI..."
+
+msgid "Auto"
+msgstr "Auto"
+
+msgid "Auto-install Ollama and open chat interface immediately"
+msgstr "Auto-install Ollama and open chat interface immediately"
+
+msgid "Background Theme:"
+msgstr "Background Theme:"
+
+msgid "Blurry Gradient"
+msgstr "Blurry Gradient"
+
+msgid "Can be replaced or opened in chat mode"
+msgstr "Can be replaced or opened in chat mode"
+
+msgid "Chat Mode:"
+msgstr "Chat Mode:"
+
+msgid "Check for updates"
+msgstr "Check for updates"
+
+msgid "Choose AI Provider:"
+msgstr "Choose AI Provider:"
+
+msgid ""
+"Choose from available AI models. Models marked with ⭐ support image "
+"processing across all providers"
+msgstr ""
+"Choose from available AI models. Models marked with ⭐ support image "
+"processing across all providers"
+
+msgid "Click Force Chat or use Ctrl+Enter to open chat window"
+msgstr "Click Force Chat or use Ctrl+Enter to open chat window"
+
+msgid ""
+"Click action buttons with predefined prompts → Behavior indicated by icons:"
+msgstr ""
+"Click action buttons with predefined prompts → Behavior indicated by icons:"
+
+msgid "Click models in chat interface to test and install directly"
+msgstr "Click models in chat interface to test and install directly"
+
+msgid "Clipboard Images:"
+msgstr "Clipboard Images:"
+
+msgid "Clipboard Management:"
+msgstr "Clipboard Management:"
+
+msgid "Close Settings"
+msgstr "Close Settings"
+
+msgid "Color Mode:"
+msgstr "Color Mode:"
+
+msgid "Confirm Delete?"
+msgstr "Confirm Delete?"
+
+msgid "Confirm Reset to Defaults?"
+msgstr "Confirm Reset to Defaults?"
+
+msgid "Contact me"
+msgstr "Contact me"
+
+msgid "Copy as Markdown"
+msgstr "Copy as Markdown"
+
+msgid ""
+"Copy text to clipboard\n"
+"Shortcut: Ctrl+R"
+msgstr ""
+"Copy text to clipboard\n"
+"Shortcut: Ctrl+R"
+
+msgid "Created with care by Jesai, a high school student."
+msgstr "Created with care by Jesai, a high school student."
+
+msgid "Customize appearance, themes, and window behavior"
+msgstr "Customize appearance, themes, and window behavior"
+
+msgid "Dark"
+msgstr "Dark"
+
+msgid "Describe your change..."
+msgstr "Describe your change..."
+
+msgid "Edit Tools Layout"
+msgstr "Edit Tools Layout"
+
+msgid "Editable Text:"
+msgstr "Editable Text:"
+
+msgid "Exit"
+msgstr "Exit"
+
+msgid "Exit Edit Mode"
+msgstr "Exit Edit Mode"
+
+msgid "Feel free to check out my other AI app"
+msgstr "Feel free to check out my other AI app"
+
+msgid "Flow:"
+msgstr "Flow:"
+
+msgid "Force Chat Button:"
+msgstr "Force Chat Button:"
+
+msgid "Force Chat Mode"
+msgstr "Force Chat Mode"
+
+msgid ""
+"Free & lightweight AI writing assistant, similar to Apple's Apple "
+"Intelligence. Works with many AI models, online and local."
+msgstr ""
+"Free & lightweight AI writing assistant, similar to Apple's Apple "
+"Intelligence. Works with many AI models, online and local."
+
+msgid "Global Shortcut:"
+msgstr "Global Shortcut:"
+
+msgid "Help"
+msgstr "Help"
+
+msgid ""
+"Helped add dark mode, the plain theme, tray menu fixes, and UI improvements."
+msgstr ""
+"Helped add dark mode, the plain theme, tray menu fixes, and UI improvements."
+
+msgid "Helped add the start-on-boot setting."
+msgstr "Helped add the start-on-boot setting."
+
+msgid "Helped improve the reliability of text selection."
+msgstr "Helped improve the reliability of text selection."
+
+msgid "Hover over assistant responses for individual copy buttons"
+msgstr "Hover over assistant responses for individual copy buttons"
+
+msgid "How to Use Writing Tools"
+msgstr "How to Use Writing Tools"
+
+msgid "Icons show default behavior when Force Chat is not active"
+msgstr "Icons show default behavior when Force Chat is not active"
+
+msgid "Icons:"
+msgstr "Icons:"
+
+msgid "Image Processing Priority"
+msgstr "Image Processing Priority"
+
+msgid ""
+"Images in clipboard take priority over text. Press Ctrl+Space for image "
+"analysis (OCR, translation, description, etc.)."
+msgstr ""
+"Images in clipboard take priority over text. Press Ctrl+Space for image "
+"analysis (OCR, translation, description, etc.)."
+
+msgid "Installation:"
+msgstr "Installation:"
+
+msgid "Installed models appear immediately in settings dropdown"
+msgstr "Installed models appear immediately in settings dropdown"
+
+msgid "Interface Settings:"
+msgstr "Interface Settings:"
+
+msgid "It's a novel AI tutor that's free on the Google Play Store :)"
+msgstr "It's a novel AI tutor that's free on the Google Play Store :)"
+
+msgid "Keep Force Chat permanently active for sensitive editable text"
+msgstr "Keep Force Chat permanently active for sensitive editable text"
+
+msgid "LLM Selection:"
+msgstr "LLM Selection:"
+
+msgid "Language:"
+msgstr "Language:"
+
+msgid "Light"
+msgstr "Light"
+
+msgid "Lockable Mode:"
+msgstr "Lockable Mode:"
+
+msgid "Made the rounded corners anti-aliased & prettier."
+msgstr "Made the rounded corners anti-aliased & prettier."
+
+msgid "Manual Prompt Input"
+msgstr "Manual Prompt Input"
+
+msgid "Model Management:"
+msgstr "Model Management:"
+
+msgid "Model Testing:"
+msgstr "Model Testing:"
+
+msgid "No Selection:"
+msgstr "No Selection:"
+
+msgid "No image preview available"
+msgstr "No image preview available"
+
+msgid "Non-Editable Text:"
+msgstr "Non-Editable Text:"
+
+msgid "Ollama Integration"
+msgstr "Ollama Integration"
+
+msgid "Opens prompt that directly enters chat mode"
+msgstr "Opens prompt that directly enters chat mode"
+
+msgid "Overrides default behavior to always open chat mode"
+msgstr "Overrides default behavior to always open chat mode"
+
+msgid "Pause"
+msgstr "Pause"
+
+msgid "Plain"
+msgstr "Plain"
+
+msgid "Predefined Action Buttons"
+msgstr "Predefined Action Buttons"
+
+msgid "Press Enter to replace selected text (editable text only)"
+msgstr "Press Enter to replace selected text (editable text only)"
+
+msgid "Quick Reference:"
+msgstr "Quick Reference:"
+
+msgid "Replace Text:"
+msgstr "Replace Text:"
+
+msgid "Reset Complete"
+msgstr "Reset Complete"
+
+msgid "Reset to Default Buttons"
+msgstr "Reset to Default Buttons"
+
+msgid "Response"
+msgstr "Response"
+
+msgid "Resume"
+msgstr "Resume"
+
+msgid "Right-click icon for quick access to settings, help, and mode toggles"
+msgstr "Right-click icon for quick access to settings, help, and mode toggles"
+
+msgid "Screenshot Workflow:"
+msgstr "Screenshot Workflow:"
+
+msgid "Set your preferred keyboard shortcut (default: Ctrl+Space)"
+msgstr "Set your preferred keyboard shortcut (default: Ctrl+Space)"
+
+msgid "Settings"
+msgstr "Settings"
+
+msgid "Settings & Configuration"
+msgstr "Settings & Configuration"
+
+msgid "Shortcut Key:"
+msgstr "Shortcut Key:"
+
+msgid "Start on Boot"
+msgstr "Start on Boot"
+
+msgid "Start on boot"
+msgstr "Start on boot"
+
+msgid "System Tray Menu:"
+msgstr "System Tray Menu:"
+
+msgid "Systray/Settings"
+msgstr "Systray/Settings"
+
+msgid ""
+"Take a screenshot (Ctrl+Shift+S or Print Screen) → Image copied to clipboard"
+" → Ctrl+Space → Enter prompt → Chat window opens with AI response → Continue"
+" discussion about the image."
+msgstr ""
+"Take a screenshot (Ctrl+Shift+S or Print Screen) → Image copied to clipboard"
+" → Ctrl+Space → Enter prompt → Chat window opens with AI response → Continue"
+" discussion about the image."
+
+msgid "Text Selection & Interaction Modes"
+msgstr "Text Selection & Interaction Modes"
+
+msgid "Text Type Behavior"
+msgstr "Text Type Behavior"
+
+msgid "Thinking"
+msgstr "Thinking"
+
+msgid "Type your custom prompt in the text area → Choose behavior:"
+msgstr "Type your custom prompt in the text area → Choose behavior:"
+
+msgid ""
+"Validated prompts clear clipboard to prevent reuse. Cancelled prompts keep "
+"the image."
+msgstr ""
+"Validated prompts clear clipboard to prevent reuse. Cancelled prompts keep "
+"the image."
+
+msgid "When no image in clipboard:"
+msgstr "When no image in clipboard:"
+
+msgid ""
+"With no image in clipboard, text selection works with two interaction paths:"
+msgstr ""
+"With no image in clipboard, text selection works with two interaction paths:"
+
+msgid "Writing Tools"
+msgstr "Writing Tools"
+
+msgid "Writing Tools Help"
+msgstr "Writing Tools Help"
