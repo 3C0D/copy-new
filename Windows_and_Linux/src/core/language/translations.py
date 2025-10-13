@@ -62,8 +62,6 @@ class Translations:
         translation.install()
         # Update translation functions in all UI modules
         self._update_translation_functions(translation)
-        # Update all existing widgets
-        self._update_widget_translations()
         self._logger.debug(f"Translations set up for language: {actual_lang}")
         return actual_lang
 
@@ -92,6 +90,11 @@ class Translations:
         general_settings._ = self._
         provider_settings._ = self._
         systray._ = self._
+
+        # Update modules within custom_popup_window
+        from ...ui.custom_popup import button_edit_dialog
+
+        button_edit_dialog._ = self._
 
         # Update individual modules within response_window
         # These modules define their own _ function, so we don't need to update them
