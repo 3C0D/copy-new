@@ -95,7 +95,6 @@ class NonEditableModal(ThemedWidget):
         """Refresh the modal's language when language changes."""
         self.copy_button.setToolTip(_("Copy text to clipboard\nShortcut: Ctrl+R"))
 
-
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Handle window close event."""
         self.close_signal.emit()

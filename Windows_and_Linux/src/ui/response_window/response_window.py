@@ -532,7 +532,11 @@ class ResponseWindow(ThemedWidget):
                             if widget_item and widget_item.widget():
                                 widget = widget_item.widget()
                                 if isinstance(widget, QLabel) and "Hover over" in widget.text():
-                                    widget.setText(_("Hover over assistant responses for individual copy buttons"))
+                                    widget.setText(
+                                        _(
+                                            "Hover over assistant responses for individual copy buttons"
+                                        )
+                                    )
 
             # Update loading label
             if self.loading_label and self.loading_label.isVisible():
@@ -560,7 +564,7 @@ class ResponseWindow(ThemedWidget):
                     self.input_field.setPlaceholderText(placeholder_text)
 
             # Update image section header if present
-            if hasattr(self, 'image_section'):
+            if hasattr(self, "image_section"):
                 for child in self.image_section.findChildren(QLabel):
                     if child.text() == "Source Image":
                         child.setText(_("Source Image"))
@@ -568,7 +572,7 @@ class ResponseWindow(ThemedWidget):
 
             # Update all child widgets that have refresh_language method
             for child in self.findChildren(QWidget):
-                if hasattr(child, 'refresh_language') and child != self:
+                if hasattr(child, "refresh_language") and child != self:
                     try:
                         child.refresh_language()  # type: ignore
                     except RuntimeError:

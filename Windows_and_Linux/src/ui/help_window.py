@@ -182,7 +182,6 @@ class HelpWindow(ThemedWidget):
         if hasattr(self, "_title_label"):
             self._title_label.setText(_("Help"))
 
-
     def refresh_theme(self) -> None:
         """Refresh all theme-dependent styles in the help window."""
         super().refresh_theme()

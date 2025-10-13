@@ -22,6 +22,7 @@ from ...config.interfaces import ActionConfigWithName
 if TYPE_CHECKING:
     from ...writing_tools_app import WritingToolsApp
 
+
 def _(x):
     return x
 
@@ -74,7 +75,9 @@ class ButtonEditDialog(QDialog):
         # Instruction (changed to a multiline QPlainTextEdit)
         content_type = "image" if self.is_image_context else "selected text"
         self.instruction_label = QLabel(
-            _("What should your AI do with your {content_type}? (System Instruction)").format(content_type=content_type)
+            _("What should your AI do with your {content_type}? (System Instruction)").format(
+                content_type=content_type
+            )
         )
         self.instruction_label.setStyleSheet(self.app.styles["label"])
         self.instruction_input = QPlainTextEdit()
@@ -167,7 +170,9 @@ class ButtonEditDialog(QDialog):
             if hasattr(self, "instruction_label") and self.instruction_label:
                 content_type = "image" if self.is_image_context else "selected text"
                 self.instruction_label.setText(
-                    _("What should your AI do with your {content_type}? (System Instruction)").format(content_type=content_type)
+                    _(
+                        "What should your AI do with your {content_type}? (System Instruction)"
+                    ).format(content_type=content_type)
                 )
 
             # Update placeholders
@@ -207,7 +212,9 @@ class ButtonEditDialog(QDialog):
 
                 if hasattr(self, "indicator_label") and self.indicator_label:
                     self.indicator_label.setText(
-                        _("<i>A small indicator will be shown on the button: Ⓡ for replace, Ⓒ for chat</i>")
+                        _(
+                            "<i>A small indicator will be shown on the button: Ⓡ for replace, Ⓒ for chat</i>"
+                        )
                     )
             else:
                 # Update force chat note for image context

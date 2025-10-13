@@ -90,7 +90,7 @@ class MessageContainer(QWidget):
     def refresh_language(self) -> None:
         """Refresh tooltip text to reflect current language."""
         try:
-            if hasattr(self, 'copy_btn') and not self.is_user:
+            if hasattr(self, "copy_btn") and not self.is_user:
                 self.copy_btn.setToolTip(_("Copy as Markdown"))
         except RuntimeError:
             # Widget might be destroyed, skip refresh
