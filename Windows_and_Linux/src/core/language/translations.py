@@ -62,6 +62,8 @@ class Translations:
         translation.install()
         # Update translation functions in all UI modules
         self._update_translation_functions(translation)
+        # Update all existing widgets
+        self._update_widget_translations()
         self._logger.debug(f"Translations set up for language: {actual_lang}")
         return actual_lang
 

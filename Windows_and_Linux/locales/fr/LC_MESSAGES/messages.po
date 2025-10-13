@@ -7,6 +7,46 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgid ""
+"\"\"Examples:\n"
+"    - Extract and translate any text visible in this image.\n"
+"    - Describe this image in detail.\n"
+"    - What objects can you see in this image?\n"
+"    - Analyse the mood or atmosphere of this image.\n"
+"    - What colors are prominent in this image?\n"
+"    - Describe this image for someone who cannot see it.\"\""
+msgstr ""
+"\"\"Exemples :\n"
+"    - Extraire et traduire tout texte visible dans cette image.\n"
+"    - Décrire cette image en détail.\n"
+"    - Quels objets pouvez-vous voir dans cette image ?\n"
+"    - Analyser l'humeur ou l'atmosphère de cette image.\n"
+"    - Quelles couleurs sont proéminentes dans cette image ?\n"
+"    - Décrire cette image pour quelqu'un qui ne peut pas la voir.\"\""
+
+msgid ""
+"\"\"Examples:\n"
+"    - Fix / improve / explain this code.\n"
+"    - Make it funny.\n"
+"    - Add emojis!\n"
+"    - Roast this!\n"
+"    - Translate to English.\n"
+"    - Make the text title case.\n"
+"    - If it's all caps, make it all small, and vice-versa.\n"
+"    - Write a reply to this.\n"
+"    - Analyse potential biases in this news article.\"\""
+msgstr ""
+"\"\"Exemples :\n"
+"    - Corriger / améliorer / expliquer ce code.\n"
+"    - Le rendre drôle.\n"
+"    - Ajouter des emojis !\n"
+"    - Rôti ça !\n"
+"    - Traduire en anglais.\n"
+"    - Mettre le texte en casse titre.\n"
+"    - Si c'est tout en majuscules, le mettre tout en minuscules, et vice-versa.\n"
+"    - Écrire une réponse à cela.\n"
+"    - Analyser les biais potentiels dans cet article d'actualité.\"\""
+
 msgid "(Chat icon) → Opens chat window regardless of text type"
 msgstr ""
 "(Icône de discussion) → Ouvre la fenêtre de discussion quel que soit le type"
@@ -20,6 +60,21 @@ msgstr ""
 
 msgid "* Models with vision support"
 msgstr "* Modèles avec support visuel"
+
+msgid "+ Add New"
+msgstr "+ Ajouter nouveau"
+
+msgid ""
+"<i>A small indicator will be shown on the button: Ⓡ for replace, Ⓒ for "
+"chat</i>"
+msgstr ""
+"<i>Un petit indicateur sera affiché sur le bouton : Ⓡ pour remplacer, Ⓒ pour"
+" discuter</i>"
+
+msgid "<i>Image actions always open in chat window (force chat)</i>"
+msgstr ""
+"<i>Les actions sur les images s'ouvrent toujours dans la fenêtre de chat "
+"(forcer le chat)</i>"
 
 msgid "About"
 msgstr "À propos"
@@ -62,8 +117,14 @@ msgstr "Thème de fond :"
 msgid "Blurry Gradient"
 msgstr "Dégradé flou"
 
+msgid "Button Name:"
+msgstr "Nom du bouton :"
+
 msgid "Can be replaced or opened in chat mode"
 msgstr "Peut être remplacé ou ouvert en mode chat"
+
+msgid "Cancel"
+msgstr "Annuler"
 
 msgid "Chat Mode:"
 msgstr "Mode de discussion :"
@@ -104,7 +165,7 @@ msgid "Clipboard Management:"
 msgstr "Gestion du presse-papiers :"
 
 msgid "Close Settings"
-msgstr "Fermer les paramètres"
+msgstr "Fermer"
 
 msgid "Color Mode:"
 msgstr "Mode couleur :"
@@ -140,14 +201,17 @@ msgstr "Sombre"
 msgid "Describe your change..."
 msgstr "Décrivez votre changement..."
 
+msgid "Drag to rearrange"
+msgstr "Faites glisser pour réorganiser"
+
+msgid "Edit Button"
+msgstr "Boutton d'édition"
+
 msgid "Edit Tools Layout"
 msgstr "Modifier la disposition des outils"
 
 msgid "Editable Text:"
 msgstr "Texte modifiable :"
-
-msgid "Exit"
-msgstr "Sortie"
 
 msgid "Exit Edit Mode"
 msgstr "Quitter le mode édition"
@@ -156,13 +220,16 @@ msgid "Feel free to check out my other AI app"
 msgstr "N'hésitez pas à consulter mon autre application IA"
 
 msgid "Flow:"
-msgstr "Couler:"
+msgstr "Flux :"
 
 msgid "Force Chat Button:"
 msgstr "Bouton Forcer le chat :"
 
 msgid "Force Chat Mode"
 msgstr "Forcer le mode de discussion"
+
+msgid "Force Chat:"
+msgstr "Forcer le chat :"
 
 msgid ""
 "Free & lightweight AI writing assistant, similar to Apple's Apple "
@@ -194,8 +261,11 @@ msgstr ""
 "Passez la souris sur les réponses de l'assistant pour les boutons de copie "
 "individuels"
 
+msgid "How should your AI response be shown?"
+msgstr "Comment la réponse de votre IA doit-elle être affichée ?"
+
 msgid "How to Use Writing Tools"
-msgstr "Comment utiliser Writing Tools"
+msgstr "Comment utiliser les outils d'écriture"
 
 msgid "Icons show default behavior when Force Chat is not active"
 msgstr ""
@@ -214,6 +284,9 @@ msgid ""
 msgstr ""
 "Les images du presse-papiers ont priorité sur le texte. Appuyez sur "
 "Ctrl+Espace pour l'analyse de l'image (OCR, traduction, description, etc.)."
+
+msgid "In a chat pop-up window"
+msgstr "Dans une fenêtre contextuelle de chat"
 
 msgid "Installation:"
 msgstr "Installation:"
@@ -240,7 +313,7 @@ msgid "Language:"
 msgstr "Langue:"
 
 msgid "Light"
-msgstr "Lumière"
+msgstr "Claire"
 
 msgid "Lockable Mode:"
 msgstr "Mode verrouillable :"
@@ -266,6 +339,9 @@ msgstr "Aucun aperçu d'image disponible"
 msgid "Non-Editable Text:"
 msgstr "Texte non modifiable :"
 
+msgid "OK"
+msgstr "OK"
+
 msgid "Ollama Integration"
 msgstr "Intégration Ollama"
 
@@ -281,7 +357,7 @@ msgid "Pause"
 msgstr "Pause"
 
 msgid "Plain"
-msgstr "Plaine"
+msgstr "Pleine"
 
 msgid "Predefined Action Buttons"
 msgstr "Boutons d'action prédéfinis"
@@ -294,8 +370,14 @@ msgstr ""
 msgid "Quick Reference:"
 msgstr "Référence rapide :"
 
+msgid "Quit"
+msgstr "Quitter"
+
 msgid "Replace Text:"
 msgstr "Remplacer le texte :"
+
+msgid "Replace the selected text"
+msgstr "Remplacer le texte sélectionné"
 
 msgid "Reset Complete"
 msgstr "Réinitialisation terminée"
@@ -307,7 +389,7 @@ msgid "Response"
 msgstr "Réponse"
 
 msgid "Resume"
-msgstr "CV"
+msgstr "Reprendre"
 
 msgid "Right-click icon for quick access to settings, help, and mode toggles"
 msgstr ""
@@ -330,10 +412,10 @@ msgid "Shortcut Key:"
 msgstr "Touche de raccourci :"
 
 msgid "Start on Boot"
-msgstr "Lancer au démarrage"
+msgstr "Démarrer au démarrage"
 
 msgid "Start on boot"
-msgstr "Lancer au démarrage"
+msgstr "Démarrer au démarrage"
 
 msgid "System Tray Menu:"
 msgstr "Menu de la barre d'état système :"
@@ -372,6 +454,10 @@ msgstr ""
 "Les invites validées effacent le presse-papiers pour empêcher la "
 "réutilisation. Les invites annulées conservent l’image."
 
+msgid "What should your AI do with your {content_type}? (System Instruction)"
+msgstr ""
+"Que devrait faire votre IA avec votre {content_type} ? (Instruction système)"
+
 msgid "When no image in clipboard:"
 msgstr "Lorsqu'il n'y a pas d'image dans le presse-papier :"
 
@@ -381,8 +467,8 @@ msgstr ""
 "Sans image dans le presse-papiers, la sélection de texte fonctionne avec "
 "deux chemins d'interaction :"
 
-msgid "Writing Tools"
-msgstr "Writing Tools"
-
 msgid "Writing Tools Help"
-msgstr "Aide de Writing Tools"
+msgstr "Aide sur Writing Tools"
+
+msgid "📷 Image from Clipboard:"
+msgstr "📷 Image du presse-papiers :"

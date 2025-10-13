@@ -63,8 +63,8 @@ def extract_translatable_strings():
             with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
-            # Find all _() calls
-            matches = re.finditer(r'_\((["\'])(.*?)\1\)', content)
+            # Find all _() calls (with multiline support for strings with newlines)
+            matches = re.finditer(r'_\((["\'])(.*?)\1\)', content, re.DOTALL)
             for match in matches:
                 string_content = match.group(2)
                 # Skip empty strings and variables

@@ -5,279 +5,429 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: \n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-01-28 19:44+0100\n"
-"PO-Revision-Date: 2025-01-28 13:05+0100\n"
-"Last-Translator: momos1796@gmail.com\n"
-"Language-Team: Italian <momos1796@gmail.com>\n"
-"Language: it\n"
-"MIME-Version: 1.0\n"
+"Language: \n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 3.5\n"
 
-#: ui/AboutWindow.py:44
+msgid ""
+"\"\"Examples:\n"
+"    - Extract and translate any text visible in this image.\n"
+"    - Describe this image in detail.\n"
+"    - What objects can you see in this image?\n"
+"    - Analyse the mood or atmosphere of this image.\n"
+"    - What colors are prominent in this image?\n"
+"    - Describe this image for someone who cannot see it.\"\""
+msgstr ""
+
+msgid ""
+"\"\"Examples:\n"
+"    - Fix / improve / explain this code.\n"
+"    - Make it funny.\n"
+"    - Add emojis!\n"
+"    - Roast this!\n"
+"    - Translate to English.\n"
+"    - Make the text title case.\n"
+"    - If it's all caps, make it all small, and vice-versa.\n"
+"    - Write a reply to this.\n"
+"    - Analyse potential biases in this news article.\"\""
+msgstr ""
+
+msgid "(Chat icon) → Opens chat window regardless of text type"
+msgstr "(Icona chat) → Apre finestra chat indipendentemente dal tipo di testo"
+
+msgid ""
+"(Replace icon) → Replaces editable text, opens modal for non-editable text"
+msgstr ""
+"(Icona sostituisci) → Sostituisce testo modificabile, apre modale per testo "
+"non modificabile"
+
+msgid "* Models with vision support"
+msgstr "* Modelli con supporto visione"
+
+msgid "+ Add New"
+msgstr ""
+
+msgid ""
+"<i>A small indicator will be shown on the button: Ⓡ for replace, Ⓒ for "
+"chat</i>"
+msgstr ""
+
+msgid "<i>Image actions always open in chat window (force chat)</i>"
+msgstr ""
+
+msgid "About"
+msgstr "Di"
+
 msgid "About Writing Tools"
 msgstr "Informazioni su Writing Tools"
 
-#: ui/AboutWindow.py:49
-msgid ""
-"Writing Tools is a free & lightweight tool that helps you improve your "
-"writing with AI, similar to Apple's new Apple Intelligence feature. It works "
-"with an extensive range of AI LLMs, both online and locally run."
-msgstr ""
-"Writing Tools è un'app gratuita e leggera per aiutarti nella scrittura "
-"utilizzando l'IA, simile alla nuova feature di Apple. Funziona utilizzando "
-"un'ampia gamma di LLM, sia online che localmente."
+msgid "Always opens in modal window without modifying original"
+msgstr "Si apre sempre in finestra modale senza modificare l'originale"
 
-#: ui/AboutWindow.py:54
-msgid "Created with care by Jesai, a high school student."
-msgstr "Creata con cura da Jesai, uno studente delle superiori."
+msgid "Amazing Contributors"
+msgstr "Collaboratori fantastici"
 
-#: ui/AboutWindow.py:55
-msgid "Feel free to check out my other AI app"
-msgstr "Da' un'occhiata all'altra mia app di IA"
+msgid "Are you sure you want to continue?"
+msgstr "Sei sicuro di voler continuare?"
 
-#: ui/AboutWindow.py:55
-msgid "It's a novel AI tutor that's free on the Google Play Store :)"
-msgstr "È un tutor IA, gratuito sul Google Play Store :)"
+msgid "Ask a follow-up question"
+msgstr "Fai una domanda di follow-up"
 
-#: ui/AboutWindow.py:56
-msgid "Contact me"
-msgstr "Contattami"
+msgid "Ask a follow-up question about this image"
+msgstr "Fai una domanda di follow-up su questa immagine"
 
-#: ui/AboutWindow.py:60
-msgid ""
-"Writing Tools would not be where it is today without its <u>amazing</u> "
-"contributors"
-msgstr ""
-"Writing Tools non sarebbe qui oggi senza i suoi <u>fantastici</u> "
-"collaboratori"
+msgid "Ask anything about this image..."
+msgstr "Chiedi qualsiasi cosa su questa immagine..."
 
-#: ui/AboutWindow.py:62
-msgid ""
-"Extensively refactored Writing Tools and added OpenAI Compatible API "
-"support, streamed responses, and the text generation mode when no text is "
-"selected."
-msgstr ""
-"Refactor estensivo di Writing Tools, e ha aggiunto il supporto alle API "
-"OpenAI-compatibili, risposte in streaming e generazione di testo senza testo "
-"selezionato."
-
-#: ui/AboutWindow.py:64
-msgid ""
-"Added Linux support, switched to the pynput API to improve Windows "
-"stability. Added Ollama API support, custom options and localization. Fixed "
-"misc. bugs and added graceful termination support by handling SIGINT signal."
-msgstr ""
-"Aggiunto supporto per Linux, passaggio alle API di pynput per migliorare "
-"stabilità su Windows. Aggiunto supporto alle api di Ollama, opzioni "
-"personalizzabili e traduzioni. Fix di bug vari e aggiunta chiusura dell'app "
-"con segnale di SIGINT."
-
-#: ui/AboutWindow.py:66
-msgid ""
-"Helped add dark mode, the plain theme, tray menu fixes, and UI improvements."
-msgstr ""
-"Aiutato con tema scuro, tema piatto, menu da icona e altre migliorie alla UI."
-
-#: ui/AboutWindow.py:68
-msgid "Helped improve the reliability of text selection."
-msgstr "Aiutato a migliorare la leggibilità della selezione del testo."
-
-#: ui/AboutWindow.py:70
-msgid "Made the rounded corners anti-aliased & prettier."
-msgstr "Ha reso i bordi stondati e più carini con l'anti-alias."
-
-#: ui/AboutWindow.py:72
-msgid ""
-"Significantly improved the About window, making it scrollable and cleaning "
-"things up. Also improved our .gitignore & requirements.txt."
-msgstr ""
-"Migliorato notevolmente la schermata di informazioni, rendendola scorrevole "
-"e ripulendola. Migliorato .gitignore e requirements.txt."
-
-#: ui/AboutWindow.py:74
-msgid "Helped add the start-on-boot setting."
-msgstr "Aiutato nell'aggiunta dell'impostazione di auto-avvio."
-
-#: ui/CustomPopupWindow.py:75 ui/CustomPopupWindow.py:74
-msgid "Describe your change..."
-msgstr "Descrivi la tua modifica..."
-
-#: ui/CustomPopupWindow.py:75 ui/CustomPopupWindow.py:74
 msgid "Ask your AI..."
 msgstr "Chiedi alla tua IA..."
 
-#: ui/CustomPopupWindow.py:109
-msgid "Proofread"
-msgstr "Correggi"
+msgid "Auto"
+msgstr "Auto"
 
-#: ui/CustomPopupWindow.py:110
-msgid "Rewrite"
-msgstr "Riscrivi"
-
-#: ui/CustomPopupWindow.py:111
-msgid "Friendly"
-msgstr "Amichevole"
-
-#: ui/CustomPopupWindow.py:112
-msgid "Professional"
-msgstr "Professionale"
-
-#: ui/CustomPopupWindow.py:113
-msgid "Concise"
-msgstr "Conciso"
-
-#: ui/CustomPopupWindow.py:114
-msgid "Summary"
-msgstr "Riassunto"
-
-#: ui/CustomPopupWindow.py:115
-msgid "Key Points"
-msgstr "Punti chiave"
-
-#: ui/CustomPopupWindow.py:116
-msgid "Table"
-msgstr "Tabella"
-
-#: ui/OnboardingWindow.py:24 ui/OnboardingWindow.py:40
-#: ui/OnboardingWindow.py:26 ui/OnboardingWindow.py:42
-msgid "Welcome to Writing Tools"
-msgstr "Benvenuto in Writing Tools"
-
-#: ui/OnboardingWindow.py:45 ui/OnboardingWindow.py:47
-msgid ""
-"Instantly optimize your writing with AI by selecting your text and invoking "
-"Writing Tools with \"ctrl+space\", anywhere."
+msgid "Auto-install Ollama and open chat interface immediately"
 msgstr ""
-"Ottimizza istantaneamente la tua scrittura con l'IA, seleziona del testo e "
-"attivando Writing Tools, ovunque."
+"Installa automaticamente Ollama e apri interfaccia chat immediatamente"
 
-#: ui/OnboardingWindow.py:47 ui/OnboardingWindow.py:49
-msgid ""
-"Get a summary you can chat with of articles, YouTube videos, or documents by "
-"select all text with \"ctrl+a\""
-msgstr ""
-"Ottieni un riassunto di documenti, articoli, video YouTube e altro "
-"selezionando tutto il testo con \"ctrl+a\""
-
-#: ui/OnboardingWindow.py:48 ui/OnboardingWindow.py:50
-msgid ""
-"(or select the YouTube transcript from its description), invoking Writing "
-"Tools, and choosing Summary."
-msgstr ""
-"(o seleziona la trascrizione di YouTube dalla descrizione del video), "
-"invocando Writing Tools e selezionando \"Riassunto\"."
-
-#: ui/OnboardingWindow.py:50 ui/OnboardingWindow.py:52
-msgid ""
-"Chat with AI anytime by invoking Writing Tools without selecting any text."
-msgstr "Chatta con l'IA in qualsiasi momento, non selezionando del testo."
-
-#: ui/OnboardingWindow.py:52 ui/OnboardingWindow.py:54
-msgid "Supports an extensive range of AI models:"
-msgstr "Supporto a vasta gamma di modelli di AI, come:"
-
-#: ui/OnboardingWindow.py:53 ui/OnboardingWindow.py:55
-msgid "Gemini 2.0"
-msgstr "Gemini 2.0"
-
-#: ui/OnboardingWindow.py:54 ui/OnboardingWindow.py:56
-msgid "ANY OpenAI Compatible API — including local LLMs!"
-msgstr ""
-"OGNI modello servito tramite API OpenAI-compatibili, anche modelli locali "
-"sul tuo PC!"
-
-#: ui/OnboardingWindow.py:75 ui/OnboardingWindow.py:77
-msgid "Choose your theme:"
-msgstr "Scegli il tuo tema:"
-
-#: ui/OnboardingWindow.py:80 ui/OnboardingWindow.py:82
-msgid "Gradient"
-msgstr "Gradiente"
-
-#: ui/OnboardingWindow.py:81 ui/SettingsWindow.py:239 ui/OnboardingWindow.py:83
-#: ui/SettingsWindow.py:244
-msgid "Plain"
-msgstr "Piatto"
-
-#: ui/OnboardingWindow.py:90 ui/OnboardingWindow.py:92
-msgid "Next"
-msgstr "Avanti"
-
-#: ui/ResponseWindow.py:301 ui/ResponseWindow.py:303
-msgid "Response"
-msgstr "Risposta"
-
-#: ui/ResponseWindow.py:379 ui/ResponseWindow.py:385
-msgid "Select to copy with formatting"
-msgstr "Seleziona per copiare con formattazione"
-
-#: ui/ResponseWindow.py:384 ui/ResponseWindow.py:390
-msgid "Copy as Markdown"
-msgstr "Copia come Markdown"
-
-#: ui/ResponseWindow.py:395 ui/ResponseWindow.py:507 ui/ResponseWindow.py:509
-#: ui/ResponseWindow.py:516 ui/ResponseWindow.py:520 ui/ResponseWindow.py:401
-#: ui/ResponseWindow.py:513 ui/ResponseWindow.py:515 ui/ResponseWindow.py:522
-#: ui/ResponseWindow.py:526
-msgid "Thinking"
-msgstr "Sto pensando"
-
-#: ui/ResponseWindow.py:429 ui/ResponseWindow.py:530 ui/ResponseWindow.py:435
-#: ui/ResponseWindow.py:536
-msgid "Ask a follow-up question"
-msgstr "Chiedi una domanda a seguire"
-
-#: ui/SettingsWindow.py:32 ui/SettingsWindow.py:151 ui/SettingsWindow.py:205
-#: WritingToolApp.py:568 ui/SettingsWindow.py:37 ui/SettingsWindow.py:156
-#: ui/SettingsWindow.py:210 WritingToolApp.py:569
-msgid "Settings"
-msgstr "Impostazioni"
-
-#: ui/SettingsWindow.py:211 ui/SettingsWindow.py:216
-msgid "Start on Boot"
-msgstr "Avvia all'accensione"
-
-#: ui/SettingsWindow.py:218 ui/SettingsWindow.py:223
-msgid "Shortcut Key:"
-msgstr "Scorciatoia da tastiera:"
-
-#: ui/SettingsWindow.py:233 ui/SettingsWindow.py:238
 msgid "Background Theme:"
-msgstr "Tema Sfondo:"
+msgstr "Tema di sfondo:"
 
-#: ui/SettingsWindow.py:238 ui/SettingsWindow.py:243
 msgid "Blurry Gradient"
 msgstr "Gradiente sfocato"
 
-#: ui/SettingsWindow.py:250 ui/SettingsWindow.py:255
+msgid "Button Name:"
+msgstr ""
+
+msgid "Can be replaced or opened in chat mode"
+msgstr "Può essere sostituito o aperto in modalità chat"
+
+msgid "Cancel"
+msgstr ""
+
+msgid "Chat Mode:"
+msgstr "Modalità chat:"
+
+msgid "Check for updates"
+msgstr "Verifica aggiornamenti"
+
 msgid "Choose AI Provider:"
-msgstr "Scegli provider IA:"
+msgstr "Scegli il fornitore di intelligenza artificiale:"
 
-#: ui/SettingsWindow.py:307 ui/SettingsWindow.py:312
-msgid "Finish AI Setup"
-msgstr "Termina setup"
+msgid ""
+"Choose from available AI models. Models marked with ⭐ support image "
+"processing across all providers"
+msgstr ""
+"Scegli tra i modelli IA disponibili. I modelli contrassegnati con ⭐ "
+"supportano l'elaborazione immagini su tutti i provider"
 
-#: ui/SettingsWindow.py:307 ui/SettingsWindow.py:312
-msgid "Save"
-msgstr "Salva"
+msgid "Click Force Chat or use Ctrl+Enter to open chat window"
+msgstr "Clicca Forza chat o usa Ctrl+Invio per aprire finestra chat"
 
-#: ui/SettingsWindow.py:326 ui/SettingsWindow.py:331
-msgid "Please restart Writing Tools for changes to take effect."
-msgstr "Riavvia Writing Tools per rendere le modifiche attive."
+msgid ""
+"Click action buttons with predefined prompts → Behavior indicated by icons:"
+msgstr ""
+"Clicca pulsanti azione con prompt predefiniti → Comportamento indicato dalle"
+" icone:"
 
-#: WritingToolApp.py:571 WritingToolApp.py:572
-msgid "About"
-msgstr "Informazioni"
+msgid "Click models in chat interface to test and install directly"
+msgstr ""
+"Clicca modelli nell'interfaccia chat per testare e installare direttamente"
 
-#: WritingToolApp.py:574 WritingToolApp.py:575
-msgid "Exit"
-msgstr "Esci"
+msgid "Clipboard Images:"
+msgstr "Immagini clipboard:"
 
-#: ui/SettingsWindow.py:567 ui/SettingsWindow.py:572
+msgid "Clipboard Management:"
+msgstr "Gestione clipboard:"
+
 msgid "Close Settings"
-msgstr "Chiudi"
+msgstr "Chiudi impostazioni"
+
+msgid "Color Mode:"
+msgstr "Modalità colore:"
+
+msgid "Confirm Delete?"
+msgstr "Conferma eliminazione?"
+
+msgid "Confirm Reset to Defaults?"
+msgstr "Conferma reset ai valori predefiniti?"
+
+msgid "Contact me"
+msgstr "Contattami"
+
+msgid "Copy as Markdown"
+msgstr "Copia come Markdown"
+
+msgid ""
+"Copy text to clipboard\n"
+"Shortcut: Ctrl+R"
+msgstr ""
+
+msgid "Created with care by Jesai, a high school student."
+msgstr "Creato con cura da Jesai, uno studente delle scuole superiori."
+
+msgid "Customize appearance, themes, and window behavior"
+msgstr "Personalizza aspetto, temi e comportamento finestre"
+
+msgid "Dark"
+msgstr "Scuro"
+
+msgid "Describe your change..."
+msgstr "Descrivi il tuo cambiamento..."
+
+msgid "Drag to rearrange"
+msgstr ""
+
+msgid "Edit Button"
+msgstr ""
+
+msgid "Edit Tools Layout"
+msgstr "Modifica layout strumenti"
+
+msgid "Editable Text:"
+msgstr "Testo modificabile:"
+
+msgid "Exit Edit Mode"
+msgstr "Esci modalità modifica"
+
+msgid "Feel free to check out my other AI app"
+msgstr "Sentiti libero di dare un'occhiata alla mia altra app AI"
+
+msgid "Flow:"
+msgstr "Flusso:"
+
+msgid "Force Chat Button:"
+msgstr "Pulsante forza chat:"
+
+msgid "Force Chat Mode"
+msgstr "Modalità forza chat"
+
+msgid "Force Chat:"
+msgstr ""
+
+msgid ""
+"Free & lightweight AI writing assistant, similar to Apple's Apple "
+"Intelligence. Works with many AI models, online and local."
+msgstr ""
+
+msgid "Global Shortcut:"
+msgstr "Scorciatoia globale:"
+
+msgid "Help"
+msgstr "Aiuto"
+
+msgid ""
+"Helped add dark mode, the plain theme, tray menu fixes, and UI improvements."
+msgstr ""
+"Aiutato ad aggiungere la modalità oscura, il tema semplice, correzioni del "
+"menu della barra delle applicazioni e miglioramenti dell'interfaccia utente."
+
+msgid "Helped add the start-on-boot setting."
+msgstr "Aiutato ad aggiungere l'impostazione di avvio all'avvio."
+
+msgid "Helped improve the reliability of text selection."
+msgstr "Ha contribuito a migliorare l'affidabilità della selezione del testo."
+
+msgid "Hover over assistant responses for individual copy buttons"
+msgstr "Passa sopra risposte assistente per pulsanti copia individuali"
+
+msgid "How should your AI response be shown?"
+msgstr ""
+
+msgid "How to Use Writing Tools"
+msgstr "Come usare Writing Tools"
+
+msgid "Icons show default behavior when Force Chat is not active"
+msgstr ""
+"Icone mostrano comportamento predefinito quando Forza chat non è attivo"
+
+msgid "Icons:"
+msgstr "Icone:"
+
+msgid "Image Processing Priority"
+msgstr "Priorità elaborazione immagini"
+
+msgid ""
+"Images in clipboard take priority over text. Press Ctrl+Space for image "
+"analysis (OCR, translation, description, etc.)."
+msgstr ""
+"Immagini in clipboard hanno priorità sul testo. Premi Ctrl+Spazio per "
+"analisi immagine (OCR, traduzione, descrizione, ecc.)."
+
+msgid "In a chat pop-up window"
+msgstr ""
+
+msgid "Installation:"
+msgstr "Installazione:"
+
+msgid "Installed models appear immediately in settings dropdown"
+msgstr "Modelli installati appaiono immediatamente nel menu impostazioni"
+
+msgid "Interface Settings:"
+msgstr "Impostazioni interfaccia:"
+
+msgid "It's a novel AI tutor that's free on the Google Play Store :)"
+msgstr "È un nuovo tutor AI gratuito su Google Play Store :)"
+
+msgid "Keep Force Chat permanently active for sensitive editable text"
+msgstr ""
+"Mantieni Forza chat permanentemente attivo per testo modificabile sensibile"
+
+msgid "LLM Selection:"
+msgstr "Selezione LLM:"
+
+msgid "Language:"
+msgstr "Lingua:"
+
+msgid "Light"
+msgstr ""
+
+msgid "Lockable Mode:"
+msgstr "Modalità bloccabile:"
+
+msgid "Made the rounded corners anti-aliased & prettier."
+msgstr "Resi gli angoli arrotondati anti-aliasing e più belli."
+
+msgid "Manual Prompt Input"
+msgstr "Input prompt manuale"
+
+msgid "Model Management:"
+msgstr "Gestione modelli:"
+
+msgid "Model Testing:"
+msgstr "Test modelli:"
+
+msgid "No Selection:"
+msgstr "Nessuna selezione:"
+
+msgid "No image preview available"
+msgstr "Nessuna anteprima immagine disponibile"
+
+msgid "Non-Editable Text:"
+msgstr "Testo non modificabile:"
+
+msgid "OK"
+msgstr ""
+
+msgid "Ollama Integration"
+msgstr "Integrazione Ollama"
+
+msgid "Opens prompt that directly enters chat mode"
+msgstr "Apre prompt che entra direttamente in modalità chat"
+
+msgid "Overrides default behavior to always open chat mode"
+msgstr "Sostituisce comportamento predefinito per aprire sempre modalità chat"
+
+msgid "Pause"
+msgstr "Pausa"
+
+msgid "Plain"
+msgstr "Piatto"
+
+msgid "Predefined Action Buttons"
+msgstr "Pulsanti azione predefiniti"
+
+msgid "Press Enter to replace selected text (editable text only)"
+msgstr ""
+"Premi Invio per sostituire testo selezionato (solo testo modificabile)"
+
+msgid "Quick Reference:"
+msgstr "Riferimento rapido:"
+
+msgid "Quit"
+msgstr ""
+
+msgid "Replace Text:"
+msgstr "Sostituisci testo:"
+
+msgid "Replace the selected text"
+msgstr ""
+
+msgid "Reset Complete"
+msgstr "Reset completato"
+
+msgid "Reset to Default Buttons"
+msgstr "Reset pulsanti predefiniti"
+
+msgid "Response"
+msgstr "Risposta"
+
+msgid "Resume"
+msgstr "Riprendi"
+
+msgid "Right-click icon for quick access to settings, help, and mode toggles"
+msgstr ""
+"Clicca destro icona per accesso rapido a impostazioni, aiuto e toggle "
+"modalità"
+
+msgid "Screenshot Workflow:"
+msgstr "Flusso screenshot:"
+
+msgid "Set your preferred keyboard shortcut (default: Ctrl+Space)"
+msgstr "Imposta scorciatoia tastiera preferita (predefinita: Ctrl+Spazio)"
+
+msgid "Settings"
+msgstr "Impostazioni"
+
+msgid "Settings & Configuration"
+msgstr "Impostazioni e configurazione"
+
+msgid "Shortcut Key:"
+msgstr "Tasto di scelta rapida:"
+
+msgid "Start on Boot"
+msgstr "Inizia all'avvio"
+
+msgid "Start on boot"
+msgstr "Inizia all'avvio"
+
+msgid "System Tray Menu:"
+msgstr "Menu barra sistema:"
+
+msgid "Systray/Settings"
+msgstr "Barra sistema/Impostazioni"
+
+msgid ""
+"Take a screenshot (Ctrl+Shift+S or Print Screen) → Image copied to clipboard"
+" → Ctrl+Space → Enter prompt → Chat window opens with AI response → Continue"
+" discussion about the image."
+msgstr ""
+"Fai screenshot (Ctrl+Shift+S o Stamp) → Immagine copiata in clipboard → "
+"Ctrl+Spazio → Inserisci prompt → Finestra chat si apre con risposta IA → "
+"Continua discussione sull'immagine."
+
+msgid "Text Selection & Interaction Modes"
+msgstr "Selezione testo e modalità interazione"
+
+msgid "Text Type Behavior"
+msgstr "Comportamento tipo testo"
+
+msgid "Thinking"
+msgstr "Pensiero"
+
+msgid "Type your custom prompt in the text area → Choose behavior:"
+msgstr "Digita prompt personalizzato nell'area testo → Scegli comportamento:"
+
+msgid ""
+"Validated prompts clear clipboard to prevent reuse. Cancelled prompts keep "
+"the image."
+msgstr ""
+"Prompt validati svuotano clipboard per evitare riuso. Prompt annullati "
+"mantengono l'immagine."
+
+msgid "What should your AI do with your {content_type}? (System Instruction)"
+msgstr ""
+
+msgid "When no image in clipboard:"
+msgstr "Quando nessuna immagine in clipboard:"
+
+msgid ""
+"With no image in clipboard, text selection works with two interaction paths:"
+msgstr ""
+"Senza immagine in clipboard, selezione testo funziona con due percorsi "
+"interazione:"
+
+msgid "Writing Tools Help"
+msgstr "Aiuto Writing Tools"
+
+msgid "📷 Image from Clipboard:"
+msgstr ""

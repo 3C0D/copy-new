@@ -8,6 +8,12 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 
+msgid "\"\"Examples:\n    - Extract and translate any text visible in this image.\n    - Describe this image in detail.\n    - What objects can you see in this image?\n    - Analyse the mood or atmosphere of this image.\n    - What colors are prominent in this image?\n    - Describe this image for someone who cannot see it.\"\""
+msgstr ""
+
+msgid "\"\"Examples:\n    - Fix / improve / explain this code.\n    - Make it funny.\n    - Add emojis!\n    - Roast this!\n    - Translate to English.\n    - Make the text title case.\n    - If it's all caps, make it all small, and vice-versa.\n    - Write a reply to this.\n    - Analyse potential biases in this news article.\"\""
+msgstr ""
+
 msgid "(Chat icon) → Opens chat window regardless of text type"
 msgstr ""
 
@@ -15,6 +21,15 @@ msgid "(Replace icon) → Replaces editable text, opens modal for non-editable t
 msgstr ""
 
 msgid "* Models with vision support"
+msgstr ""
+
+msgid "+ Add New"
+msgstr ""
+
+msgid "<i>A small indicator will be shown on the button: Ⓡ for replace, Ⓒ for chat</i>"
+msgstr ""
+
+msgid "<i>Image actions always open in chat window (force chat)</i>"
 msgstr ""
 
 msgid "About"
@@ -56,7 +71,13 @@ msgstr ""
 msgid "Blurry Gradient"
 msgstr ""
 
+msgid "Button Name:"
+msgstr ""
+
 msgid "Can be replaced or opened in chat mode"
+msgstr ""
+
+msgid "Cancel"
 msgstr ""
 
 msgid "Chat Mode:"
@@ -119,13 +140,16 @@ msgstr ""
 msgid "Describe your change..."
 msgstr ""
 
+msgid "Drag to rearrange"
+msgstr ""
+
+msgid "Edit Button"
+msgstr ""
+
 msgid "Edit Tools Layout"
 msgstr ""
 
 msgid "Editable Text:"
-msgstr ""
-
-msgid "Exit"
 msgstr ""
 
 msgid "Exit Edit Mode"
@@ -141,6 +165,9 @@ msgid "Force Chat Button:"
 msgstr ""
 
 msgid "Force Chat Mode"
+msgstr ""
+
+msgid "Force Chat:"
 msgstr ""
 
 msgid "Free & lightweight AI writing assistant, similar to Apple's Apple Intelligence. Works with many AI models, online and local."
@@ -164,6 +191,9 @@ msgstr ""
 msgid "Hover over assistant responses for individual copy buttons"
 msgstr ""
 
+msgid "How should your AI response be shown?"
+msgstr ""
+
 msgid "How to Use Writing Tools"
 msgstr ""
 
@@ -177,6 +207,9 @@ msgid "Image Processing Priority"
 msgstr ""
 
 msgid "Images in clipboard take priority over text. Press Ctrl+Space for image analysis (OCR, translation, description, etc.)."
+msgstr ""
+
+msgid "In a chat pop-up window"
 msgstr ""
 
 msgid "Installation:"
@@ -227,6 +260,9 @@ msgstr ""
 msgid "Non-Editable Text:"
 msgstr ""
 
+msgid "OK"
+msgstr ""
+
 msgid "Ollama Integration"
 msgstr ""
 
@@ -251,7 +287,13 @@ msgstr ""
 msgid "Quick Reference:"
 msgstr ""
 
+msgid "Quit"
+msgstr ""
+
 msgid "Replace Text:"
+msgstr ""
+
+msgid "Replace the selected text"
 msgstr ""
 
 msgid "Reset Complete"
@@ -314,6 +356,9 @@ msgstr ""
 msgid "Validated prompts clear clipboard to prevent reuse. Cancelled prompts keep the image."
 msgstr ""
 
+msgid "What should your AI do with your {content_type}? (System Instruction)"
+msgstr ""
+
 msgid "When no image in clipboard:"
 msgstr ""
 
@@ -321,4 +366,7 @@ msgid "With no image in clipboard, text selection works with two interaction pat
 msgstr ""
 
 msgid "Writing Tools Help"
+msgstr ""
+
+msgid "📷 Image from Clipboard:"
 msgstr ""

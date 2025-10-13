@@ -191,7 +191,7 @@ class CustomPopupWindow(QWidget):
 
     def _create_drag_label(self, layout: QHBoxLayout) -> None:
         """Create the drag instruction label for edit mode."""
-        self.drag_label = QLabel("Drag to rearrange")
+        self.drag_label = QLabel(_("Drag to rearrange"))
         self.drag_label.setStyleSheet(self.app.styles["label"])
         self.drag_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.drag_label.hide()
@@ -1185,6 +1185,66 @@ class CustomPopupWindow(QWidget):
         api_model = self.app.ai_processor.get_current_model(provider_name)
 
         return self.vision_validator.has_vision_support(provider_name, api_model)
+
+    def refresh_language(self) -> None:
+        """Refresh all text elements to reflect the current language."""
+        try:
+            # Update drag label
+            if hasattr(self, "drag_label") and self.drag_label:
+                self.drag_label.setText(_("Drag to rearrange"))
+
+            # Update reset button tooltip
+            if hasattr(self, "reset_button") and self.reset_button:
+                self.reset_button.setToolTip(_("Reset to Default Buttons"))
+
+            # Update edit button tooltip
+            if hasattr(self, "edit_button") and self.edit_button:
+                self.edit_button.setToolTip(_("Edit Tools Layout"))
+
+            # Update close button tooltip
+            if hasattr(self, "edit_close_button") and self.edit_close_button:
+                self.edit_close_button.setToolTip(_("Exit Edit Mode"))
+
+            # Update input placeholder
+            if hasattr(self, "custom_input") and self.custom_input:
+                placeholder = (
+                    _("Describe your change...")
+                    if self.has_sel_text
+                    else _("Ask anything about this image...")
+                    if self.has_image
+                    else _("Ask your AI...")
+                )
+                self.custom_input.setPlaceholderText(placeholder)
+
+            # Update image preview label
+            if hasattr(self, "image_preview_container") and self.image_preview_container:
+                for child in self.image_preview_container.findChildren(QLabel):
+                    if "📷 Image from Clipboard:" in child.text():
+                        child.setText(_("📷 Image from Clipboard:"))
+                    elif child.toolTip() and "Remove image from clipboard" in child.toolTip():
+                        child.setToolTip(
+                            _(
+                                "Remove image from clipboard\n"
+                                "This will close the application and clear the clipboard.\n"
+                                "Restart with hotkey to continue without the image."
+                            )
+                        )
+
+            # Update force chat label
+            if hasattr(self, "force_chat_area") and self.force_chat_area:
+                for child in self.force_chat_area.findChildren(QLabel):
+                    if "Force Chat:" in child.text():
+                        child.setText(_("Force Chat:"))
+
+            # Update add new button text
+            for widget in self.findChildren(QPushButton):
+                if widget.text() == "+ Add New":
+                    widget.setText(_("+ Add New"))
+                    break
+
+        except RuntimeError:
+            # Widget might be destroyed, skip refresh
+            pass
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key.Key_Escape:

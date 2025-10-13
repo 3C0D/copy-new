@@ -114,7 +114,7 @@ class SystrayManager:
         help_action.triggered.connect(self.show_help)
 
         # Exit menu item
-        exit_action = self.tray_menu.addAction(_("Exit"))
+        exit_action = self.tray_menu.addAction(_("Quit"))
         exit_action.triggered.connect(self.app.lifecycle_manager.exit_app)
 
     def show_about(self) -> None:

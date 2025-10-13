@@ -10,6 +10,7 @@ Le système de traduction utilise gettext et permet de supporter plusieurs langu
 
 ### Scripts principaux
 - `extract_translations.py` - Extrait les chaînes traduisibles du code
+- `update_po_from_pot.py` - Synchronise tous les .po depuis messages.pot
 - `translate_po.py` - Traduit automatiquement les fichiers .po
 - `compile_translations.py` - Compile les .po en .mo
 - `find_untranslated.py` - Trouve les chaînes non traduites
@@ -43,7 +44,13 @@ mkdir -p locales/zh/LC_MESSAGES
 cp locales/messages.pot locales/zh/LC_MESSAGES/messages.po
 ```
 
-### 3. Traduction automatique
+### 3. Mise à jour des fichiers .po depuis le template
+```bash
+# Met à jour automatiquement tous les .po depuis messages.pot
+python scripts/translation_management/update_po_from_pot.py
+```
+
+### 4. Traduction automatique
 ```bash
 # Traduction normale (chaînes vides seulement)
 python scripts/translation_management/translate_po.py locales/zh/LC_MESSAGES/messages.po en zh
@@ -52,7 +59,7 @@ python scripts/translation_management/translate_po.py locales/zh/LC_MESSAGES/mes
 python scripts/translation_management/translate_po.py locales/zh/LC_MESSAGES/messages.po en zh --force
 ```
 
-### 4. Compilation
+### 5. Compilation
 ```bash
 python scripts/translation_management/compile_translations.py zh
 ```
@@ -74,6 +81,12 @@ Quand vous ajoutez de nouvelles chaînes `_()` dans le code :
 - **Sortie** : `locales/messages.pot`
 - **Utilité** : Nécessaire sous Windows (remplace xgettext)
 
+### update_po_from_pot.py
+- **Rôle** : Synchronise tous les .po depuis messages.pot
+- **Entrée** : `locales/messages.pot`
+- **Sortie** : Met à jour tous les `locales/*/LC_MESSAGES/messages.po`
+- **Utilité** : Garde les traductions existantes, ajoute/supprime automatiquement
+
 ### translate_po.py
 - **Rôle** : Traduction automatique via Google Translate
 - **Options** :
@@ -93,6 +106,7 @@ Quand vous ajoutez de nouvelles chaînes `_()` dans le code :
 
 ### 🤖 Ce qui doit être fait par script :
 - ✅ Extraction automatique des chaînes `_()`
+- ✅ Synchronisation automatique des .po depuis .pot
 - ✅ Traduction automatique (Google Translate)
 - ✅ Compilation .po → .mo
 - ✅ Détection des chaînes non traduites
@@ -123,16 +137,18 @@ msgstr "Démarrer au démarrage"  # ✅ Terminologie correcte
 ### Ajout de nouvelles chaînes :
 1. Ajouter `_()` dans le code
 2. `extract_translations.py` → met à jour .pot
-3. `translate_po.py --force` → retraduit tout
-4. Vérifier/corriger avec LLM
-5. `compile_translations.py`
+3. `update_po_from_pot.py` → synchronise tous les .po
+4. `translate_po.py` → traduit les nouvelles chaînes
+5. Vérifier/corriger avec LLM
+6. `compile_translations.py`
 
 ### Nouvelle langue :
 1. Créer dossier `locales/xx/LC_MESSAGES/`
 2. Copier `messages.pot` → `messages.po`
-3. `translate_po.py` → traduction automatique
-4. Corrections LLM si nécessaire
-5. `compile_translations.py`
+3. `update_po_from_pot.py` → synchronise automatiquement
+4. `translate_po.py` → traduction automatique
+5. Corrections LLM si nécessaire
+6. `compile_translations.py`
 
 ## ⚠️ Points d'attention
 

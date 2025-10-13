@@ -56,6 +56,7 @@ def compile_language(lang_code):
         import polib
     except ImportError:
         print("ERROR: Missing polib module. Install with: pip install polib")
+        print("Note: This script should be run from the virtual environment.")
         return False
 
     try:

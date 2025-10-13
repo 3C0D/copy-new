@@ -42,7 +42,7 @@ class ResponseWindow(ThemedWidget):
         self.app = app
         self.content_layout: QVBoxLayout | None = None
         self.original_title = title
-        self.setWindowTitle(title)
+        self.setWindowTitle(_("Response"))
         self.option = title.replace(" Result", "")
         self.selected_text: str | None = None
         self.image: QtGui.QImage | None = None

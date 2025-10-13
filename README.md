@@ -77,6 +77,16 @@ python Windows_and_Linux/scripts/update_deps.py
 python Windows_and_Linux/scripts/build_dev.py --console
 ```
 
+### **Translation Issues**
+
+```bash
+# Translate PO file (force retranslation)
+cd Windows_and_Linux && myvenv\Scripts\python.exe scripts\translation_management\translate_po.py locales\fr\LC_MESSAGES\messages.po en fr --force
+
+# Compile translations
+cd Windows_and_Linux && myvenv\Scripts\python.exe scripts\translation_management\compile_translations.py fr
+```
+
 ### **Provider Issues**
 
 - Check API keys in Settings
@@ -89,6 +99,7 @@ python Windows_and_Linux/scripts/build_dev.py --console
 - **[Building Guide](README's%20Linked%20Content/To%20Compile%20the%20Application%20Yourself.md)** - Complete build instructions
 - **[Running from Source](README's%20Linked%20Content/To%20Run%20Writing%20Tools%20Directly%20from%20the%20Source%20Code.md)** - Source execution guide
 - **[Scripts Documentation](Windows_and_Linux/scripts/README.md)** - All available scripts explained
+- **[Translation Management](Windows_and_Linux/scripts/translation_management/README.md)** - Translation tools and workflow
 - **[Major Changes](README's%20Linked%20Content/Major%20Changes%20from%20Original%20Fork.md)** - What's new in this version
 
 ## 🎯 Usage
