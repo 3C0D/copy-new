@@ -41,6 +41,7 @@ def verify_environment():
         import polib  # noqa: F401
         from deep_translator import GoogleTranslator  # noqa: F401
         from googletrans import Translator  # noqa: F401
+
         return True
     except ImportError as e:
         print("=" * 60)
@@ -127,7 +128,7 @@ def compile_po_to_mo(po_file_path):
     """Compile a .po file to .mo"""
     import polib
 
-    mo_file_path = po_file_path.with_suffix('.mo')
+    mo_file_path = po_file_path.with_suffix(".mo")
     po = polib.pofile(str(po_file_path))
     po.save_as_mofile(str(mo_file_path))
     print(f"* Compiled: {mo_file_path}")
@@ -202,5 +203,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\nERROR: Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

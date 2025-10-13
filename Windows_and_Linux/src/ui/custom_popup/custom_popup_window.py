@@ -93,6 +93,7 @@ class CustomPopupWindow(QWidget):
         self.top_bar_widget: QWidget | None = None
         self.remove_image_button: QPushButton | None = None
         self.image_preview_container: QWidget | None = None
+        self.add_new_button: QPushButton | None = None
 
     def init_ui(self):
         """Initialize the main UI structure."""
@@ -746,21 +747,23 @@ class CustomPopupWindow(QWidget):
             item = parent_layout.itemAt(i)
             if item and item.widget():
                 widget = item.widget()
-                if isinstance(widget, QPushButton) and widget.text() == "+ Add New":
+                if widget == self.add_new_button:
                     parent_layout.removeWidget(widget)
                     widget.deleteLater()
+                    self.add_new_button = None
 
         # Add "Add New" button outside scroll area (only in edit mode & only if we have text or image)
         if edit_mode_to_use and (self.has_sel_text or self.has_image):
-            add_btn = QPushButton("+ Add New")
-            add_btn.setStyleSheet(self._get_add_button_style())
-            add_btn.clicked.connect(self.add_new_button_clicked)
+            self.add_new_button = QPushButton()
+            self.add_new_button.setText(_("+ Add New"))
+            self.add_new_button.setStyleSheet(self._get_add_button_style())
+            self.add_new_button.clicked.connect(self.add_new_button_clicked)
 
             if isinstance(parent_layout, (QVBoxLayout, QHBoxLayout)):
                 if scroll_index >= 0:
-                    parent_layout.insertWidget(scroll_index + 1, add_btn)
+                    parent_layout.insertWidget(scroll_index + 1, self.add_new_button)
                 else:
-                    parent_layout.addWidget(add_btn)
+                    parent_layout.addWidget(self.add_new_button)
 
     def add_edit_delete_icons(self, btn) -> None:
         """Add edit/delete icons as overlays with proper spacing."""
@@ -1237,10 +1240,8 @@ class CustomPopupWindow(QWidget):
                         child.setText(_("Force Chat:"))
 
             # Update add new button text
-            for widget in self.findChildren(QPushButton):
-                if widget.text() == "+ Add New":
-                    widget.setText(_("+ Add New"))
-                    break
+            if hasattr(self, "add_new_button") and self.add_new_button:
+                self.add_new_button.setText(_("+ Add New"))
 
         except RuntimeError:
             # Widget might be destroyed, skip refresh

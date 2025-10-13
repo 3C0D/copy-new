@@ -62,7 +62,7 @@ msgid "* Models with vision support"
 msgstr "* Modèles avec support visuel"
 
 msgid "+ Add New"
-msgstr "+ Ajouter nouveau"
+msgstr "+ Nouveau boutton"
 
 msgid ""
 "<i>A small indicator will be shown on the button: Ⓡ for replace, Ⓒ for "
