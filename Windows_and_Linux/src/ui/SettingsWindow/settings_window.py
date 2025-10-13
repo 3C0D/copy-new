@@ -22,12 +22,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from .provider_settings.provider_settings import ProviderSettings
+
 if TYPE_CHECKING:
     from ...writing_tools_app import WritingToolsApp
 
 from ..ui_utils import ThemedWidget
 from .general_settings import GeneralSettings
-from .provider_settings import ProviderSettings
 
 
 def _(x):

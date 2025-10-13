@@ -20,76 +20,19 @@ from PySide6.QtWidgets import (
 )
 
 if TYPE_CHECKING:
-    from ...aiprovider.aiprovider import AIProvider
-    from ...writing_tools_app import WritingToolsApp
-    from .settings_window import SettingsWindow
+    from ....aiprovider.aiprovider import AIProvider
+    from ....writing_tools_app import WritingToolsApp
+    from ..settings_window import SettingsWindow
 
-from ...config.constants import PROVIDER_DISPLAY_NAMES
-from ...config.data_operations import get_provider_display_name
-from ...core.ai_processor import PROVIDER_CLASSES
-from ..ui_utils import ui_utils
+from ....config.constants import PROVIDER_DISPLAY_NAMES
+from ....config.data_operations import get_provider_display_name
+from ....core.ai_processor import PROVIDER_CLASSES
+from ...ui_utils import ui_utils
+from .button_manager import ProviderButtonManager
 
 
 def _(x):
     return x
-
-
-class ProviderButtonManager:
-    """Manages provider action buttons."""
-
-    def __init__(self, app: "WritingToolsApp"):
-        self.app = app
-
-    def create_button_layout(self, provider: "AIProvider") -> QWidget | None:
-        """Create button layout for provider."""
-        if not provider.button_text and not (
-            hasattr(provider, "additional_buttons") and provider.additional_buttons
-        ):
-            return None
-
-        button_container = QHBoxLayout()
-        button_container.setSpacing(10)
-
-        # Main button
-        if provider.button_text:
-            main_button = QPushButton(provider.button_text)
-            main_button.setStyleSheet(self.app.styles["primary_button"])
-            main_button.clicked.connect(provider.button_action)
-            button_container.addWidget(main_button)
-
-        # Additional buttons
-        if hasattr(provider, "additional_buttons"):
-            for button_config in provider.additional_buttons:
-                button = QPushButton(button_config["text"])
-                style = (
-                    self.app.styles["secondary_button"]
-                    if button_config.get("style") == "secondary"
-                    else self.app.styles["primary_button"]
-                )
-                button.setStyleSheet(style)
-                button.clicked.connect(button_config["action"])
-                button_container.addWidget(button)
-
-        # Center button container
-        button_widget = QWidget()
-        button_widget.setLayout(button_container)
-        return button_widget
-
-    def update_button_styles(self, layout: QLayout) -> None:
-        """Update button styles recursively."""
-        for i in range(layout.count()):
-            item = layout.itemAt(i)
-            if item.widget() and isinstance(item.widget(), QPushButton):
-                button = cast(QPushButton, item.widget())
-                button_text = button.text().lower() if button.text() else ""
-
-                secondary_keywords = ["cancel", "reset", "clear", "remove", "delete"]
-                if any(kw in button_text for kw in secondary_keywords):
-                    button.setStyleSheet(self.app.styles["secondary_button"])
-                else:
-                    button.setStyleSheet(self.app.styles["primary_button"])
-            elif item.layout():
-                self.update_button_styles(item.layout())
 
 
 class ProviderSettings(QWidget):
@@ -354,7 +297,7 @@ class ProviderSettings(QWidget):
         Handle Ollama provider selection with status checks.
         Uses cached status to avoid redundant async operations.
         """
-        from ...aiprovider.ollama import OllamaStateManager
+        from ....aiprovider.ollama import OllamaStateManager
 
         state_manager = OllamaStateManager()
 
