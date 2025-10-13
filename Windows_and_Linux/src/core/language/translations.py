@@ -9,7 +9,7 @@ from pathlib import Path
 from PySide6.QtCore import QLocale
 from PySide6.QtWidgets import QApplication
 
-from ...ui import about_window, help_window
+from ...ui import about_window, help_window, non_editable_modal
 from ...ui.custom_popup import custom_popup_window
 from ...ui.SettingsWindow import settings_window
 
@@ -63,6 +63,10 @@ class Translations:
         # Update translation functions in all UI modules
         self._update_translation_functions(translation)
         self._logger.debug(f"Translations set up for language: {actual_lang}")
+
+        # Update all existing widgets with new translations
+        self._update_widget_translations()
+
         return actual_lang
 
     def _update_translation_functions(self, translation: gettext.NullTranslations) -> None:
@@ -79,6 +83,7 @@ class Translations:
         from ...ui import (
             response_window,
         )
+        from ...ui.custom_popup import button_edit_dialog
         from ...ui.SettingsWindow import general_settings, provider_settings
 
         # Update translation functions for all UI modules
@@ -86,15 +91,19 @@ class Translations:
         settings_window._ = self._
         response_window._ = self._
         custom_popup_window._ = self._
+        non_editable_modal._ = self._
         help_window._ = self._
         general_settings._ = self._
         provider_settings._ = self._
         systray._ = self._
-
-        # Update modules within custom_popup_window
-        from ...ui.custom_popup import button_edit_dialog
-
         button_edit_dialog._ = self._
+
+        from ...ui.response_window import message_container
+
+        message_container._ = self._
+        print(
+            f"DEBUG: response_window._ mis à jour, test: {response_window._('Response')}"
+        )  # DEBUG
 
         # Update individual modules within response_window
         # These modules define their own _ function, so we don't need to update them

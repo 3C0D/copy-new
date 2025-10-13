@@ -176,6 +176,13 @@ class HelpWindow(ThemedWidget):
         scroll_area.setWidget(self.content_widget)
         return scroll_area
 
+    def refresh_language(self) -> None:
+        """Refresh all text elements to reflect the current language."""
+        self.content_widget.setText(self._get_help_content())
+        if hasattr(self, "_title_label"):
+            self._title_label.setText(_("Help"))
+
+
     def refresh_theme(self) -> None:
         """Refresh all theme-dependent styles in the help window."""
         super().refresh_theme()

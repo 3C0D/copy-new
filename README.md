@@ -80,6 +80,9 @@ python Windows_and_Linux/scripts/build_dev.py --console
 ### **Translation Issues**
 
 ```bash
+# Update PO files from POT template
+cd Windows_and_Linux && myvenv\Scripts\python.exe scripts\translation_management\update_po_from_pot.py
+
 # Translate PO file (force retranslation)
 cd Windows_and_Linux && myvenv\Scripts\python.exe scripts\translation_management\translate_po.py locales\fr\LC_MESSAGES\messages.po en fr --force
 

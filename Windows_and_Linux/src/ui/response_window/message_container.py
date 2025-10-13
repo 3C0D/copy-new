@@ -87,6 +87,15 @@ class MessageContainer(QWidget):
                 8,  # 8px from top edge
             )
 
+    def refresh_language(self) -> None:
+        """Refresh tooltip text to reflect current language."""
+        try:
+            if hasattr(self, 'copy_btn') and not self.is_user:
+                self.copy_btn.setToolTip(_("Copy as Markdown"))
+        except RuntimeError:
+            # Widget might be destroyed, skip refresh
+            pass
+
     def copy_content(self) -> None:
         """Copy the message content to clipboard with visual feedback"""
         QApplication.clipboard().setText(self.markdown_text)

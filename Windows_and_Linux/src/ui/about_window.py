@@ -230,7 +230,6 @@ class AboutWindow(ThemedWidget):
         # Update title
         if hasattr(self, "_title_label"):
             self._title_label.setText(_("About Writing Tools"))
-            self._logger.debug(f"Updated title to: {_('About Writing Tools')}")
 
         # Update button text
         if hasattr(self, "_update_button"):
@@ -250,8 +249,6 @@ class AboutWindow(ThemedWidget):
                     cast(QLabel, content_widget).setText(new_content)
                     self._logger.debug("Updated HTML content with new translations")
                     break
-
-        self._logger.debug("AboutWindow refresh_language finished")
 
     def original_app(self) -> None:
         """Open the original app GitHub page."""

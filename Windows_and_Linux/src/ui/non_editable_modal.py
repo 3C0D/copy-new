@@ -89,6 +89,12 @@ class NonEditableModal(ThemedWidget):
     def refresh_theme(self) -> None:
         """Refresh the modal's theme when color mode changes."""
         self.setStyleSheet(self.app.styles["non_editable_modal"])
+        super().refresh_theme()
+
+    def refresh_language(self) -> None:
+        """Refresh the modal's language when language changes."""
+        self.copy_button.setToolTip(_("Copy text to clipboard\nShortcut: Ctrl+R"))
+
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Handle window close event."""

@@ -8,11 +8,10 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, TypedDict
 
 if TYPE_CHECKING:
-    from ..writing_tools_app import WritingToolsApp
-    from .aiprovider.aiprovider import AIProvider
+    from ..aiprovider.aiprovider import AIProvider
 
 # Type aliases for better code maintainability
-ProviderFactory = Callable[["WritingToolsApp"], "AIProvider"]
+ProviderFactory = Callable[..., "AIProvider"]
 PromptData = dict[str, Any]
 
 

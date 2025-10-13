@@ -278,29 +278,8 @@ class ProviderSettings(QWidget):
             setting.render_to_layout(self.current_provider_layout)
 
     def _refresh_provider_config(self, provider: "AIProvider") -> None:
-        """Refresh provider configuration if supported.
-        For Ollama, triggers async refresh without blocking.
-        """
-        if not hasattr(provider, "refresh_configuration"):
-            return
-
-        if provider.internal_name == "ollama":
-            from ...aiprovider.ollama import OllamaStateManager
-
-            state_manager = OllamaStateManager()
-
-            # Check installation (non-blocking)
-            if state_manager.is_ollama_installed():
-                try:
-                    # This will trigger async refresh in background
-                    provider.refresh_configuration()
-                    self._logger.debug(f"Triggered async refresh for: {provider.internal_name}")
-                except Exception as e:
-                    self._logger.warning(f"Failed to refresh Ollama config: {e}")
-            else:
-                self._logger.debug("Skipped Ollama refresh - not installed")
-        else:
-            # Other providers can refresh synchronously
+        """Refresh provider configuration if supported."""
+        if hasattr(provider, "refresh_configuration"):
             try:
                 provider.refresh_configuration()
                 self._logger.debug(f"Refreshed config: {provider.internal_name}")

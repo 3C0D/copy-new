@@ -143,3 +143,7 @@ Opérations qui pourraient être bloquées avant response window dans validate_c
 10. **Ressources système** : Vérifier la disponibilité des ressources
     - Espace disque pour les réponses longues
     - Mémoire disponible pour le traitement d'images
+
+---
+
+About window refresh_language à revoir et réutiliser ?

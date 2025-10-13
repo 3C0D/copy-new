@@ -67,6 +67,9 @@ msgstr "Si apre sempre in finestra modale senza modificare l'originale"
 msgid "Amazing Contributors"
 msgstr "Collaboratori fantastici"
 
+msgid "Analyzing image"
+msgstr ""
+
 msgid "Are you sure you want to continue?"
 msgstr "Sei sicuro di voler continuare?"
 
@@ -246,6 +249,9 @@ msgstr "Icone:"
 msgid "Image Processing Priority"
 msgstr "Priorità elaborazione immagini"
 
+msgid "Image analysis mode"
+msgstr ""
+
 msgid ""
 "Images in clipboard take priority over text. Press Ctrl+Space for image "
 "analysis (OCR, translation, description, etc.)."
@@ -374,6 +380,9 @@ msgstr "Impostazioni e configurazione"
 msgid "Shortcut Key:"
 msgstr "Tasto di scelta rapida:"
 
+msgid "Source Image"
+msgstr ""
+
 msgid "Start on Boot"
 msgstr "Inizia all'avvio"
 
@@ -428,6 +437,9 @@ msgstr ""
 
 msgid "Writing Tools Help"
 msgstr "Aiuto Writing Tools"
+
+msgid "Zoom:"
+msgstr ""
 
 msgid "📷 Image from Clipboard:"
 msgstr ""

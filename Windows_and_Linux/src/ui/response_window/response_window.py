@@ -495,6 +495,89 @@ class ResponseWindow(ThemedWidget):
 
         QApplication.clipboard().setText(markdown)
 
+    def refresh_language(self) -> None:
+        """Refresh all text elements to reflect the current language."""
+        print("DEBUG: ResponseWindow.refresh_language() appelée!")  # DEBUG
+        try:
+            # Update window title
+            self.setWindowTitle(_("Response"))
+
+            # Update title label (first widget in top bar)
+            if self.content_layout:
+                top_bar_item = self.content_layout.itemAt(0)
+                if top_bar_item:
+                    top_bar_layout = top_bar_item.layout()
+                    if top_bar_layout:
+                        # Title is the first widget
+                        title_widget = top_bar_layout.itemAt(0).widget()
+                        if isinstance(title_widget, QLabel):
+                            title_widget.setText(self.option)
+
+                        # Find and update zoom label
+                        for i in range(top_bar_layout.count()):
+                            item = top_bar_layout.itemAt(i)
+                            if item and item.widget():
+                                widget = item.widget()
+                                if isinstance(widget, QLabel) and "Zoom" in widget.text():
+                                    widget.setText(_("Zoom:"))
+
+            # Update copy hint
+            if self.content_layout:
+                for i in range(self.content_layout.count()):
+                    item = self.content_layout.itemAt(i)
+                    if item and item.layout():
+                        layout = item.layout()
+                        for j in range(layout.count()):
+                            widget_item = layout.itemAt(j)
+                            if widget_item and widget_item.widget():
+                                widget = widget_item.widget()
+                                if isinstance(widget, QLabel) and "Hover over" in widget.text():
+                                    widget.setText(_("Hover over assistant responses for individual copy buttons"))
+
+            # Update loading label
+            if self.loading_label and self.loading_label.isVisible():
+                current_text = self.loading_label.text()
+                if "Analyzing" in current_text:
+                    self.loading_label.setText(_("Analyzing image"))
+                elif "Thinking" in current_text:
+                    # Preserve the dots
+                    dots = current_text.replace("Thinking", "").replace("Analyzing image", "")
+                    self.loading_label.setText(_("Thinking") + dots)
+
+            # Update input field placeholder
+            if self.input_field:
+                current_placeholder = self.input_field.placeholderText()
+                if "Thinking" in current_placeholder:
+                    # Preserve the dots
+                    dots = current_placeholder.replace("Thinking", "")
+                    self.input_field.setPlaceholderText(_("Thinking") + dots)
+                else:
+                    placeholder_text = (
+                        _("Ask a follow-up question about this image") + "..."
+                        if self.image
+                        else _("Ask a follow-up question") + "..."
+                    )
+                    self.input_field.setPlaceholderText(placeholder_text)
+
+            # Update image section header if present
+            if hasattr(self, 'image_section'):
+                for child in self.image_section.findChildren(QLabel):
+                    if child.text() == "Source Image":
+                        child.setText(_("Source Image"))
+                        break
+
+            # Update all child widgets that have refresh_language method
+            for child in self.findChildren(QWidget):
+                if hasattr(child, 'refresh_language') and child != self:
+                    try:
+                        child.refresh_language()  # type: ignore
+                    except RuntimeError:
+                        pass  # Widget destroyed
+
+        except RuntimeError:
+            # Widget might be destroyed, skip refresh
+            pass
+
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Handle window close event"""
         # Save zoom factor to settings

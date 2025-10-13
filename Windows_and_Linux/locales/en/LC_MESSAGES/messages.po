@@ -65,6 +65,9 @@ msgstr ""
 msgid "Amazing Contributors"
 msgstr ""
 
+msgid "Analyzing image"
+msgstr ""
+
 msgid "Are you sure you want to continue?"
 msgstr ""
 
@@ -235,6 +238,9 @@ msgstr ""
 msgid "Image Processing Priority"
 msgstr ""
 
+msgid "Image analysis mode"
+msgstr ""
+
 msgid ""
 "Images in clipboard take priority over text. Press Ctrl+Space for image "
 "analysis (OCR, translation, description, etc.)."
@@ -357,6 +363,9 @@ msgstr ""
 msgid "Shortcut Key:"
 msgstr ""
 
+msgid "Source Image"
+msgstr ""
+
 msgid "Start on Boot"
 msgstr ""
 
@@ -403,6 +412,9 @@ msgid ""
 msgstr ""
 
 msgid "Writing Tools Help"
+msgstr ""
+
+msgid "Zoom:"
 msgstr ""
 
 msgid "📷 Image from Clipboard:"
