@@ -1,3 +1,5 @@
-from .button_manager import ProviderButtonManager
+"""Provider settings package for managing AI provider configuration."""
 
-__all__ = ["ProviderButtonManager", "ProviderSettings"]
+from .provider_settings import ProviderSettings
+
+__all__ = ["ProviderSettings"]

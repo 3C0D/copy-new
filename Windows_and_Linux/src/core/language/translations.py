@@ -84,7 +84,8 @@ class Translations:
             response_window,
         )
         from ...ui.custom_popup import button_edit_dialog
-        from ...ui.SettingsWindow import general_settings, provider_settings
+        from ...ui.SettingsWindow import general_settings
+        from ...ui.SettingsWindow.provider_settings import provider_settings
 
         # Update translation functions for all UI modules
         about_window._ = self._
