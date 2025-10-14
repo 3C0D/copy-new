@@ -397,8 +397,7 @@ class OllamaStateManager(QObject):
             import requests
 
             response = requests.get(
-                "https://api.github.com/repos/ollama/ollama/releases/latest",
-                timeout=10
+                "https://api.github.com/repos/ollama/ollama/releases/latest", timeout=10
             )
 
             if response.status_code == 200:
@@ -430,6 +429,7 @@ class OllamaStateManager(QObject):
 
         try:
             from packaging import version
+
             result = version.parse(current) < version.parse(latest)
             self._logger.debug(f"Version comparison result: {result}")
             return result
@@ -504,7 +504,7 @@ class OllamaStateManager(QObject):
                 app.ui_manager.show_message_signal.emit(
                     "Already Up to Date",
                     f"Ollama is already at the latest version ({current_version}).\n\n"
-                    "No installation needed."
+                    "No installation needed.",
                 )
                 return None  # No installation needed
 
@@ -514,7 +514,7 @@ class OllamaStateManager(QObject):
                 "Updating Ollama",
                 f"Current version: {current_version}\n"
                 f"Latest version: {latest_version}\n\n"
-                "Updating Ollama..."
+                "Updating Ollama...",
             )
 
         system = platform.system().lower()

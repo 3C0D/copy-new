@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from ...writing_tools_app import WritingToolsApp
 
 from ..ui_utils import ThemedWidget
-from .general_settings import GeneralSettings
+from .general_settings.general_settings_widget import GeneralSettings
 
 
 def _(x):

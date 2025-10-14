@@ -226,7 +226,7 @@ class OllamaProvider(AIProvider):
                 self.app.ui_manager.show_message_signal.emit(
                     "Already Up to Date",
                     f"Ollama is already at the latest version ({current_version}).\n\n"
-                    "No installation needed."
+                    "No installation needed.",
                 )
                 return
 
