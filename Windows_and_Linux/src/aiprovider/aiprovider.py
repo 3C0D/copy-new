@@ -322,4 +322,12 @@ class AIProvider(ABC):
         if not hasattr(self, "api_model") or not self.api_model:
             return False
 
-        return VisionSupportValidator.has_vision_support(self.internal_name, self.api_model)
+        # Get custom vision data for openai-compatible provider
+        custom_vision_data = None
+        if self.internal_name == "openai-compatible":
+            provider_config = self.app.settings_manager.providers.get("openai-compatible", {})
+            custom_vision_data = provider_config.get("has_vision", False)
+
+        return VisionSupportValidator.has_vision_support(
+            self.internal_name, self.api_model, custom_vision_data
+        )

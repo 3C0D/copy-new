@@ -1,7 +1,6 @@
 ## Suggestions d'améliorations mineures
 
-### 2. **Mémoire et nettoyage**
-Dans `provider_settings.py`, `init_provider_ui` fait du nettoyage intensif. Assurer qu'il n'y a pas de fuites mémoire avec les layouts Qt. Peut-être utiliser des weakrefs ou une gestion plus explicite.
+
 
 ### 4. **Gestion d'erreurs**
 Ajouter plus de try/catch dans les handlers, surtout pour les opérations qui pourraient échouer (changement de langue, sauvegarde des settings).

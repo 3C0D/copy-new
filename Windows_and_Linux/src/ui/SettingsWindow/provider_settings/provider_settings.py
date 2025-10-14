@@ -130,8 +130,10 @@ class ProviderSettings(QWidget):
                 self.init_provider_ui(provider_instance, self.provider_container)
 
         # Connect provider change - TRACK CONNECTION
-        connection = self.provider_dropdown.currentIndexChanged.connect(self._on_provider_changed)
-        self._signal_connections.append((self.provider_dropdown, "currentIndexChanged", self._on_provider_changed))
+        self.provider_dropdown.currentIndexChanged.connect(self._on_provider_changed)
+        self._signal_connections.append(
+            (self.provider_dropdown, "currentIndexChanged", self._on_provider_changed)
+        )
 
         # Vision comment
         self.vision_comment = QLabel(_("* Models with vision support"))
@@ -236,16 +238,18 @@ class ProviderSettings(QWidget):
             saved_value = provider_config.get(setting.name, setting.default_value)
             setting.set_value(saved_value)
 
-            # Callback with weakref to avoid cycle
-            def auto_save_callback(p_ref=provider_ref, pm_ref=provider_manager_ref):
-                provider_obj = p_ref()
-                provider_manager_obj = pm_ref()
-                if provider_obj is not None and provider_manager_obj is not None:
-                    provider_manager_obj.save_provider_settings(provider_obj)
-                else:
-                    self._logger.debug("Provider or manager was garbage collected")
+            # Callback with weakref to avoid cycle - create separate function for each setting
+            def create_auto_save_callback(p_ref, pm_ref):
+                def auto_save_callback():
+                    provider_obj = p_ref()
+                    provider_manager_obj = pm_ref()
+                    if provider_obj is not None and provider_manager_obj is not None:
+                        provider_manager_obj.save_provider_settings(provider_obj)
+                    else:
+                        self._logger.debug("Provider or manager was garbage collected")
+                return auto_save_callback
 
-            setting.set_auto_save_callback(auto_save_callback)
+            setting.set_auto_save_callback(create_auto_save_callback(provider_ref, provider_manager_ref))
             setting.render_to_layout(self.current_provider_layout)
 
     def _refresh_provider_config(self, provider: "AIProvider") -> None:
@@ -398,6 +402,7 @@ class ProviderSettings(QWidget):
         finally:
             if self.provider_dropdown:
                 self.provider_dropdown.blockSignals(False)
+
     def _disconnect_all_signals(self) -> None:
         """Explicitly disconnect all tracked signals."""
         for widget, signal_name, slot in self._signal_connections:

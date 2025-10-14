@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 # PySide6 imports
 from PySide6 import QtCore
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QHBoxLayout,
     QLabel,
@@ -50,13 +51,13 @@ class AIProviderSetting(ABC):
         self,
         name: str,
         display_name: str | None = None,
-        default_value: str | None = None,
+        default_value: str | bool | None = None,
         description: str | None = None,
     ):
         self.name: str = name
         self._logger = logging.getLogger(__name__)
         self.display_name: str = display_name or name
-        self.default_value: str = default_value or ""
+        self.default_value: str | bool = default_value or ""
         self.description: str = description or ""
         # Callback function (no args, no return) or None
         self.auto_save_callback: Callable[[], None] | None = None
@@ -66,11 +67,11 @@ class AIProviderSetting(ABC):
         """Render the setting widget(s) into the provided layout."""
 
     @abstractmethod
-    def set_value(self, value: str) -> None:
+    def set_value(self, value: str | bool) -> None:
         """Set the internal value from configuration."""
 
     @abstractmethod
-    def get_value(self) -> str:
+    def get_value(self) -> str | bool:
         """Return the current value from the widget."""
 
     def refresh_styles(self) -> None:
@@ -129,9 +130,9 @@ class TextSetting(AIProviderSetting):
         if self.label:
             self.label.setStyleSheet(self.app.styles["label"])
 
-    def set_value(self, value: str) -> None:
+    def set_value(self, value: str | bool) -> None:
         """Store value internally and update widget if it exists."""
-        self.internal_value = value
+        self.internal_value = str(value) if isinstance(value, bool) else value
         if self.input is not None:
             try:
                 # Only update if the value has actually changed to avoid triggering textChanged
@@ -151,6 +152,69 @@ class TextSetting(AIProviderSetting):
                 # Widget has been deleted, return stored value or empty string
                 return getattr(self, "internal_value", "")
         return getattr(self, "internal_value", "")
+
+
+class CheckboxSetting(AIProviderSetting):
+    """
+    A checkbox setting for boolean values.
+
+    Uses a QCheckBox to allow toggling boolean values.
+    """
+
+    def __init__(
+        self,
+        app: "WritingToolsApp",
+        name: str,
+        display_name: str | None = None,
+        default_value: bool | None = None,
+        description: str | None = None,
+    ):
+        super().__init__(name, display_name, default_value or False, description)
+        self.app = app
+        self.internal_value: bool = bool(default_value)
+        self.checkbox: QCheckBox | None = None
+        self.label: QLabel | None = None
+
+    def render_to_layout(self, layout: QVBoxLayout) -> None:
+        """Create and add the QCheckBox with its label to the layout."""
+        from PySide6.QtWidgets import QCheckBox
+
+        row_layout = QHBoxLayout()
+        self.checkbox = QCheckBox(self.display_name)
+        self.checkbox.setStyleSheet(self.app.styles["checkbox"])
+        self.checkbox.setChecked(self.internal_value)
+
+        # Connect auto-save if callback is set
+        if self.auto_save_callback:
+            self.checkbox.stateChanged.connect(self.auto_save_callback)
+
+        row_layout.addWidget(self.checkbox)
+        layout.addLayout(row_layout)
+
+    def refresh_styles(self) -> None:
+        """Refresh the styles for the checkbox widget."""
+        if self.checkbox:
+            self.checkbox.setStyleSheet(self.app.styles["checkbox"])
+
+    def set_value(self, value: bool | str) -> None:
+        """Store value internally and update widget if it exists."""
+        self.internal_value = bool(value)
+        if self.checkbox is not None:
+            try:
+                self.checkbox.setChecked(self.internal_value)
+            except RuntimeError:
+                # Widget has been deleted, just store the value
+                pass
+
+    def get_value(self) -> bool:
+        """Return checkbox value or stored value if not yet rendered."""
+        if self.checkbox is not None:
+            try:
+                return self.checkbox.isChecked()
+            except RuntimeError:
+                # Widget has been deleted, return stored value
+                return self.internal_value
+        return self.internal_value
 
 
 class DropdownSetting(AIProviderSetting):
@@ -234,9 +298,9 @@ class DropdownSetting(AIProviderSetting):
         row_layout.addWidget(self.dropdown)
         layout.addLayout(row_layout)
 
-    def set_value(self, value: str) -> None:
+    def set_value(self, value: str | bool) -> None:
         """Store value for selection during rendering and update widget if it exists."""
-        self.internal_value = value
+        self.internal_value = str(value) if isinstance(value, bool) else value
         if self.dropdown is not None:
             try:
                 # Check if the value is already selected to avoid triggering currentIndexChanged

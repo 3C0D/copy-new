@@ -161,3 +161,7 @@ About window refresh_language à revoir et réutiliser ?
  ajouter la detection de la version avant de download et d'intaller ollama
 
 ---
+
+mettre un timer de fin d'écoute quand une touche pressée. ou améliorer la logique. bug intermittents.
+
+---

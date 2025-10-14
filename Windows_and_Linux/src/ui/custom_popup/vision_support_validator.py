@@ -23,10 +23,14 @@ class VisionSupportValidator:
     }
 
     @classmethod
-    def has_vision_support(cls, provider_name: str, api_model: str) -> bool:
+    def has_vision_support(cls, provider_name: str, api_model: str, custom_vision_data: bool | None = None) -> bool:
         """Checks if the model supports vision."""
         if not provider_name or not api_model:
             return False
+
+        # Special handling for openai-compatible provider
+        if provider_name == "openai-compatible":
+            return custom_vision_data if custom_vision_data is not None else False
 
         if provider_name in cls.VISION_MODELS:
             return cls._check_standard_provider(provider_name, api_model)

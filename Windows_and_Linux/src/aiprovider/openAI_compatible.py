@@ -3,7 +3,8 @@ from typing import TYPE_CHECKING, Any, cast
 
 from openai import OpenAI
 
-from . import AIProvider, AIProviderSetting, TextSetting
+from . import AIProvider, TextSetting
+from .settings import AIProviderSetting, CheckboxSetting
 
 # Local imports
 
@@ -58,6 +59,13 @@ class OpenAICompatibleProvider(AIProvider):
                 display_name="API Model",
                 default_value="",
                 description="Add a custom model name",
+            ),
+            CheckboxSetting(
+                app,
+                name="has_vision",
+                display_name="Has Vision",
+                default_value=False,
+                description="Check if this model supports vision/image analysis",
             ),
         ]
         super().__init__(
