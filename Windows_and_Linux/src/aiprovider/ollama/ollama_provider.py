@@ -150,7 +150,7 @@ class OllamaProvider(AIProvider):
         # No automatic refresh here - already done above
 
     @Slot(bool)
-    def _on_installation_finished(self, success: bool):
+    def _on_installation_finished(self, success: bool | None):
         """Handle installation completion in main thread."""
         try:
             if self._update_timer:
@@ -162,20 +162,21 @@ class OllamaProvider(AIProvider):
         except Exception as e:
             self._logger.error(f"Cleanup error: {e}")
 
-        # Show result message
-        if success:
+        # Show result message only if installation actually occurred
+        if success is True:  # Only show success message if installation/update happened
             self.app.ui_manager.show_message_signal.emit(
-                "Installation Successful", "Ollama has been installed successfully!"
+                "Installation Successful", "Ollama has been installed/updated successfully!"
             )
             # Refresh UI
             self.refresh_configuration()
             if hasattr(self.app, "settings_window") and self.app.systray_manager.settings_window:
                 self.app.systray_manager.settings_window._on_provider_changed()
-        else:
+        elif success is False:  # Only show failure message if installation failed
             self.app.ui_manager.show_message_signal.emit(
                 "Installation Failed",
                 "Ollama installation failed. Please try again or install manually.",
             )
+        # If success is None, no installation occurred (already up to date), so no message needed
 
     @Slot()
     def _on_state_updated(self):
@@ -217,6 +218,19 @@ class OllamaProvider(AIProvider):
     def _install_ollama_async(self):
         """Install Ollama asynchronously."""
 
+        # Check if already up to date BEFORE creating UI elements
+        if self.state_manager.is_ollama_installed():
+            current_version = self.state_manager.get_current_ollama_version()
+            if not self.state_manager.is_update_needed():
+                # Already up to date - show message and return without installation
+                self.app.ui_manager.show_message_signal.emit(
+                    "Already Up to Date",
+                    f"Ollama is already at the latest version ({current_version}).\n\n"
+                    "No installation needed."
+                )
+                return
+
+        # Only create UI elements if installation is actually needed
         self._progress_window = OllamaInstallProgressWindow(self.app)
         self._progress_window.show()
         self._progress_window.start_animation()

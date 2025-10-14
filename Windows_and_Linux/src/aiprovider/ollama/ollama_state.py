@@ -354,6 +354,94 @@ class OllamaStateManager(QObject):
 
         self._executor.submit(_refresh)
 
+    def get_current_ollama_version(self) -> str | None:
+        """
+        Get the current installed Ollama version.
+        Returns None if Ollama is not installed or version cannot be determined.
+        """
+        ollama_path = self.find_ollama_executable()
+        if not ollama_path:
+            return None
+
+        try:
+            startupinfo = None
+            if os.name == "nt":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = subprocess.SW_HIDE
+
+            result = subprocess.run(
+                [ollama_path, "--version"],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=5,
+                startupinfo=startupinfo,
+            )
+
+            if result.returncode == 0:
+                version_line = result.stdout.strip()
+                if "version" in version_line.lower():
+                    return version_line.split()[-1]
+        except Exception as e:
+            self._logger.debug(f"Error getting Ollama version: {e}")
+
+        return None
+
+    def get_latest_ollama_version(self) -> str | None:
+        """
+        Get the latest Ollama version from GitHub releases.
+        Returns None if unable to fetch version.
+        """
+        try:
+            import requests
+
+            response = requests.get(
+                "https://api.github.com/repos/ollama/ollama/releases/latest",
+                timeout=10
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                if data and isinstance(data, dict):
+                    tag_name = data.get("tag_name", "")
+                    if tag_name and isinstance(tag_name, str):
+                        if tag_name.startswith("v"):
+                            return tag_name[1:]  # Remove 'v' prefix
+                        return tag_name
+        except Exception as e:
+            self._logger.debug(f"Error fetching latest Ollama version: {e}")
+
+        return None
+
+    def is_update_needed(self) -> bool:
+        """
+        Check if Ollama update is needed by comparing current and latest versions.
+        Returns True if update is needed or if versions cannot be determined.
+        """
+        current = self.get_current_ollama_version()
+        latest = self.get_latest_ollama_version()
+
+        self._logger.debug(f"Version check - Current: {current}, Latest: {latest}")
+
+        if not current or not latest:
+            self._logger.debug("Cannot determine versions, assuming update might be needed")
+            return True  # If we can't determine versions, assume update might be needed
+
+        try:
+            from packaging import version
+            result = version.parse(current) < version.parse(latest)
+            self._logger.debug(f"Version comparison result: {result}")
+            return result
+        except ImportError:
+            # Fallback to string comparison if packaging is not available
+            result = current < latest
+            self._logger.debug(f"String comparison result: {result}")
+            return result
+        except Exception as e:
+            self._logger.debug(f"Version comparison error: {e}, assuming update needed")
+            return True  # If comparison fails, assume update needed
+
     def remove_ollama_model(self, model_name: str) -> tuple[bool, str]:
         """
         Remove an Ollama model.
@@ -399,10 +487,36 @@ class OllamaStateManager(QObject):
         except Exception as e:
             return False, f"Error removing model '{model_name}': {str(e)}"
 
-    def install_ollama(self, app, progress_callback=None) -> bool:
+    def install_ollama(self, app, progress_callback=None) -> bool | None:
         """
-        Install Ollama with progress updates.
+        Install or update Ollama with progress updates.
+        Checks if update is needed before proceeding with installation.
+
+        Returns:
+            True if installation/update was successful
+            False if installation/update failed
+            None if no installation was needed (already up to date)
         """
+        # Check if Ollama is already installed and up to date
+        if self.is_ollama_installed():
+            current_version = self.get_current_ollama_version()
+            if not self.is_update_needed():
+                app.ui_manager.show_message_signal.emit(
+                    "Already Up to Date",
+                    f"Ollama is already at the latest version ({current_version}).\n\n"
+                    "No installation needed."
+                )
+                return None  # No installation needed
+
+            # Show update message
+            latest_version = self.get_latest_ollama_version()
+            app.ui_manager.show_message_signal.emit(
+                "Updating Ollama",
+                f"Current version: {current_version}\n"
+                f"Latest version: {latest_version}\n\n"
+                "Updating Ollama..."
+            )
+
         system = platform.system().lower()
 
         if system == "windows":

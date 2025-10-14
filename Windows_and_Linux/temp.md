@@ -3,6 +3,7 @@
 ## Implémentation du support vision pour OpenAI-compatible
 
 ### Problématique
+
 - OpenAI-compatible : modèles saisis manuellement (pas de liste prédéfinie comme Ollama)
 - Besoin de marquer dynamiquement quels modèles supportent la vision
 - Interface utilisateur pour indiquer le support vision
@@ -10,6 +11,7 @@
 ### Solution proposée
 
 #### 1. Modification du stockage des données
+
 Ajouter une propriété `has_vision` dans la config :
 
 ```json
@@ -24,11 +26,14 @@ Ajouter une propriété `has_vision` dans la config :
 ```
 
 #### 2. Extension du système de settings
+
 - Ajouter un `BooleanSetting` ou `CheckboxSetting` dans `settings.py`
 - Pour OpenAI-compatible : case à cocher "Supporte la vision"
 
 #### 3. Logique de détection
+
 Dans le provider OpenAI-compatible, détecter automatiquement :
+
 ```python
 # Dans _get_response_impl
 model_name = self.api_model
@@ -40,12 +45,15 @@ if has_vision and image_data:
 ```
 
 #### 4. Interface utilisateur
+
 - Ajouter une case à cocher dans les settings du provider
 - Texte d'aide : "Cochez si ce modèle supporte les images/vision"
 - Sauvegarde automatique dans la config
 
 #### 5. Alternative : Détection par préfixe
+
 Si tu préfères l'approche "*model_name" :
+
 ```python
 # Dans load_config ou set_value
 if self.api_model.startswith('*'):
@@ -55,13 +63,15 @@ else:
     self.has_vision = False
 ```
 
-### Avantages de l'approche case à cocher :
+### Avantages de l'approche case à cocher
+
 - Plus explicite pour l'utilisateur
 - Pas de modification du nom du modèle
 - Compatible avec tous les providers
 - Plus maintenable
 
-### Étapes d'implémentation :
+### Étapes d'implémentation
+
 1. Créer `BooleanSetting` dans `settings.py`
 2. Ajouter le setting dans `OpenAICompatibleProvider.__init__`
 3. Modifier `load_config`/`save_config` pour gérer `has_vision`
@@ -91,7 +101,6 @@ inverser écritures dans debugs
 ---
 
 meilleure gestion releases updates, par os
-
 
 ---
 
@@ -147,3 +156,8 @@ Opérations qui pourraient être bloquées avant response window dans validate_c
 ---
 
 About window refresh_language à revoir et réutiliser ?
+
+---
+ ajouter la detection de la version avant de download et d'intaller ollama
+
+---
