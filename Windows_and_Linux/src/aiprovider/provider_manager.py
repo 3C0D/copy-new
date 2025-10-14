@@ -1,20 +1,3 @@
-Je vais créer un nouveau fichier pour extraire la logique de gestion des fournisseurs (recherche, changement, initialisation) de `provider_settings.py`.J'ai créé `provider_manager.py` qui extrait la logique de gestion des fournisseurs :
-
-**Ce qui a été extrait :**
-- `find_provider_by_name()` - Création d'instances de provider
-- `switch_provider()` - Logique complète de changement de provider
-- `refresh_provider_config()` - Rafraîchissement de la configuration
-- `save_provider_settings()` - Sauvegarde des paramètres
-- `_handle_ollama_selection()` - Gestion spécifique à Ollama
-
-**Avantages :**
-- Séparation claire des responsabilités
-- `ProviderSettings` se concentre sur l'UI
-- `ProviderManager` gère la logique métier
-- Pas de modification de la logique de scroll (intacte dans `provider_settings.py`)
-
-Vous pouvez maintenant modifier `provider_settings.py` pour utiliser ce nouveau `ProviderManager` et simplifier le code.
-
 """
 provider_manager.py
 
@@ -25,10 +8,10 @@ import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ....aiprovider.aiprovider import AIProvider
-    from ....writing_tools_app import WritingToolsApp
+    from ..aiprovider.aiprovider import AIProvider
+    from ..writing_tools_app import WritingToolsApp
 
-from ....core.ai_processor import PROVIDER_CLASSES
+from ..core.ai_processor import PROVIDER_CLASSES
 
 
 class ProviderManager:
@@ -58,7 +41,7 @@ class ProviderManager:
     def switch_provider(self, internal_name: str) -> "AIProvider | None":
         """
         Switch to a new provider.
-        
+
         Returns the new provider instance or None if switch failed.
         """
         self._logger.debug(f"Switching to provider: {internal_name}")
@@ -107,9 +90,7 @@ class ProviderManager:
         """Save settings for given provider."""
         provider.save_config()
 
-        provider_config = self.app.settings_manager.providers.get(
-            provider.internal_name, {}
-        )
+        provider_config = self.app.settings_manager.providers.get(provider.internal_name, {})
         provider.load_config(provider_config)
 
         self._logger.debug(f"Saved settings: {provider.internal_name}")
@@ -119,7 +100,7 @@ class ProviderManager:
         Handle Ollama provider selection with status checks.
         Uses cached status to avoid redundant async operations.
         """
-        from ....aiprovider.ollama import OllamaStateManager
+        from ..aiprovider.ollama import OllamaStateManager
 
         state_manager = OllamaStateManager()
 

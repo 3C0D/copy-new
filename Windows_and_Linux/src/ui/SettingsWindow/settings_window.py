@@ -147,8 +147,8 @@ class SettingsWindow(ThemedWidget):
     def save_all_settings(self) -> None:
         """Save all current settings."""
         # Save provider settings
-        if self.provider_settings:
-            self.provider_settings.save_current_provider_settings()
+        if self.provider_settings and self.app.ai_processor.current_provider:
+            self.provider_settings.provider_manager.save_provider_settings(self.app.ai_processor.current_provider)
 
         # Re-register hotkey
         self.app.hotkey_manager.register_hotkey()

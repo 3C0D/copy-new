@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from ....writing_tools_app import WritingToolsApp
     from ..settings_window import SettingsWindow
 
+from ....aiprovider.provider_manager import ProviderManager
 from ....config.constants import PROVIDER_DISPLAY_NAMES
 from ....config.data_operations import get_provider_display_name
 from ....core.ai_processor import PROVIDER_CLASSES
@@ -44,6 +45,7 @@ class ProviderSettings(QWidget):
         self.parent_window = parent
         self._logger = logging.getLogger(__name__)
         self.button_manager = ProviderButtonManager(app)
+        self.provider_manager = ProviderManager(app)
 
         self.current_provider_layout = None
 
@@ -101,7 +103,7 @@ class ProviderSettings(QWidget):
         else:
             # Fallback if no provider is set
             current_internal_name = self.provider_dropdown.currentData()
-            provider_instance = self._find_provider_by_name(current_internal_name)
+            provider_instance = self.provider_manager.find_provider_by_name(current_internal_name)
 
             if not provider_instance:
                 # Fallback to first available provider
@@ -217,17 +219,14 @@ class ProviderSettings(QWidget):
         for setting in provider.settings:
             saved_value = provider_config.get(setting.name, setting.default_value)
             setting.set_value(saved_value)
-            setting.set_auto_save_callback(self.save_current_provider_settings)
+            setting.set_auto_save_callback(
+                lambda: self.provider_manager.save_provider_settings(provider)
+            )
             setting.render_to_layout(self.current_provider_layout)
 
     def _refresh_provider_config(self, provider: "AIProvider") -> None:
         """Refresh provider configuration if supported."""
-        if hasattr(provider, "refresh_configuration"):
-            try:
-                provider.refresh_configuration()
-                self._logger.debug(f"Refreshed config: {provider.internal_name}")
-            except Exception as e:
-                self._logger.warning(f"Failed to refresh {provider.internal_name} config: {e}")
+        self.provider_manager.refresh_provider_config(provider)
 
     def _cleanup_provider_layout(self) -> None:
         """Clean up previous provider layout."""
@@ -260,91 +259,17 @@ class ProviderSettings(QWidget):
         if not current_internal_name:
             return
 
-        self._logger.debug(f"Provider changed to: {current_internal_name}")  # AJOUTER
+        self._logger.debug(f"Provider changed to: {current_internal_name}")
 
-        # Ollama-specific handling
-        if current_internal_name == "ollama":
-            self._handle_ollama_selection()
-
-        # Find new provider
-        new_provider = self._find_provider_by_name(current_internal_name)
+        # Use ProviderManager to switch provider
+        new_provider = self.provider_manager.switch_provider(current_internal_name)
         if not new_provider:
             self._logger.warning(f"Provider {current_internal_name} not found")
             return
 
-        # Cleanup old provider
-        if self.app.ai_processor.current_provider and hasattr(
-            self.app.ai_processor.current_provider, "before_load"
-        ):
-            self.app.ai_processor.current_provider.before_load()
-        self.app.settings_manager.provider = current_internal_name
-
-        # Reload config
-        provider_config = self.app.settings_manager.providers.get(current_internal_name, {})
-        new_provider.load_config(provider_config)
-
-        # Update AI processor with the same instance
-        self.app.ai_processor.current_provider = new_provider
-
         # Rebuild UI
         if self.provider_container is not None:
             self.init_provider_ui(new_provider, self.provider_container)
-
-        self._logger.debug(f"Switched to provider: {current_internal_name}")
-
-    def _handle_ollama_selection(self) -> None:
-        """
-        Handle Ollama provider selection with status checks.
-        Uses cached status to avoid redundant async operations.
-        """
-        from ....aiprovider.ollama import OllamaStateManager
-
-        state_manager = OllamaStateManager()
-
-        # Get cached status (non-blocking) - don't trigger async refresh here
-        # to avoid debug spam when switching providers
-        ollama_installed = state_manager.is_ollama_installed()
-
-        # Only show message for installation issues
-        if not ollama_installed:
-            self.app.ui_manager.show_message_signal.emit(
-                "Ollama Not Installed",
-                "Ollama is not installed on your system.\n\n"
-                "You can install it using the 'Install Ollama' button in the provider settings below.\n\n"
-                "Once installed and running, Ollama will be ready to use.",
-            )
-
-    def _find_provider_by_name(self, internal_name: str) -> "AIProvider | None":
-        """Create provider instance by internal name."""
-        provider_class = PROVIDER_CLASSES.get(internal_name)
-        if provider_class:
-            try:
-                # Skip initial refresh for Ollama when switching providers
-                # to avoid debug spam - refreshes will be handled by provider switching logic
-                if internal_name == "ollama":
-                    return provider_class(self.app, skip_initial_refresh=True)
-                else:
-                    return provider_class(self.app)
-            except Exception as e:
-                self._logger.error(f"Failed to create provider {internal_name}: {e}")
-                return None
-        return None
-
-    def save_current_provider_settings(self) -> None:
-        """Save settings for current provider."""
-        if not self.app.ai_processor.current_provider:
-            return
-
-        self.app.ai_processor.current_provider.save_config()
-
-        provider_config = self.app.settings_manager.providers.get(
-            self.app.ai_processor.current_provider.internal_name, {}
-        )
-        self.app.ai_processor.current_provider.load_config(provider_config)
-
-        self._logger.debug(
-            f"Saved settings: {self.app.ai_processor.current_provider.internal_name}"
-        )
 
     def update_provider_button_text(self) -> None:
         """Update main button text when provider state changes."""

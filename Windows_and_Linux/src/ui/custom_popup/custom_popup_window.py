@@ -704,6 +704,7 @@ class CustomPopupWindow(QWidget):
             buttons_scroll.setWidgetResizable(True)
             buttons_scroll.setFrameShape(QFrame.Shape.NoFrame)
             buttons_scroll.setMaximumHeight(250)
+            buttons_scroll.setStyleSheet(self.app.styles["transparent_background"]("QScrollArea"))
 
             buttons_widget = QWidget()
             buttons_widget.setStyleSheet(self.app.styles["transparent_background"])
