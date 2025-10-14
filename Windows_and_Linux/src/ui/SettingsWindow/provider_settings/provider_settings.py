@@ -1,10 +1,11 @@
 """
 provider_settings.py
 
-AI Provider settings component with dynamic UI generation.
+AI Provider settings component with dynamic UI generation and improved memory management.
 """
 
 import logging
+import weakref
 from typing import TYPE_CHECKING, cast
 
 from PySide6 import QtCore
@@ -37,7 +38,7 @@ def _(x):
 
 
 class ProviderSettings(QWidget):
-    """Widget for AI provider selection and configuration."""
+    """Widget for AI provider selection and configuration with improved memory management."""
 
     def __init__(self, app: "WritingToolsApp", parent: "SettingsWindow"):
         super().__init__(parent)
@@ -48,6 +49,12 @@ class ProviderSettings(QWidget):
         self.provider_manager = ProviderManager(app)
 
         self.current_provider_layout = None
+
+        # Tracking signal/slot connections for proper cleanup
+        self._signal_connections = []
+
+        # Weakref to current provider to avoid cycles
+        self._current_provider_ref = None
 
         # UI components
         self.provider_label = None
@@ -122,8 +129,9 @@ class ProviderSettings(QWidget):
                 self.app.ai_processor.current_provider = provider_instance
                 self.init_provider_ui(provider_instance, self.provider_container)
 
-        # Connect provider change
-        self.provider_dropdown.currentIndexChanged.connect(self._on_provider_changed)
+        # Connect provider change - TRACK CONNECTION
+        connection = self.provider_dropdown.currentIndexChanged.connect(self._on_provider_changed)
+        self._signal_connections.append((self.provider_dropdown, "currentIndexChanged", self._on_provider_changed))
 
         # Vision comment
         self.vision_comment = QLabel(_("* Models with vision support"))
@@ -135,13 +143,16 @@ class ProviderSettings(QWidget):
         # Refresh provider configuration
         self._refresh_provider_config(provider)
 
-        # Clean up old UI
+        # Clean up old UI (with complete cleanup)
         self._cleanup_provider_layout()
         ui_utils.clear_layout(layout)
 
+        # Store weakref to current provider
+        self._current_provider_ref = weakref.ref(provider)
+
         self.current_provider_layout = QVBoxLayout()
 
-        # Composants UI
+        # UI Components
         self._add_provider_header(provider)
         self._add_provider_description(provider)
 
@@ -205,7 +216,7 @@ class ProviderSettings(QWidget):
             self.current_provider_layout.addWidget(self.description_label)
 
     def _add_provider_settings(self, provider: "AIProvider") -> None:
-        """Add provider settings controls."""
+        """Add provider settings controls with weakref-based callback."""
         if self.current_provider_layout is None:
             return
 
@@ -216,12 +227,25 @@ class ProviderSettings(QWidget):
             self.app.settings_manager.providers[provider.internal_name] = {}
 
         provider_config = self.app.settings_manager.providers[provider.internal_name]
+
+        # Use weakref to avoid reference cycles
+        provider_ref = weakref.ref(provider)
+        provider_manager_ref = weakref.ref(self.provider_manager)
+
         for setting in provider.settings:
             saved_value = provider_config.get(setting.name, setting.default_value)
             setting.set_value(saved_value)
-            setting.set_auto_save_callback(
-                lambda: self.provider_manager.save_provider_settings(provider)
-            )
+
+            # Callback with weakref to avoid cycle
+            def auto_save_callback(p_ref=provider_ref, pm_ref=provider_manager_ref):
+                provider_obj = p_ref()
+                provider_manager_obj = pm_ref()
+                if provider_obj is not None and provider_manager_obj is not None:
+                    provider_manager_obj.save_provider_settings(provider_obj)
+                else:
+                    self._logger.debug("Provider or manager was garbage collected")
+
+            setting.set_auto_save_callback(auto_save_callback)
             setting.render_to_layout(self.current_provider_layout)
 
     def _refresh_provider_config(self, provider: "AIProvider") -> None:
@@ -229,9 +253,17 @@ class ProviderSettings(QWidget):
         self.provider_manager.refresh_provider_config(provider)
 
     def _cleanup_provider_layout(self) -> None:
-        """Clean up previous provider layout."""
+        """Clean up previous provider layout with complete cleanup."""
         if not self.current_provider_layout:
             return
+
+        # Clean all callbacks from previous provider settings
+        if self._current_provider_ref:
+            old_provider = self._current_provider_ref()
+            if old_provider:
+                for setting in old_provider.settings:
+                    # Reset callback to release references
+                    setting.set_auto_save_callback(lambda: None)
 
         parent = self.current_provider_layout.parent()
         if parent and hasattr(parent, "removeItem") and isinstance(parent, QLayout):
@@ -240,6 +272,9 @@ class ProviderSettings(QWidget):
         self.current_provider_layout.setParent(None)
         ui_utils.clear_layout(self.current_provider_layout)
         self.current_provider_layout.deleteLater()
+
+        # Clear weakref
+        self._current_provider_ref = None
 
     def _disable_dropdown_scroll(self, layout: QLayout) -> None:
         """Disable wheel events on dropdowns to prevent scroll interference."""
@@ -363,6 +398,32 @@ class ProviderSettings(QWidget):
         finally:
             if self.provider_dropdown:
                 self.provider_dropdown.blockSignals(False)
+    def _disconnect_all_signals(self) -> None:
+        """Explicitly disconnect all tracked signals."""
+        for widget, signal_name, slot in self._signal_connections:
+            try:
+                # Get signal by name
+                signal = getattr(widget, signal_name, None)
+                if signal:
+                    signal.disconnect(slot)
+                    self._logger.debug(f"Disconnected signal: {signal_name}")
+            except Exception as e:
+                self._logger.debug(f"Error disconnecting signal {signal_name}: {e}")
+
+        self._signal_connections.clear()
+
+    def closeEvent(self, event) -> None:
+        """Cleanup on close."""
+        self._logger.debug("ProviderSettings closing, cleaning up...")
+
+        # Disconnect all signals
+        self._disconnect_all_signals()
+
+        # Clean provider layout
+        self._cleanup_provider_layout()
+
+        # Call parent closeEvent
+        super().closeEvent(event)
 
     def _refresh_additional_buttons(self) -> None:
         """Refresh text for additional buttons."""
