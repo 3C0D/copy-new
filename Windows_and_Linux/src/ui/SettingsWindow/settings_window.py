@@ -8,11 +8,9 @@ All settings auto-save when changed.
 import logging
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QCloseEvent, QFocusEvent, QKeyEvent
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QCloseEvent, QKeyEvent
 from PySide6.QtWidgets import (
-    QApplication,
-    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -156,33 +154,6 @@ class SettingsWindow(ThemedWidget):
         self.app.hotkey_manager.register_hotkey()
 
         self._logger.debug("All settings saved")
-
-    def focusOutEvent(self, event: QFocusEvent) -> None:
-        """Handle focus out event - manage focus carefully for dropdowns."""
-        super().focusOutEvent(event)
-        focused_widget = QApplication.focusWidget()
-        if focused_widget and not self.isAncestorOf(focused_widget):
-            QTimer.singleShot(500, self.regain_focus_if_needed)
-
-    def regain_focus_if_needed(self) -> None:
-        """Regain focus only when appropriate."""
-        if not self.isVisible():
-            return
-
-        # Don't steal focus from dropdowns
-        focused_widget = QApplication.focusWidget()
-        if focused_widget and isinstance(focused_widget, QComboBox):
-            return
-
-        # Check for open dropdown popups
-        for widget in QApplication.allWidgets():
-            if isinstance(widget, QComboBox) and widget.view().isVisible():
-                return
-
-        # Only regain focus if genuinely lost
-        if not self.hasFocus() and not self.isAncestorOf(QApplication.focusWidget()):
-            self.raise_()
-            self.activateWindow()
 
     def refresh_theme(self) -> None:
         """Refresh theme for all components."""
