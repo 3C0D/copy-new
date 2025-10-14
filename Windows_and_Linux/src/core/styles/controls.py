@@ -152,6 +152,19 @@ def radio_button(palette: ColorPalette) -> str:
             color: {palette.fg_control_text};
             font-size: 16px;
         }}
+        QRadioButton::indicator {{
+            width: 13px;
+            height: 13px;
+            border-radius: 6px;
+        }}
+        QRadioButton::indicator:unchecked {{
+            border: 2px solid {palette.border_checkbox};
+            background-color: {palette.bg_control};
+        }}
+        QRadioButton::indicator:checked {{
+            border: 2px solid {palette.border_checkbox};
+            background-color: {palette.primary_pressed};
+        }}
     """
 
 
@@ -174,7 +187,7 @@ def checkbox(palette: ColorPalette) -> str:
         }}
         QCheckBox::indicator:checked {{
             border: 2px solid {palette.border_checkbox};
-            background-color: {palette.border_checkbox};
+            background-color: {palette.primary_pressed};
             image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOSIgaGVpZ2h0PSI5IiB2aWV3Qm94PSIwIDAgOSA5IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNNy41IDIuNUwzLjc1IDYuMjVMMi41IDUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==);
         }}
     """
