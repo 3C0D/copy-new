@@ -12,7 +12,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from ollama import Client as OllamaClient
-from PySide6.QtCore import QTimer, Slot
+from PySide6.QtCore import QObject, QTimer, Signal, Slot
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -29,6 +29,15 @@ from .ollama_state import OllamaStateManager
 
 if TYPE_CHECKING:
     from ...writing_tools_app import WritingToolsApp
+
+
+class OllamaInstallationHandler(QObject):
+    """
+    Separate QObject for managing Ollama installation signals.
+    Required because AIProvider does not inherit from QObject.
+    """
+
+    installation_finished = Signal(bool)  # True if success, False otherwise
 
 
 class OllamaProvider(AIProvider):
@@ -51,6 +60,17 @@ class OllamaProvider(AIProvider):
         self.state_manager.models_updated.connect(self._on_models_updated)
         # Refresh models when Ollama starts running
         self.state_manager.running_status_updated.connect(self._on_running_status_updated)
+
+        # Installation finished callback will be called via QMetaObject.invokeMethod
+
+        # Variables for cleanup (accessible by callbacks)
+        self._update_timer = None
+        self._progress_window = None
+
+        # Installation signal handler (separate QObject for signals)
+        self._install_handler = OllamaInstallationHandler()
+        self._install_handler.installation_finished.connect(self._on_installation_finished)
+        self._installation_result = None
 
         # Get initial state (using cached values if available)
         ollama_installed = self.state_manager.is_ollama_installed()
@@ -129,6 +149,34 @@ class OllamaProvider(AIProvider):
 
         # No automatic refresh here - already done above
 
+    @Slot(bool)
+    def _on_installation_finished(self, success: bool):
+        """Handle installation completion in main thread."""
+        try:
+            if self._update_timer:
+                self._update_timer.stop()
+                self._update_timer = None
+            if self._progress_window:
+                self._progress_window.close()
+                self._progress_window = None
+        except Exception as e:
+            self._logger.error(f"Cleanup error: {e}")
+
+        # Show result message
+        if success:
+            self.app.ui_manager.show_message_signal.emit(
+                "Installation Successful", "Ollama has been installed successfully!"
+            )
+            # Refresh UI
+            self.refresh_configuration()
+            if hasattr(self.app, "settings_window") and self.app.systray_manager.settings_window:
+                self.app.systray_manager.settings_window._on_provider_changed()
+        else:
+            self.app.ui_manager.show_message_signal.emit(
+                "Installation Failed",
+                "Ollama installation failed. Please try again or install manually.",
+            )
+
     @Slot()
     def _on_state_updated(self):
         """Handle state updates from the state manager."""
@@ -169,58 +217,38 @@ class OllamaProvider(AIProvider):
     def _install_ollama_async(self):
         """Install Ollama asynchronously."""
 
-        progress_window = OllamaInstallProgressWindow(self.app)
-        progress_window.show()
-        progress_window.start_animation()
+        self._progress_window = OllamaInstallProgressWindow(self.app)
+        self._progress_window.show()
+        self._progress_window.start_animation()
 
         # Timer to force regular UI updates
-        update_timer = QTimer()
-        update_timer.timeout.connect(lambda: QApplication.processEvents())
-        update_timer.start(100)  # Toutes les 100ms
+        self._update_timer = QTimer()
+        self._update_timer.timeout.connect(lambda: QApplication.processEvents())
+        self._update_timer.start(100)  # Every 100ms
 
         def progress_callback(status):
-            if status == "downloading":
-                progress_window.set_downloading()
-            elif status == "installing":
-                progress_window.set_installing()
-            elif status == "finishing":
-                progress_window.set_finishing()
+            if self._progress_window:
+                if status == "downloading":
+                    self._progress_window.set_downloading()
+                elif status == "installing":
+                    self._progress_window.set_installing()
+                elif status == "finishing":
+                    self._progress_window.set_finishing()
 
             # Always force UI update
-            from PySide6.QtWidgets import QApplication
-
             QApplication.processEvents()
 
         def install_thread():
+            success = False
             try:
                 success = self.state_manager.install_ollama(self.app, progress_callback)
             except Exception as e:
                 self._logger.error(f"Installation error: {e}")
                 success = False
             finally:
-                # Stop timer and close window
-                try:
-                    update_timer.stop()
-                    progress_window.close()
-                except Exception:
-                    pass
-
-            if success:
-                self.app.ui_manager.show_message_signal.emit(
-                    "Installation Successful", "Ollama has been installed successfully!"
-                )
-                # Refresh UI
-                self.refresh_configuration()
-                if (
-                    hasattr(self.app, "settings_window")
-                    and self.app.systray_manager.settings_window
-                ):
-                    self.app.systray_manager.settings_window._on_provider_changed()
-            else:
-                self.app.ui_manager.show_message_signal.emit(
-                    "Installation Failed",
-                    "Ollama installation failed. Please try again or install manually.",
-                )
+                # Emit signal to handle cleanup in main thread
+                # This prevents "killTimer from another thread" error
+                self._install_handler.installation_finished.emit(success)
 
         # Run installation in a separate thread
         import threading
