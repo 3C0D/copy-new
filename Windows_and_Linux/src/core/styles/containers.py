@@ -65,4 +65,18 @@ def non_editable_modal(palette: ColorPalette) -> str:
             background-color: #4a9eff;
             {"" if palette.bg_primary == "#2d2d2d" else "color: #ffffff;"}
         }}
+   """
+
+
+def transparent_background(widget_type: str = "QWidget") -> str:
     """
+    Transparent background style for a specific widget type.
+
+    Args:
+        widget_type: The Qt widget type (e.g., "QScrollArea", "QFrame", "QWidget")
+    """
+    return f"""
+        {widget_type} {{
+            background: transparent;
+        }}
+        """

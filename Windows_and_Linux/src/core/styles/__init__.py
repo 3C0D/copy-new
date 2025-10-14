@@ -4,7 +4,7 @@ Provides centralized, modular theming system.
 """
 
 from .colors import DARK_PALETTE, LIGHT_PALETTE, ColorPalette
-from .containers import container, dialog, image_preview, non_editable_modal
+from .containers import container, dialog, image_preview, non_editable_modal, transparent_background
 from .controls import (
     add_button,
     checkbox,
@@ -39,6 +39,7 @@ __all__ = [
     "dialog",
     "image_preview",
     "non_editable_modal",
+    "transparent_background",
     # Controls
     "add_button",
     "checkbox",

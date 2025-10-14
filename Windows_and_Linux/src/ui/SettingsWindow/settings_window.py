@@ -75,12 +75,7 @@ class SettingsWindow(ThemedWidget):
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        scroll_area.setStyleSheet("""
-        QScrollArea {
-            background: transparent;
-            border: none;
-        }
-        """)
+        scroll_area.setStyleSheet(self.app.styles["transparent_background"]("QScrollArea"))
 
         # Create scrollable content widget
         scroll_content = QWidget()

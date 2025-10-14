@@ -41,6 +41,7 @@ from .styles import (
     radio_button,
     secondary_button,
     send_button,
+    transparent_background,
     tray_menu,
     warning_label,
 )
@@ -49,6 +50,23 @@ if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
 
     from ..writing_tools_app import WritingToolsApp
+
+
+class CallableString(str):
+    """A string that can also be called as a function."""
+
+    def __new__(cls, default_value: str, func=None):
+        instance = super().__new__(cls, default_value)
+        return instance
+
+    def __init__(self, default_value: str, func=None):
+        super().__init__()
+        self._func = func
+
+    def __call__(self, *args, **kwargs):
+        if self._func:
+            return self._func(*args, **kwargs)
+        return str(self)
 
 
 class ThemeManager(QtCore.QObject):
@@ -118,7 +136,7 @@ class ThemeManager(QtCore.QObject):
         # Emit signal and update all registered widgets with the new theme
         self.background_theme_changed.emit(new_theme)
 
-    def get_styles(self) -> dict[str, str]:
+    def get_styles(self) -> dict:
         """
         Return a single dictionary that contains every standard stylesheet
         used across the application. Uses the modular style system.
@@ -204,6 +222,10 @@ class ThemeManager(QtCore.QObject):
                 }
             """,
             "about_update_button": primary_button(palette),  # Temporary mapping
-            "transparent_background": "QWidget { background: transparent; }",
+            # ----------  GENERIC STYLES (Polymorphes)  ----------
+            "transparent_background": CallableString(
+                transparent_background("QWidget"),  # Default value
+                transparent_background  # Function to call
+            ),
             "margin_top_10": "QLabel { margin-top: 10px; }",
         }
