@@ -7,6 +7,7 @@ from ...config.constants import (
     ANTHROPIC_MODELS,
     GEMINI_MODELS,
     MISTRAL_MODELS,
+    OLLAMA_VISION_INDICATORS,
     OPENAI_MODELS,
 )
 
@@ -20,8 +21,6 @@ class VisionSupportValidator:
         "anthropic": ANTHROPIC_MODELS,
         "mistral": MISTRAL_MODELS,
     }
-
-    OLLAMA_VISION_INDICATORS = ["llava", "bakllava", "moondream", "minicpm-v", "qwen2.5vl"]
 
     @classmethod
     def has_vision_support(cls, provider_name: str, api_model: str) -> bool:
@@ -43,4 +42,4 @@ class VisionSupportValidator:
 
     @classmethod
     def _check_ollama_model(cls, model: str) -> bool:
-        return any(indicator in model.lower() for indicator in cls.OLLAMA_VISION_INDICATORS)
+        return any(indicator in model.lower() for indicator in OLLAMA_VISION_INDICATORS)

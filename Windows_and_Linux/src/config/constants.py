@@ -288,6 +288,9 @@ SUPPORTED_LANGUAGES = [
     ("हिन्दी", "hi"),
 ]
 
+# Ollama-specific constants
+OLLAMA_VISION_INDICATORS = ["llava", "bakllava", "moondream", "minicpm-v", "qwen2.5vl"]
+
 # Language code to full name mapping for AI prompts
 LANGUAGE_NAMES = {code: name for name, code in SUPPORTED_LANGUAGES}
 
