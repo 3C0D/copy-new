@@ -15,11 +15,13 @@ class RefreshManager:
     @staticmethod
     def refresh_theme(widgets_dict: dict[str, list[QWidget]], app_styles: dict[str, str]) -> None:
         """
-        Refresh theme for widgets grouped by style type.
+        Apply stylesheets to widgets when theme changes.
 
         Args:
-            widgets_dict: Dictionary mapping style keys to lists of widgets
-            app_styles: Dictionary of style strings
+            widgets_dict: Widgets grouped by style type.
+                         Example: {'label': [label1, label2], 'dropdown': [dropdown1]}
+            app_styles: Stylesheet dictionary from theme_manager.
+                       Example: {'label': 'QLabel { color: white; }', ...}
         """
         for style_key, widgets in widgets_dict.items():
             for widget in widgets:
@@ -34,13 +36,14 @@ class RefreshManager:
         translator_func: Callable[[str], str],
     ) -> None:
         """
-        Refresh language for UI components.
+        Update UI text when language changes.
 
         Args:
-            components: List of (widget, text_getter) tuples
-            color_mode_dropdown: The color mode dropdown to update
-            color_mode: Current color mode
-            translator_func: Translation function
+            components: List of (widget, text_getter) pairs.
+                       text_getter can be a callable or a string key.
+            color_mode_dropdown: Color mode QComboBox to repopulate.
+            color_mode: Current mode ('auto'/'light'/'dark') to restore selection.
+            translator_func: Translation function (typically _()).
         """
         # Block signals during refresh
         if color_mode_dropdown:
