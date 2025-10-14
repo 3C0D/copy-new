@@ -100,7 +100,7 @@ class ProviderManager:
         Handle Ollama provider selection with status checks.
         Uses cached status to avoid redundant async operations.
         """
-        from ..aiprovider.ollama import OllamaStateManager
+        from .ollama import OllamaStateManager
 
         state_manager = OllamaStateManager()
 

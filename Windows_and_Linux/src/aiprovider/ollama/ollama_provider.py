@@ -22,12 +22,12 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from ..ui.progress_window import OllamaInstallProgressWindow
-from . import AIProvider, DropdownSetting, TextSetting
+from ...ui.progress_window import OllamaInstallProgressWindow
+from .. import AIProvider, DropdownSetting, TextSetting
 from .ollama_state import OllamaStateManager
 
 if TYPE_CHECKING:
-    from ..writing_tools_app import WritingToolsApp
+    from ...writing_tools_app import WritingToolsApp
 
 
 class OllamaProvider(AIProvider):
