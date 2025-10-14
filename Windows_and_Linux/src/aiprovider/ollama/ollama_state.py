@@ -319,7 +319,7 @@ class OllamaStateManager(QObject):
         def _refresh():
             try:
                 self._logger.debug("Starting async model refresh")
-                models = self._get_models_sync()  # Utiliser la méthode sync
+                models = self._get_models_sync()  # Use sync method
                 self._models_list = models
                 self._models_check_time = self._get_current_time()
                 self.models_updated.emit(models)
@@ -433,6 +433,8 @@ class OllamaStateManager(QObject):
     def _install_ollama_windows(self, app, progress_callback) -> bool:
         """Windows installation implementation."""
         try:
+            import time
+
             import requests
 
             ollama_url = "https://ollama.com/download/OllamaSetup.exe"
@@ -443,16 +445,46 @@ class OllamaStateManager(QObject):
                 response = requests.get(ollama_url, stream=True, allow_redirects=True)
                 response.raise_for_status()
 
+                downloaded = 0
+                last_progress_time = time.time()
+
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         temp_file.write(chunk)
-                    if progress_callback:
-                        progress_callback("downloading")
+                        downloaded += len(chunk)
+
+                        # Update progress every 500ms
+                        current_time = time.time()
+                        if current_time - last_progress_time >= 0.5:
+                            last_progress_time = current_time
+                            if progress_callback:
+                                progress_callback("downloading")
+                                # Force UI update
+                                from PySide6.QtWidgets import QApplication
+
+                                QApplication.processEvents()
+
+                # Final download update
+                if progress_callback:
+                    progress_callback("downloading")
 
             if progress_callback:
                 progress_callback("installing")
+                # Force UI update
+                from PySide6.QtWidgets import QApplication
 
+                QApplication.processEvents()
+
+            # Run installer
             result = subprocess.run([temp_path], check=False)
+
+            # Finishing phase
+            if progress_callback:
+                progress_callback("finishing")
+                # Force UI update
+                from PySide6.QtWidgets import QApplication
+
+                QApplication.processEvents()
 
             try:
                 os.unlink(temp_path)

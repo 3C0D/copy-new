@@ -225,7 +225,7 @@ class ThemeManager(QtCore.QObject):
             # ----------  GENERIC STYLES (Polymorphes)  ----------
             "transparent_background": CallableString(
                 transparent_background("QWidget"),  # Default value
-                transparent_background  # Function to call
+                transparent_background,  # Function to call
             ),
             "margin_top_10": "QLabel { margin-top: 10px; }",
         }

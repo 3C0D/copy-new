@@ -12,8 +12,9 @@ import logging
 from typing import TYPE_CHECKING
 
 from ollama import Client as OllamaClient
-from PySide6.QtCore import Slot
+from PySide6.QtCore import QTimer, Slot
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
     QDialog,
     QHBoxLayout,
@@ -172,25 +173,37 @@ class OllamaProvider(AIProvider):
         progress_window.show()
         progress_window.start_animation()
 
+        # Timer to force regular UI updates
+        update_timer = QTimer()
+        update_timer.timeout.connect(lambda: QApplication.processEvents())
+        update_timer.start(100)  # Toutes les 100ms
+
         def progress_callback(status):
             if status == "downloading":
-                from PySide6.QtWidgets import QApplication
-
-                QApplication.processEvents()
+                progress_window.set_downloading()
             elif status == "installing":
                 progress_window.set_installing()
-                from PySide6.QtWidgets import QApplication
-
-                QApplication.processEvents()
             elif status == "finishing":
                 progress_window.set_finishing()
-                from PySide6.QtWidgets import QApplication
 
-                QApplication.processEvents()
+            # Always force UI update
+            from PySide6.QtWidgets import QApplication
+
+            QApplication.processEvents()
 
         def install_thread():
-            success = self.state_manager.install_ollama(self.app, progress_callback)
-            progress_window.close()
+            try:
+                success = self.state_manager.install_ollama(self.app, progress_callback)
+            except Exception as e:
+                self._logger.error(f"Installation error: {e}")
+                success = False
+            finally:
+                # Stop timer and close window
+                try:
+                    update_timer.stop()
+                    progress_window.close()
+                except Exception:
+                    pass
 
             if success:
                 self.app.ui_manager.show_message_signal.emit(
