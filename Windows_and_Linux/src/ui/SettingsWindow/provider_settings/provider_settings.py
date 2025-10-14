@@ -135,10 +135,14 @@ class ProviderSettings(QWidget):
             (self.provider_dropdown, "currentIndexChanged", self._on_provider_changed)
         )
 
-        # Vision comment
-        self.vision_comment = QLabel(_("* Models with vision support"))
-        self.vision_comment.setStyleSheet(f"{self.app.styles['label']}; font-style: italic;")
-        layout.addWidget(self.vision_comment)
+        # Vision comment - only show for providers that use dropdown models
+        current_provider = self.app.ai_processor.current_provider
+        if current_provider and current_provider.internal_name != "openai-compatible":
+            self.vision_comment = QLabel(_("* Models with vision support"))
+            self.vision_comment.setStyleSheet(f"{self.app.styles['label']}; font-style: italic;")
+            layout.addWidget(self.vision_comment)
+        else:
+            self.vision_comment = None
 
     def init_provider_ui(self, provider: "AIProvider", layout: QVBoxLayout) -> None:
         """Initialize UI for a specific provider."""
@@ -309,6 +313,26 @@ class ProviderSettings(QWidget):
         # Rebuild UI
         if self.provider_container is not None:
             self.init_provider_ui(new_provider, self.provider_container)
+
+        # Update vision comment visibility
+        self._update_vision_comment_visibility(new_provider)
+
+    def _update_vision_comment_visibility(self, provider: "AIProvider") -> None:
+        """Update the visibility of the vision comment based on provider type."""
+        # Remove existing vision comment if it exists
+        if self.vision_comment:
+            self.vision_comment.hide()
+            self.vision_comment.setParent(None)
+            self.vision_comment = None
+
+        # Add vision comment only for providers that use dropdown models (not openai-compatible)
+        if provider.internal_name != "openai-compatible":
+            self.vision_comment = QLabel(_("* Models with vision support"))
+            self.vision_comment.setStyleSheet(f"{self.app.styles['label']}; font-style: italic;")
+            # Insert before the stretch at the end of the layout
+            parent_layout = self.layout()
+            if parent_layout:
+                parent_layout.addWidget(self.vision_comment)
 
     def update_provider_button_text(self) -> None:
         """Update main button text when provider state changes."""

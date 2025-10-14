@@ -209,6 +209,11 @@ class OpenAICompatibleProvider(AIProvider):
         else:
             self.client = None
 
+    @property
+    def supports_vision(self) -> bool:
+        """Check if this provider instance has vision support enabled."""
+        return bool(getattr(self, "has_vision", False))
+
     def before_load(self) -> None:
         """Clean up client before reloading."""
         self._logger.debug("🧹 OpenAICompatibleProvider.before_load called - cleaning up client")

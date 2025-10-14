@@ -1186,16 +1186,12 @@ class CustomPopupWindow(QWidget):
         Returns:
             bool: True if the current model supports vision, False otherwise
         """
-        provider_name: str = self.app.settings_manager.provider
-        api_model = self.app.ai_processor.get_current_model(provider_name)
+        # Use the provider's validation method directly
+        provider = self.app.ai_processor.current_provider
+        if not provider:
+            return False
 
-        # Get custom vision data for openai-compatible provider
-        custom_vision_data = None
-        if provider_name == "openai-compatible":
-            provider_config = self.app.settings_manager.providers.get("openai-compatible", {})
-            custom_vision_data = provider_config.get("has_vision", False)
-
-        return self.vision_validator.has_vision_support(provider_name, api_model, custom_vision_data)
+        return provider._supports_vision()
 
     def refresh_language(self) -> None:
         """Refresh all text elements to reflect the current language."""
