@@ -110,6 +110,7 @@ class SystrayManager:
         about_action = self.tray_menu.addAction(_("About"))
         about_action.triggered.connect(self.show_about)
 
+        # Help menu item
         help_action = self.tray_menu.addAction(_("Help"))
         help_action.triggered.connect(self.show_help)
 
