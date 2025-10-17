@@ -334,9 +334,6 @@ class CustomPopupWindow(QWidget):
     def _finalize_ui_setup(self) -> None:
         """Finalize UI setup with event filters and focus."""
         self.installEventFilter(self)
-        QtCore.QTimer.singleShot(
-            250, lambda: self.input_area.set_focus() if self.input_area else None
-        )
 
     def setup_draggable_top_bar(self) -> None:
         """Configure top bar to be draggable"""
@@ -730,3 +727,4 @@ class CustomPopupWindow(QWidget):
                 self.close()
         else:
             super().keyPressEvent(event)
+

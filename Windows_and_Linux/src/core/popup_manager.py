@@ -132,8 +132,11 @@ class PopupManager(QObject):
 
         self.popup_window.show()
         self.position_popup_window(self.popup_window, selected_text)
-
         ui_utils.existing_window_on_top(self.popup_window)
+
+        # Force focus after window is fully displayed and positioned
+        if self.popup_window.input_area and self.popup_window.input_area.custom_input:
+            self.popup_window.input_area.custom_input.setFocus()
 
     @Slot()
     def show_popup(self) -> None:
