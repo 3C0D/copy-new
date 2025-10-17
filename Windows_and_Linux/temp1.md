@@ -1,549 +1,477 @@
-## Suggestions d'améliorations mineures
+Je vois un problème dans le `response_window.py` actuel ! La méthode `_create_loading_indicator()` est devenue trop longue et contient du code qui devrait être dans `init_ui()`. 
 
+Regarde la ligne 153 : `_create_loading_indicator()` contient tout le code de création du chat_area et de l'input_field, ce qui n'a rien à faire là-dedans.
 
+Voici ce qui doit être corrigé :
 
-### 4. **Gestion d'erreurs**
-Ajouter plus de try/catch dans les handlers, surtout pour les opérations qui pourraient échouer (changement de langue, sauvegarde des settings).
+## Problèmes identifiés :
 
-Commencez ici.
-Voilà ce que je veux que tu appliques. Évidemment, il ne faudra aucun commentaire en français dans le code
+1. **`_create_loading_indicator()`** (ligne 139-192) :
+   - ❌ Contient la création du `chat_area` 
+   - ❌ Contient la création de l'`input_field` et du send button
+   - ❌ Elle fait ~50 lignes au lieu de ~25
 
+2. **`init_ui()`** est incomplet :
+   - ❌ N'appelle jamais `_create_loading_indicator()`
+   - ❌ Ne crée jamais le chat_area ni l'input_field
 
-Je vais analyser le code pour identifier les risques potentiels de fuites mémoire dans la gestion des layouts Qt.
+## Solution :
 
-## Analyse des Risques de Fuites Mémoire
+Le code de l'artifact était correct. Il faut **remplacer tout le `response_window.py`** par la version de l'artifact `response_window_refactored`.
 
-Après examen approfondi du code, voici mon analyse :
+La version actuelle est un mélange entre l'ancien et le nouveau code, ce qui explique pourquoi `_create_loading_indicator()` contient trop de choses.
 
-### Points Positifs (Déjà bien gérés)
-
-1. **Hiérarchie Qt respectée** : Les widgets ont des parents, ce qui permet à Qt de gérer automatiquement leur destruction
-2. **`deleteLater()` utilisé** : Destruction asynchrone appropriée pour Qt
-3. **Nettoyage récursif** : `clear_layout()` nettoie en profondeur
-
-### Risques Identifiés
-
-#### 1. **Cycles de références possibles** (Risque Modéré)
-
-Dans `provider_settings.py`, ligne ~200 :
-```python
-setting.set_auto_save_callback(
-    lambda: self.provider_manager.save_provider_settings(provider)
-)
-```
-
-**Problème** : La lambda capture `provider`, créant potentiellement un cycle :
-- `provider` → `settings` → `callback (lambda)` → `provider`
-
-#### 2. **Signaux non déconnectés** (Risque Faible)
-
-Ligne ~109 :
-```python
-self.provider_dropdown.currentIndexChanged.connect(self._on_provider_changed)
-```
-
-Le signal n'est jamais déconnecté explicitement avant la recréation du widget.
-
-#### 3. **Références fortes dans callbacks** (Risque Modéré)
-
-Les `additional_buttons` dans `button_manager.py` gardent probablement des références fortes aux méthodes du provider.
-
-### Solution Proposée
-
-Voici une version améliorée avec gestion explicite de la mémoire :## Principales Améliorations
-
-### 1. **Utilisation de `weakref`**
-- Évite les cycles de références dans les callbacks
-- Le provider peut être garbage collecté même si des callbacks existent encore
-
-### 2. **Tracking des connexions signal/slot**
-```python
-self._signal_connections = []
-# ...
-connection = self.provider_dropdown.currentIndexChanged.connect(...)
-self._signal_connections.append((widget, "signal_name", slot))
-```
-
-### 3. **Déconnexion explicite**
-La méthode `_disconnect_all_signals()` garantit le nettoyage lors du `closeEvent`
-
-### 4. **Nettoyage des callbacks**
-Dans `_cleanup_provider_layout()`, on réinitialise les callbacks à `None` pour libérer les références
-
-## Verdict Final
-
-**Le code original présente-t-il un risque réel ?**
-
-**Réponse nuancée** : 
-- **Risque faible en pratique** : Qt gère bien la hiérarchie parent/enfant
-- **Amélioration recommandée** : Surtout si l'application tourne longtemps et que l'utilisateur change fréquemment de provider
-- **Impact** : Les fuites seraient mineures (quelques KB par switch), mais pourraient s'accumuler
-
-**Recommandation** : Implémenter au moins le nettoyage des callbacks (point #4) et le tracking des signaux (points #2-3). L'utilisation de `weakref` est un bonus pour une robustesse maximale, mais pas strictement nécessaire si les deux autres points sont appliqués.
-
-
-"""
-provider_settings.py - Version améliorée avec gestion mémoire explicite
-
-Améliorations :
-1. Utilisation de weakref pour éviter les cycles
-2. Déconnexion explicite des signaux
-3. Nettoyage complet des callbacks
-4. Tracking des connexions signal/slot
-"""
+**Veux-tu que je te montre exactement ce qui doit être dans `init_ui()` et `_create_loading_indicator()` pour que ça corresponde à la structure propre ?**
 
 import logging
-import weakref
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
-from PySide6 import QtCore
-from PySide6.QtCore import QMetaObject
-from PySide6.QtGui import QImage
+from PySide6 import QtCore, QtGui
+from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtWidgets import (
-    QComboBox,
+    QApplication,
     QHBoxLayout,
     QLabel,
-    QLayout,
+    QLineEdit,
     QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
-if TYPE_CHECKING:
-    from ....aiprovider.aiprovider import AIProvider
-    from ....writing_tools_app import WritingToolsApp
-    from ..settings_window import SettingsWindow
+from ..ui_utils import ThemedWidget, ui_utils
+from .chat_scroll_area import ChatContentScrollArea
+from .image_preview_widget import ImagePreviewWidget
+from .markdown_text_browser import MarkdownTextBrowser
+from .message_container import MessageContainer
+from .thinking_animation import ThinkingAnimation
+from .window_sizing_manager import WindowSizingManager
 
-from ....aiprovider.provider_manager import ProviderManager
-from ....config.constants import PROVIDER_DISPLAY_NAMES
-from ....config.data_operations import get_provider_display_name
-from ....core.ai_processor import PROVIDER_CLASSES
-from ...ui_utils import ui_utils
-from .button_manager import ProviderButtonManager
+if TYPE_CHECKING:
+    from ...writing_tools_app import WritingToolsApp
 
 
 def _(x):
     return x
 
 
-class ProviderSettings(QWidget):
-    """Widget pour sélection et configuration des providers AI avec gestion mémoire améliorée."""
+class ResponseWindow(ThemedWidget):
+    """Enhanced response window"""
 
-    def __init__(self, app: "WritingToolsApp", parent: "SettingsWindow"):
-        super().__init__(parent)
-        self.app = app
-        self.parent_window = parent
+    followup_response_signal = Signal(str)
+
+    def __init__(
+        self,
+        app: "WritingToolsApp",
+        title: str = _("Response"),
+        parent: QWidget | None = None,
+    ):
+        super().__init__(app)
         self._logger = logging.getLogger(__name__)
-        self.button_manager = ProviderButtonManager(app)
-        self.provider_manager = ProviderManager(app)
+        self.app = app
+        self.content_layout: QVBoxLayout | None = None
+        self.original_title = title
+        self.setWindowTitle(_("Response"))
+        self.option = title.replace(" Result", "")
+        self.selected_text: str | None = None
+        self.image: QtGui.QImage | None = None
+        self.input_field: QLineEdit | None = None
+        self.loading_label: QLabel | None = None
+        self.loading_container: QWidget | None = None
+        self.chat_area: ChatContentScrollArea | None = None
+        self.chat_history: list = []
+        self.current_text_display: MarkdownTextBrowser | None = None
+        self.image_preview: ImagePreviewWidget | None = None
 
-        self.current_provider_layout = None
-        
-        # Tracking des connexions signal/slot pour nettoyage propre
-        self._signal_connections = []
-        
-        # Weakref vers le provider courant pour éviter cycles
-        self._current_provider_ref = None
-
-        # UI components
-        self.provider_label = None
-        self.provider_dropdown = None
-        self.provider_container = None
-        self.provider_name_label = None
-        self.description_label = None
-        self.vision_comment = None
-        self.main_button = None
+        # Initialize managers
+        self.thinking_animation = ThinkingAnimation()
+        self.sizing_manager = WindowSizingManager()
 
         self.init_ui()
+        self._logger.debug("Connecting response signals")
+        self.followup_response_signal.connect(self.handle_followup_response)
+        self._logger.debug("Response signals connected")
+
+        # Set initial size for "Thinking..." state
+        self.resize(500, 250)
 
     def init_ui(self) -> None:
-        """Initialize provider settings UI."""
-        layout = QVBoxLayout(self)
-        layout.setSpacing(15)
-        layout.setContentsMargins(0, 0, 0, 0)
+        self.setMinimumSize(600, 400)
 
-        # Provider selection
-        self.provider_label = QLabel(_("Choose AI Provider:"))
-        self.provider_label.setStyleSheet(self.app.styles["label"])
-        layout.addWidget(self.provider_label)
+        # Main layout setup
+        self.content_layout = QVBoxLayout(self.background)
+        self.content_layout.setContentsMargins(20, 20, 20, 20)
+        self.content_layout.setSpacing(10)
 
-        self.provider_dropdown = QComboBox()
-        self.provider_dropdown.setStyleSheet(self.app.styles["dropdown"])
-        self.provider_dropdown.wheelEvent = lambda e: e.ignore()
+        # Top bar with zoom controls
+        self._create_top_bar()
 
-        current_provider = self.app.settings_manager.provider
+        # Add image preview if we have an image
+        if self.image:
+            self.image_preview = ImagePreviewWidget(self.app, self.image, self.background)
+            self.content_layout.addWidget(self.image_preview)
 
-        # Populate dropdown
-        for internal_name, display_name in PROVIDER_DISPLAY_NAMES.items():
-            self.provider_dropdown.addItem(display_name, internal_name)
+        # Copy controls
+        self._create_copy_bar()
 
-        # Set current selection
-        current_display_name = get_provider_display_name(current_provider)
-        current_index = self.provider_dropdown.findText(current_display_name)
+        # Loading indicator
+        self._create_loading_indicator()
 
-        if current_index != -1:
-            self.provider_dropdown.setCurrentIndex(current_index)
-        else:
-            self.provider_dropdown.setCurrentIndex(0)
-            self._logger.warning("Current provider not found, defaulting to first item")
+        # Enhanced chat area
+        self.chat_area = ChatContentScrollArea(self.app)
+        if self.content_layout:
+            self.content_layout.addWidget(self.chat_area)
 
-        layout.addWidget(self.provider_dropdown)
+        # Input area
+        self._create_input_bar()
 
-        # Provider UI container
-        self.provider_container = QVBoxLayout()
-        layout.addLayout(self.provider_container)
+        # Start thinking animation after all widgets are created
+        self.thinking_animation.start(initial=True)
 
-        # Initial provider UI
-        if self.app.ai_processor.current_provider:
-            self.init_provider_ui(self.app.ai_processor.current_provider, self.provider_container)
-        else:
-            # Fallback logic
-            current_internal_name = self.provider_dropdown.currentData()
-            provider_instance = self.provider_manager.find_provider_by_name(current_internal_name)
+    def _create_top_bar(self) -> None:
+        """Create the top bar with title and zoom controls"""
+        top_bar = QHBoxLayout()
 
-            if not provider_instance:
-                default_provider_name = list(PROVIDER_CLASSES.keys())[0]
-                provider_class = PROVIDER_CLASSES.get(default_provider_name)
-                if provider_class:
-                    try:
-                        provider_instance = provider_class(self.app)
-                    except Exception as e:
-                        self._logger.error(f"Failed to create default provider {default_provider_name}: {e}")
-                        provider_instance = None
+        title_label = QLabel(self.option)
+        title_label.setStyleSheet(self.app.styles["response_window_title"])
+        top_bar.addWidget(title_label)
 
-            if provider_instance:
-                self.app.ai_processor.current_provider = provider_instance
-                self.init_provider_ui(provider_instance, self.provider_container)
+        # Add image indicator in title bar if we have an image
+        if self.image:
+            image_indicator = QLabel("📷")
+            image_indicator.setStyleSheet(self.app.styles["response_window_image_indicator"])
+            image_indicator.setToolTip(_("Image analysis mode"))
+            top_bar.addWidget(image_indicator)
 
-        # Connect provider change - TRACK CONNECTION
-        connection = self.provider_dropdown.currentIndexChanged.connect(self._on_provider_changed)
-        self._signal_connections.append((self.provider_dropdown, "currentIndexChanged", self._on_provider_changed))
+        top_bar.addStretch()
 
-        # Vision comment
-        self.vision_comment = QLabel(_("* Models with vision support"))
-        self.vision_comment.setStyleSheet(f"{self.app.styles['label']}; font-style: italic;")
-        layout.addWidget(self.vision_comment)
+        # Zoom label
+        zoom_label = QLabel(_("Zoom:"))
+        zoom_label.setStyleSheet(self.app.styles["response_window_zoom_label"])
+        top_bar.addWidget(zoom_label)
 
-    def init_provider_ui(self, provider: "AIProvider", layout: QVBoxLayout) -> None:
-        """Initialize UI for a specific provider."""
-        # Refresh provider configuration
-        self._refresh_provider_config(provider)
+        # Zoom controls
+        zoom_controls = [
+            ("plus", _("Zoom In"), lambda: self.zoom_all_messages("in")),
+            ("minus", _("Zoom Out"), lambda: self.zoom_all_messages("out")),
+            ("reset", _("Reset Zoom"), lambda: self.zoom_all_messages("reset")),
+        ]
 
-        # Clean up old UI (avec nettoyage complet)
-        self._cleanup_provider_layout()
-        ui_utils.clear_layout(layout)
-
-        # Store weakref to current provider
-        self._current_provider_ref = weakref.ref(provider)
-
-        self.current_provider_layout = QVBoxLayout()
-
-        # UI Components
-        self._add_provider_header(provider)
-        self._add_provider_description(provider)
-
-        # Buttons
-        button_widget = self.button_manager.create_button_layout(provider)
-        if button_widget and self.current_provider_layout is not None:
-            self.current_provider_layout.addWidget(
-                button_widget,
-                alignment=QtCore.Qt.AlignmentFlag.AlignCenter,
+        for icon, tooltip, action in zoom_controls:
+            btn = QPushButton()
+            btn.setIcon(
+                QtGui.QIcon(ui_utils.get_icon_path(self.app, icon, with_theme=True).as_posix())
             )
+            btn.setStyleSheet(self.app.styles["response_window_zoom_button"])
+            btn.setToolTip(tooltip)
+            btn.clicked.connect(action)
+            btn.setFixedSize(30, 30)
+            top_bar.addWidget(btn)
 
-        self._add_provider_settings(provider)
+        if self.content_layout:
+            self.content_layout.addLayout(top_bar)
 
-        layout.addLayout(self.current_provider_layout)
+    def _create_copy_bar(self) -> None:
+        """Create the copy controls bar"""
+        copy_bar = QHBoxLayout()
+        copy_hint = QLabel(_("Hover over assistant responses for individual copy buttons"))
+        copy_hint.setStyleSheet(self.app.styles["response_window_copy_hint"])
+        copy_bar.addWidget(copy_hint)
+        copy_bar.addStretch()
+        if self.content_layout:
+            self.content_layout.addLayout(copy_bar)
 
-        # Disable dropdown scroll interference
-        self._disable_dropdown_scroll(self.current_provider_layout)
+    def _create_loading_indicator(self) -> None:
+        """Create the loading indicator"""
+        self.loading_container = QWidget()
+        loading_layout = QHBoxLayout(self.loading_container)
+        loading_layout.setContentsMargins(0, 0, 0, 0)
 
-        self._logger.debug(f"Provider UI initialized: {provider.internal_name}")
+        base_text = _("Analyzing image") if self.image else _("Thinking")
+        self.loading_label = QLabel(base_text)
+        self.loading_label.setStyleSheet(self.app.styles["response_window_loading_label"])
+        self.loading_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
 
-    def _add_provider_settings(self, provider: "AIProvider") -> None:
-        """Add provider settings controls with weakref-based callback."""
-        if self.current_provider_layout is None:
-            return
+        loading_inner_container = QWidget()
+        loading_inner_container.setFixedWidth(180)
+        loading_inner_layout = QHBoxLayout(loading_inner_container)
+        loading_inner_layout.setContentsMargins(0, 0, 0, 0)
+        loading_inner_layout.addWidget(self.loading_label)
 
-        if not self.app.settings_manager.providers:
-            self.app.settings_manager.providers = {}
+        loading_layout.addStretch()
+        loading_layout.addWidget(loading_inner_container)
+        loading_layout.addStretch()
 
-        if provider.internal_name not in self.app.settings_manager.providers:
-            self.app.settings_manager.providers[provider.internal_name] = {}
+        if self.content_layout:
+            self.content_layout.addWidget(self.loading_container)
 
-        provider_config = self.app.settings_manager.providers[provider.internal_name]
-        
-        # Utiliser weakref pour éviter cycles de références
-        provider_ref = weakref.ref(provider)
-        provider_manager_ref = weakref.ref(self.provider_manager)
-        
-        for setting in provider.settings:
-            saved_value = provider_config.get(setting.name, setting.default_value)
-            setting.set_value(saved_value)
-            
-            # Callback avec weakref pour éviter cycle
-            def auto_save_callback(p_ref=provider_ref, pm_ref=provider_manager_ref):
-                provider_obj = p_ref()
-                provider_manager_obj = pm_ref()
-                if provider_obj is not None and provider_manager_obj is not None:
-                    provider_manager_obj.save_provider_settings(provider_obj)
-                else:
-                    self._logger.debug("Provider or manager was garbage collected")
-            
-            setting.set_auto_save_callback(auto_save_callback)
-            setting.render_to_layout(self.current_provider_layout)
+    def _create_input_bar(self) -> None:
+        """Create the input bar with text field and send button"""
+        bottom_bar = QHBoxLayout()
 
-    def _add_provider_header(self, provider: "AIProvider") -> None:
-        """Add provider header (logo + name)."""
-        if self.current_provider_layout is None:
-            return
-
-        provider_header_layout = QHBoxLayout()
-        provider_header_layout.setSpacing(10)
-        provider_header_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-
-        # Logo
-        if provider.logo:
-            logo_path = ui_utils.get_icon_path(
-                self.app, f"provider_{provider.logo}", with_theme=False
-            )
-            if logo_path.exists():
-                targetPixmap = ui_utils.resize_and_round_image(QImage(logo_path), 30, 15)
-                logo_label = QLabel()
-                logo_label.setPixmap(targetPixmap)
-                logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
-                provider_header_layout.addWidget(logo_label)
-
-        # Name
-        self.provider_name_label = QLabel(provider.provider_name)
-        self.provider_name_label.setStyleSheet(
-            f"{self.app.styles['label_title']}; font-size: 18px;"
+        self.input_field = QLineEdit()
+        placeholder_text = (
+            _("Ask a follow-up question about this image") + "..."
+            if self.image
+            else _("Ask a follow-up question") + "..."
         )
-        self.provider_name_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
-        provider_header_layout.addWidget(self.provider_name_label)
+        self.input_field.setPlaceholderText(placeholder_text)
+        self.input_field.setStyleSheet(self.app.styles["response_window_input"])
+        self.input_field.returnPressed.connect(self.send_message)
+        self.input_field.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        bottom_bar.addWidget(self.input_field)
 
-        self.current_provider_layout.addLayout(provider_header_layout)
+        send_button = QPushButton()
+        send_button.setIcon(
+            QtGui.QIcon(ui_utils.get_icon_path(self.app, "send", with_theme=True).as_posix())
+        )
+        send_button.setStyleSheet(self.app.styles["response_window_send_button"])
+        send_button.setFixedSize(
+            self.input_field.sizeHint().height(),
+            self.input_field.sizeHint().height(),
+        )
+        send_button.clicked.connect(self.send_message)
+        bottom_bar.addWidget(send_button)
 
-    def _add_provider_description(self, provider: "AIProvider") -> None:
-        """Add provider description."""
-        if self.current_provider_layout is None:
+        if self.content_layout:
+            self.content_layout.addLayout(bottom_bar)
+
+        # Connect animation to all widgets after creation
+        self.thinking_animation.set_widgets(
+            loading_label=self.loading_label,
+            input_field=self.input_field,
+            is_image_mode=bool(self.image),
+        )
+
+    def set_input_focus(self) -> None:
+        """Force focus on input field when window opens"""
+        if self.input_field:
+            self.input_field.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def start_thinking_animation(self, initial: bool = False) -> None:
+        """Start the thinking animation"""
+        self.thinking_animation.start(initial=initial)
+        if initial and self.loading_container:
+            self.loading_container.setVisible(True)
+        elif self.loading_container:
+            self.loading_container.setVisible(False)
+
+    def stop_thinking_animation(self) -> None:
+        """Stop the thinking animation"""
+        self.thinking_animation.stop()
+        if self.loading_container:
+            self.loading_container.hide()
+
+        # Force layout update
+        if self.layout():
+            self.layout().invalidate()
+            self.layout().activate()
+
+        # Force focus on input field
+        QtCore.QTimer.singleShot(50, self.set_input_focus)
+
+    def zoom_all_messages(self, action: str = "in") -> None:
+        """Apply zoom action to all messages in the chat"""
+        if not self.chat_area or not self.chat_area.content_layout:
             return
 
-        if provider.description:
-            self.description_label = QLabel(provider.description)
-            self.description_label.setStyleSheet(f"{self.app.styles['label']}; text-align: center;")
-            self.description_label.setWordWrap(True)
-            self.current_provider_layout.addWidget(self.description_label)
+        for i in range(self.chat_area.content_layout.count() - 1):  # Skip stretch item
+            item = self.chat_area.content_layout.itemAt(i)
+            if item and item.widget():
+                container = item.widget()
+                if isinstance(container, MessageContainer):
+                    text_display = container.text_display
+                    if text_display:
+                        if action == "in":
+                            text_display.zoom_in()
+                        elif action == "out":
+                            text_display.zoom_out()
+                        else:  # reset
+                            text_display.reset_zoom()
 
-    def _refresh_provider_config(self, provider: "AIProvider") -> None:
-        """Refresh provider configuration if supported."""
-        self.provider_manager.refresh_provider_config(provider)
+        # Update layout after zooming
+        if self.chat_area:
+            self.chat_area.update_content_height()
 
-    def _cleanup_provider_layout(self) -> None:
-        """Clean up previous provider layout avec nettoyage complet."""
-        if not self.current_provider_layout:
+    def _adjust_window_height(self) -> None:
+        """Calculate and set the ideal window height"""
+        if not self.chat_area or not self.input_field:
             return
 
-        # Nettoyer tous les callbacks des settings du provider précédent
-        if self._current_provider_ref:
-            old_provider = self._current_provider_ref()
-            if old_provider:
-                for setting in old_provider.settings:
-                    # Réinitialiser le callback pour libérer les références
-                    setting.set_auto_save_callback(None)
+        input_height = self.input_field.height()
+        self.sizing_manager.calculate_and_apply_size(self, self.chat_area, input_height)
 
-        parent = self.current_provider_layout.parent()
-        if parent and hasattr(parent, "removeItem") and isinstance(parent, QLayout):
-            parent.removeItem(self.current_provider_layout)
-
-        self.current_provider_layout.setParent(None)
-        ui_utils.clear_layout(self.current_provider_layout)
-        self.current_provider_layout.deleteLater()
-        
-        # Clear weakref
-        self._current_provider_ref = None
-
-    def _disable_dropdown_scroll(self, layout: QLayout) -> None:
-        """Disable wheel events on dropdowns to prevent scroll interference."""
-        for i in range(layout.count()):
-            item = layout.itemAt(i)
-            if item.widget() and isinstance(item.widget(), QComboBox):
-                item.widget().wheelEvent = lambda event: event.ignore()
-            elif item.layout():
-                self._disable_dropdown_scroll(item.layout())
-
-    def _on_provider_changed(self) -> None:
-        """Handle provider change."""
-        if not self.provider_dropdown:
+    @Slot(str)
+    def set_text(self, text: str) -> None:
+        """Set initial response text"""
+        if not text.strip() or not self.chat_area:
             return
 
-        current_internal_name = self.provider_dropdown.currentData()
-        if not current_internal_name:
-            return
+        # Initialize chat history
+        if self.image:
+            self.chat_history = [
+                {"role": "user", "content": f"Image analysis request: {self.option}"},
+                {"role": "assistant", "content": text},
+            ]
+        else:
+            self.chat_history = [
+                {"role": "user", "content": f"{self.option}: {self.selected_text}"},
+                {"role": "assistant", "content": text},
+            ]
 
-        self._logger.debug(f"Provider changed to: {current_internal_name}")
+        self.stop_thinking_animation()
+        text_display = self.chat_area.add_message(text)
 
-        # Use ProviderManager to switch provider
-        new_provider = self.provider_manager.switch_provider(current_internal_name)
-        if not new_provider:
-            self._logger.warning(f"Provider {current_internal_name} not found")
-            return
-
-        # Rebuild UI
-        if self.provider_container is not None:
-            self.init_provider_ui(new_provider, self.provider_container)
-
-    def _disconnect_all_signals(self) -> None:
-        """Déconnecter explicitement tous les signaux trackés."""
-        for widget, signal_name, slot in self._signal_connections:
-            try:
-                # Obtenir le signal par nom
-                signal = getattr(widget, signal_name, None)
-                if signal:
-                    signal.disconnect(slot)
-                    self._logger.debug(f"Disconnected signal: {signal_name}")
-            except Exception as e:
-                self._logger.debug(f"Error disconnecting signal {signal_name}: {e}")
-        
-        self._signal_connections.clear()
-
-    def update_provider_button_text(self) -> None:
-        """Update main button text when provider state changes."""
-        if (
-            hasattr(self, "main_button")
-            and self.main_button
-            and self.app.ai_processor.current_provider
-        ):
-            self.main_button.setText(self.app.ai_processor.current_provider.button_text)
-
-    def refresh_theme(self) -> None:
-        """Refresh theme for all components."""
-        if self.provider_label:
-            self.provider_label.setStyleSheet(self.app.styles["label"])
-        if self.provider_dropdown:
-            self.provider_dropdown.setStyleSheet(self.app.styles["dropdown"])
-
-        if self.provider_name_label:
-            self.provider_name_label.setStyleSheet(
-                f"{self.app.styles['label_title']}; font-size: 18px;"
+        # Update zoom state
+        if text_display:
+            text_display.zoom_factor = getattr(
+                self.app.settings_manager, "response_window_zoom", 1.2
             )
+            text_display._apply_zoom()
 
-        if self.description_label:
-            self.description_label.setStyleSheet(f"{self.app.styles['label']}; text-align: center;")
+        QtCore.QTimer.singleShot(100, self._adjust_window_height)
+        QtCore.QTimer.singleShot(150, self.set_input_focus)
 
-        if self.vision_comment:
-            self.vision_comment.setStyleSheet(f"{self.app.styles['label']}; font-style: italic;")
+    @Slot(str)
+    def handle_followup_response(self, response_text: str) -> None:
+        """Handle the follow-up response from the AI"""
+        if response_text and self.chat_area:
+            if self.loading_label:
+                self.loading_label.setVisible(False)
+            text_display = self.chat_area.add_message(response_text)
 
-        if self.main_button:
-            self.main_button.setStyleSheet(self.app.styles["primary_button"])
+            # Maintain consistent zoom level
+            if self.current_text_display and text_display:
+                text_display.zoom_factor = self.current_text_display.zoom_factor
+                text_display._apply_zoom()
 
-        # Update provider labels in layout
-        if self.current_provider_layout:
-            self._update_provider_labels()
+            if len(self.chat_history) > 0 and self.chat_history[-1]["role"] != "assistant":
+                self.chat_history.append({"role": "assistant", "content": response_text})
 
-        # Update buttons
-        if self.current_provider_layout:
-            self.button_manager.update_button_styles(self.current_provider_layout)
+        self.stop_thinking_animation()
+        if self.input_field:
+            self.input_field.setEnabled(True)
 
-        # Refresh provider styles
-        if self.app.ai_processor.current_provider:
-            self.app.ai_processor.current_provider.refresh_styles()
+        QtCore.QTimer.singleShot(100, self._adjust_window_height)
 
-    def _update_provider_labels(self) -> None:
-        """Update labels in provider layout."""
-        if self.current_provider_layout is None:
+    def send_message(self) -> None:
+        """Send a new message/question"""
+        if not self.input_field or not self.chat_area:
             return
 
-        for i in range(self.current_provider_layout.count()):
-            item = self.current_provider_layout.itemAt(i)
-            if not item or not item.widget():
-                continue
+        message = self.input_field.text()
+        if not message:
+            return
 
-            widget = item.widget()
-            if not isinstance(widget, QLabel):
-                continue
+        self.input_field.setEnabled(False)
+        self.input_field.clear()
 
-            # Skip name and description
-            if widget in [self.provider_name_label, self.description_label]:
-                continue
+        # Add user message
+        text_display = self.chat_area.add_message(message, is_user=True)
+        if self.current_text_display and text_display:
+            text_display.zoom_factor = self.current_text_display.zoom_factor
+            text_display._apply_zoom()
 
-            # Update field labels
-            if widget.text() and len(widget.text()) <= 50:
-                widget.setStyleSheet(self.app.styles["label"])
+        self.chat_history.append({"role": "user", "content": message})
+        self.start_thinking_animation()
+        self.app.ai_processor.process_followup_question(self, message)
+
+    def copy_as_markdown(self) -> None:
+        """Copy conversation as Markdown"""
+        markdown = ""
+        for msg in self.chat_history:
+            if msg["role"] == "user":
+                markdown += f"**User**: {msg['content']}\n\n"
+            else:
+                markdown += f"**Assistant**: {msg['content']}\n\n"
+
+        QApplication.clipboard().setText(markdown)
 
     def refresh_language(self) -> None:
-        """Refresh language for all components."""
-        if self.provider_dropdown:
-            self.provider_dropdown.blockSignals(True)
-
+        """Refresh all text elements to reflect the current language"""
         try:
-            if self.provider_label:
-                self.provider_label.setText(_("Choose AI Provider:"))
+            # Update window title
+            self.setWindowTitle(_("Response"))
 
-            if self.vision_comment:
-                self.vision_comment.setText(_("* Models with vision support"))
+            # Update title label in top bar
+            if self.content_layout:
+                top_bar_item = self.content_layout.itemAt(0)
+                if top_bar_item and top_bar_item.layout():
+                    top_bar_layout = top_bar_item.layout()
+                    title_widget = top_bar_layout.itemAt(0).widget()
+                    if isinstance(title_widget, QLabel):
+                        title_widget.setText(self.option)
 
-            # Update main button
-            if self.main_button and self.app.ai_processor.current_provider:
-                if hasattr(self.app.ai_processor.current_provider, "button_text"):
-                    self.main_button.setText(self.app.ai_processor.current_provider.button_text)
+                    # Update zoom label and tooltips
+                    for i in range(top_bar_layout.count()):
+                        item = top_bar_layout.itemAt(i)
+                        if item and item.widget():
+                            widget = item.widget()
+                            if isinstance(widget, QLabel) and "Zoom" in widget.text():
+                                widget.setText(_("Zoom:"))
+                            elif isinstance(widget, QPushButton):
+                                tooltip = widget.toolTip()
+                                if "Zoom In" in tooltip:
+                                    widget.setToolTip(_("Zoom In"))
+                                elif "Zoom Out" in tooltip:
+                                    widget.setToolTip(_("Zoom Out"))
+                                elif "Reset" in tooltip:
+                                    widget.setToolTip(_("Reset Zoom"))
 
-            # Update additional buttons
-            if (
-                self.app.ai_processor.current_provider
-                and hasattr(self.app.ai_processor.current_provider, "additional_buttons")
-                and self.app.ai_processor.current_provider.additional_buttons
-            ):
-                self._refresh_additional_buttons()
+            # Update copy hint
+            for child in self.findChildren(QLabel):
+                if "Hover over" in child.text():
+                    child.setText(_("Hover over assistant responses for individual copy buttons"))
+                    break
 
-        finally:
-            if self.provider_dropdown:
-                self.provider_dropdown.blockSignals(False)
+            # Update loading label if visible
+            if self.loading_label and self.loading_label.isVisible():
+                current_text = self.loading_label.text()
+                if "Analyzing" in current_text:
+                    dots = current_text.replace("Analyzing image", "")
+                    self.loading_label.setText(_("Analyzing image") + dots)
+                elif "Thinking" in current_text:
+                    dots = current_text.replace("Thinking", "")
+                    self.loading_label.setText(_("Thinking") + dots)
 
-    def _refresh_additional_buttons(self) -> None:
-        """Refresh text for additional buttons."""
-        if not self.current_provider_layout:
-            return
+            # Update input field placeholder
+            if self.input_field:
+                current_placeholder = self.input_field.placeholderText()
+                if "Thinking" not in current_placeholder:
+                    placeholder_text = (
+                        _("Ask a follow-up question about this image") + "..."
+                        if self.image
+                        else _("Ask a follow-up question") + "..."
+                    )
+                    self.input_field.setPlaceholderText(placeholder_text)
 
-        button_index = 0
-        for i in range(self.current_provider_layout.count()):
-            item = self.current_provider_layout.itemAt(i)
-            if not item or not item.widget():
-                continue
+            # Update image preview if present
+            if self.image_preview:
+                self.image_preview.refresh_language()
 
-            widget = item.widget()
-            if not hasattr(widget, "layout") or not widget.layout():
-                continue
+            # Update all child widgets with refresh_language
+            for child in self.findChildren(QWidget):
+                if hasattr(child, "refresh_language") and child != self:
+                    try:
+                        child.refresh_language()  # type: ignore
+                    except RuntimeError:
+                        pass
 
-            # Look for buttons in nested layouts
-            for j in range(widget.layout().count()):
-                sub_item = widget.layout().itemAt(j)
-                if not sub_item or not sub_item.widget():
-                    continue
+        except RuntimeError:
+            pass
 
-                if isinstance(sub_item.widget(), QPushButton):
-                    button = cast(QPushButton, sub_item.widget())
-                    if (
-                        self.app.ai_processor.current_provider is not None
-                        and hasattr(self.app.ai_processor.current_provider, "additional_buttons")
-                        and self.app.ai_processor.current_provider.additional_buttons
-                        and button_index
-                        < len(self.app.ai_processor.current_provider.additional_buttons)
-                    ):
-                        config = self.app.ai_processor.current_provider.additional_buttons[
-                            button_index
-                        ]
-                        button.setText(config["text"])
-                        button_index += 1
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        """Handle window close event"""
+        # Cancel any ongoing AI request
+        if self.app.ai_processor.current_provider:
+            self.app.ai_processor.current_provider.cancel()
 
-    def closeEvent(self, event) -> None:
-        """Cleanup lors de la fermeture."""
-        self._logger.debug("ProviderSettings closing, cleaning up...")
-        
-        # Déconnecter tous les signaux
-        self._disconnect_all_signals()
-        
-        # Nettoyer le layout provider
-        self._cleanup_provider_layout()
-        
-        # Call parent closeEvent
+        # Save zoom factor
+        if self.current_text_display:
+            self.app.settings_manager.response_window_zoom = self.current_text_display.zoom_factor
+
+        self.chat_history = []
+
+        if self.app.current_response_window is not None:
+            self.app.current_response_window = None
+
         super().closeEvent(event)
