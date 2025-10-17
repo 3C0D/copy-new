@@ -79,7 +79,7 @@ class DraggableButton(QPushButton):
         if self.popup.edit_mode:
             drag = QtGui.QDrag(self)
             mime_data = QtCore.QMimeData()
-            idx = self.popup.button_widgets.index(self)
+            idx = self.popup.button_manager.button_widgets.index(self)
             mime_data.setData("application/x-button-index", str(idx).encode())
             drag.setMimeData(mime_data)
 
@@ -115,13 +115,13 @@ class DraggableButton(QPushButton):
 
         mime_data = event.mimeData().data("application/x-button-index")
         source_idx = int(bytes(mime_data).decode())
-        target_idx = self.popup.button_widgets.index(self)
+        target_idx = self.popup.button_manager.button_widgets.index(self)
 
         if source_idx != target_idx:
-            bw = self.popup.button_widgets
+            bw = self.popup.button_manager.button_widgets
             bw[source_idx], bw[target_idx] = bw[target_idx], bw[source_idx]
-            self.popup.rebuild_grid_layout()
-            self.popup.update_json_from_grid()
+            self.popup.button_manager.rebuild_grid_layout()
+            self.popup.button_manager.update_json_from_grid()
 
         self.setStyleSheet(self.app.styles["button"])
         event.setDropAction(Qt.DropAction.MoveAction)

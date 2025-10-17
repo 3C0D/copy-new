@@ -1,6 +1,7 @@
 import webbrowser
 from typing import TYPE_CHECKING, Any, cast
 
+from PySide6 import QtCore
 from openai import OpenAI
 
 from . import AIProvider, TextSetting
@@ -177,6 +178,13 @@ class OpenAICompatibleProvider(AIProvider):
                     "Your OpenAI API key is invalid. Please check your API key in Settings and make sure it's correct.",
                 )
             elif "exceeded" in error_str.lower() or "rate limit" in error_str.lower():
+                # Close response window on rate limit errors (thread-safe)
+                if self.app.current_response_window:
+                    QtCore.QMetaObject.invokeMethod(
+                        self.app.current_response_window,
+                        "close",
+                        QtCore.Qt.ConnectionType.QueuedConnection,
+                    )
                 self.app.ui_manager.show_message_signal.emit(
                     "Rate Limit Hit",
                     "You've hit an API rate/usage limit. Please try again later or check your OpenAI usage limits.",

@@ -251,9 +251,12 @@ class ProviderSettings(QWidget):
                         provider_manager_obj.save_provider_settings(provider_obj)
                     else:
                         self._logger.debug("Provider or manager was garbage collected")
+
                 return auto_save_callback
 
-            setting.set_auto_save_callback(create_auto_save_callback(provider_ref, provider_manager_ref))
+            setting.set_auto_save_callback(
+                create_auto_save_callback(provider_ref, provider_manager_ref)
+            )
             setting.render_to_layout(self.current_provider_layout)
 
     def _refresh_provider_config(self, provider: "AIProvider") -> None:

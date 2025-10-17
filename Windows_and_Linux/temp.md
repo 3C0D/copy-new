@@ -83,3 +83,31 @@ About window refresh_language à revoir et réutiliser ?
 mettre un timer de fin d'écoute quand une touche pressée. ou améliorer la logique. bug intermittents.
 
 ---
+
+ui manager n'est plus utile refactoriser...
+
+---
+
+## Gestion d'erreurs améliorée
+
+### ✅ Implémenté : Fermeture automatique de la fenêtre Response sur erreurs de rate limit
+- **Tous les providers** ferment automatiquement la fenêtre Response en cas d'erreur 429/rate limit
+- Thread-safe avec `QtCore.QMetaObject.invokeMethod()`
+- Améliore l'UX en évitant les fenêtres ouvertes avec des erreurs
+
+### ✅ Prévention en amont : Erreurs évitées avant ouverture de fenêtre
+- **Clé API** : Validée dans `validate_connection()` et dans chaque provider
+- **Modèle configuré** : Vérifié avant envoi (ex: OpenAI Compatible, Mistral)
+- **Support vision** : Validé pour les modèles non-vision (Mistral, etc.)
+- **Client initialisé** : Vérifié dans chaque provider
+
+### 🔄 À vérifier plus tard : Erreurs possibles en aval (après ouverture fenêtre)
+- **Rate limits** ✅ (implémenté - ferme fenêtre)
+- **Quotas dépassés** : Pourrait fermer fenêtre (billing définitif)
+- **Erreurs réseau temporaires** : Laisser fenêtre ouverte (retry possible)
+- **Erreurs serveur API** : Laisser fenêtre ouverte (retry possible)
+
+### 📋 Actions futures :
+- Évaluer si fermer fenêtre sur "quotas dépassés" (billing)
+- Vérifier si d'autres erreurs peuvent être prévenues en amont
+- Consolider logique de fermeture dans méthode centralisée si extension nécessaire

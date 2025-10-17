@@ -19,7 +19,14 @@ class ContextDetector:
         action_config: ActionConfig,
         context: str = "initial",  # "initial" or "followup"
     ) -> str:
-        """Get appropriate system instruction based on context."""
+        """
+        Get appropriate system instruction based on context.
+
+        Determines the right AI system prompt based on:
+        - Content type (text vs image)
+        - Request type (custom vs predefined action)
+        - Conversation context (initial request vs followup)
+        """
         if context == "followup":
             return (
                 SYSTEM_INSTRUCTIONS["response_window_image"]

@@ -193,8 +193,7 @@ class ResponseWindow(ThemedWidget):
 
         self.content_layout.addLayout(bottom_bar)
 
-        # Ensure input field gets focus when window opens
-        QtCore.QTimer.singleShot(50, self.set_input_focus)
+        # Ensure input field gets focus when window opens (moved to AIProcessor for better timing)
 
     def set_input_focus(self) -> None:
         """Force focus on input field when window opens"""
@@ -584,6 +583,10 @@ class ResponseWindow(ThemedWidget):
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Handle window close event"""
+        # Cancel any ongoing AI request when window is closed
+        if self.app.ai_processor.current_provider:
+            self.app.ai_processor.current_provider.cancel()
+
         # Save zoom factor to settings
         if hasattr(self, "current_text_display") and self.current_text_display:
             self.app.settings_manager.response_window_zoom = self.current_text_display.zoom_factor

@@ -12,7 +12,6 @@ from PySide6.QtCore import QObject, Qt, Signal, Slot
 from PySide6.QtWidgets import QMessageBox
 
 from ..ui.non_editable_modal import NonEditableModal
-from ..ui.response_window import ResponseWindow
 
 if TYPE_CHECKING:
     from ..writing_tools_app import WritingToolsApp
@@ -43,36 +42,7 @@ class UIManager(QObject):
         self.show_message_signal.connect(self.show_message_box)
 
         # References to active windows
-        self.response_window: ResponseWindow | None = None
         self.non_editable_modal: NonEditableModal | None = None
-
-    def show_response_window(self, option: str, text: str | None = None) -> ResponseWindow:
-        """
-        Display a response window to show AI results.
-
-        Args:
-            option: Selected option (e.g., "Summary", "Rewrite", etc.)
-            text: Selected text or None for image mode
-
-        Returns:
-            ResponseWindow: Created window instance
-        """
-        self._logger.debug(f"Showing response window for option: {option}")
-
-        response_window = ResponseWindow(self.app, f"{option} Result")
-
-        # Configuration for image if available
-        if hasattr(self.app.popup_manager, "has_image") and self.app.popup_manager.has_image:
-            response_window.image = self.app.popup_manager.image
-            self._logger.debug("Image configured in response window")
-            response_window.selected_text = None
-        else:
-            response_window.selected_text = text
-            response_window.image = None
-
-        response_window.show()
-        self.response_window = response_window
-        return response_window
 
     @Slot(str, str)
     def show_message_box(self, title: str, message: str) -> None:
@@ -120,22 +90,3 @@ class UIManager(QObject):
         if settings_button and msg_box.clickedButton() == settings_button:
             self.app.systray_manager.show_settings()
 
-    # not used? !!!
-    def close_all_windows(self) -> None:
-        """
-        Close all windows managed by this manager.
-        """
-        self._logger.debug("Closing all windows")
-
-        windows_to_close = [
-            self.response_window,
-            self.non_editable_modal,
-        ]
-
-        for window in windows_to_close:
-            if window:
-                window.close()
-
-        # Reset references
-        self.response_window = None
-        self.non_editable_modal = None

@@ -131,7 +131,7 @@ class AIProcessor(QObject):
         Process the selected writing option.
 
         Args:
-            option: The action option to process
+            option: The title/key of the selected action (e.g., "Summary", "Custom", "Proofread") used to retrieve its configuration from settings
             selected_text: The text selected by the user
             force_chat: If True, force response to open in ResponseWindow (chat mode)
             custom_change: Optional custom instruction text entered by the user in the input field
@@ -177,11 +177,31 @@ class AIProcessor(QObject):
         """
         Set up the response window for the selected writing option.
         """
+        from ..ui.response_window import ResponseWindow
+
         is_custom = option == "Custom"
         window_title = "Chat" if not is_custom else option
-        self.app.current_response_window = self.app.ui_manager.show_response_window(
-            window_title, selected_text
-        )
+        response_window = ResponseWindow(self.app, window_title)
+
+        # Configuration for image if available
+        if hasattr(self.app.popup_manager, "has_image") and self.app.popup_manager.has_image:
+            response_window.image = self.app.popup_manager.image
+            self._logger.debug("Image configured in response window")
+            response_window.selected_text = None
+        else:
+            response_window.selected_text = selected_text
+            response_window.image = None
+
+        response_window.show()
+        self.app.current_response_window = response_window
+
+        # Ensure window gets focus first, then input field
+        def set_window_and_input_focus():
+            response_window.activateWindow()  # Force window focus
+            response_window.raise_()  # Bring to front
+            response_window.set_input_focus()
+
+        QtCore.QTimer.singleShot(100, set_window_and_input_focus)
 
         # Handle chat history based on content type
         if image is not None:
@@ -255,7 +275,7 @@ class AIProcessor(QObject):
             )
 
             if should_open_window:
-                self._process_window_response(option, selected_text, custom_change, prompt_data)
+                self._process_window_response(option, custom_change, prompt_data)
             else:
                 self._process_direct_replacement(prompt_data)
 
@@ -273,16 +293,22 @@ class AIProcessor(QObject):
         custom_change: str | None,
     ) -> "PromptData | None":
         """
-        Prepare prompt data for AI processing including image support.
+        Prepare all necessary data for AI prompt construction and processing.
+
+        This method orchestrates the creation of complete prompt data including:
+        - User prompt text (based on selected text, custom instructions, and action type)
+        - System instructions (context-aware based on content type and action)
+        - Action configuration (from settings based on option and content type)
+        - Image data (base64 encoded if image is present)
 
         Args:
             option: The selected writing option (e.g., "Summary", "Custom", "Proofread")
-            selected_text: The text selected by the user
-            image: The image copied from the clipboard
+            selected_text: The text selected by the user (can be empty for image-only requests)
+            image: The image copied from the clipboard (can be None for text-only requests)
             custom_change: The custom instruction text entered by the user in the input field
 
         Returns:
-            dict: Contains prompt, system_instruction, action_config, and image_data, or None if invalid
+            PromptData dict containing prompt, system_instruction, action_config, and image_data, or None if invalid
         """
         has_selected_text = selected_text and selected_text.strip() != ""
         is_custom_option = option == "Custom"
@@ -298,7 +324,11 @@ class AIProcessor(QObject):
     def _handle_no_text_selected(
         self, is_custom_option: bool, custom_change: str | None
     ) -> "PromptData | None":
-        """Handle case where no text is selected."""
+        """
+        Handle case where no text is selected.
+
+        Returns prompt data for custom chat mode or shows error for predefined actions.
+        """
         if custom_change is None:
             custom_change = ""
 
@@ -322,7 +352,15 @@ class AIProcessor(QObject):
         is_custom_option: bool,
         custom_change: str | None,
     ) -> "PromptData | None":
-        """Handle case where text is selected or image is available."""
+        """
+        Handle case where text is selected or image is available.
+
+        Constructs the complete prompt data by:
+        1. Retrieving action configuration from settings (image_actions or actions dict)
+        2. Determining appropriate system instructions based on content type and context
+        3. Building the user prompt (combining action prefix, custom instructions, and content)
+        4. Converting image to base64 if present
+        """
         # Get action config from appropriate dictionary based on context
         has_image = image is not None
         if has_image and option in self.app.settings_manager.image_actions:
@@ -338,22 +376,19 @@ class AIProcessor(QObject):
             context="initial",
         )
 
+        # Validate action config exists
+        if not action_config:
+            self._logger.error(f"Action not found: {option}")
+            return None
+
         if image is not None:
             # Image processing
-            if not action_config:
-                self._logger.error(f"Action not found: {option}")
-                return None
-
             if is_custom_option:
                 prompt = custom_change or "Please analyze this image and describe what you see."
             else:
                 prompt = action_config.get("prefix", "") + (custom_change or "")
         else:
             # Text-based processing
-            if not action_config:
-                self._logger.error(f"Action not found: {option}")
-                return None
-
             prompt_prefix = action_config.get("prefix", "")
 
             if is_custom_option:
@@ -408,7 +443,6 @@ class AIProcessor(QObject):
     def _process_window_response(
         self,
         option: str,
-        selected_text: str,
         custom_change: str | None,
         prompt_data: "PromptData",
     ) -> None:
@@ -435,13 +469,17 @@ class AIProcessor(QObject):
         )
         self._logger.debug(f"Got response of length: {len(response) if response else 0}")
 
-        self._update_chat_history_if_needed(option, selected_text, custom_change, image_data)
+        # If response is empty, it means there was an error (rate limit, etc.) - don't update UI
+        if not response or response.strip() == "":
+            self._logger.debug("Empty response received, skipping UI update (likely due to error)")
+            return
+
+        self._update_chat_history_if_needed(option, custom_change, image_data)
         self._update_response_window(response)
 
     def _update_chat_history_if_needed(
         self,
         option: str,
-        selected_text: str,
         custom_change: str | None,
         image_data: str | None = None,
     ) -> None:
@@ -494,10 +532,20 @@ class AIProcessor(QObject):
         """Handle errors during AI processing."""
         self._logger.error(f"An error occurred: {error}", exc_info=True)
 
-        if "Resource has been exhausted" in str(error):
+        # Close response window on error to prevent confusion
+        if self.app.current_response_window:
+            QtCore.QMetaObject.invokeMethod(
+                self.app.current_response_window,
+                "close",
+                QtCore.Qt.ConnectionType.QueuedConnection,
+            )
+        else:
+            self._logger.debug("🔴🪟 No response window to close")
+
+        if "Resource has been exhausted" in str(error) or "429" in str(error) or "RateLimitError" in str(error):
             self.app.ui_manager.show_message_signal.emit(
                 "Error - Rate Limit Hit",
-                "Whoops! You've hit the per-minute rate limit of the Gemini API. Please try again in a few moments.\n\nIf this happens often, simply switch to a Gemini model with a higher usage limit in Settings.",
+                "You've hit an API rate/usage limit. Please try again later or check your API usage limits.",
             )
         else:
             self.app.ui_manager.show_message_signal.emit("Error", f"An error occurred: {error}")

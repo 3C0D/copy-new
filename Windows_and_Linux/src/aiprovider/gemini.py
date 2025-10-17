@@ -322,6 +322,14 @@ class GeminiProvider(AIProvider):
                     )
                     return ""
                 elif "rate limit" in error_str.lower():
+                    # Close response window on rate limit errors (thread-safe)
+                    if self.app.current_response_window:
+                        from PySide6 import QtCore
+                        QtCore.QMetaObject.invokeMethod(
+                            self.app.current_response_window,
+                            "close",
+                            QtCore.Qt.ConnectionType.QueuedConnection,
+                        )
                     self.app.ui_manager.show_message_signal.emit(
                         "Rate Limit Hit",
                         "You're sending requests too quickly. Please wait a moment and try again.",

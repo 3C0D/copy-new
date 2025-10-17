@@ -4,18 +4,14 @@ Used for displaying a custom popup window with various input fields and options.
 """
 
 import logging
-from functools import partial
 from typing import TYPE_CHECKING, Any
 
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QCheckBox,
     QFrame,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QMessageBox,
     QPushButton,
     QScrollArea,
@@ -29,9 +25,12 @@ from ...config.data_operations import (
 )
 from ...config.interfaces import ActionConfig
 from ..custom_popup.button_edit_dialog import ButtonEditDialog
-from ..custom_popup.draggable_button import DraggableButton
+from ..custom_popup.components.button_manager import ButtonManager
+from ..custom_popup.components.force_chat_widget import ForceChatWidget
+from ..custom_popup.components.image_preview import ImagePreview
+from ..custom_popup.components.input_area import InputArea
+from ..custom_popup.components.update_notice import UpdateNotice
 from ..custom_popup.edit_mode_controller import EditModeController
-from ..custom_popup.toggle_switch import ToggleSwitch
 from ..custom_popup.top_bar_builder import TopBarBuilder
 from ..custom_popup.vision_support_validator import VisionSupportValidator
 from ..custom_popup.widget_visibility_manager import WidgetVisibilityManager
@@ -66,6 +65,7 @@ class CustomPopupWindow(QWidget):
         self.top_bar_builder = TopBarBuilder(self.app, self)
         self.vision_validator = VisionSupportValidator()
         self.edit_controller = EditModeController(self, self.visibility_manager)
+        self.button_manager = ButtonManager(self.app, self)
 
         # UI Components - initialized to None
         self._init_ui_components()
@@ -75,6 +75,10 @@ class CustomPopupWindow(QWidget):
         self.drag_start_position: QtCore.QPoint | None = None
 
         self.button_widgets: list[Any] = []
+        self.input_area: InputArea | None = None
+        self.image_preview: ImagePreview | None = None
+        self.force_chat_widget: ForceChatWidget | None = None
+        self.update_notice: UpdateNotice | None = None
         self.init_ui()
 
     def _init_ui_components(self) -> None:
@@ -84,12 +88,7 @@ class CustomPopupWindow(QWidget):
         self.reset_button: QPushButton | None = None
         self.edit_close_button: QPushButton | None = None
         self.close_button: QPushButton | None = None
-        self.custom_input: QLineEdit | None = None
-        self.input_area: QWidget | None = None
-        self.update_label: QLabel | None = None
-        self.force_chat_toggle: QCheckBox | None = None
-        self.force_chat_lock: QPushButton | None = None
-        self.force_chat_area: QWidget | None = None
+        # Component references - now handled by component classes
         self.top_bar_widget: QWidget | None = None
         self.remove_image_button: QPushButton | None = None
         self.image_preview_container: QWidget | None = None
@@ -105,12 +104,22 @@ class CustomPopupWindow(QWidget):
         self._create_top_bar(content_layout)
         self._create_input_area(content_layout)
         if self.has_sel_text:
-            self.create_force_chat_toggle(content_layout)
+            self.force_chat_widget = ForceChatWidget(self.app)
+            self.force_chat_widget.connect_signals(
+                self.force_chat_widget.on_force_chat_toggled,
+                self.force_chat_widget.on_force_chat_lock_toggled,
+            )
+            content_layout.addWidget(self.force_chat_widget)
+            if self.edit_mode:
+                self.force_chat_widget.hide()
         if self.has_sel_text or self.has_image:
             buttons_layout = self._create_buttons_scroll_layout(content_layout)
             self._setup_buttons_and_content(buttons_layout)
         self._create_image_preview_area(content_layout)
-        self._show_update_notice_if_available(content_layout)
+        self.update_notice = UpdateNotice(self.app)
+        content_layout.addWidget(self.update_notice)
+        if self.edit_mode:
+            self.update_notice.hide()
 
         self._finalize_ui_setup()
 
@@ -247,88 +256,16 @@ class CustomPopupWindow(QWidget):
 
     def _create_input_area(self, content_layout: QVBoxLayout) -> None:
         """Create the input area with text field and send button."""
-        self.input_area = QWidget()
-        input_layout = QVBoxLayout(self.input_area)
-        input_layout.setContentsMargins(0, 0, 0, 0)
-        input_layout.setSpacing(8)
-
-        # Create horizontal layout for input field and send button
-        input_row = QWidget()
-        input_row_layout = QHBoxLayout(input_row)
-        input_row_layout.setContentsMargins(0, 0, 0, 0)
-
-        self._create_custom_input(input_row_layout)
-        self._create_send_button(input_row_layout)
-
-        input_layout.addWidget(input_row)
+        self.input_area = InputArea(self.app, self.has_sel_text, self.has_image)
+        self.input_area.connect_send_signal(self.on_custom_change)
         content_layout.addWidget(self.input_area)
 
     def _create_image_preview_area(self, content_layout: QVBoxLayout) -> None:
         """Create the image preview area if there's an image."""
         if self.has_image:
-            self._create_image_preview(content_layout)
-
-    def _create_image_preview(self, content_layout: QVBoxLayout) -> None:
-        """Create an image preview widget in the content layout."""
-        # Image preview container
-        self.image_preview_container = QWidget()
-        preview_container = self.image_preview_container
-        preview_container.setStyleSheet(self.app.styles["container"])
-        preview_layout = QVBoxLayout(preview_container)
-        preview_layout.setContentsMargins(4, 4, 4, 4)  # Reduced padding to fit button better
-        preview_layout.setSpacing(5)
-
-        # Header row with label and remove button
-        header_row = QWidget()
-        header_layout = QHBoxLayout(header_row)
-        header_layout.setContentsMargins(0, 0, -2, 0)  # Slight left shift for button
-        header_layout.setSpacing(5)
-
-        # Image preview label
-        image_label = QLabel("📷 Image from Clipboard:")
-        image_label.setStyleSheet(self.app.styles["label_small"])
-        header_layout.addWidget(image_label)
-
-        # Spacer to push button to the right
-        header_layout.addStretch()
-
-        # Remove image button (X)
-        self.remove_image_button = QPushButton("×")
-        self.remove_image_button.setFixedSize(20, 20)
-        self.remove_image_button.setStyleSheet(self.app.styles["delete_button"])
-        self.remove_image_button.clicked.connect(self._remove_image_from_clipboard)
-        self.remove_image_button.setToolTip(
-            "Remove image from clipboard\n"
-            "This will close the application and clear the clipboard.\n"
-            "Restart with hotkey to continue without the image."
-        )
-
-        header_layout.addWidget(self.remove_image_button)
-        preview_layout.addWidget(header_row)
-
-        # Actual image display
-        self.image_display = QLabel()
-        self.image_display.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.image_display.setMinimumHeight(120)
-        self.image_display.setMaximumHeight(200)
-        self.image_display.setStyleSheet(self.app.styles["image_preview"])
-
-        # Scale and display the image
-        if self.image:
-            # Create a scaled pixmap for preview
-            pixmap = QtGui.QPixmap.fromImage(self.image)
-            scaled_pixmap = pixmap.scaled(
-                300,
-                180,  # Max preview size
-                QtCore.Qt.AspectRatioMode.KeepAspectRatio,
-                QtCore.Qt.TransformationMode.SmoothTransformation,
-            )
-            self.image_display.setPixmap(scaled_pixmap)
-        else:
-            self.image_display.setText(_("No image preview available"))
-
-        preview_layout.addWidget(self.image_display)
-        content_layout.addWidget(preview_container)
+            self.image_preview = ImagePreview(self.app, self.image)
+            self.image_preview.connect_remove_signal(self._remove_image_from_clipboard)
+            content_layout.addWidget(self.image_preview)
 
     def _remove_image_from_clipboard(self) -> None:
         """Remove image from clipboard and close application."""
@@ -355,35 +292,6 @@ class CustomPopupWindow(QWidget):
         except Exception:
             # In case of error, just close the popup
             self.close()
-
-    def _create_custom_input(self, layout: QHBoxLayout) -> None:
-        """Create the custom input text field."""
-        self.custom_input = QLineEdit()
-        placeholder = (
-            _("Describe your change...")
-            if self.has_sel_text
-            else _("Ask anything about this image...")
-            if self.has_image
-            else _("Ask your AI...")
-        )
-        self.custom_input.setPlaceholderText(placeholder)
-        self.custom_input.setStyleSheet(self._get_input_style())
-        self.custom_input.returnPressed.connect(self.on_custom_change)
-        layout.addWidget(self.custom_input)
-
-    def _create_send_button(self, layout: QHBoxLayout) -> None:
-        """Create the send button for the input area."""
-        send_btn = QPushButton()
-        send_icon = ui_utils.get_icon_path(self.app, "send", with_theme=True)
-        if send_icon.exists():
-            send_btn.setIcon(QtGui.QIcon(send_icon.as_posix()))
-
-        send_btn.setStyleSheet(self._get_send_button_style())
-        # Use a fallback size if self.custom_input is None
-        input_height = self.custom_input.sizeHint().height() if self.custom_input else 32
-        send_btn.setFixedSize(input_height, input_height)
-        send_btn.clicked.connect(self.on_custom_change)
-        layout.addWidget(send_btn)
 
     def _get_input_style(self) -> str:
         """Get the styling for input elements."""
@@ -415,37 +323,19 @@ class CustomPopupWindow(QWidget):
     def _setup_buttons_and_content(self, content_layout: QVBoxLayout) -> None:
         """Setup buttons and main content based on available input."""
         if self.has_sel_text or self.has_image:
-            self.build_buttons_list()
-            self.rebuild_grid_layout(content_layout)
+            self.button_manager.build_buttons_list()
+            self.button_manager.rebuild_grid_layout(content_layout)
             self.initialize_button_visibility()
         else:
             # Only custom instructions input if no selected text
-            if self.custom_input is not None:
-                self.custom_input.setMinimumWidth(400)
-
-    def _show_update_notice_if_available(self, content_layout: QVBoxLayout) -> None:
-        """Show update notice if an update is available."""
-        update_available = self.app.settings_manager.update_available or False
-
-        if update_available:
-            self.update_label = QLabel()
-            self.update_label.setOpenExternalLinks(True)
-            self.update_label.setText(
-                '<a href="https://github.com/theJayTea/WritingTools/releases" '
-                'style="color:rgb(255, 0, 0); text-decoration: underline; font-weight: bold;">'
-                "There's an update! :D Download now."
-                "</a>"
-            )
-            self.update_label.setStyleSheet(self.app.styles["margin_top_10"])
-            content_layout.addWidget(
-                self.update_label, alignment=QtCore.Qt.AlignmentFlag.AlignCenter
-            )
+            if self.input_area and self.input_area.custom_input is not None:
+                self.input_area.custom_input.setMinimumWidth(400)
 
     def _finalize_ui_setup(self) -> None:
         """Finalize UI setup with event filters and focus."""
         self.installEventFilter(self)
         QtCore.QTimer.singleShot(
-            250, lambda: self.custom_input.setFocus() if self.custom_input else None
+            250, lambda: self.input_area.set_focus() if self.input_area else None
         )
 
     def setup_draggable_top_bar(self) -> None:
@@ -521,100 +411,9 @@ class CustomPopupWindow(QWidget):
         # The window will now stay open when clicking outside
         return super().eventFilter(watched, event)
 
-    def create_force_chat_toggle(self, parent_layout: QVBoxLayout) -> None:
-        """Create the Force Chat toggle with lock button."""
-        self.force_chat_area = QWidget()
-        force_chat_layout = QHBoxLayout(self.force_chat_area)
-        force_chat_layout.setContentsMargins(5, 2, 5, 2)
-        force_chat_layout.setSpacing(6)
-
-        # Label
-        label = QLabel("Force Chat:")
-        label.setStyleSheet(self.app.styles["label_small"])
-
-        # Check if we should restore the locked state
-        force_chat_locked = getattr(self.app.settings_manager, "force_chat_locked", False)
-        force_chat_enabled = getattr(self.app.settings_manager, "force_chat_enabled", False)
-
-        # Force Chat toggle switch (custom widget with sliding animation)
-        self.force_chat_toggle = ToggleSwitch(self.app)
-
-        if force_chat_locked:
-            self.force_chat_toggle.setChecked(force_chat_enabled)
-
-        # Lock button (cadenas) - restore saved state
-        self.force_chat_lock = QPushButton("🔓")
-        self.force_chat_lock.setCheckable(True)
-        self.force_chat_lock.setChecked(force_chat_locked)  # Restore saved state
-        self.force_chat_lock.setFixedSize(20, 20)
-        self.force_chat_lock.setToolTip("Lock this setting to keep it between uses")
-
-        # Update lock icon based on state
-        self.update_lock_icon()
-
-        self.force_chat_lock.setStyleSheet(self.app.styles["lock_button"])
-
-        # Connect signals
-        self.force_chat_toggle.toggled.connect(self.on_force_chat_toggled)
-        self.force_chat_lock.toggled.connect(self.on_force_chat_lock_toggled)
-
-        # Add to layout
-        force_chat_layout.addWidget(label)
-        force_chat_layout.addWidget(self.force_chat_toggle)
-        force_chat_layout.addWidget(self.force_chat_lock)
-        force_chat_layout.addStretch()
-
-        parent_layout.addWidget(self.force_chat_area)
-
-    def update_lock_icon(self) -> None:
-        """Update the lock icon based on current state."""
-        # Ensure the lock button exists
-        if not self.force_chat_lock:
-            return
-        if self.force_chat_lock.isChecked():
-            self.force_chat_lock.setText("🔒")
-        else:
-            self.force_chat_lock.setText("🔓")
-
-    def on_force_chat_toggled(self, checked: bool) -> None:
-        """Handle Force Chat toggle state change. Save if locked."""
-        # If locked, save the state
-        if self.force_chat_lock and self.force_chat_lock.isChecked():
-            self.app.settings_manager.force_chat_enabled = checked
-
-    def on_force_chat_lock_toggled(self, checked: bool) -> None:
-        """Handle Force Chat lock state change."""
-        self.update_lock_icon()
-
-        # Save lock state
-        self.app.settings_manager.force_chat_locked = checked
-
-        # Ensure toggle widget exists
-        if not self.force_chat_toggle:
-            return
-
-        if checked:
-            # When locking, save current toggle state
-            self.app.settings_manager.force_chat_enabled = self.force_chat_toggle.isChecked()
-        else:
-            # When unlocking, reset toggle to default (off)
-            self.force_chat_toggle.setChecked(False)
-            self.app.settings_manager.force_chat_enabled = False
-
     def is_force_chat_enabled(self) -> bool:
         """Check if Force Chat is currently enabled."""
-        return bool(self.force_chat_toggle and self.force_chat_toggle.isChecked())
-
-    def get_actions(self) -> dict[str, ActionConfig]:
-        """
-        Get actions directly from the unified settings system.
-        Returns ActionConfig objects, combining text and image actions based on context.
-        For image context, returns image_actions; for text context, returns actions.
-        """
-        if self.has_image:
-            return self.app.settings_manager.image_actions
-        else:
-            return self.app.settings_manager.actions
+        return bool(self.force_chat_widget and self.force_chat_widget.is_force_chat_enabled())
 
     def action_config_to_dict(self, action_config: ActionConfig) -> dict:
         """
@@ -629,182 +428,6 @@ class CustomPopupWindow(QWidget):
             "open_in_window": action_config.get("open_in_window", True),
         }
 
-    def build_buttons_list(self) -> None:
-        """
-        Loads actions from unified settings system,
-        creates DraggableButton for each (except "Custom"),
-        filtering based on whether image is present,
-        storing them in self.button_widgets in the same order.
-        """
-
-        # Properly delete old button widgets before clearing the list
-        for old_button in self.button_widgets:
-            if hasattr(old_button, "icon_container") and old_button.icon_container:
-                old_button.icon_container.deleteLater()
-            if hasattr(old_button, "action_indicator") and old_button.action_indicator:
-                old_button.action_indicator.deleteLater()
-            old_button.deleteLater()
-
-        self.button_widgets.clear()
-        actions = self.get_actions()
-
-        for name, action_config in actions.items():
-            if name == "Custom":
-                continue
-
-            b = DraggableButton(self.app, self, name, name)
-            icon_path = ui_utils.get_icon_path(
-                self.app, action_config.get("icon", "Not Found"), with_theme=True
-            )
-            if icon_path.exists():
-                b.setIcon(QtGui.QIcon(icon_path.as_posix()))
-
-            # Set action indicator based on open_in_window. Only for text actions.
-            if not self.has_image:
-                open_in_window = action_config.get("open_in_window", True) or False
-                b.set_action_indicator(open_in_window)
-
-            # Add tooltip with tool name and description
-            tooltip_text = name
-            if action_config.get("instruction", None):
-                # Truncate long instructions for tooltip
-                instruction = action_config.get("instruction", "")
-                if instruction:
-                    instruction = (
-                        instruction[:100] + "..." if len(instruction) > 100 else instruction
-                    )
-                tooltip_text = f"{name}\n{instruction}"
-            b.setToolTip(tooltip_text)
-
-            if not self.edit_mode:
-                b.clicked.connect(partial(self.on_generic_instruction, name))
-            self.button_widgets.append(b)
-
-    def rebuild_grid_layout(self, parent_layout=None, force_edit_mode=None) -> None:
-        """Rebuild grid layout with consistent sizing and proper Add New button placement."""
-        if not parent_layout:
-            parent_layout = self.background.layout()
-
-        edit_mode_to_use = force_edit_mode if force_edit_mode is not None else self.edit_mode
-
-        # Find or create the scroll area
-        buttons_scroll = None
-        scroll_index = -1
-
-        # Look for existing scroll area
-        for i in range(parent_layout.count()):
-            item = parent_layout.itemAt(i)
-            if item and item.widget() and isinstance(item.widget(), QScrollArea):
-                buttons_scroll = item.widget()
-                scroll_index = i
-                break
-
-        # If no scroll area exists, create one (for normal mode)
-        if not buttons_scroll and (self.has_sel_text or self.has_image):
-            buttons_scroll = QScrollArea()
-            buttons_scroll.setWidgetResizable(True)
-            buttons_scroll.setFrameShape(QFrame.Shape.NoFrame)
-            buttons_scroll.setMaximumHeight(250)
-            buttons_scroll.setStyleSheet(self.app.styles["transparent_background"]("QScrollArea"))
-
-            buttons_widget = QWidget()
-            buttons_widget.setStyleSheet(self.app.styles["transparent_background"])
-            buttons_layout = QVBoxLayout(buttons_widget)
-            buttons_layout.setContentsMargins(0, 0, 0, 0)
-            buttons_layout.setSpacing(5)
-
-            buttons_scroll.setWidget(buttons_widget)
-            parent_layout.addWidget(buttons_scroll)
-            scroll_index = parent_layout.count() - 1
-
-        # Clean up existing content in scroll area
-        if buttons_scroll and isinstance(buttons_scroll, QScrollArea):
-            buttons_widget = buttons_scroll.widget()
-            if buttons_widget:
-                buttons_layout = buttons_widget.layout()
-                if buttons_layout:
-                    self.clear_layout(buttons_layout)
-
-                    # Create and populate grid
-                    grid = QGridLayout()
-                    grid.setSpacing(10)
-                    grid.setColumnMinimumWidth(0, 120)
-                    grid.setColumnMinimumWidth(1, 120)
-
-                    # Add buttons to grid
-                    row = 0
-                    col = 0
-                    for b in self.button_widgets:
-                        grid.addWidget(b, row, col)
-                        col += 1
-                        if col > 1:
-                            col = 0
-                            row += 1
-
-                    if isinstance(buttons_layout, (QVBoxLayout, QHBoxLayout)):
-                        buttons_layout.addLayout(grid)
-
-        # Remove existing "Add New" button from main layout
-        for i in reversed(range(parent_layout.count())):
-            item = parent_layout.itemAt(i)
-            if item and item.widget():
-                widget = item.widget()
-                if widget == self.add_new_button:
-                    parent_layout.removeWidget(widget)
-                    widget.deleteLater()
-                    self.add_new_button = None
-
-        # Add "Add New" button outside scroll area (only in edit mode & only if we have text or image)
-        if edit_mode_to_use and (self.has_sel_text or self.has_image):
-            self.add_new_button = QPushButton()
-            self.add_new_button.setText(_("+ Add New"))
-            self.add_new_button.setStyleSheet(self._get_add_button_style())
-            self.add_new_button.clicked.connect(self.add_new_button_clicked)
-
-            if isinstance(parent_layout, (QVBoxLayout, QHBoxLayout)):
-                if scroll_index >= 0:
-                    parent_layout.insertWidget(scroll_index + 1, self.add_new_button)
-                else:
-                    parent_layout.addWidget(self.add_new_button)
-
-    def add_edit_delete_icons(self, btn) -> None:
-        """Add edit/delete icons as overlays with proper spacing."""
-        if hasattr(btn, "icon_container") and btn.icon_container:
-            btn.icon_container.deleteLater()
-
-        btn.icon_container = QWidget(btn)
-        btn.icon_container.setAttribute(
-            QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents, False
-        )
-
-        btn.icon_container.setGeometry(0, 0, btn.width(), btn.height())
-
-        circle_style = self.app.styles["icon_button"]
-
-        # Create edit icon (top-left)
-        edit_btn = QPushButton(btn.icon_container)
-        edit_btn.setGeometry(3, 3, 16, 16)
-
-        pencil_icon = ui_utils.get_icon_path(self.app, "pencil", with_theme=True)
-        if pencil_icon.exists():
-            edit_btn.setIcon(QtGui.QIcon(pencil_icon.as_posix()))
-        edit_btn.setStyleSheet(circle_style)
-        edit_btn.clicked.connect(partial(self.edit_button_clicked, btn))
-        edit_btn.show()
-
-        # Create delete icon (top-right)
-        delete_btn = QPushButton(btn.icon_container)
-        delete_btn.setGeometry(btn.width() - 23, 3, 16, 16)
-        del_icon = ui_utils.get_icon_path(self.app, "trash", with_theme=True)
-        if del_icon.exists():
-            delete_btn.setIcon(QtGui.QIcon(del_icon.as_posix()))
-        delete_btn.setStyleSheet(circle_style)
-        delete_btn.clicked.connect(partial(self.delete_button_clicked, btn))
-        delete_btn.show()
-
-        btn.icon_container.raise_()
-        btn.icon_container.show()
-
     def enter_edit_mode(self) -> None:
         """Enter edit mode - called when user clicks the pencil icon."""
         self.edit_controller.enter_edit_mode()
@@ -812,91 +435,6 @@ class CustomPopupWindow(QWidget):
     def exit_edit_mode(self) -> None:
         """Exit edit mode - called when user clicks the close button in edit mode."""
         self.edit_controller.exit_edit_mode()
-
-    def rebuild_edit_mode_with_scroll(self) -> None:
-        """Rebuild layout for edit mode while preserving scroll functionality."""
-        main_layout = self.background.layout()
-
-        # Look for existing scroll area more precisely
-        buttons_scroll = None
-        scroll_index = -1
-        for i in range(main_layout.count()):
-            item = main_layout.itemAt(i)
-            if item and item.widget():
-                widget = item.widget()
-                if isinstance(widget, QScrollArea):
-                    buttons_scroll = widget
-                    scroll_index = i
-                    break
-
-        if buttons_scroll:
-            buttons_widget = buttons_scroll.widget()
-            if buttons_widget:
-                buttons_layout = buttons_widget.layout()
-                if buttons_layout and isinstance(buttons_layout, (QVBoxLayout, QHBoxLayout)):
-                    # Clear existing grid
-                    self.clear_layout(buttons_layout)
-
-                    # Rebuild grid in edit mode (WITHOUT the Add New button)
-                    grid = QGridLayout()
-                    grid.setSpacing(10)
-                    grid.setColumnMinimumWidth(0, 120)
-                    grid.setColumnMinimumWidth(1, 120)
-
-                    # Add buttons to grid
-                    row = 0
-                    col = 0
-                    for b in self.button_widgets:
-                        grid.addWidget(b, row, col)
-                        col += 1
-                        if col > 1:
-                            col = 0
-                            row += 1
-
-                    buttons_layout.addLayout(grid)
-
-        # Remove existing "Add New" button if it exists
-        for i in reversed(range(main_layout.count())):
-            item = main_layout.itemAt(i)
-            if item and item.widget():
-                widget = item.widget()
-                if isinstance(widget, QPushButton) and widget.text() == "+ Add New":
-                    main_layout.removeWidget(widget)
-                    widget.deleteLater()
-
-        # Add "Add New" button AFTER the scroll area, in the main layout
-        add_btn = QPushButton("+ Add New")
-        add_btn.setStyleSheet(self._get_add_button_style())
-        add_btn.clicked.connect(self.add_new_button_clicked)
-        if isinstance(main_layout, (QVBoxLayout, QHBoxLayout)):
-            main_layout.insertWidget(scroll_index + 1, add_btn)  # Just after the scroll area
-        else:
-            # Fallback: just add at the end
-            main_layout.addWidget(add_btn)
-
-    def clear_layout(self, layout) -> None:
-        """Clear all items from a layout."""
-        while layout.count():
-            item = layout.takeAt(0)
-            if item.widget():
-                # Don't delete button widgets, just remove them
-                if item.widget() not in self.button_widgets:
-                    item.widget().deleteLater()
-            elif item.layout():
-                self.clear_layout(item.layout())
-                item.layout().deleteLater()
-
-    def _get_add_button_style(self) -> str:
-        """Get stylesheet for Add New button."""
-        return self.app.styles["add_button"]
-
-    def add_edit_overlays_to_buttons(self) -> None:
-        """Add edit overlays to all buttons when entering edit mode."""
-        for btn in self.button_widgets:
-            self.add_edit_delete_icons(btn)
-
-        # Rebuild grid layout to show edit mode
-        self.rebuild_grid_layout(force_edit_mode=True)
 
     def initialize_button_visibility(self) -> None:
         """Initialize button visibility for normal (non-edit) mode."""
@@ -927,28 +465,27 @@ class CustomPopupWindow(QWidget):
                 # Reset actions to defaults in unified settings
                 if hasattr(self.app, "settings_manager") and self.app.settings_manager.settings:
                     if self.has_image:
-                        # Reset image actions to defaults
-                        self.app.settings_manager.image_actions = (
+                        # Reset image actions to defaults - completely replace the dict
+                        self.app.settings_manager.settings.image_actions = (
                             create_default_image_actions_config()
                         )
+                        self.app.settings_manager.image_actions = (
+                            self.app.settings_manager.settings.image_actions
+                        )
                     else:
-                        # Reset text actions to defaults
-                        self.app.settings_manager.actions = create_default_actions_config()
+                        # Reset text actions to defaults - completely replace the dict
+                        self.app.settings_manager.settings.actions = create_default_actions_config()
+                        self.app.settings_manager.actions = (
+                            self.app.settings_manager.settings.actions
+                        )
                 else:
                     self._logger.error("Settings manager not available for reset")
 
                 # Reload the interface immediately
-                self.build_buttons_list()
-                self.rebuild_grid_layout(force_edit_mode=self.edit_mode)
-
-                # Show success message
-                success_msg = QMessageBox()
-                success_msg.setWindowFlags(
-                    success_msg.windowFlags() | QtCore.Qt.WindowType.WindowStaysOnTopHint
-                )
-                success_msg.setWindowTitle(_("Reset Complete"))
-                success_msg.setText("Buttons have been reset to their default configuration.")
-                success_msg.exec_()
+                self.button_manager.build_buttons_list()
+                self.button_manager.rebuild_grid_layout(force_edit_mode=self.edit_mode)
+                if self.edit_mode:
+                    self.button_manager.add_edit_overlays_to_buttons()
 
             except Exception as e:
                 self.app.ui_manager.show_message_signal.emit(
@@ -963,7 +500,7 @@ class CustomPopupWindow(QWidget):
             bd = dialog.get_button_data()
 
             # Check if the name already exists
-            if bd.get("name", "") in self.get_actions():
+            if bd.get("name", "") in self.button_manager.get_actions():
                 if not ui_utils.show_confirmation_dialog(
                     "Overwrite Existing Action",
                     f"An action named '{bd.get('name', '')}' already exists. Do you want to overwrite it?",
@@ -987,9 +524,9 @@ class CustomPopupWindow(QWidget):
 
             if success:
                 # Stay in edit mode and refresh buttons
-                self.build_buttons_list()
-                self.rebuild_grid_layout(force_edit_mode=True)
-                self.add_edit_overlays_to_buttons()
+                self.button_manager.build_buttons_list()
+                self.button_manager.rebuild_grid_layout(force_edit_mode=True)
+                self.button_manager.add_edit_overlays_to_buttons()
             else:
                 self.app.ui_manager.show_message_signal.emit(
                     "Error", "Failed to save button changes. Please try again."
@@ -1001,7 +538,7 @@ class CustomPopupWindow(QWidget):
         if key is None:
             self._logger.error("Button does not have a 'key' attribute.")
             return
-        actions = self.get_actions()
+        actions = self.button_manager.get_actions()
         if key not in actions:
             self._logger.error(f"Action not found: {key}")
             return
@@ -1018,7 +555,7 @@ class CustomPopupWindow(QWidget):
 
             # Remove old action if name changed
             if new_data.get("name", "") != key:
-                if new_data.get("name", "") in self.get_actions():
+                if new_data.get("name", "") in self.button_manager.get_actions():
                     if not ui_utils.show_confirmation_dialog(
                         "Overwrite Existing Action",
                         f"An action named '{new_data.get('name', '')}' already exists. Do you want to overwrite it?",
@@ -1051,9 +588,9 @@ class CustomPopupWindow(QWidget):
 
             if success:
                 # Stay in edit mode and refresh buttons
-                self.build_buttons_list()
-                self.rebuild_grid_layout(force_edit_mode=True)
-                self.add_edit_overlays_to_buttons()
+                self.button_manager.build_buttons_list()
+                self.button_manager.rebuild_grid_layout(force_edit_mode=True)
+                self.button_manager.add_edit_overlays_to_buttons()
                 # Show success message after UI update
                 QtCore.QTimer.singleShot(
                     100,
@@ -1089,47 +626,15 @@ class CustomPopupWindow(QWidget):
 
             if success:
                 # Clean up UI elements and refresh
-                for btn_ in self.button_widgets[:]:
-                    if btn_.key == key:
-                        if hasattr(btn_, "icon_container") and btn_.icon_container:
-                            btn_.icon_container.deleteLater()
-                        btn_.deleteLater()
-                        self.button_widgets.remove(btn_)
+                self.button_manager.remove_button_from_ui(key)
 
                 # Stay in edit mode and refresh buttons
-                self.rebuild_grid_layout(force_edit_mode=True)
-                self.add_edit_overlays_to_buttons()
+                self.button_manager.rebuild_grid_layout(force_edit_mode=True)
+                self.button_manager.add_edit_overlays_to_buttons()
             else:
                 self.app.ui_manager.show_message_signal.emit(
                     "Error", "Failed to delete the button. Please try again."
                 )
-
-    def update_json_from_grid(self) -> None:
-        """
-        Called after a drop reorder. Reflect the new order in unified settings,
-        so that user's custom arrangement persists.
-        """
-        # Get current actions (text or image based on context)
-        current_actions = self.get_actions()
-
-        # Create new ordered dict based on button order
-        new_actions = {}
-
-        # Add Custom first if it exists
-        if "Custom" in current_actions:
-            new_actions["Custom"] = current_actions["Custom"]
-
-        # Add buttons in their current order
-        for b in self.button_widgets:
-            if b.key in current_actions:
-                new_actions[b.key] = current_actions[b.key]
-
-        # Update settings (auto-saves) - use appropriate storage based on context
-        if self.has_image:
-            self.app.settings_manager.image_actions = new_actions
-        else:
-            self.app.settings_manager.actions = new_actions
-        self._logger.debug("Button order updated in unified settings")
 
     def reload_window(self) -> None:
         """
@@ -1161,8 +666,7 @@ class CustomPopupWindow(QWidget):
             )
             return
 
-        widget = getattr(self, "custom_input", None)
-        txt = widget.text() if widget else ""
+        txt = self.input_area.get_input_text() if self.input_area else ""
         if txt.strip():
             self.app.ai_processor.process_option(
                 "Custom", self.selected_text, self.is_force_chat_enabled(), txt, self.image
@@ -1211,41 +715,6 @@ class CustomPopupWindow(QWidget):
             # Update close button tooltip
             if hasattr(self, "edit_close_button") and self.edit_close_button:
                 self.edit_close_button.setToolTip(_("Exit Edit Mode"))
-
-            # Update input placeholder
-            if hasattr(self, "custom_input") and self.custom_input:
-                placeholder = (
-                    _("Describe your change...")
-                    if self.has_sel_text
-                    else _("Ask anything about this image...")
-                    if self.has_image
-                    else _("Ask your AI...")
-                )
-                self.custom_input.setPlaceholderText(placeholder)
-
-            # Update image preview label
-            if hasattr(self, "image_preview_container") and self.image_preview_container:
-                for child in self.image_preview_container.findChildren(QLabel):
-                    if "📷 Image from Clipboard:" in child.text():
-                        child.setText(_("📷 Image from Clipboard:"))
-                    elif child.toolTip() and "Remove image from clipboard" in child.toolTip():
-                        child.setToolTip(
-                            _(
-                                "Remove image from clipboard\n"
-                                "This will close the application and clear the clipboard.\n"
-                                "Restart with hotkey to continue without the image."
-                            )
-                        )
-
-            # Update force chat label
-            if hasattr(self, "force_chat_area") and self.force_chat_area:
-                for child in self.force_chat_area.findChildren(QLabel):
-                    if "Force Chat:" in child.text():
-                        child.setText(_("Force Chat:"))
-
-            # Update add new button text
-            if hasattr(self, "add_new_button") and self.add_new_button:
-                self.add_new_button.setText(_("+ Add New"))
 
         except RuntimeError:
             # Widget might be destroyed, skip refresh
