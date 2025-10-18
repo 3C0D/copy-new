@@ -234,6 +234,10 @@ class ProviderSettings(QWidget):
 
         provider_config = self.app.settings_manager.providers[provider.internal_name]
 
+        # Add preset UI for openai-compatible
+        if provider.internal_name == "openai-compatible":
+            self._add_preset_ui(provider, provider_config)
+
         # Use weakref to avoid reference cycles
         provider_ref = weakref.ref(provider)
         provider_manager_ref = weakref.ref(self.provider_manager)
@@ -248,7 +252,11 @@ class ProviderSettings(QWidget):
                     provider_obj = p_ref()
                     provider_manager_obj = pm_ref()
                     if provider_obj is not None and provider_manager_obj is not None:
-                        provider_manager_obj.save_provider_settings(provider_obj)
+                        # Only save the specific setting, don't overwrite the entire config
+                        provider_obj.save_config()
+                        # Reload config to preserve recorded data
+                        updated_config = self.app.settings_manager.providers.get(provider_obj.internal_name, {})
+                        provider_obj.load_config(updated_config)
                     else:
                         self._logger.debug("Provider or manager was garbage collected")
 
@@ -456,6 +464,160 @@ class ProviderSettings(QWidget):
 
         # Call parent closeEvent
         super().closeEvent(event)
+
+    def _extract_provider_key(self, api_base: str) -> str:
+        """Extract domain from API base URL as unique key (e.g., 'api.groq.com')"""
+        from urllib.parse import urlparse
+
+        parsed = urlparse(api_base)
+        return parsed.netloc or "unknown"
+
+    def _on_save_preset(self) -> None:
+        """Save current config to recorded presets"""
+        provider = self.app.ai_processor.current_provider
+        if not provider or provider.internal_name != "openai-compatible":
+            return
+
+        config = self.app.settings_manager.providers.get("openai-compatible", {})
+        api_base = config.get("api_base", "")
+
+        if not api_base:
+            return
+
+        key = self._extract_provider_key(api_base)
+
+        # Initialize recorded as dict if needed
+        if "recorded" not in config:
+            config["recorded"] = {}
+
+        # Save current config under this key
+        config["recorded"][key] = {
+            "api_key": config.get("api_key", ""),
+            "api_base": api_base,
+            "api_model": config.get("api_model", ""),
+            "api_organisation": config.get("api_organisation", ""),
+            "api_project": config.get("api_project", ""),
+            "has_vision": config.get("has_vision", False),
+        }
+
+        self.app.settings_manager.save()
+        self._refresh_preset_dropdown()
+
+    def _on_delete_preset(self) -> None:
+        """Delete current preset from recorded"""
+        provider = self.app.ai_processor.current_provider
+        if not provider or provider.internal_name != "openai-compatible":
+            return
+
+        config = self.app.settings_manager.providers.get("openai-compatible", {})
+        api_base = config.get("api_base", "")
+
+        if not api_base or "recorded" not in config:
+            return
+
+        key = self._extract_provider_key(api_base)
+
+        # Remove this key from recorded dict
+        if key in config["recorded"]:
+            del config["recorded"][key]
+
+        self.app.settings_manager.save()
+        self._refresh_preset_dropdown()
+
+    def _add_preset_ui(self, provider, provider_config) -> None:
+        """Add preset dropdown and save/delete buttons"""
+        if self.current_provider_layout is None:
+            return
+
+        recorded = provider_config.get("recorded", {})
+
+        # Handle backward compatibility: if recorded is a list, convert to dict
+        if isinstance(recorded, list):
+            new_recorded = {}
+            for preset in recorded:
+                key = preset.get("key", "")
+                if key:
+                    # Remove the key from preset data since it's now the dict key
+                    preset_copy = preset.copy()
+                    preset_copy.pop("key", None)
+                    new_recorded[key] = preset_copy
+            recorded = new_recorded
+            provider_config["recorded"] = recorded
+
+        # Show dropdown only if there are saved presets
+        if len(recorded) > 0:
+            # Dropdown
+            preset_dropdown = QComboBox()
+            preset_dropdown.setStyleSheet(self.app.styles["dropdown"])
+            preset_dropdown.wheelEvent = lambda e: e.ignore()
+
+            current_base = provider_config.get("api_base", "")
+            current_key = self._extract_provider_key(current_base) if current_base else ""
+
+            # Add all saved presets (keys from dict)
+            for key, preset_data in recorded.items():
+                preset_dropdown.addItem(key, preset_data)
+
+            # Set current selection
+            current_index = -1
+            for i in range(preset_dropdown.count()):
+                if preset_dropdown.itemText(i) == current_key:
+                    current_index = i
+                    break
+
+            if current_index != -1:
+                preset_dropdown.setCurrentIndex(current_index)
+
+            preset_dropdown.currentIndexChanged.connect(
+                lambda: self._on_preset_selected(preset_dropdown)
+            )
+            self.current_provider_layout.addWidget(preset_dropdown)
+
+        # Buttons row (always visible for openai-compatible)
+        buttons_layout = QHBoxLayout()
+
+        save_btn = QPushButton("Save")
+        save_btn.setStyleSheet(self.app.styles["primary_button"])
+        save_btn.clicked.connect(self._on_save_preset)
+
+        delete_btn = QPushButton("Delete")
+        delete_btn.setStyleSheet(self.app.styles["secondary_button"])
+        delete_btn.clicked.connect(self._on_delete_preset)
+
+        buttons_layout.addWidget(save_btn)
+        buttons_layout.addWidget(delete_btn)
+        self.current_provider_layout.addLayout(buttons_layout)
+
+    def _on_preset_selected(self, dropdown: QComboBox) -> None:
+        """Load selected preset into current config"""
+        preset_data = dropdown.currentData()
+        if not preset_data:
+            return
+
+        provider = self.app.ai_processor.current_provider
+        if not provider or provider.internal_name != "openai-compatible":
+            return
+
+        # Update config with preset data
+        config = self.app.settings_manager.providers["openai-compatible"]
+        config.update(preset_data)
+
+        # Reload provider with new config
+        provider.load_config(config)
+
+        # Rebuild UI to show new values
+        if self.provider_container is not None:
+            self.init_provider_ui(provider, self.provider_container)
+
+    def _refresh_preset_dropdown(self) -> None:
+        """Rebuild UI to show updated presets"""
+        provider = self.app.ai_processor.current_provider
+        if (
+            provider
+            and provider.internal_name == "openai-compatible"
+            and self.provider_container is not None
+        ):
+            self.init_provider_ui(provider, self.provider_container)
 
     def _refresh_additional_buttons(self) -> None:
         """Refresh text for additional buttons."""

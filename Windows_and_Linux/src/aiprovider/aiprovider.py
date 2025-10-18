@@ -236,8 +236,13 @@ class AIProvider(ABC):
 
         Retrieves current values from UI widgets, cleans whitespace,
         and stores them in the settings_manager's custom_data.providers section.
+        Preserves existing data like 'recorded' presets.
         """
-        config = {}
+        # Get existing config to preserve non-setting data
+        existing_config = self.app.settings_manager.providers.get(self.internal_name, {})
+
+        # Update with current setting values
+        config = existing_config.copy()
         for setting in self.settings:
             value = setting.get_value()
             # Clean whitespace and newlines from string values (especially API keys)

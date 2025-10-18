@@ -63,7 +63,8 @@ class ProviderConfig(TypedDict, total=False):
     keep_alive: str | None
     api_project: str | None
     api_organisation: str | None
-
+    has_vision: bool | None
+    recorded: dict[str, dict[str, Any]]
 
 class CustomDataStructure(TypedDict, total=False):
     providers: dict[str, ProviderConfig]
