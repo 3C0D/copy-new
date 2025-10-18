@@ -143,10 +143,19 @@ class ProviderUIBuilder:
             self._logger.warning("Could not find api_model setting")
             return False
 
-        # Already a dropdown? Just update options
+        # Already a dropdown? Just update options and selection
         if isinstance(old_setting, DropdownSetting):
             self._logger.debug("api_model is already a DropdownSetting, updating options")
             old_setting.refresh_options([(m, m) for m in models])
+
+            # Update selection to match current api_model
+            provider_config = self.app.settings_manager.providers.get(
+                provider.internal_name, {}
+            )
+            current_model = provider_config.get("api_model", "")
+            if current_model:
+                old_setting.set_value(current_model)
+
             return True
 
         provider_config = self.app.settings_manager.providers.get(

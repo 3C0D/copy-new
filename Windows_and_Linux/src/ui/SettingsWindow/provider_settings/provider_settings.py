@@ -410,6 +410,13 @@ class ProviderSettings(QWidget):
             # Load preset
             self.preset_manager.load_preset(provider, preset_data)
 
+            # Update main api_model to match preset
+            config = self.app.settings_manager.providers["openai-compatible"]
+            preset_model = preset_data.get("api_model", "")
+            if preset_model:
+                config["api_model"] = preset_model
+                self.app.settings_manager.save()
+
             # Rebuild UI
             if self.provider_container:
                 self.init_provider_ui(provider, self.provider_container)
