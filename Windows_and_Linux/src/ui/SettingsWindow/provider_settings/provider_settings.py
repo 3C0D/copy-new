@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from ..settings_window import SettingsWindow
 
 from ....aiprovider.provider_manager import ProviderManager
-from ....aiprovider.settings import DropdownSetting
+from ....aiprovider.settings import AIProviderSetting, DropdownSetting, TextSetting
 from ....config.constants import PROVIDER_DISPLAY_NAMES
 from ....config.data_operations import get_provider_display_name
 from ....core.ai_processor import PROVIDER_CLASSES
@@ -177,9 +177,16 @@ class ProviderSettings(QWidget):
                 alignment=QtCore.Qt.AlignmentFlag.AlignCenter,
             )
 
+        # Add settings FIRST
         self._add_provider_settings(provider)
 
-        # Auto-fetch models for openai-compatible if credentials exist
+        layout.addLayout(self.current_provider_layout)
+
+        # Disable dropdown scroll interference
+        self._disable_dropdown_scroll(self.current_provider_layout)
+
+        # THEN auto-fetch models for openai-compatible if credentials exist
+        # This ensures settings are rendered before we try to replace them
         if provider.internal_name == "openai-compatible" and not self._is_fetching_models:
             provider_config = self.app.settings_manager.providers.get(provider.internal_name, {})
             api_base = provider_config.get("api_base", "")
@@ -187,12 +194,8 @@ class ProviderSettings(QWidget):
 
             if api_base and api_key:
                 self._logger.debug("Auto-fetching models on provider UI init")
-                self._fetch_and_update_models_async(provider, provider_config)
-
-        layout.addLayout(self.current_provider_layout)
-
-        # Disable dropdown scroll interference
-        self._disable_dropdown_scroll(self.current_provider_layout)
+                # Use QTimer to defer fetch until after UI is fully rendered
+                QtCore.QTimer.singleShot(100, lambda: self._fetch_and_update_models_async(provider, provider_config))
 
         self._logger.debug(f"Provider UI initialized: {provider.internal_name}")
 
@@ -717,51 +720,15 @@ class ProviderSettings(QWidget):
                         button.setText(config["text"])
                         button_index += 1
 
-    def _remove_setting_widget(self, setting) -> None:
-        """Remove a setting's widget from the current layout"""
-        if not self.current_provider_layout:
-            return
+    def _remove_setting_widget(self, setting: AIProviderSetting) -> None:
+        """Remove a setting's widget from the current layout - DEPRECATED, see _replace_model_setting_with_dropdown"""
+        # This method is no longer used but kept for compatibility
+        pass
 
-        # Find and remove the widget(s) associated with this setting
-        for i in reversed(range(self.current_provider_layout.count())):
-            item = self.current_provider_layout.itemAt(i)
-            if item and item.layout():
-                # Check if this layout contains widgets from our setting
-                layout = item.layout()
-                for j in range(layout.count()):
-                    widget_item = layout.itemAt(j)
-                    if widget_item and widget_item.widget():
-                        widget = widget_item.widget()
-                        # Check if widget belongs to setting
-                        if hasattr(setting, 'input') and widget == setting.input:
-                            self.current_provider_layout.removeItem(item)
-                            ui_utils.clear_layout(layout)
-                            layout.deleteLater()
-                            return
-                        if hasattr(setting, 'label') and widget == setting.label:
-                            self.current_provider_layout.removeItem(item)
-                            ui_utils.clear_layout(layout)
-                            layout.deleteLater()
-                            return
-
-    def _render_setting_at_position(self, setting, position: int) -> None:
-        """Render a setting at a specific position in the layout"""
-        if not self.current_provider_layout:
-            return
-
-        # Create temporary layout to capture the rendered widgets
-        temp_layout = QVBoxLayout()
-        setting.render_to_layout(temp_layout)
-
-        # Insert at correct position (accounting for header, description, buttons, preset UI)
-        # Typically settings start after header(1) + description(1) + preset_ui(2) + buttons(1) = 5
-        insert_position = 5 + position
-
-        # Move items from temp_layout to main layout at correct position
-        while temp_layout.count() > 0:
-            item = temp_layout.takeAt(0)
-            self.current_provider_layout.insertItem(insert_position, item)
-            insert_position += 1
+    def _render_setting_at_position(self, setting: AIProviderSetting, position: int) -> None:
+        """Render a setting at a specific position in the layout - DEPRECATED"""
+        # This method is no longer used but kept for compatibility
+        pass
 
     def _fetch_and_update_models_async(self, provider: "AIProvider", provider_config) -> None:
         """
@@ -810,29 +777,41 @@ class ProviderSettings(QWidget):
         provider.fetch_models_async(on_success, on_failure, api_base=api_base, api_key=api_key)
 
     def _replace_model_setting_with_dropdown(
-        self, provider: "AIProvider", provider_config, models: list[str]
+        self, provider: "AIProvider", provider_config: dict, models: list[str]
     ) -> None:
         """
         Replace the api_model TextSetting with a DropdownSetting.
-        Must be called from main thread.
+        Updates the setting in-place and re-renders only that setting.
         """
-        # Find model setting index
+        # Find model setting
         model_setting_index = None
+        old_setting = None
         for i, setting in enumerate(provider.settings):
             if setting.name == "api_model":
                 model_setting_index = i
+                old_setting = setting
                 break
 
-        if model_setting_index is None:
+        if model_setting_index is None or old_setting is None:
+            self._logger.warning("Could not find api_model setting")
             return
+
+        # Check if already a dropdown to avoid redundant replacement
+        if isinstance(old_setting, DropdownSetting):
+            self._logger.debug("api_model is already a DropdownSetting, updating options")
+            old_setting.refresh_options([(m, m) for m in models])
+            return
+
+        self._logger.debug(f"Replacing TextSetting with DropdownSetting for {len(models)} models")
 
         # Get current model value
         current_model = provider_config.get("api_model", "")
 
-        # If no model is selected, select the first one
-        if not current_model and models:
+        # If no model is selected or current model not in list, select the first one
+        if (not current_model or current_model not in models) and models:
             current_model = models[0]
             provider_config["api_model"] = current_model
+            provider.save_config()
 
         # Create DropdownSetting
         options = [(model, model) for model in models]
@@ -866,14 +845,61 @@ class ProviderSettings(QWidget):
             create_auto_save_callback(provider_ref, provider_manager_ref)
         )
 
-        # Replace the setting
+        # Replace the setting in the list
         provider.settings[model_setting_index] = dropdown_setting
 
-        # Find and remove old widget from layout
-        if self.current_provider_layout:
-            self._remove_setting_widget(provider.settings[model_setting_index - 1])  # Remove the old TextSetting
+        # Find and remove the old widget's layout item
+        old_layout_item = None
+        old_layout_item_index = -1
 
-            # Re-render only the new dropdown setting at the correct position
-            self._render_setting_at_position(dropdown_setting, model_setting_index)
+        if self.current_provider_layout and isinstance(old_setting, TextSetting) and hasattr(old_setting, 'input'):
+            for i in range(self.current_provider_layout.count()):
+                item = self.current_provider_layout.itemAt(i)
+                if item and item.layout():
+                    # Check if this layout contains the old setting's input widget
+                    sub_layout = item.layout()
+                    for j in range(sub_layout.count()):
+                        widget_item = sub_layout.itemAt(j)
+                        if widget_item and widget_item.widget() == old_setting.input:
+                            old_layout_item = item
+                            old_layout_item_index = i
+                            self._logger.debug(f"Found old setting at layout index {i}")
+                            break
+                    if old_layout_item:
+                        break
 
-        self._logger.debug(f"Replaced api_model with dropdown ({len(models)} models)")
+        if old_layout_item and old_layout_item_index >= 0 and self.current_provider_layout:
+            # Remove the old layout item
+            self.current_provider_layout.removeItem(old_layout_item)
+
+            # Clean up the old layout
+            old_layout = old_layout_item.layout()
+            if old_layout:
+                ui_utils.clear_layout(old_layout)
+                old_layout.deleteLater()
+
+            self._logger.debug(f"Removed old setting layout at index {old_layout_item_index}")
+
+            # Create a temporary parent for the new widget
+            temp_widget = QWidget()
+            temp_layout = QVBoxLayout(temp_widget)
+            temp_layout.setContentsMargins(0, 0, 0, 0)
+
+            # Render the new dropdown setting
+            dropdown_setting.render_to_layout(temp_layout)
+
+            # Insert the new layout at the same position
+            self.current_provider_layout.insertWidget(old_layout_item_index, temp_widget)
+
+            self._logger.debug(f"Inserted new dropdown at index {old_layout_item_index}")
+        else:
+            self._logger.warning(f"Could not find old setting widget in layout (is TextSetting: {isinstance(old_setting, TextSetting)}, has input: {hasattr(old_setting, 'input')})")
+            # Fallback: just append at the end
+            if self.current_provider_layout:
+                temp_widget = QWidget()
+                temp_layout = QVBoxLayout(temp_widget)
+                temp_layout.setContentsMargins(0, 0, 0, 0)
+                dropdown_setting.render_to_layout(temp_layout)
+                self.current_provider_layout.addWidget(temp_widget)
+
+        self._logger.debug(f"Successfully replaced api_model with dropdown")
