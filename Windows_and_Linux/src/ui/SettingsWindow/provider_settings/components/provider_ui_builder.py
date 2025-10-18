@@ -90,20 +90,27 @@ class ProviderUIBuilder:
             saved_value = provider_config.get(setting.name, setting.default_value)
             setting.set_value(saved_value)
 
-            # Auto-save callback
-            def create_auto_save_callback(p_ref):
+            # Auto-save callback with preset sync for OpenAI-compatible
+            def create_auto_save_callback(p_ref, setting_name):
                 def auto_save():
                     provider_obj = p_ref()
-                    if provider_obj:
-                        provider_obj.save_config()
-                        updated_config = self.app.settings_manager.providers.get(
-                            provider_obj.internal_name, {}
-                        )
-                        provider_obj.load_config(updated_config)
+                    if not provider_obj:
+                        return
+
+                    # Save config
+                    provider_obj.save_config()
+                    updated_config = self.app.settings_manager.providers.get(
+                        provider_obj.internal_name, {}
+                    )
+                    provider_obj.load_config(updated_config)
+
+                    # Sync with recorded preset if OpenAI-compatible and model changed
+                    if provider_obj.internal_name == "openai-compatible" and setting_name == "api_model":
+                        self._sync_model_to_preset(provider_obj, updated_config)
 
                 return auto_save
 
-            setting.set_auto_save_callback(create_auto_save_callback(provider_ref))
+            setting.set_auto_save_callback(create_auto_save_callback(provider_ref, setting.name))
             setting.render_to_layout(layout)
 
             # Connect credential changes for OpenAI-compatible
@@ -117,6 +124,24 @@ class ProviderUIBuilder:
                             s, p_ref
                         )
                     )
+
+    def _sync_model_to_preset(self, provider: "AIProvider", config) -> None:
+        """Sync api_model value to the current preset in recorded."""
+        api_base = config.get("api_base", "")
+        if not api_base:
+            return
+
+        # Extract preset key
+        from urllib.parse import urlparse
+        parsed = urlparse(api_base)
+        preset_key = parsed.netloc or "unknown"
+
+        # Update recorded preset if exists
+        if "recorded" in config and preset_key in config["recorded"]:
+            new_model = config.get("api_model", "")
+            config["recorded"][preset_key]["api_model"] = new_model
+            self.app.settings_manager.save()
+            self._logger.debug(f"Synced api_model '{new_model}' to preset '{preset_key}'")
 
     def replace_model_setting_with_dropdown(
         self,
@@ -152,7 +177,7 @@ class ProviderUIBuilder:
             provider_config = self.app.settings_manager.providers.get(
                 provider.internal_name, {}
             )
-            current_model = provider_config.get("api_model", "")
+            current_model = self._get_preset_model_or_default(provider_config, models)
             if current_model:
                 old_setting.set_value(current_model)
 
@@ -161,12 +186,18 @@ class ProviderUIBuilder:
         provider_config = self.app.settings_manager.providers.get(
             provider.internal_name, {}
         )
-        current_model = provider_config.get("api_model", "")
+        current_model = self._get_preset_model_or_default(provider_config, models)
 
-        # Auto-select first model if needed
-        if (not current_model or current_model not in models) and models:
+        # Sync main config with preset model if different
+        if current_model and current_model != provider_config.get("api_model", ""):
+            provider_config["api_model"] = current_model
+            self._update_preset_model(provider_config, current_model)
+            provider.save_config()
+        elif not current_model and models:
+            # Auto-select first model if no valid model found
             current_model = models[0]
             provider_config["api_model"] = current_model
+            self._update_preset_model(provider_config, current_model)
             provider.save_config()
 
         # Create dropdown
@@ -180,7 +211,7 @@ class ProviderUIBuilder:
             options=options,
         )
 
-        # Set callback
+        # Set callback with preset sync
         provider_ref = weakref.ref(provider)
 
         def auto_save():
@@ -191,6 +222,8 @@ class ProviderUIBuilder:
                     provider_obj.internal_name, {}
                 )
                 provider_obj.load_config(updated_config)
+                # Sync to preset
+                self._sync_model_to_preset(provider_obj, updated_config)
 
         dropdown_setting.set_auto_save_callback(auto_save)
 
@@ -201,6 +234,41 @@ class ProviderUIBuilder:
         return self._replace_setting_in_layout(
             layout, old_setting, dropdown_setting, model_setting_index
         )
+
+    def _get_preset_model_or_default(self, config, available_models: list[str]) -> str:
+        """Get model from current preset if available, fallback to main config."""
+        api_base = config.get("api_base", "")
+        if not api_base:
+            return config.get("api_model", "")
+
+        # Extract preset key
+        from urllib.parse import urlparse
+        parsed = urlparse(api_base)
+        preset_key = parsed.netloc or "unknown"
+
+        # Check if preset exists and has a valid model
+        if "recorded" in config and preset_key in config["recorded"]:
+            preset_model = config["recorded"][preset_key].get("api_model", "")
+            if preset_model and preset_model in available_models:
+                self._logger.debug(f"Using preset model: {preset_model}")
+                return preset_model
+
+        # Fallback to main config
+        return config.get("api_model", "")
+
+    def _update_preset_model(self, config, new_model: str) -> None:
+        """Update model in current preset."""
+        api_base = config.get("api_base", "")
+        if not api_base:
+            return
+
+        from urllib.parse import urlparse
+        parsed = urlparse(api_base)
+        preset_key = parsed.netloc or "unknown"
+
+        if "recorded" in config and preset_key in config["recorded"]:
+            config["recorded"][preset_key]["api_model"] = new_model
+            self._logger.debug(f"Updated preset '{preset_key}' model to: {new_model}")
 
     def _replace_setting_in_layout(
         self,
