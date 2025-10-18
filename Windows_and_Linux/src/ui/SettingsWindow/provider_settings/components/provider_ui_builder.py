@@ -181,6 +181,10 @@ class ProviderUIBuilder:
             if current_model:
                 old_setting.set_value(current_model)
 
+            # Ensure scroll is disabled
+            if old_setting.dropdown:
+                old_setting.dropdown.wheelEvent = lambda e: e.ignore()
+
             return True
 
         provider_config = self.app.settings_manager.providers.get(
@@ -231,9 +235,14 @@ class ProviderUIBuilder:
         provider.settings[model_setting_index] = dropdown_setting
 
         # Find and replace in layout
-        return self._replace_setting_in_layout(
+        result = self._replace_setting_in_layout(
             layout, old_setting, dropdown_setting, model_setting_index
         )
+
+        # Disable scroll on the new dropdown
+        self.disable_dropdown_scroll(layout)
+
+        return result
 
     def _get_preset_model_or_default(self, config, available_models: list[str]) -> str:
         """Get model from current preset if available, fallback to main config."""

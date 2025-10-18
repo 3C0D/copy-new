@@ -254,6 +254,9 @@ class DropdownSetting(AIProviderSetting):
         self.dropdown.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.dropdown.setStyleSheet(self.app.styles["dropdown"])
 
+        # DISABLE WHEEL SCROLL
+        self.dropdown.wheelEvent = lambda e: e.ignore()
+
         for option_tuple in self.options:
             if len(option_tuple) == 2:
                 option, value = option_tuple
