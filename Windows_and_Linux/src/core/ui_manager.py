@@ -89,4 +89,3 @@ class UIManager(QObject):
         # If the settings button was clicked, open settings
         if settings_button and msg_box.clickedButton() == settings_button:
             self.app.systray_manager.show_settings()
-

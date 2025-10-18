@@ -57,6 +57,7 @@ except ImportError:
 
 # Local imports
 from PySide6 import QtCore
+
 from ..ui.custom_popup.vision_support_validator import VisionSupportValidator
 from .settings import AIProviderSetting
 
@@ -168,7 +169,11 @@ class AIProvider(ABC):
             logging.error(f"Error in {self.provider_name} request: {e}")
 
             # Handle rate limit errors specially - close response window and show message
-            if "429" in str(e) or "RateLimitError" in str(e) or "Resource has been exhausted" in str(e):
+            if (
+                "429" in str(e)
+                or "RateLimitError" in str(e)
+                or "Resource has been exhausted" in str(e)
+            ):
                 if self.app.current_response_window:
                     QtCore.QMetaObject.invokeMethod(
                         self.app.current_response_window,

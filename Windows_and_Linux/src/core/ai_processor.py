@@ -542,7 +542,11 @@ class AIProcessor(QObject):
         else:
             self._logger.debug("🔴🪟 No response window to close")
 
-        if "Resource has been exhausted" in str(error) or "429" in str(error) or "RateLimitError" in str(error):
+        if (
+            "Resource has been exhausted" in str(error)
+            or "429" in str(error)
+            or "RateLimitError" in str(error)
+        ):
             self.app.ui_manager.show_message_signal.emit(
                 "Error - Rate Limit Hit",
                 "You've hit an API rate/usage limit. Please try again later or check your API usage limits.",

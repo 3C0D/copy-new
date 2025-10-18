@@ -195,7 +195,9 @@ class ProviderSettings(QWidget):
             if api_base and api_key:
                 self._logger.debug("Auto-fetching models on provider UI init")
                 # Use QTimer to defer fetch until after UI is fully rendered
-                QtCore.QTimer.singleShot(100, lambda: self._fetch_and_update_models_async(provider, provider_config))
+                QtCore.QTimer.singleShot(
+                    100, lambda: self._fetch_and_update_models_async(provider, provider_config)
+                )
 
         self._logger.debug(f"Provider UI initialized: {provider.internal_name}")
 
@@ -275,7 +277,9 @@ class ProviderSettings(QWidget):
                         # Only save the specific setting, don't overwrite the entire config
                         provider_obj.save_config()
                         # Reload config to preserve recorded data
-                        updated_config = self.app.settings_manager.providers.get(provider_obj.internal_name, {})
+                        updated_config = self.app.settings_manager.providers.get(
+                            provider_obj.internal_name, {}
+                        )
                         provider_obj.load_config(updated_config)
                     else:
                         self._logger.debug("Provider or manager was garbage collected")
@@ -289,7 +293,11 @@ class ProviderSettings(QWidget):
 
             # Connect api_base AND api_key changes to fetch models
             # BUT skip if we're changing presets
-            if provider.internal_name == "openai-compatible" and setting.name in ["api_base", "api_key"]:
+            if provider.internal_name == "openai-compatible" and setting.name in [
+                "api_base",
+                "api_key",
+            ]:
+
                 def create_fetch_callback(p_ref, s_name):
                     def on_credential_changed():
                         # Skip auto-fetch if we're changing presets
@@ -300,17 +308,23 @@ class ProviderSettings(QWidget):
                         if provider_obj is not None:
                             # Save first
                             if s_name == "api_base":
-                                if hasattr(setting, 'auto_save_callback') and setting.auto_save_callback:
+                                if (
+                                    hasattr(setting, "auto_save_callback")
+                                    and setting.auto_save_callback
+                                ):
                                     setting.auto_save_callback()
 
                             # Then fetch
-                            config = self.app.settings_manager.providers.get(provider_obj.internal_name, {})
+                            config = self.app.settings_manager.providers.get(
+                                provider_obj.internal_name, {}
+                            )
                             self._fetch_and_update_models_async(provider_obj, config)
+
                     return on_credential_changed
 
                 # Connect to editingFinished for TextSetting
-                if hasattr(setting, 'input'):
-                    getattr(setting, 'input').editingFinished.connect(
+                if hasattr(setting, "input"):
+                    getattr(setting, "input").editingFinished.connect(
                         create_fetch_callback(provider_ref, setting.name)
                     )
 
@@ -835,10 +849,13 @@ class ProviderSettings(QWidget):
                 provider_manager_obj = pm_ref()
                 if provider_obj is not None and provider_manager_obj is not None:
                     provider_obj.save_config()
-                    updated_config = self.app.settings_manager.providers.get(provider_obj.internal_name, {})
+                    updated_config = self.app.settings_manager.providers.get(
+                        provider_obj.internal_name, {}
+                    )
                     provider_obj.load_config(updated_config)
                 else:
                     self._logger.debug("Provider or manager was garbage collected")
+
             return auto_save_callback
 
         dropdown_setting.set_auto_save_callback(
@@ -852,7 +869,11 @@ class ProviderSettings(QWidget):
         old_layout_item = None
         old_layout_item_index = -1
 
-        if self.current_provider_layout and isinstance(old_setting, TextSetting) and hasattr(old_setting, 'input'):
+        if (
+            self.current_provider_layout
+            and isinstance(old_setting, TextSetting)
+            and hasattr(old_setting, "input")
+        ):
             for i in range(self.current_provider_layout.count()):
                 item = self.current_provider_layout.itemAt(i)
                 if item and item.layout():
@@ -893,7 +914,9 @@ class ProviderSettings(QWidget):
 
             self._logger.debug(f"Inserted new dropdown at index {old_layout_item_index}")
         else:
-            self._logger.warning(f"Could not find old setting widget in layout (is TextSetting: {isinstance(old_setting, TextSetting)}, has input: {hasattr(old_setting, 'input')})")
+            self._logger.warning(
+                f"Could not find old setting widget in layout (is TextSetting: {isinstance(old_setting, TextSetting)}, has input: {hasattr(old_setting, 'input')})"
+            )
             # Fallback: just append at the end
             if self.current_provider_layout:
                 temp_widget = QWidget()
@@ -902,4 +925,4 @@ class ProviderSettings(QWidget):
                 dropdown_setting.render_to_layout(temp_layout)
                 self.current_provider_layout.addWidget(temp_widget)
 
-        self._logger.debug(f"Successfully replaced api_model with dropdown")
+        self._logger.debug("Successfully replaced api_model with dropdown")

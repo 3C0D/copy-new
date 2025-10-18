@@ -727,4 +727,3 @@ class CustomPopupWindow(QWidget):
                 self.close()
         else:
             super().keyPressEvent(event)
-

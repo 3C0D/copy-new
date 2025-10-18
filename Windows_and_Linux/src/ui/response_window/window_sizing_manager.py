@@ -34,7 +34,11 @@ class WindowSizingManager:
 
         try:
             # Get content widget height
-            if not chat_area or not hasattr(chat_area, "content_widget") or not chat_area.content_widget:
+            if (
+                not chat_area
+                or not hasattr(chat_area, "content_widget")
+                or not chat_area.content_widget
+            ):
                 return
 
             content_height = chat_area.content_widget.sizeHint().height()

@@ -1,5 +1,5 @@
-from typing import TYPE_CHECKING, Any, cast
 import logging
+from typing import TYPE_CHECKING, Any, cast
 
 from openai import OpenAI
 from PySide6 import QtCore
@@ -32,12 +32,12 @@ class ModelFetchThread(QThread):
         try:
             import requests
 
-            api_base = self.api_base.rstrip('/')
+            api_base = self.api_base.rstrip("/")
             models_url = f"{api_base}/models"
 
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             }
 
             self._logger.debug(f"Fetching models from: {models_url}")
@@ -271,7 +271,9 @@ class OpenAICompatibleProvider(AIProvider):
         self._logger.debug("🧹 OpenAICompatibleProvider.before_load called - cleaning up client")
         self.client = None
 
-    def fetch_models_async(self, callback_success=None, callback_failure=None, api_base=None, api_key=None):
+    def fetch_models_async(
+        self, callback_success=None, callback_failure=None, api_base=None, api_key=None
+    ):
         """
         Fetch available models asynchronously.
 
@@ -282,8 +284,8 @@ class OpenAICompatibleProvider(AIProvider):
             api_key: Optional explicit api_key (uses self.api_key if None)
         """
         # Use explicit values if provided, otherwise fall back to instance attributes
-        base_url = api_base if api_base is not None else getattr(self, 'api_base', '')
-        key = api_key if api_key is not None else getattr(self, 'api_key', '')
+        base_url = api_base if api_base is not None else getattr(self, "api_base", "")
+        key = api_key if api_key is not None else getattr(self, "api_key", "")
 
         if not base_url or not key:
             self._logger.debug("Cannot fetch models: missing api_base or api_key")
@@ -297,7 +299,9 @@ class OpenAICompatibleProvider(AIProvider):
         self._fetch_thread = ModelFetchThread(base_url, key)
 
         if callback_success:
-            self._fetch_thread.models_fetched.connect(lambda models: self._on_models_fetched(models, callback_success))
+            self._fetch_thread.models_fetched.connect(
+                lambda models: self._on_models_fetched(models, callback_success)
+            )
 
         if callback_failure:
             self._fetch_thread.fetch_failed.connect(callback_failure)
@@ -324,12 +328,12 @@ class OpenAICompatibleProvider(AIProvider):
             import requests
 
             # Normalize api_base
-            api_base = self.api_base.rstrip('/')
+            api_base = self.api_base.rstrip("/")
             models_url = f"{api_base}/models"
 
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             }
 
             self._logger.debug(f"Fetching models from: {models_url}")

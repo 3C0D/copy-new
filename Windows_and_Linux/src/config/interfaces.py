@@ -67,6 +67,7 @@ class ProviderConfig(TypedDict, total=False):
     recorded: dict[str, dict[str, Any]]
     fetched_models: list[str] | None  # Add support for storing fetched models
 
+
 class CustomDataStructure(TypedDict, total=False):
     providers: dict[str, ProviderConfig]
 

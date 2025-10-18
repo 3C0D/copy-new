@@ -325,6 +325,7 @@ class GeminiProvider(AIProvider):
                     # Close response window on rate limit errors (thread-safe)
                     if self.app.current_response_window:
                         from PySide6 import QtCore
+
                         QtCore.QMetaObject.invokeMethod(
                             self.app.current_response_window,
                             "close",
