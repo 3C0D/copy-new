@@ -18,6 +18,10 @@ from .....aiprovider.settings import DropdownSetting, TextSetting
 from ....ui_utils import ui_utils
 
 
+def _(x):
+    return x
+
+
 class ProviderUIBuilder:
     """Handles UI construction for provider settings."""
 
@@ -225,7 +229,9 @@ class ProviderUIBuilder:
             description="Select a model",
             options=options,
             searchable=searchable,  # Enable search
-            search_placeholder=search_placeholder,  # Custom placeholder
+            search_placeholder=_(
+                "Enter search terms to narrow down options (e.g. 'gemini free' or ':free')..."
+            ),  # Better placeholder
         )
 
         # Set callback with preset sync

@@ -141,6 +141,7 @@ def dropdown(palette: ColorPalette) -> str:
             background-color: {palette.bg_control};
             color: {palette.fg_control};
             selection-background-color: {palette.selection};
+            font-size: 14px;
         }}
     """
 
