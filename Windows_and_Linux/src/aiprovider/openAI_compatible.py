@@ -1,8 +1,7 @@
-import webbrowser
 from typing import TYPE_CHECKING, Any, cast
 
-from PySide6 import QtCore
 from openai import OpenAI
+from PySide6 import QtCore
 
 from . import AIProvider, TextSetting
 from .settings import AIProviderSetting, CheckboxSetting
@@ -74,11 +73,7 @@ class OpenAICompatibleProvider(AIProvider):
             "OpenAI Compatible",
             cast(list[AIProviderSetting], settings),
             "• Connect to any OpenAI-compatible API (v1/chat/completions).\n"
-            "• An API key is required for authentication.\n"
-            "• You must abide by the service's Terms of Service.",
-            "openai-compatible",
-            "Get OpenAI API Key",
-            lambda: webbrowser.open("https://platform.openai.com/account/api-keys"),
+            "• An API key is required for authentication.",
             "openai-compatible",
         )
 

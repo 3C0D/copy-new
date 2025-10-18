@@ -35,7 +35,7 @@ class ProviderButtonManager:
         button_container.setSpacing(10)
 
         # Main button
-        if provider.button_text:
+        if provider.button_text and provider.button_action:
             main_button = QPushButton(provider.button_text)
             main_button.setStyleSheet(self.app.styles["primary_button"])
             main_button.clicked.connect(provider.button_action)
