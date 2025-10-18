@@ -65,6 +65,7 @@ class ProviderConfig(TypedDict, total=False):
     api_organisation: str | None
     has_vision: bool | None
     recorded: dict[str, dict[str, Any]]
+    fetched_models: list[str] | None  # Add support for storing fetched models
 
 class CustomDataStructure(TypedDict, total=False):
     providers: dict[str, ProviderConfig]

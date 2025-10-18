@@ -1,7 +1,9 @@
 from typing import TYPE_CHECKING, Any, cast
+import logging
 
 from openai import OpenAI
 from PySide6 import QtCore
+from PySide6.QtCore import QThread, Signal
 
 from . import AIProvider, TextSetting
 from .settings import AIProviderSetting, CheckboxSetting
@@ -11,6 +13,52 @@ from .settings import AIProviderSetting, CheckboxSetting
 # Type checking imports
 if TYPE_CHECKING:
     from ..writing_tools_app import WritingToolsApp
+
+
+class ModelFetchThread(QThread):
+    """Thread for fetching models without blocking UI"""
+
+    models_fetched = Signal(list)  # Emits list of model IDs
+    fetch_failed = Signal(str)  # Emits error message
+
+    def __init__(self, api_base: str, api_key: str):
+        super().__init__()
+        self.api_base = api_base
+        self.api_key = api_key
+        self._logger = logging.getLogger(__name__)
+
+    def run(self):
+        """Execute fetch in background thread"""
+        try:
+            import requests
+
+            api_base = self.api_base.rstrip('/')
+            models_url = f"{api_base}/models"
+
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+
+            self._logger.debug(f"Fetching models from: {models_url}")
+            response = requests.get(models_url, headers=headers, timeout=10)
+
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, dict) and "data" in data:
+                    models = [model.get("id") for model in data["data"] if "id" in model]
+                    self._logger.debug(f"Successfully fetched {len(models)} models")
+                    self.models_fetched.emit(models)
+                else:
+                    self._logger.warning(f"Unexpected response format: {data}")
+                    self.fetch_failed.emit("Unexpected response format")
+            else:
+                self._logger.warning(f"Failed to fetch models: {response.status_code}")
+                self.fetch_failed.emit(f"HTTP {response.status_code}")
+
+        except Exception as e:
+            self._logger.error(f"Error fetching models: {e}")
+            self.fetch_failed.emit(str(e))
 
 
 class OpenAICompatibleProvider(AIProvider):
@@ -24,6 +72,7 @@ class OpenAICompatibleProvider(AIProvider):
 
     def __init__(self, app: "WritingToolsApp"):
         self.client: Any = None
+        self._fetched_models: list[str] = []  # Store fetched models
 
         settings = [
             TextSetting(
@@ -221,3 +270,90 @@ class OpenAICompatibleProvider(AIProvider):
         """Clean up client before reloading."""
         self._logger.debug("🧹 OpenAICompatibleProvider.before_load called - cleaning up client")
         self.client = None
+
+    def fetch_models_async(self, callback_success=None, callback_failure=None, api_base=None, api_key=None):
+        """
+        Fetch available models asynchronously.
+
+        Args:
+            callback_success: Function to call with list of models on success
+            callback_failure: Function to call with error message on failure
+            api_base: Optional explicit api_base (uses self.api_base if None)
+            api_key: Optional explicit api_key (uses self.api_key if None)
+        """
+        # Use explicit values if provided, otherwise fall back to instance attributes
+        base_url = api_base if api_base is not None else getattr(self, 'api_base', '')
+        key = api_key if api_key is not None else getattr(self, 'api_key', '')
+
+        if not base_url or not key:
+            self._logger.debug("Cannot fetch models: missing api_base or api_key")
+            if callback_failure:
+                callback_failure("Missing API credentials")
+            return
+
+        self._logger.debug(f"Starting async fetch with api_base: {base_url}")
+
+        # Create and start thread with explicit values
+        self._fetch_thread = ModelFetchThread(base_url, key)
+
+        if callback_success:
+            self._fetch_thread.models_fetched.connect(lambda models: self._on_models_fetched(models, callback_success))
+
+        if callback_failure:
+            self._fetch_thread.fetch_failed.connect(callback_failure)
+
+        self._fetch_thread.start()
+
+    def _on_models_fetched(self, models, callback):
+        """Store fetched models and execute callback"""
+        self._fetched_models = models
+        callback(models)
+
+    def fetch_models(self) -> list[str]:
+        """
+        Fetch available models from the API endpoint.
+
+        Returns:
+            List of model IDs if successful, empty list otherwise.
+        """
+        if not self.api_base or not self.api_key:
+            self._logger.debug("Cannot fetch models: missing api_base or api_key")
+            return []
+
+        try:
+            import requests
+
+            # Normalize api_base
+            api_base = self.api_base.rstrip('/')
+            models_url = f"{api_base}/models"
+
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+
+            self._logger.debug(f"Fetching models from: {models_url}")
+            response = requests.get(models_url, headers=headers, timeout=10)
+
+            if response.status_code == 200:
+                data = response.json()
+                # Handle OpenAI-style response format
+                if isinstance(data, dict) and "data" in data:
+                    models = [model.get("id") for model in data["data"] if "id" in model]
+                    self._logger.debug(f"Successfully fetched {len(models)} models")
+                    self._fetched_models = models
+                    return models
+                else:
+                    self._logger.warning(f"Unexpected response format: {data}")
+                    return []
+            else:
+                self._logger.warning(f"Failed to fetch models: {response.status_code}")
+                return []
+
+        except Exception as e:
+            self._logger.error(f"Error fetching models: {e}")
+            return []
+
+    def get_fetched_models(self) -> list[str]:
+        """Get the list of fetched models."""
+        return self._fetched_models

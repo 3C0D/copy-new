@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from ..settings_window import SettingsWindow
 
 from ....aiprovider.provider_manager import ProviderManager
+from ....aiprovider.settings import DropdownSetting
 from ....config.constants import PROVIDER_DISPLAY_NAMES
 from ....config.data_operations import get_provider_display_name
 from ....core.ai_processor import PROVIDER_CLASSES
@@ -64,6 +65,12 @@ class ProviderSettings(QWidget):
         self.description_label = None
         self.vision_comment = None
         self.main_button = None
+
+        # Add flag to prevent fetch loop
+        self._is_fetching_models = False
+
+        # Add flag to prevent automatic fetch during preset change
+        self._changing_preset = False
 
         self.init_ui()
 
@@ -172,6 +179,16 @@ class ProviderSettings(QWidget):
 
         self._add_provider_settings(provider)
 
+        # Auto-fetch models for openai-compatible if credentials exist
+        if provider.internal_name == "openai-compatible" and not self._is_fetching_models:
+            provider_config = self.app.settings_manager.providers.get(provider.internal_name, {})
+            api_base = provider_config.get("api_base", "")
+            api_key = provider_config.get("api_key", "")
+
+            if api_base and api_key:
+                self._logger.debug("Auto-fetching models on provider UI init")
+                self._fetch_and_update_models_async(provider, provider_config)
+
         layout.addLayout(self.current_provider_layout)
 
         # Disable dropdown scroll interference
@@ -266,6 +283,33 @@ class ProviderSettings(QWidget):
                 create_auto_save_callback(provider_ref, provider_manager_ref)
             )
             setting.render_to_layout(self.current_provider_layout)
+
+            # Connect api_base AND api_key changes to fetch models
+            # BUT skip if we're changing presets
+            if provider.internal_name == "openai-compatible" and setting.name in ["api_base", "api_key"]:
+                def create_fetch_callback(p_ref, s_name):
+                    def on_credential_changed():
+                        # Skip auto-fetch if we're changing presets
+                        if self._changing_preset:
+                            return
+
+                        provider_obj = p_ref()
+                        if provider_obj is not None:
+                            # Save first
+                            if s_name == "api_base":
+                                if hasattr(setting, 'auto_save_callback') and setting.auto_save_callback:
+                                    setting.auto_save_callback()
+
+                            # Then fetch
+                            config = self.app.settings_manager.providers.get(provider_obj.internal_name, {})
+                            self._fetch_and_update_models_async(provider_obj, config)
+                    return on_credential_changed
+
+                # Connect to editingFinished for TextSetting
+                if hasattr(setting, 'input'):
+                    getattr(setting, 'input').editingFinished.connect(
+                        create_fetch_callback(provider_ref, setting.name)
+                    )
 
     def _refresh_provider_config(self, provider: "AIProvider") -> None:
         """Refresh provider configuration if supported."""
@@ -524,7 +568,7 @@ class ProviderSettings(QWidget):
         self.app.settings_manager.save()
         self._refresh_preset_dropdown()
 
-    def _add_preset_ui(self, provider, provider_config) -> None:
+    def _add_preset_ui(self, provider, provider_config):
         """Add preset dropdown and save/delete buttons"""
         if self.current_provider_layout is None:
             return
@@ -555,8 +599,8 @@ class ProviderSettings(QWidget):
             current_key = self._extract_provider_key(current_base) if current_base else ""
 
             # Add all saved presets (keys from dict)
-            for key, preset_data in recorded.items():
-                preset_dropdown.addItem(key, preset_data)
+            for key, _ in recorded.items():
+                preset_dropdown.addItem(key, recorded[key])
 
             # Set current selection
             current_index = -1
@@ -598,16 +642,34 @@ class ProviderSettings(QWidget):
         if not provider or provider.internal_name != "openai-compatible":
             return
 
-        # Update config with preset data
-        config = self.app.settings_manager.providers["openai-compatible"]
-        config.update(preset_data)
+        # Set flag to prevent automatic fetch during preset change
+        self._changing_preset = True
 
-        # Reload provider with new config
-        provider.load_config(config)
+        try:
+            # Update config with preset data
+            config = self.app.settings_manager.providers["openai-compatible"]
+            config.update(preset_data)
 
-        # Rebuild UI to show new values
-        if self.provider_container is not None:
-            self.init_provider_ui(provider, self.provider_container)
+            # Reload provider with new config (updates self.api_base, self.api_key, etc.)
+            provider.load_config(config)
+
+            # Rebuild UI to show new values
+            if self.provider_container is not None:
+                self.init_provider_ui(provider, self.provider_container)
+
+            # Now manually trigger fetch with the NEW api_base/api_key
+            new_api_base = preset_data.get("api_base", "")
+            new_api_key = preset_data.get("api_key", "")
+
+            if new_api_base and new_api_key:
+                self._logger.debug(f"Fetching models for preset with api_base: {new_api_base}")
+                # Fetch using updated config
+                updated_config = self.app.settings_manager.providers.get("openai-compatible", {})
+                self._fetch_and_update_models_async(provider, updated_config)
+
+        finally:
+            # Reset flag
+            self._changing_preset = False
 
     def _refresh_preset_dropdown(self) -> None:
         """Rebuild UI to show updated presets"""
@@ -654,3 +716,164 @@ class ProviderSettings(QWidget):
                         ]
                         button.setText(config["text"])
                         button_index += 1
+
+    def _remove_setting_widget(self, setting) -> None:
+        """Remove a setting's widget from the current layout"""
+        if not self.current_provider_layout:
+            return
+
+        # Find and remove the widget(s) associated with this setting
+        for i in reversed(range(self.current_provider_layout.count())):
+            item = self.current_provider_layout.itemAt(i)
+            if item and item.layout():
+                # Check if this layout contains widgets from our setting
+                layout = item.layout()
+                for j in range(layout.count()):
+                    widget_item = layout.itemAt(j)
+                    if widget_item and widget_item.widget():
+                        widget = widget_item.widget()
+                        # Check if widget belongs to setting
+                        if hasattr(setting, 'input') and widget == setting.input:
+                            self.current_provider_layout.removeItem(item)
+                            ui_utils.clear_layout(layout)
+                            layout.deleteLater()
+                            return
+                        if hasattr(setting, 'label') and widget == setting.label:
+                            self.current_provider_layout.removeItem(item)
+                            ui_utils.clear_layout(layout)
+                            layout.deleteLater()
+                            return
+
+    def _render_setting_at_position(self, setting, position: int) -> None:
+        """Render a setting at a specific position in the layout"""
+        if not self.current_provider_layout:
+            return
+
+        # Create temporary layout to capture the rendered widgets
+        temp_layout = QVBoxLayout()
+        setting.render_to_layout(temp_layout)
+
+        # Insert at correct position (accounting for header, description, buttons, preset UI)
+        # Typically settings start after header(1) + description(1) + preset_ui(2) + buttons(1) = 5
+        insert_position = 5 + position
+
+        # Move items from temp_layout to main layout at correct position
+        while temp_layout.count() > 0:
+            item = temp_layout.takeAt(0)
+            self.current_provider_layout.insertItem(insert_position, item)
+            insert_position += 1
+
+    def _fetch_and_update_models_async(self, provider: "AIProvider", provider_config) -> None:
+        """
+        Fetch models asynchronously and update UI when complete.
+        """
+        from ....aiprovider.openAI_compatible import OpenAICompatibleProvider
+
+        if not isinstance(provider, OpenAICompatibleProvider):
+            return
+
+        # Prevent multiple simultaneous fetches
+        if self._is_fetching_models:
+            self._logger.debug("Already fetching models, skipping")
+            return
+
+        # Get current api_base and api_key from provider config
+        api_base = provider_config.get("api_base", "")
+        api_key = provider_config.get("api_key", "")
+
+        if not api_base or not api_key:
+            self._logger.debug("Missing api_base or api_key, skipping fetch")
+            return
+
+        self._is_fetching_models = True
+
+        # Log to verify we're using the correct api_base
+        self._logger.debug(f"Fetching models with api_base: {api_base}")
+
+        def on_success(models):
+            """Callback when models are successfully fetched"""
+            self._is_fetching_models = False
+
+            if not models:
+                self._logger.debug("No models returned from fetch")
+                return
+
+            self._replace_model_setting_with_dropdown(provider, provider_config, models)
+
+        def on_failure(error_msg):
+            """Callback when fetch fails"""
+            self._is_fetching_models = False
+            self._logger.warning(f"Failed to fetch models: {error_msg}")
+            # Keep TextSetting on failure
+
+        # Pass api_base and api_key explicitly to avoid using stale values
+        provider.fetch_models_async(on_success, on_failure, api_base=api_base, api_key=api_key)
+
+    def _replace_model_setting_with_dropdown(
+        self, provider: "AIProvider", provider_config, models: list[str]
+    ) -> None:
+        """
+        Replace the api_model TextSetting with a DropdownSetting.
+        Must be called from main thread.
+        """
+        # Find model setting index
+        model_setting_index = None
+        for i, setting in enumerate(provider.settings):
+            if setting.name == "api_model":
+                model_setting_index = i
+                break
+
+        if model_setting_index is None:
+            return
+
+        # Get current model value
+        current_model = provider_config.get("api_model", "")
+
+        # If no model is selected, select the first one
+        if not current_model and models:
+            current_model = models[0]
+            provider_config["api_model"] = current_model
+
+        # Create DropdownSetting
+        options = [(model, model) for model in models]
+
+        dropdown_setting = DropdownSetting(
+            self.app,
+            name="api_model",
+            display_name="API Model",
+            default_value=current_model,
+            description="Select a model",
+            options=options,
+        )
+
+        # Set up auto-save callback
+        provider_ref = weakref.ref(provider)
+        provider_manager_ref = weakref.ref(self.provider_manager)
+
+        def create_auto_save_callback(p_ref, pm_ref):
+            def auto_save_callback():
+                provider_obj = p_ref()
+                provider_manager_obj = pm_ref()
+                if provider_obj is not None and provider_manager_obj is not None:
+                    provider_obj.save_config()
+                    updated_config = self.app.settings_manager.providers.get(provider_obj.internal_name, {})
+                    provider_obj.load_config(updated_config)
+                else:
+                    self._logger.debug("Provider or manager was garbage collected")
+            return auto_save_callback
+
+        dropdown_setting.set_auto_save_callback(
+            create_auto_save_callback(provider_ref, provider_manager_ref)
+        )
+
+        # Replace the setting
+        provider.settings[model_setting_index] = dropdown_setting
+
+        # Find and remove old widget from layout
+        if self.current_provider_layout:
+            self._remove_setting_widget(provider.settings[model_setting_index - 1])  # Remove the old TextSetting
+
+            # Re-render only the new dropdown setting at the correct position
+            self._render_setting_at_position(dropdown_setting, model_setting_index)
+
+        self._logger.debug(f"Replaced api_model with dropdown ({len(models)} models)")
