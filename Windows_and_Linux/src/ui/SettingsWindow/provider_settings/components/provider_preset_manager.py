@@ -135,9 +135,7 @@ class ProviderPresetManager:
             if current_index != -1:
                 preset_dropdown.setCurrentIndex(current_index)
 
-            preset_dropdown.currentIndexChanged.connect(
-                lambda: on_preset_selected(preset_dropdown)
-            )
+            preset_dropdown.currentIndexChanged.connect(lambda: on_preset_selected(preset_dropdown))
             layout.addWidget(preset_dropdown)
 
         # Buttons

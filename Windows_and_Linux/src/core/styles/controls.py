@@ -330,3 +330,26 @@ def copy_button_success(palette: ColorPalette) -> str:
             padding: 2px;
         }
     """
+
+
+def search_field(palette: ColorPalette) -> str:
+    """Search field style for searchable combobox."""
+    return f"""
+        QLineEdit {{
+            background-color: {palette.bg_control};
+            border: 1px solid {palette.border};
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 13px;
+            color: {palette.fg_control};
+            selection-background-color: {palette.selection};
+            selection-color: {palette.fg_primary};
+        }}
+        QLineEdit:focus {{
+            border: 1px solid {"#4CAF50" if palette.bg_primary == "#2d2d2d" else "#2196F3"};
+            background-color: {palette.bg_primary};
+        }}
+        QLineEdit:hover {{
+            background-color: {palette.selection};
+        }}
+    """

@@ -105,7 +105,10 @@ class ProviderUIBuilder:
                     provider_obj.load_config(updated_config)
 
                     # Sync with recorded preset if OpenAI-compatible and model changed
-                    if provider_obj.internal_name == "openai-compatible" and setting_name == "api_model":
+                    if (
+                        provider_obj.internal_name == "openai-compatible"
+                        and setting_name == "api_model"
+                    ):
                         self._sync_model_to_preset(provider_obj, updated_config)
 
                 return auto_save
@@ -120,9 +123,7 @@ class ProviderUIBuilder:
             ]:
                 if hasattr(setting, "input"):
                     getattr(setting, "input").editingFinished.connect(
-                        lambda s=setting, p_ref=provider_ref: on_setting_changed_callback(
-                            s, p_ref
-                        )
+                        lambda s=setting, p_ref=provider_ref: on_setting_changed_callback(s, p_ref)
                     )
 
     def _sync_model_to_preset(self, provider: "AIProvider", config) -> None:
@@ -133,6 +134,7 @@ class ProviderUIBuilder:
 
         # Extract preset key
         from urllib.parse import urlparse
+
         parsed = urlparse(api_base)
         preset_key = parsed.netloc or "unknown"
 
@@ -149,6 +151,8 @@ class ProviderUIBuilder:
         layout: QVBoxLayout,
         models: list[str],
         on_model_changed_callback,
+        searchable: bool = True,
+        search_placeholder: str = "Search models...",
     ) -> bool:
         """Replace api_model TextSetting with DropdownSetting.
 
@@ -171,12 +175,21 @@ class ProviderUIBuilder:
         # Already a dropdown? Just update options and selection
         if isinstance(old_setting, DropdownSetting):
             self._logger.debug("api_model is already a DropdownSetting, updating options")
+
+            # Update searchable status if needed
+            if searchable and not old_setting.searchable:
+                # Need to recreate dropdown as searchable
+                old_setting.searchable = True
+                old_setting.search_placeholder = search_placeholder
+                # Force re-render by temporarily removing and re-adding
+                if old_setting.dropdown:
+                    old_setting.dropdown.deleteLater()
+                    old_setting.dropdown = None
+
             old_setting.refresh_options([(m, m) for m in models])
 
             # Update selection to match current api_model
-            provider_config = self.app.settings_manager.providers.get(
-                provider.internal_name, {}
-            )
+            provider_config = self.app.settings_manager.providers.get(provider.internal_name, {})
             current_model = self._get_preset_model_or_default(provider_config, models)
             if current_model:
                 old_setting.set_value(current_model)
@@ -187,9 +200,7 @@ class ProviderUIBuilder:
 
             return True
 
-        provider_config = self.app.settings_manager.providers.get(
-            provider.internal_name, {}
-        )
+        provider_config = self.app.settings_manager.providers.get(provider.internal_name, {})
         current_model = self._get_preset_model_or_default(provider_config, models)
 
         # Sync main config with preset model if different
@@ -204,7 +215,7 @@ class ProviderUIBuilder:
             self._update_preset_model(provider_config, current_model)
             provider.save_config()
 
-        # Create dropdown
+        # Create dropdown with search capability
         options = [(model, model) for model in models]
         dropdown_setting = DropdownSetting(
             self.app,
@@ -213,6 +224,8 @@ class ProviderUIBuilder:
             default_value=current_model,
             description="Select a model",
             options=options,
+            searchable=searchable,  # Enable search
+            search_placeholder=search_placeholder,  # Custom placeholder
         )
 
         # Set callback with preset sync
@@ -252,6 +265,7 @@ class ProviderUIBuilder:
 
         # Extract preset key
         from urllib.parse import urlparse
+
         parsed = urlparse(api_base)
         preset_key = parsed.netloc or "unknown"
 
@@ -272,6 +286,7 @@ class ProviderUIBuilder:
             return
 
         from urllib.parse import urlparse
+
         parsed = urlparse(api_base)
         preset_key = parsed.netloc or "unknown"
 

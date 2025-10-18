@@ -21,6 +21,7 @@ from .controls import (
     neutral_button,
     primary_button,
     radio_button,
+    search_field,
     secondary_button,
     send_button,
 )
@@ -58,6 +59,7 @@ __all__ = [
     "radio_button",
     "secondary_button",
     "send_button",
+    "search_field",
     # Feedback
     "progress_window",
     # Navigation

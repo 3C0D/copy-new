@@ -1,3 +1,54 @@
+****  "custom_data": {
+    "update_available": false,
+    "providers": {
+    ...
+    ,
+        "openai-compatible": {
+        "api_key": "",
+        "api_base": "https://api.groq.com/openai/v1",
+        "api_organisation": "",
+        "api_project": "",
+        "api_model": "llama-3.3-70b-versatile",
+        "has_vision": true,
+        "recorded": {
+          "openrouter.ai": {
+            "api_key": "",
+            "api_base": "https://openrouter.ai/api/v1",
+            "api_model": "google/gemini-2.0-flash-exp:free",
+            "api_organisation": "",
+            "api_project": "",
+            "has_vision": true
+          },
+          "api.groq.com": {
+            "api_key": "",
+            "api_base": "https://api.groq.com/openai/v1",
+            "api_model": "llama-3.3-70b-versatile",
+            "api_organisation": "",
+            "api_project": "",
+            "has_vision": true
+          }
+        }
+      }
+    }
+  }
+
+Quand on change la valeur du modèle Dans le drop down C'est cette fonction dans provider_ui_builder.py auto_save() qui met à jour cette valeur
+
+"openai-compatible": {
+    ...
+    "api_model": "llama-3.3-70b-versatile",
+
+Mais il faudrait aussi mettre à jour les api_model Plus bas dans le fournisseur sélectionné (groq). On va appeler ça le fournisseur (ah c'est appelé preset comme dropdown)
+
+    "api.groq.com": {
+            "api_key": "",
+            "api_base": "https://api.groq.com/openai/v1",
+            "api_model": "llama-3.3-70b-versatile",
+            "api_organisation": "",
+            "api_project": "",
+            "has_vision": true
+          }
+
 Si on change la valeur du dropdown au début ça marche, après ça marche plus. Bref C'est bizarre comme comportement, ça va pas. Et en plus, ça devrait être au même endroit que la valeur du dessus Pour le changement. Par contre, quand on fait save C'est à dire de le bouton qui a en dessous du drop donne des fournisseurs. Immédiatement, cette valeur est bien mise à jour selon le fournisseur sélectionné Donc ça marche à cet endroit
 
 Ligne 268-289 : La méthode _update_recorded_preset qui met à jour le preset "recorded" 

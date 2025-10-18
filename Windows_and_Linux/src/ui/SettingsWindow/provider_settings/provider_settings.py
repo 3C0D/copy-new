@@ -224,11 +224,13 @@ class ProviderSettings(QWidget):
         if parent and hasattr(parent, "removeItem"):
             # Cast to QLayout to access removeItem method
             from PySide6.QtWidgets import QLayout
+
             if isinstance(parent, QLayout):
                 parent.removeItem(self.current_provider_layout)
 
         self.current_provider_layout.setParent(None)
         from ...ui_utils import ui_utils
+
         ui_utils.clear_layout(self.current_provider_layout)
         self.current_provider_layout.deleteLater()
 
@@ -455,8 +457,9 @@ class ProviderSettings(QWidget):
         if not self.current_provider_layout:
             return
 
-        from PySide6.QtWidgets import QPushButton
         from typing import cast
+
+        from PySide6.QtWidgets import QPushButton
 
         button_index = 0
         for i in range(self.current_provider_layout.count()):
@@ -493,9 +496,7 @@ class ProviderSettings(QWidget):
         if provider.internal_name != "openai-compatible":
             return
 
-        provider_config = self.app.settings_manager.providers.get(
-            provider.internal_name, {}
-        )
+        provider_config = self.app.settings_manager.providers.get(provider.internal_name, {})
         api_base = provider_config.get("api_base", "")
         api_key = provider_config.get("api_key", "")
 

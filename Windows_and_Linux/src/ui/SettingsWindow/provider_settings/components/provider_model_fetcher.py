@@ -3,7 +3,8 @@ Async model fetching for OpenAI-compatible providers.
 """
 
 import logging
-from typing import TYPE_CHECKING, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .....aiprovider.openAI_compatible import OpenAICompatibleProvider

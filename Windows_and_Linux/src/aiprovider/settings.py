@@ -221,7 +221,7 @@ class DropdownSetting(AIProviderSetting):
     """
     A dropdown setting (e.g., for selecting a model).
 
-    Uses a non-editable QComboBox.
+    Uses a non-editable QComboBox or SearchableComboBox if searchable=True.
     Options are stored as tuples (display_name, value).
     """
 
@@ -234,6 +234,8 @@ class DropdownSetting(AIProviderSetting):
         description: str | None = None,
         options: list | None = None,
         refresh_callback: Callable | None = None,
+        searchable: bool = False,
+        search_placeholder: str = "Search models...",
     ):
         super().__init__(name, display_name, default_value, description)
         self.app = app
@@ -242,6 +244,8 @@ class DropdownSetting(AIProviderSetting):
         self.dropdown: QComboBox | None = None
         self.label: QLabel | None = None
         self.refresh_callback = refresh_callback
+        self.searchable = searchable
+        self.search_placeholder = search_placeholder
 
     def render_to_layout(self, layout: QVBoxLayout) -> None:
         """Create and configure the QComboBox with available options."""
@@ -249,7 +253,15 @@ class DropdownSetting(AIProviderSetting):
         self.label = QLabel(self.display_name)
         self.label.setStyleSheet(self.app.styles["label"])
         row_layout.addWidget(self.label)
-        self.dropdown = QComboBox()
+
+        # Create searchable or regular combobox
+        if self.searchable:
+            from ..ui.custom_widgets.searchable_combobox import SearchableComboBox
+
+            self.dropdown = SearchableComboBox(search_placeholder=self.search_placeholder)
+        else:
+            self.dropdown = QComboBox()
+
         # Ensure dropdown can receive focus and clicks properly
         self.dropdown.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.dropdown.setStyleSheet(self.app.styles["dropdown"])
