@@ -190,7 +190,7 @@ class ProviderUIBuilder:
                     old_setting.dropdown.deleteLater()
                     old_setting.dropdown = None
 
-            old_setting.refresh_options([(m, m) for m in models])
+            old_setting.refresh_options([(str(m.get("id", m) if isinstance(m, dict) else m), str(m.get("id", m) if isinstance(m, dict) else m)) for m in models])
 
             # Update selection to match current api_model
             provider_config = self.app.settings_manager.providers.get(provider.internal_name, {})
