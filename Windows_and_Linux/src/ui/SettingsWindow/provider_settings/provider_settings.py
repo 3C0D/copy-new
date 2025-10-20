@@ -413,25 +413,30 @@ class ProviderSettings(QWidget):
 
             # Auto-update has_vision based on preset model
             preset_model = preset_data.get("api_model", "")
-            has_vision = False
+            vision_info = {"has_vision": False, "auto_detected": False}
+
             if preset_model and hasattr(provider, "get_model_metadata"):
                 try:
-                    model_meta = getattr(provider, "get_model_metadata")(preset_model)
-                    has_vision = model_meta.get("has_vision", False)
+                    vision_info = getattr(provider, "get_model_metadata")(preset_model)
                 except AttributeError:
                     pass
 
-                # Update has_vision setting
-                for setting in provider.settings:
-                    if setting.name == "has_vision":
-                        setting.set_value(has_vision)
-                        break
+            # Update has_vision setting
+            for setting in provider.settings:
+                if setting.name == "has_vision":
+                    setting.set_value(vision_info.get("has_vision", False))
+
+                    # Update read_only based on auto_detection
+                    if hasattr(setting, 'set_read_only'):
+                        getattr(setting, 'set_read_only')(vision_info.get("auto_detected", False))
+
+                    break
 
             # Update main api_model to match preset
             config = self.app.settings_manager.providers["openai-compatible"]
             if preset_model:
                 config["api_model"] = preset_model
-                config["has_vision"] = has_vision
+                config["has_vision"] = vision_info.get("has_vision", False)
                 self.app.settings_manager.save()
 
             # Rebuild UI

@@ -255,18 +255,23 @@ class ProviderUIBuilder:
             if provider_obj:
                 # Update has_vision based on selected model
                 selected_model = dropdown_setting.get_value()
-                has_vision = False
+                vision_info = {"has_vision": False, "auto_detected": False}
+
                 if hasattr(provider_obj, "get_model_metadata"):
                     try:
-                        model_meta = getattr(provider_obj, "get_model_metadata")(selected_model)
-                        has_vision = model_meta.get("has_vision", False)
+                        vision_info = getattr(provider_obj, "get_model_metadata")(selected_model)
                     except AttributeError:
                         pass
 
-                # Find and update has_vision setting
+                # Find has_vision setting and update it
                 for setting in provider_obj.settings:
                     if setting.name == "has_vision":
-                        setting.set_value(has_vision)
+                        setting.set_value(vision_info.get("has_vision", False))
+
+                        # Update read_only status based on auto_detection
+                        if hasattr(setting, 'set_read_only'):
+                            getattr(setting, 'set_read_only')(vision_info.get("auto_detected", False))
+
                         break
 
                 # Save config

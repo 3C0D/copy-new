@@ -70,30 +70,25 @@ class ModelFetchThread(QThread):
             self._logger.error(f"Error fetching models: {e}")
             self.fetch_failed.emit(str(e))
 
-    def _detect_vision_support(self, model_data: dict) -> bool:
+    def _detect_vision_support(self, model_data: dict) -> dict:
         """
         Detect if a model supports vision/image analysis.
 
-        Checks the 'architecture' field for presence of 'image' in input_modalities.
-
-        Args:
-            model_data: Model data dict from API
-
         Returns:
-            True if model supports image input
+            Dict with 'has_vision' (bool) and 'auto_detected' (bool)
         """
         architecture = model_data.get("architecture")
         if not architecture:
-            return False
+            return {"has_vision": False, "auto_detected": False}
 
         input_modalities = architecture.get("input_modalities")
         if not input_modalities:
-            return False
+            return {"has_vision": False, "auto_detected": False}
 
         if isinstance(input_modalities, list):
-            return "image" in input_modalities
+            return {"has_vision": "image" in input_modalities, "auto_detected": True}
 
-        return False
+        return {"has_vision": False, "auto_detected": False}
 
 
 class OpenAICompatibleProvider(AIProvider):
@@ -147,10 +142,10 @@ class OpenAICompatibleProvider(AIProvider):
             CheckboxSetting(
                 app,
                 name="has_vision",
-                display_name="Has Vision (auto-detected)",
+                display_name="Has Vision",
                 default_value=False,
-                description="Automatically detected based on model capabilities",
-                read_only=True,
+                description="Enable if model supports image analysis",
+                read_only=False,
             ),
         ]
         super().__init__(
@@ -382,10 +377,12 @@ class OpenAICompatibleProvider(AIProvider):
                     models = []
                     for model in data["data"]:
                         if "id" in model:
+                            vision_info = self._detect_vision_support(model)
                             model_info = {
                                 "id": model.get("id"),
                                 "architecture": model.get("architecture"),
-                                "has_vision": self._detect_vision_support(model),
+                                "has_vision": vision_info["has_vision"] if isinstance(vision_info, dict) else False,
+                                "auto_detected": vision_info["auto_detected"] if isinstance(vision_info, dict) else False,
                             }
                             models.append(model_info)
 
@@ -432,16 +429,13 @@ class OpenAICompatibleProvider(AIProvider):
         """
         Get metadata for a specific model.
 
-        Args:
-            model_id: ID of the model
-
         Returns:
-            Dict with metadata including has_vision
+            Dict with 'id', 'has_vision', and 'auto_detected'
         """
         for model in self._fetched_models:
             if model.get("id") == model_id:
                 return model
-        return {"id": model_id, "has_vision": False}
+        return {"id": model_id, "has_vision": False, "auto_detected": False}
 
     def get_fetched_models(self) -> list[str]:
         """Get the list of fetched models."""

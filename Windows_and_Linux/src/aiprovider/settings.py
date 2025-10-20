@@ -213,6 +213,15 @@ class CheckboxSetting(AIProviderSetting):
                 # Widget has been deleted, just store the value
                 pass
 
+    def set_read_only(self, read_only: bool) -> None:
+        """Dynamically change the read-only state of the checkbox."""
+        self.read_only = read_only
+        if self.checkbox is not None:
+            try:
+                self.checkbox.setEnabled(not read_only)
+            except RuntimeError:
+                pass
+
     def get_value(self) -> bool:
         """Return checkbox value or stored value if not yet rendered."""
         if self.checkbox is not None:
