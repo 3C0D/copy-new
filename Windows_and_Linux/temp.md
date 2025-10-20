@@ -111,3 +111,11 @@ ui manager n'est plus utile refactoriser...
 - Évaluer si fermer fenêtre sur "quotas dépassés" (billing)
 - Vérifier si d'autres erreurs peuvent être prévenues en amont
 - Consolider logique de fermeture dans méthode centralisée si extension nécessaire
+
+---
+
+Ces 2 modèles supportent la vision dans groq
+
+meta-llama/llama-4-scout-17b-16e-instruct
+
+meta-llama/llama-4-maverick-17b-128e-instruct
