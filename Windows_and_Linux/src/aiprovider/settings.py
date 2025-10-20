@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
 
 # Type checking imports
 if TYPE_CHECKING:
+    from ..ui.custom_widgets.searchable_combobox import SearchableComboBox
     from ..writing_tools_app import WritingToolsApp
 
 
@@ -241,7 +242,7 @@ class DropdownSetting(AIProviderSetting):
         self.app = app
         self.options = options or []
         self.internal_value = default_value
-        self.dropdown: QComboBox | None = None
+        self.dropdown: QComboBox | SearchableComboBox | None = None
         self.label: QLabel | None = None
         self.refresh_callback = refresh_callback
         self.searchable = searchable
@@ -267,7 +268,9 @@ class DropdownSetting(AIProviderSetting):
         self.dropdown.setStyleSheet(self.app.styles["dropdown"])
 
         # DISABLE WHEEL SCROLL
-        self.dropdown.wheelEvent = lambda e: e.ignore()
+        if isinstance(self.dropdown, QComboBox):
+            self.dropdown.wheelEvent = lambda e: e.ignore()
+        # SearchableComboBox already handles wheel events
 
         for option_tuple in self.options:
             if len(option_tuple) == 2:
@@ -296,7 +299,7 @@ class DropdownSetting(AIProviderSetting):
             self.dropdown.currentIndexChanged.connect(self.auto_save_callback)
 
         # Connect refresh callback when dropdown is about to be shown
-        if self.refresh_callback:
+        if self.refresh_callback and isinstance(self.dropdown, QComboBox):
             # Override showPopup to call refresh before showing
             # QComboBox doesn't have aboutToShow signal, so we override showPopup
             # Save original showPopup
