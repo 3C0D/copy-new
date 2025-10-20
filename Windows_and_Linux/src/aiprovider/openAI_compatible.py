@@ -46,7 +46,17 @@ class ModelFetchThread(QThread):
             if response.status_code == 200:
                 data = response.json()
                 if isinstance(data, dict) and "data" in data:
-                    models = [model.get("id") for model in data["data"] if "id" in model]
+                    # Extract full model data including architecture
+                    models = []
+                    for model in data["data"]:
+                        if "id" in model:
+                            model_info = {
+                                "id": model.get("id"),
+                                "architecture": model.get("architecture"),
+                                "has_vision": self._detect_vision_support(model),
+                            }
+                            models.append(model_info)
+
                     self._logger.debug(f"Successfully fetched {len(models)} models")
                     self.models_fetched.emit(models)
                 else:
@@ -60,6 +70,31 @@ class ModelFetchThread(QThread):
             self._logger.error(f"Error fetching models: {e}")
             self.fetch_failed.emit(str(e))
 
+    def _detect_vision_support(self, model_data: dict) -> bool:
+        """
+        Detect if a model supports vision/image analysis.
+
+        Checks the 'architecture' field for presence of 'image' in input_modalities.
+
+        Args:
+            model_data: Model data dict from API
+
+        Returns:
+            True if model supports image input
+        """
+        architecture = model_data.get("architecture")
+        if not architecture:
+            return False
+
+        input_modalities = architecture.get("input_modalities")
+        if not input_modalities:
+            return False
+
+        if isinstance(input_modalities, list):
+            return "image" in input_modalities
+
+        return False
+
 
 class OpenAICompatibleProvider(AIProvider):
     """
@@ -72,7 +107,7 @@ class OpenAICompatibleProvider(AIProvider):
 
     def __init__(self, app: "WritingToolsApp"):
         self.client: Any = None
-        self._fetched_models: list[str] = []  # Store fetched models
+        self._fetched_models: list[dict] = []  # Store fetched models with metadata
 
         settings = [
             TextSetting(
@@ -114,7 +149,7 @@ class OpenAICompatibleProvider(AIProvider):
                 name="has_vision",
                 display_name="Has Vision",
                 default_value=False,
-                description="Check if this model supports vision/image analysis",
+                description="Automatically detected based on model capabilities",
             ),
         ]
         super().__init__(
@@ -343,7 +378,16 @@ class OpenAICompatibleProvider(AIProvider):
                 data = response.json()
                 # Handle OpenAI-style response format
                 if isinstance(data, dict) and "data" in data:
-                    models = [model.get("id") for model in data["data"] if "id" in model]
+                    models = []
+                    for model in data["data"]:
+                        if "id" in model:
+                            model_info = {
+                                "id": model.get("id"),
+                                "architecture": model.get("architecture"),
+                                "has_vision": self._detect_vision_support(model),
+                            }
+                            models.append(model_info)
+
                     self._logger.debug(f"Successfully fetched {len(models)} models")
                     self._fetched_models = models
                     return models
@@ -358,6 +402,46 @@ class OpenAICompatibleProvider(AIProvider):
             self._logger.error(f"Error fetching models: {e}")
             return []
 
+    def _detect_vision_support(self, model_data: dict) -> bool:
+        """
+        Detect if a model supports vision/image analysis.
+
+        Checks the 'architecture' field for presence of 'image' in input_modalities.
+
+        Args:
+            model_data: Model data dict from API
+
+        Returns:
+            True if model supports image input
+        """
+        architecture = model_data.get("architecture")
+        if not architecture:
+            return False
+
+        input_modalities = architecture.get("input_modalities")
+        if not input_modalities:
+            return False
+
+        if isinstance(input_modalities, list):
+            return "image" in input_modalities
+
+        return False
+
+    def get_model_metadata(self, model_id: str) -> dict:
+        """
+        Get metadata for a specific model.
+
+        Args:
+            model_id: ID of the model
+
+        Returns:
+            Dict with metadata including has_vision
+        """
+        for model in self._fetched_models:
+            if model.get("id") == model_id:
+                return model
+        return {"id": model_id, "has_vision": False}
+
     def get_fetched_models(self) -> list[str]:
         """Get the list of fetched models."""
-        return self._fetched_models
+        return [model["id"] for model in self._fetched_models]

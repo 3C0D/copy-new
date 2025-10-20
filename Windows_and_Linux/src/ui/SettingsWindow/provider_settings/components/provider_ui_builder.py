@@ -200,7 +200,9 @@ class ProviderUIBuilder:
 
             # Ensure scroll is disabled
             if old_setting.dropdown:
-                old_setting.dropdown.wheelEvent = lambda e: e.ignore()
+                if isinstance(old_setting.dropdown, QComboBox):
+                    old_setting.dropdown.wheelEvent = lambda e: e.ignore()
+                # SearchableComboBox already handles wheel events
 
             return True
 
@@ -220,7 +222,14 @@ class ProviderUIBuilder:
             provider.save_config()
 
         # Create dropdown with search capability
-        options = [(model, model) for model in models]
+        options = []
+        for model in models:
+            if isinstance(model, dict):
+                model_id = model.get("id", "")
+                options.append((model_id, model_id))
+            else:
+                # Fallback for string models
+                options.append((model, model))
         dropdown_setting = DropdownSetting(
             self.app,
             name="api_model",
@@ -234,12 +243,33 @@ class ProviderUIBuilder:
             ),  # Better placeholder
         )
 
-        # Set callback with preset sync
+        # Store models metadata for vision detection
+        if hasattr(provider, "_fetched_models"):
+            setattr(dropdown_setting, "_models_metadata", getattr(provider, "_fetched_models"))
+
+        # Set callback with preset sync AND vision auto-update
         provider_ref = weakref.ref(provider)
 
         def auto_save():
             provider_obj = provider_ref()
             if provider_obj:
+                # Update has_vision based on selected model
+                selected_model = dropdown_setting.get_value()
+                has_vision = False
+                if hasattr(provider_obj, "get_model_metadata"):
+                    try:
+                        model_meta = getattr(provider_obj, "get_model_metadata")(selected_model)
+                        has_vision = model_meta.get("has_vision", False)
+                    except AttributeError:
+                        pass
+
+                # Find and update has_vision setting
+                for setting in provider_obj.settings:
+                    if setting.name == "has_vision":
+                        setting.set_value(has_vision)
+                        break
+
+                # Save config
                 provider_obj.save_config()
                 updated_config = self.app.settings_manager.providers.get(
                     provider_obj.internal_name, {}

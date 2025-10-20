@@ -173,7 +173,6 @@ class ProviderSettings(QWidget):
 
         # Preset UI (OpenAI-compatible)
         if provider.internal_name == "openai-compatible":
-            provider_config = self.app.settings_manager.providers.get(provider.internal_name, {})
             self.preset_manager.build_preset_ui(
                 provider,
                 self.current_provider_layout,
@@ -412,11 +411,27 @@ class ProviderSettings(QWidget):
             # Load preset
             self.preset_manager.load_preset(provider, preset_data)
 
+            # Auto-update has_vision based on preset model
+            preset_model = preset_data.get("api_model", "")
+            has_vision = False
+            if preset_model and hasattr(provider, "get_model_metadata"):
+                try:
+                    model_meta = getattr(provider, "get_model_metadata")(preset_model)
+                    has_vision = model_meta.get("has_vision", False)
+                except AttributeError:
+                    pass
+
+                # Update has_vision setting
+                for setting in provider.settings:
+                    if setting.name == "has_vision":
+                        setting.set_value(has_vision)
+                        break
+
             # Update main api_model to match preset
             config = self.app.settings_manager.providers["openai-compatible"]
-            preset_model = preset_data.get("api_model", "")
             if preset_model:
                 config["api_model"] = preset_model
+                config["has_vision"] = has_vision
                 self.app.settings_manager.save()
 
             # Rebuild UI
@@ -540,7 +555,7 @@ class ProviderSettings(QWidget):
                 self.ui_builder.replace_model_setting_with_dropdown(
                     provider,
                     self.current_provider_layout,
-                    models,
+                    models,  # Pass full model dicts, not just IDs
                     self._on_model_changed,
                 )
 
