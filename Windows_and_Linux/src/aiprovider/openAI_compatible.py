@@ -277,6 +277,13 @@ class OpenAICompatibleProvider(AIProvider):
                 if hasattr(self.app, 'settings_manager'):
                     self.app.settings_manager.providers[self.internal_name]['has_vision'] = False
                     self.app.settings_manager.save()
+                # Close response window on vision errors (thread-safe)
+                if self.app.current_response_window:
+                    QtCore.QMetaObject.invokeMethod(
+                        self.app.current_response_window,
+                        "close",
+                        QtCore.Qt.ConnectionType.QueuedConnection,
+                    )
                 self.app.ui_manager.show_message_signal.emit(
                     "Vision Not Supported",
                     f"The selected model '{self.api_model}' does not support image analysis.\n\n"
