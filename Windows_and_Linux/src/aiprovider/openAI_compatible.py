@@ -147,9 +147,10 @@ class OpenAICompatibleProvider(AIProvider):
             CheckboxSetting(
                 app,
                 name="has_vision",
-                display_name="Has Vision",
+                display_name="Has Vision (auto-detected)",
                 default_value=False,
                 description="Automatically detected based on model capabilities",
+                read_only=True,
             ),
         ]
         super().__init__(

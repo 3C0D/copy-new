@@ -169,12 +169,14 @@ class CheckboxSetting(AIProviderSetting):
         display_name: str | None = None,
         default_value: bool | None = None,
         description: str | None = None,
+        read_only: bool = False,
     ):
         super().__init__(name, display_name, default_value or False, description)
         self.app = app
         self.internal_value: bool = bool(default_value)
         self.checkbox: QCheckBox | None = None
         self.label: QLabel | None = None
+        self.read_only: bool = read_only
 
     def render_to_layout(self, layout: QVBoxLayout) -> None:
         """Create and add the QCheckBox with its label to the layout."""
@@ -185,8 +187,12 @@ class CheckboxSetting(AIProviderSetting):
         self.checkbox.setStyleSheet(self.app.styles["checkbox"])
         self.checkbox.setChecked(self.internal_value)
 
-        # Connect auto-save if callback is set
-        if self.auto_save_callback:
+        # Make read-only if specified
+        if self.read_only:
+            self.checkbox.setEnabled(False)
+
+        # Connect auto-save if callback is set and not read-only
+        if self.auto_save_callback and not self.read_only:
             self.checkbox.stateChanged.connect(self.auto_save_callback)
 
         row_layout.addWidget(self.checkbox)
