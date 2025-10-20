@@ -270,7 +270,10 @@ class DropdownSetting(AIProviderSetting):
         # DISABLE WHEEL SCROLL
         if isinstance(self.dropdown, QComboBox):
             self.dropdown.wheelEvent = lambda e: e.ignore()
-        # SearchableComboBox already handles wheel events
+        else:
+            # For SearchableComboBox, disable wheel events on the internal QComboBox
+            if hasattr(self.dropdown, '_combo'):
+                self.dropdown._combo.wheelEvent = lambda e: e.ignore()
 
         for option_tuple in self.options:
             if len(option_tuple) == 2:

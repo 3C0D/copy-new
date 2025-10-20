@@ -84,3 +84,9 @@ Soit mis à jour.
 Je répète pour l'instant, le problème c'est que dans les fournisseurs Quand on change les valeurs, ça n'est pas bien mis à jour. Par contre, ce qui est bizarre, c'est que si on fait save, alors ça marche immédiatement et bien.
 _on_save_preset() dans provider_settings.py.
 J'ai le fichier data ouvert donc je vois les résultats en direct.
+
+c:\Users\dd200\Documents\Mes_projets\WritingTools Related\copy-new\Windows_and_Linux\src\aiprovider\settings.py:257-258
+```
+        # DISABLE WHEEL SCROLL
+        self.dropdown.wheelEvent = lambda e: e.ignore()
+```
