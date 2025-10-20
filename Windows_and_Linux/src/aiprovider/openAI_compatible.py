@@ -274,8 +274,8 @@ class OpenAICompatibleProvider(AIProvider):
                 self.has_vision = False
                 self.save_config()
                 # Force UI refresh to show the change
-                if hasattr(self.app, 'settings_manager'):
-                    self.app.settings_manager.providers[self.internal_name]['has_vision'] = False
+                if hasattr(self.app, "settings_manager"):
+                    self.app.settings_manager.providers[self.internal_name]["has_vision"] = False
                     self.app.settings_manager.save()
                 # Close response window on vision errors (thread-safe)
                 if self.app.current_response_window:
