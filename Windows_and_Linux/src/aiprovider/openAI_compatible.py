@@ -269,6 +269,20 @@ class OpenAICompatibleProvider(AIProvider):
                     "Quota Exceeded",
                     "You've exceeded your OpenAI API quota. Please check your billing and usage limits.",
                 )
+            elif "messages[1].content must be a string" in error_str.lower():
+                # Handle vision not supported error - automatically disable vision
+                self.has_vision = False
+                self.save_config()
+                # Force UI refresh to show the change
+                if hasattr(self.app, 'settings_manager'):
+                    self.app.settings_manager.providers[self.internal_name]['has_vision'] = False
+                    self.app.settings_manager.save()
+                self.app.ui_manager.show_message_signal.emit(
+                    "Vision Not Supported",
+                    f"The selected model '{self.api_model}' does not support image analysis.\n\n"
+                    f"Vision support has been automatically disabled for this model.\n"
+                    f"Please select a vision-capable model if you need image analysis.",
+                )
             else:
                 self.app.ui_manager.show_message_signal.emit(
                     "API Error",
@@ -381,8 +395,12 @@ class OpenAICompatibleProvider(AIProvider):
                             model_info = {
                                 "id": model.get("id"),
                                 "architecture": model.get("architecture"),
-                                "has_vision": vision_info["has_vision"] if isinstance(vision_info, dict) else False,
-                                "auto_detected": vision_info["auto_detected"] if isinstance(vision_info, dict) else False,
+                                "has_vision": vision_info["has_vision"]
+                                if isinstance(vision_info, dict)
+                                else False,
+                                "auto_detected": vision_info["auto_detected"]
+                                if isinstance(vision_info, dict)
+                                else False,
                             }
                             models.append(model_info)
 
