@@ -23,7 +23,7 @@ create_entities({
   entities: [{
     name: "WritingTools_Project",
     entityType: "project",
-    observations: ["Python desktop app", "AI text processing", "Ctrl+Space shortcut"]
+    observations: ["Python desktop app", "AI text processing", "configurable shortcut (default: ctrl space)"]
   }]
 })
 ```
@@ -80,7 +80,7 @@ create_entities({
     observations: [
       "Python Qt application for AI text processing",
       "Uses Gemini, OpenAI, Anthropic APIs",
-      "Global hotkey Ctrl+Space",
+      "Configurable global shortcut (default: ctrl space)",
       "Direct text replacement and response windows"
     ]
   }]
@@ -140,7 +140,7 @@ WritingTools_App (Entity)
 ├── Observations:
 │   ├── "Python Qt application for AI text processing"
 │   ├── "Uses Gemini, OpenAI, Anthropic APIs"
-│   └── "Global hotkey Ctrl+Space"
+│   └── "Configurable global shortcut (default: ctrl space)"
 └── Relations:
     ├── uses_technology → Python
     ├── uses_technology → Qt

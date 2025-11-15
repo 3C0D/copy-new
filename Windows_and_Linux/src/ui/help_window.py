@@ -89,7 +89,7 @@ class HelpWindow(ThemedWidget):
 
             <h3 style='color: {text_color};'> 🖼️  {_("Image Processing Priority")}</h3>
             <p><strong>{_("Clipboard Images:")}</strong> {_("Images in clipboard take priority over text. Press your configured shortcut for image analysis (OCR, translation, description, etc.).")}</p>
-            <p><strong>{_("Screenshot Workflow:")}</strong> {_("Take a screenshot (Ctrl+Shift+S or Print Screen) → Image copied to clipboard → Ctrl+Space → Enter prompt → Chat window opens with AI response → Continue discussion about the image.")}</p>
+            <p><strong>{_("Screenshot Workflow:")}</strong> {_("Take a screenshot (Ctrl+Shift+S or Print Screen) → Image copied to clipboard → Press your configured shortcut → Enter prompt → Chat window opens with AI response → Continue discussion about the image.")}</p>
             <p><strong>{_("Clipboard Management:")}</strong> <b>{_("Validated prompts clear clipboard to prevent reuse. Cancelled prompts keep the image.")}</b></p>
 
             <h3 style='color: {text_color};'>📝 {_("Text Selection & Interaction Modes")}</h3>

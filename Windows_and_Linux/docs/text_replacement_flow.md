@@ -10,7 +10,7 @@ User Action → Hotkey Detection → UI Creation → Option Processing → AI Re
 
 ---
 
-## **1. 👤 User presses Ctrl+Space**
+## **1. 👤 User presses configured shortcut (default: ctrl space)**
 
 ### **Action :** User triggers the keyboard shortcut
 

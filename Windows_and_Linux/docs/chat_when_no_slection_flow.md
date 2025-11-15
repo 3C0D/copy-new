@@ -10,7 +10,7 @@ User Action → Hotkey Detection → UI Creation → ResponseWindow Mode → AI 
 
 ---
 
-## **1. 👤 User presses Ctrl+Space (without text selection)**
+## **1. 👤 User presses configured shortcut (default: ctrl space) (without text selection)**
 
 ### **Action :** User triggers the keyboard shortcut with no selection
 
@@ -309,7 +309,7 @@ if not return_response and not hasattr(self.app, "current_response_window"):
 
 | Aspect | Response Window Mode (No Selection) | Direct Replacement (With Selection) |
 |--------|------------------------------------|------------------------------------|
-| **Trigger** | Ctrl+Space without selection | Ctrl+Space with selection |
+| **Trigger** | Configured shortcut without selection | Configured shortcut with selection |
 | **return_response** | `True` | `False` |
 | **Response Window** | ✅ Created | ❌ None |
 | **Output Method** | Display in ResponseWindow | Direct text replacement |

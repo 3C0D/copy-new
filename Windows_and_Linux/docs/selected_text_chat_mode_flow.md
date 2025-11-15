@@ -10,7 +10,7 @@ User Action → Hotkey avec texte → Popup s'ouvre → Force Chat activé OU bo
 
 ---
 
-## **1. 👤 Utilisateur presse Ctrl+Space (avec texte sélectionné)**
+## **1. 👤 Utilisateur presse le raccourci configuré (par défaut: ctrl space) (avec texte sélectionné)**
 
 ### **Action :** Utilisateur déclenche le raccourci avec du texte sélectionné
 

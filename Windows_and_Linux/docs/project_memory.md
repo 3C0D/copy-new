@@ -1,7 +1,7 @@
 # 🧠 **PROJECT MEMORY - Writing Tools Application**
 
 ## **📋 PROJECT OVERVIEW**
-Writing Tools is a cross-platform desktop application that provides AI-powered text processing capabilities through a global keyboard shortcut (Ctrl+Space). The application captures selected text and offers various AI transformations like rewriting, summarizing, and custom prompts.
+Writing Tools is a cross-platform desktop application that provides AI-powered text processing capabilities through a configurable global keyboard shortcut (default: ctrl space). The application captures selected text and offers various AI transformations like rewriting, summarizing, and custom prompts.
 
 ## **🏗️ ARCHITECTURE & STRUCTURE**
 
@@ -22,7 +22,7 @@ Writing Tools is a cross-platform desktop application that provides AI-powered t
 ## **🔄 TEXT REPLACEMENT FLOW (Direct Mode)**
 
 ```
-1. User presses Ctrl+Space
+1. User presses configured shortcut (default: ctrl space)
    ↓
 2. on_hotkey_pressed() → _show_popup()
    ↓
@@ -68,7 +68,7 @@ Writing Tools is a cross-platform desktop application that provides AI-powered t
 - **Benefit**: Cleaner architecture, better maintainability, clearer separation of concerns
 
 ### **Chat Window Toggle Feature (Added)**
-- **Feature**: Ctrl+Space now closes existing chat windows and returns to main popup
+- **Feature**: Configured shortcut now closes existing chat windows and returns to main popup
 - **Issue Fixed**: Inconsistency in variable names (`response_window` vs `current_response_window`)
 - **Solution**: Corrected variable reference in `on_hotkey_pressed()` method
 - **Location**: `WritingToolApp.py:on_hotkey_pressed()`
