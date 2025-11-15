@@ -112,7 +112,7 @@ class SettingsManager:
         Smart attribute assignment for settings.
 
         Example:
-            settings_manager.hotkey = "ctrl+space"  # -> settings.system["hotkey"]
+            settings_manager.hotkey = "ctrl space"  # -> settings.system["hotkey"]
         """
         # Internal class attributes and private attributes
         if name in self._INTERNAL_ATTRS or name.startswith("_"):

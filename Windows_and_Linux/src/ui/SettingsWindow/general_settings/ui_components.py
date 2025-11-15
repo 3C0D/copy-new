@@ -88,9 +88,9 @@ def create_shortcut_section(app: "WritingToolsApp", settings_manager: "SettingsM
     """
     label = create_styled_widget(QLabel, "label", app, text="Shortcut Key:")
     input_field = create_styled_widget(
-        QLineEdit, "input", app, text=settings_manager.hotkey or "ctrl+space"
+        QLineEdit, "input", app, text=settings_manager.hotkey or "ctrl space"
     )
-    input_field.setPlaceholderText("e.g., ctrl+space, ctrl+shift+a")
+    input_field.setPlaceholderText("e.g., ctrl space, ctrl shift a, ctrl shift +")
 
     return label, input_field
 

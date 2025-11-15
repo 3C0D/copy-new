@@ -88,7 +88,7 @@ class HelpWindow(ThemedWidget):
             <h2 style='color: {text_color};'>🎯 {_("How to Use Writing Tools")}</h2>
 
             <h3 style='color: {text_color};'> 🖼️  {_("Image Processing Priority")}</h3>
-            <p><strong>{_("Clipboard Images:")}</strong> {_("Images in clipboard take priority over text. Press Ctrl+Space for image analysis (OCR, translation, description, etc.).")}</p>
+            <p><strong>{_("Clipboard Images:")}</strong> {_("Images in clipboard take priority over text. Press your configured shortcut for image analysis (OCR, translation, description, etc.).")}</p>
             <p><strong>{_("Screenshot Workflow:")}</strong> {_("Take a screenshot (Ctrl+Shift+S or Print Screen) → Image copied to clipboard → Ctrl+Space → Enter prompt → Chat window opens with AI response → Continue discussion about the image.")}</p>
             <p><strong>{_("Clipboard Management:")}</strong> <b>{_("Validated prompts clear clipboard to prevent reuse. Cancelled prompts keep the image.")}</b></p>
 
@@ -129,7 +129,7 @@ class HelpWindow(ThemedWidget):
 
             <h3 style='color: {text_color};'>⚙️ {_("Settings & Configuration")}</h3>
             <p><strong>{_("Interface Settings:")}</strong> {_("Customize appearance, themes, and window behavior")}</p>
-            <p><strong>{_("Global Shortcut:")}</strong> {_("Set your preferred keyboard shortcut (default: Ctrl+Space)")}</p>
+            <p><strong>{_("Global Shortcut:")}</strong> {_("Set your preferred keyboard shortcut (default: ctrl space). Use spaces as separators, e.g., ctrl shift a, ctrl shift +")}</p>
             <p><strong>{_("LLM Selection:")}</strong> {_("Choose from available AI models. Models marked with ⭐ support image processing across all providers")}</p>
 
             <h4 style='color: {text_color};'>🔧 {_("Ollama Integration")}</h4>
@@ -145,8 +145,8 @@ class HelpWindow(ThemedWidget):
                 <div style='display: flex; justify-content: space-between; margin-top: 10px; color: {text_color};'>
                     <div>
                         <strong>{_("Flow:")}</strong><br>
-                         🖼️  Image → Ctrl+Space → Prompt → Chat<br>
-                        📝 Text → Ctrl+Space → Manual/Action → Chat/Replace<br>
+                         🖼️  Image → ctrl space → Prompt → Chat<br>
+                        📝 Text → ctrl space → Manual/Action → Chat/Replace<br>
                         ❌ Cancel → Clipboard preserved<br>
                         ✅ Validate → Clipboard cleared
                     </div>

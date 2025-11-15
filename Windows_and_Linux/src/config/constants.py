@@ -44,7 +44,7 @@ class ProviderDefaults:
 class UIDefaults:
     """Default UI settings."""
 
-    HOTKEY = "ctrl+space"
+    HOTKEY = "ctrl space"
     BACKGROUND_THEME = "gradient"
     COLOR_MODE = "auto"  # Color mode: "auto", "light", or "dark"
     RESPONSE_WINDOW_ZOOM = 1.2  # Default zoom factor for response window

@@ -92,12 +92,18 @@ class HotkeyManager(QObject):
             keyboard.unhook_all()
 
             # Get shortcut from settings
-            shortcut = self.app.settings_manager.hotkey or "ctrl+space"
-            self._logger.debug(f"Registering global hotkey: {shortcut}")
+            shortcut = self.app.settings_manager.hotkey or "ctrl space"
+            # Convert spaces to '+' for keyboard module compatibility, but handle '+' key specially
+            if shortcut.endswith(' +'):
+                # Special case for '+' key
+                keyboard_shortcut = shortcut.replace(' +', '+plus').replace(' ', '+')
+            else:
+                keyboard_shortcut = shortcut.replace(' ', '+')
+            self._logger.debug(f"Registering global hotkey: {keyboard_shortcut} (from settings: {shortcut})")
 
             # Register with keyboard module
             keyboard.add_hotkey(
-                shortcut,
+                keyboard_shortcut,
                 lambda: self.hotkey_triggered_signal.emit() if not self.app.systray_manager.paused else None,
                 suppress=False
             )
