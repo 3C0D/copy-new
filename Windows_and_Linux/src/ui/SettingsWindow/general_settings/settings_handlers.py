@@ -53,7 +53,9 @@ class SettingsHandlers:
         if shortcut_input is None:
             return
 
-        self.app.settings_manager.hotkey = shortcut_input.text() or "ctrl space"
+        self.app.settings_manager.hotkey = (
+            " ".join((shortcut_input.text() or "ctrl space").split()) or "ctrl space"
+        )
         self.app.hotkey_manager.register_hotkey()
 
     def handle_theme_changed(self, gradient_radio) -> None:

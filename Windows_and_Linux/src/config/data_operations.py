@@ -73,9 +73,6 @@ def merge_system_data(
         # Only merge fields that exist in default_values (valid SystemConfig fields)
         for key, value in user_data.items():
             if key in default_values:
-                # Normalize hotkey format from old '+' to new ' ' separator
-                if key == "hotkey" and isinstance(value, str):
-                    value = value.replace('+', ' ')
                 result[key] = value
 
     return result

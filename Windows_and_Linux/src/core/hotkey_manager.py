@@ -91,21 +91,22 @@ class HotkeyManager(QObject):
             # Clean up existing hotkey first
             keyboard.unhook_all()
 
-            # Get shortcut from settings
-            shortcut = self.app.settings_manager.hotkey or "ctrl space"
-            # Convert spaces to '+' for keyboard module compatibility, but handle '+' key specially
-            if shortcut.endswith(' +'):
-                # Special case for '+' key
-                keyboard_shortcut = shortcut.replace(' +', '+plus').replace(' ', '+')
-            else:
-                keyboard_shortcut = shortcut.replace(' ', '+')
-            self._logger.debug(f"Registering global hotkey: {keyboard_shortcut} (from settings: {shortcut})")
+            # Get shortcut from settings and normalize spaces
+            shortcut = " ".join((self.app.settings_manager.hotkey or "ctrl space").split())
+
+            # Convert spaces to '+' and handle '+' key specially
+            keyboard_shortcut = shortcut.replace(" ", "+").replace("++", "+plus")
+            self._logger.debug(
+                f"Registering global hotkey: {keyboard_shortcut} (from settings: {shortcut})"
+            )
 
             # Register with keyboard module
             keyboard.add_hotkey(
                 keyboard_shortcut,
-                lambda: self.hotkey_triggered_signal.emit() if not self.app.systray_manager.paused else None,
-                suppress=False
+                lambda: self.hotkey_triggered_signal.emit()
+                if not self.app.systray_manager.paused
+                else None,
+                suppress=False,
             )
 
             self._logger.debug("Hotkey registered successfully")
