@@ -11,7 +11,7 @@ import time
 import types
 from typing import TYPE_CHECKING
 
-from pynput import keyboard as keyboard
+import keyboard
 from PySide6.QtCore import QMetaObject, QObject, Qt, QTimer, Signal, Slot
 
 if TYPE_CHECKING:
@@ -31,7 +31,6 @@ class HotkeyManager(QObject):
         self._logger = logging.getLogger(__name__)
 
         # Hotkey system attributes
-        self.hotkey_listener: keyboard.Listener | None = None
         self.ctrl_c_timer: QTimer | None = None
 
         # Spam protection attributes
@@ -84,57 +83,29 @@ class HotkeyManager(QObject):
 
         return len(self.recent_triggers) >= self.MAX_TRIGGERS
 
-    def start_hotkey_listener(self) -> None:
-        """
-        Create listener for hotkeys on Linux/Mac.
-        """
-        orig_shortcut = self.app.settings_manager.hotkey or "ctrl+space"
-
-        # Parse the shortcut string, for example ctrl+alt+h -> <ctrl>+<alt>+<h>. Space are removed.
-        shortcut = "+".join([f"<{t.strip()}>" for t in orig_shortcut.split("+")])
-
-        self._logger.debug(f"Registering global hotkey for shortcut: {shortcut}")
-
-        try:
-            if self.hotkey_listener is not None:
-                self.hotkey_listener.stop()
-                self.hotkey_listener = None
-
-            def on_activate():
-                if self.app.systray_manager.paused:
-                    return
-                self._logger.debug("triggered hotkey")
-                self.hotkey_triggered_signal.emit()  # Emit the signal when hotkey is pressed
-
-            # Define the hotkey combination
-            hotkey = keyboard.HotKey(keyboard.HotKey.parse(shortcut), on_activate)
-
-            # Helper function to standardize key event
-            def for_canonical(f):
-                return lambda k: f(
-                    self.hotkey_listener.canonical(k)
-                    if k is not None and self.hotkey_listener is not None
-                    else k
-                )
-
-            # Create a listener and store it as an attribute to stop it later
-            self.hotkey_listener = keyboard.Listener(
-                on_press=for_canonical(hotkey.press),
-                on_release=for_canonical(hotkey.release),
-            )
-
-            # Start the listener
-            self.hotkey_listener.start()
-        except Exception as e:
-            self._logger.error(f"Failed to register hotkey: {e}")
-
     def register_hotkey(self) -> None:
         """
         Register the global hotkey for activating Writing Tools.
         """
-        self._logger.debug("Registering hotkey")
-        self.start_hotkey_listener()
-        self._logger.debug("Hotkey registered")
+        try:
+            # Clean up existing hotkey first
+            keyboard.unhook_all()
+
+            # Get shortcut from settings
+            shortcut = self.app.settings_manager.hotkey or "ctrl+space"
+            self._logger.debug(f"Registering global hotkey: {shortcut}")
+
+            # Register with keyboard module
+            keyboard.add_hotkey(
+                shortcut,
+                lambda: self.hotkey_triggered_signal.emit() if not self.app.systray_manager.paused else None,
+                suppress=False
+            )
+
+            self._logger.debug("Hotkey registered successfully")
+
+        except Exception as e:
+            self._logger.error(f"Failed to register hotkey: {e}")
 
     @Slot()
     def on_hotkey_pressed(self) -> None:
@@ -185,8 +156,10 @@ class HotkeyManager(QObject):
         """
         Clean up hotkey resources when the application exits.
         """
-        self._logger.debug("Stopping the listener")
-        if self.hotkey_listener is not None:
-            self.hotkey_listener.stop()
-        self._logger.debug("Restoring default SIGINT handler")
+        self._logger.debug("Cleaning up hotkey manager")
+        try:
+            keyboard.unhook_all()
+        except Exception as e:
+            self._logger.error(f"Error during cleanup: {e}")
+
         signal.signal(signal.SIGINT, signal.SIG_DFL)

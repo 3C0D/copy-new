@@ -19,6 +19,7 @@ dependencies = [
     "openai",
     "pyperclip",
     "pynput",
+    "keyboard",
     "PySide6",
     "markdown2",
     "pyinstaller",
