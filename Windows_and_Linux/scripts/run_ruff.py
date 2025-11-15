@@ -13,12 +13,7 @@ from pathlib import Path
 from utils import (
     clear_console,
     get_project_root,
-    get_python_executable,
-    setup_environment,
 )
-
-# Configuration
-DEFAULT_VENV_NAME = "myvenv"
 
 # Add parent directory to path to import utils
 script_dir = Path(__file__).parent
@@ -27,33 +22,21 @@ sys.path.insert(0, str(project_root))
 
 
 def main():
-    """Main function to run complete Ruff setup and execution."""
+    """Main function to run complete Ruff setup and execution with UV."""
     clear_console()
-    print("RUFF FORMATTER & LINTER RUNNER")
+    print("RUFF FORMATTER & LINTER RUNNER (UV)")
     print("=" * 40)
 
     try:
         # Setup project root
         project_root = get_project_root()
         print(f"Project root: {project_root.name}")
+        print("Environment automatically managed by UV")
 
-        # Setup environment (virtual env + dependencies)
-        success, _ = setup_environment(DEFAULT_VENV_NAME)
-        if not success:
-            print("Failed to setup environment!")
-            return 1
-
-        # Get python executable from virtual environment
-        python_cmd: Path = get_python_executable(DEFAULT_VENV_NAME)
-
-        if not python_cmd.exists():
-            print(f"Error: Python executable not found at {python_cmd}")
-            return 1
-
-        # Run ruff commands (don't fail if ruff finds issues, that's normal)
-        subprocess.run([str(python_cmd), "-m", "ruff", "check", "--fix", "."])
-        subprocess.run([str(python_cmd), "-m", "ruff", "format", "."])
-        subprocess.run([str(python_cmd), "-m", "ruff", "check", "."])
+        # Run ruff commands using UV (don't fail if ruff finds issues, that's normal)
+        subprocess.run(["uv", "run", "ruff", "check", "--fix", "."])
+        subprocess.run(["uv", "run", "ruff", "format", "."])
+        subprocess.run(["uv", "run", "ruff", "check", "."])
 
         print("Ruff formatting and linting completed successfully!")
         return 0

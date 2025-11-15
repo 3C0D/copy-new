@@ -1,14 +1,62 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[project]
+name = "writing-tools"
+version = "1.0.0"
+description = "AI-powered writing tools with multiple providers"
+authors = [
+    {name = "Writing Tools Team", email = "team@writingtools.dev"}
+]
+license = {text = "MIT"}
+requires-python = ">=3.13"
+dependencies = [
+    "darkdetect",
+    "google-generativeai",
+    "openai",
+    "pyperclip",
+    "pynput",
+    "PySide6",
+    "markdown2",
+    "pyinstaller",
+    "ollama",
+    "psutil",
+    "requests",
+    "ruff",
+    "Pillow",
+    "polib",
+    "googletrans",
+    "deep-translator",
+    "packaging",
+    "PySide6-stubs",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "black",
+    "isort",
+    "mypy",
+]
+
 [tool.ruff]
 line-length = 100
+target-version = "py313"  # Target Python version
+cache-dir = ".ruff_cache"  # For caching Ruff's analysis results
 
 # Directories to exclude
 exclude = [
     "build",
     "dist",
     "__pycache__",
-    "myvenv",
+    ".uv",
     ".pytest_cache",
     ".mypy_cache",
+    ".venv",
 ]
 
 [tool.ruff.format]
@@ -18,21 +66,23 @@ indent-style = "space"
 line-ending = "auto"
 
 [tool.ruff.lint]
-# Linting rules (optional)
+# Linting rules
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
     "F",  # pyflakes
     "I",  # isort
     "UP", # pyupgrade
-    "W291", # trailing-whitespace
-    "W292", # no-newline-at-end-of-file
-    "W293", # blank-line-with-whitespace
+    "C4", # flake8-comprehensions
+    "B",  # flake8-bugbear
 ]
 
 ignore = [
     "E501", # line-too-long (handled by the formatter)
 ]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]  # Treat 'src' as first-party imports
 
 [tool.ruff.lint.extend-per-file-ignores]
 # Ignore certain rules for certain files if necessary

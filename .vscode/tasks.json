@@ -1,0 +1,56 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Dev",
+            "type": "shell",
+            "command": "uv",
+            "args": [
+                "run",
+                "python",
+                "Windows_and_Linux/scripts/dev_script.py"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Run Build Dev",
+            "type": "shell",
+            "command": "uv",
+            "args": [
+                "run",
+                "python",
+                "Windows_and_Linux/scripts/build_dev.py"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Run Build Final",
+            "type": "shell",
+            "command": "uv",
+            "args": [
+                "run",
+                "python",
+                "Windows_and_Linux/scripts/build_final.py"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        }
+    ]
+}

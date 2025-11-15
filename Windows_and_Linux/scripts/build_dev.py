@@ -32,7 +32,6 @@ import sys
 from pathlib import Path
 
 # ===== GLOBAL CONFIGURATION =====
-DEFAULT_VENV_NAME = "myvenv"
 DEFAULT_SCRIPT_NAME = "main.py"
 MODE = "build-dev"
 
@@ -49,8 +48,6 @@ if os.name == "nt":  # Windows
         copy_required_files,
         get_executable_name,
         get_project_root,
-        get_python_executable,
-        setup_environment,
         terminate_existing_processes,
     )
 else:  # Linux/Unix
@@ -62,8 +59,6 @@ else:  # Linux/Unix
         copy_required_files,
         get_executable_name,
         get_project_root,
-        get_python_executable,
-        setup_environment,
         terminate_existing_processes,
     )
 
@@ -145,7 +140,7 @@ def should_auto_clean() -> bool:
 
 
 def run_dev_build(
-    venv_path: str = "myvenv", console_mode: bool = False, clean_build: bool = False
+    console_mode: bool = False, clean_build: bool = False
 ) -> tuple[bool, bool]:
     """Run PyInstaller build for development (faster, less cleanup)
 
@@ -175,17 +170,12 @@ def run_dev_build(
         except Exception as e:
             print(f"Warning: Could not remove {spec_file}: {e}")
 
-    # Use the virtual environment's Python to run PyInstaller
-    python_cmd: Path = get_python_executable(venv_path)
-
     # Build icon path
     icon_path = Path("src/config/icons/app_icon.ico")
 
-    # Build PyInstaller command with exclusions
+    # Build PyInstaller command with exclusions - use UV instead of venv path
     pyinstaller_command = [
-        python_cmd,
-        "-m",
-        "PyInstaller",
+        "uv", "run", "-m", "PyInstaller",
         "--onedir",
         "--console" if console_mode else "--windowed",
         f"--icon={icon_path}",
@@ -312,12 +302,8 @@ def main():
         project_root = get_project_root()
         print(f"Project root: {project_root.name}")
 
-        # Setup environment (virtual env + dependencies)
-        print("Setting up development environment...")
-        success, _ = setup_environment(DEFAULT_VENV_NAME)
-        if not success:
-            print("\nFailed to setup environment!")
-            return 1
+        # With UV, environment is automatically managed - no setup needed
+        print("Environment automatically managed by UV")
 
         # Copy required files
         if not copy_required_files_dev():

@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 # Configuration
-DEFAULT_VENV_NAME = "myvenv"
+
 DEFAULT_SCRIPT_NAME = "main.py"
 MODE = "dev"
 
@@ -21,8 +21,6 @@ if os.name == "nt":  # Windows
         clear_console,
         get_executable_name,
         get_project_root,
-        get_python_executable,
-        setup_environment,
         terminate_existing_processes,
     )
 else:  # Linux/Unix
@@ -31,32 +29,23 @@ else:  # Linux/Unix
         clear_console,
         get_executable_name,
         get_project_root,
-        get_python_executable,
-        setup_environment,
         terminate_existing_processes,
     )
 
 
 def launch_application(
-    venv_path: str = DEFAULT_VENV_NAME,
     script_name: str = DEFAULT_SCRIPT_NAME,
     extra_args: list[str] | None = None,
 ) -> bool:
-    """Launch the main application using the virtual environment"""
-    python_cmd: Path = get_python_executable(venv_path)
-
-    if not python_cmd.exists():
-        print(f"Error: Python executable not found at {python_cmd}")
-        return False
-
+    """Launch the main application using UV"""
     # main.py should be in the current directory (Windows_and_Linux)
     script_path = Path(script_name)
     if not script_path.exists():
         print(f"Error: Main script not found: {script_path}")
         return False
 
-    # Build command with extra arguments
-    cmd = [str(python_cmd), str(script_path)]
+    # Build UV command with extra arguments
+    cmd = ["uv", "run", str(script_path)]
     if extra_args:
         cmd.extend(extra_args)
 
@@ -65,7 +54,7 @@ def launch_application(
     )
 
     try:
-        # Launch the application
+        # Launch the application with UV
         result = subprocess.run(cmd, check=True)
         return result.returncode == 0
     except subprocess.CalledProcessError as e:
@@ -93,12 +82,8 @@ def main():
         project_root = get_project_root()
         print(f"Project root: {project_root.name}")
 
-        # Setup environment (virtual env + dependencies)
-        print("Setting up development environment...")
-        success, _ = setup_environment(DEFAULT_VENV_NAME)
-        if not success:
-            print("\nFailed to setup environment!")
-            return 1
+        # With UV, environment is automatically managed - no setup needed
+        print("Environment automatically managed by UV")
 
         # Stop existing processes (both exe and script)
         print("Terminating existing processes...")
@@ -112,7 +97,7 @@ def main():
 
         # Launch application with extra arguments
         print()
-        if not launch_application(DEFAULT_VENV_NAME, extra_args=extra_args):
+        if not launch_application(extra_args=extra_args):
             print("\nFailed to launch application!")
             return 1
 

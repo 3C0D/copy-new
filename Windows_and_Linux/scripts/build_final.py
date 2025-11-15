@@ -11,7 +11,6 @@ import sys
 from pathlib import Path
 
 # Configuration
-DEFAULT_VENV_NAME = "myvenv"
 DEFAULT_SCRIPT_NAME = "main.py"
 MODE = "build-final"
 
@@ -24,8 +23,6 @@ if os.name == "nt":  # Windows
         copy_required_files,
         get_executable_name,
         get_project_root,
-        get_python_executable,
-        setup_environment,
         terminate_existing_processes,
     )
 else:  # Linux/Unix
@@ -37,8 +34,6 @@ else:  # Linux/Unix
         copy_required_files,
         get_executable_name,
         get_project_root,
-        get_python_executable,
-        setup_environment,
         terminate_existing_processes,
     )
 
@@ -101,19 +96,14 @@ def clean_build_directories() -> None:
             print(f"Warning: Could not clean {file}: {e}")
 
 
-def run_build_final(venv_path: str = "myvenv") -> bool:
+def run_build_final() -> bool:
     """Run PyInstaller build for final release (clean, optimized)"""
-    # Use the virtual environment's Python to run PyInstaller
-    python_cmd = get_python_executable(venv_path)
-
     # Build icon path
     icon_path = Path("src/config/icons/app_icon.ico")
 
-    # Build PyInstaller command with exclusions
+    # Build PyInstaller command with exclusions - use UV
     pyinstaller_command = [
-        python_cmd,
-        "-m",
-        "PyInstaller",
+        "uv", "run", "-m", "PyInstaller",
         "--onefile",
         "--windowed",
         f"--icon={icon_path}",
@@ -159,22 +149,11 @@ def main():
         project_root = get_project_root()
         print(f"Project root: {project_root.name}")
 
-        # Setup environment (virtual env + dependencies)
-        print("Setting up development environment...")
-        success, _ = setup_environment(DEFAULT_VENV_NAME)
-        if not success:
-            print("\nFailed to setup environment!")
-            return 1
+        # With UV, environment is automatically managed - no setup needed
+        print("Environment automatically managed by UV")
 
         # Clean build directories
         clean_build_directories()
-
-        # Setup environment (virtual env + dependencies)
-        print("Setting up build environment...")
-        success, _ = setup_environment()
-        if not success:
-            print("\nFailed to setup environment!")
-            return 1
 
         # Copy required files
         if not copy_required_files_production():

@@ -208,14 +208,12 @@ Hidden=false
     @staticmethod
     def get_dev_startup_command() -> str:
         """
-        Get the command for development startup.
+        Get the command for development startup using UV.
         """
-        project_root: Path = Path(__file__).parent.parent
-        venv_python: Path = project_root / "myvenv" / "Scripts" / "python.exe"
-        dev_script: Path = project_root / "scripts" / "dev_script.py"
+        project_root: Path = Path(__file__).parent.parent.parent
         debug_args: str = "--console"
         command: str = (
-            f'cmd /k "cd /d "{project_root}" && "{venv_python}" "{dev_script}" {debug_args}"'
+            f'cmd /k "cd /d "{project_root}" && uv run scripts/dev_script.py {debug_args}"'
         )
         return command
 

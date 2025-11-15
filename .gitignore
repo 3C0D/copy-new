@@ -6,7 +6,13 @@
 
 # VSCode settings (exclude all VSCode config files)
 .vscode/launch.json
-.
+
+# Kilocode
+.kilocode/
+
+# UV (replaces traditional venv)
+.uv/
+uv.lock
 
 # Development notes and temporary docs
 dev_notes/
@@ -20,7 +26,7 @@ STARTUP_DEBUG_README.md
 **/*.pyo
 **/*.mo
 
-# Virtual environment
+# Virtual environment (deprecated - using UV now)
 Windows_and_Linux/myvenv/
 
 # Build directories
