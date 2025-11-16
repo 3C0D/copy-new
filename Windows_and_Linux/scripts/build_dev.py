@@ -40,7 +40,7 @@ CONSOLE_MODE_DEFAULT = True  # True = console visible by default, False = window
 
 # Import utilities based on platform
 if os.name == "nt":  # Windows
-    from utils import (
+    from utils import (  # type: ignore
         PYINSTALLER_EXCLUSIONS,
         BuildTimer,
         check_data,
@@ -139,9 +139,7 @@ def should_auto_clean() -> bool:
     return False
 
 
-def run_dev_build(
-    console_mode: bool = False, clean_build: bool = False
-) -> tuple[bool, bool]:
+def run_dev_build(console_mode: bool = False, clean_build: bool = False) -> tuple[bool, bool]:
     """Run PyInstaller build for development (faster, less cleanup)
 
     Returns:
@@ -175,7 +173,10 @@ def run_dev_build(
 
     # Build PyInstaller command with exclusions - use UV instead of venv path
     pyinstaller_command = [
-        "uv", "run", "-m", "PyInstaller",
+        "uv",
+        "run",
+        "-m",
+        "PyInstaller",
         "--onedir",
         "--console" if console_mode else "--windowed",
         f"--icon={icon_path}",

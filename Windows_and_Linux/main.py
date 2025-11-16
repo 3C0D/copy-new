@@ -32,18 +32,18 @@ def main():
     """
     try:
         app = WritingToolsApp(sys.argv)
-        app.setQuitOnLastWindowClosed(False)
+        app.setQuitOnLastWindowClosed(False) # prevent from closing the app when all windows are closed
 
         if CONSOLE_MODE:
             logging.debug("Application started in console mode")
             logging.debug("Check your system tray for the Writing Tools icon")
 
-        exit_code = app.exec()
+        exit_code = app.exec() # run the application event loop. Allow the app to handle events and windows.
 
         if CONSOLE_MODE:
             logging.debug(f"Application exited with code: {exit_code}")
 
-        sys.exit(exit_code)
+        sys.exit(exit_code)  # Exit the application with the code returned by the event loop
 
     except KeyboardInterrupt:
         if CONSOLE_MODE:
